@@ -11,32 +11,12 @@ export default function PlateformesPlacement() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Plateformes et Placement</h1>
-
-        <div className="flex justify-center mb-8">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              const link = document.createElement('a');
-              link.href = '/Guide des formats visuels et des contraintes.pdf';
-              link.download = 'Guide des formats visuels et des contraintes.pdf';
-              link.onerror = () => {
-                alert('Le document n\'est pas disponible pour le moment. Veuillez réessayer plus tard.');
-              };
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Télécharger le guide des formats
-          </Button>
-        </div>
+        <h1 className="text-3xl font-bold mb-4">Plateformes et Placements</h1>
 
         <Tabs defaultValue="social" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="social">Réseaux Sociaux</TabsTrigger>
-            <TabsTrigger value="google">Google</TabsTrigger>
+            <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="sms">Campagnes SMS</TabsTrigger>
           </TabsList>
 
@@ -48,44 +28,42 @@ export default function PlateformesPlacement() {
                 <CardDescription>Formats publicitaires et spécificités par plateforme</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="linkedin">
+                <Tabs defaultValue="meta">
                   <TabsList className="mb-4">
+                    <TabsTrigger value="meta">META</TabsTrigger>
                     <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
                     <TabsTrigger value="snapchat">Snapchat</TabsTrigger>
-                    <TabsTrigger value="meta">META</TabsTrigger>
                     <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+                    <TabsTrigger value="spotify">Spotify</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="linkedin">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">LinkedIn</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo LinkedIn.png"
+                          alt="Logo LinkedIn"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">LinkedIn</h3>
+                      </div>
                       <p>
-                        LinkedIn est idéal pour le marketing B2B et le recrutement, offrant un ciblage précis basé sur
-                        les compétences professionnelles.
+                        LinkedIn est une plateforme idéale pour toucher les professionnels (B2B). Elle offre un ciblage précis basé sur les données professionnelles : fonction (ex: marketing, RH, finance…), titre de poste (ex: CEO, Marketing Manager…), compétences (skills listées sur le profil), années d'expérience, niveau hiérarchique (ex: employé, manager, directeur…), domaine d'études (ex: ingénierie, commerce, etc.). Ciblage entreprises : nom de l'entreprise (ciblage précis de sociétés spécifiques), taille de l'entreprise (ex: 1–10 employés, 11–50, etc.), secteur d'activité (industrie, IT, finance, santé, etc.).
                       </p>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
                       <ul className="list-disc list-inside space-y-2">
-                        <li>
-                          <span className="font-medium">Sponsored Content :</span> Publications sponsorisées dans le fil
-                          d'actualité
-                        </li>
-                        <li>
-                          <span className="font-medium">Message Ads :</span> Messages InMail sponsorisés
-                        </li>
-                        <li>
-                          <span className="font-medium">Dynamic Ads :</span> Publicités personnalisées avec les données
-                          du profil
-                        </li>
-                        <li>
-                          <span className="font-medium">Text Ads :</span> Petites annonces textuelles dans la barre
-                          latérale
-                        </li>
+                        <li>Image fixe</li>
+                        <li>Carrousel</li>
+                        <li>Vidéo</li>
+                        <li>Document (mise en avant de contenu PDF à télécharger après soumission d'un formulaire)</li>
                       </ul>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
                         <Image
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Linkedin-CaMjZhocax0R1dK3JQp8Arvo4ajKua.png"
+                          src="/images/Nouveau visuel Linkedin.png"
                           alt="Exemple de publicité LinkedIn"
                           width={350}
                           height={525}
@@ -97,26 +75,31 @@ export default function PlateformesPlacement() {
 
                   <TabsContent value="snapchat">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Snapchat</h3>
-                      <p>Snapchat est idéal pour toucher une audience jeune avec un contenu éphémère et engageant.</p>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Snapchat.png"
+                          alt="Logo Snapchat"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Snapchat</h3>
+                      </div>
+                      <p>
+                        Snapchat est idéal pour toucher une audience jeune avec un contenu dynamique.
+                      </p>
+                      <p>
+                        70 % des utilisateurs de Snapchat ont moins de 35 ans, avec une très forte concentration entre 13 et 24 ans.
+                      </p>
+                      <p>
+                        C'est aussi une plateforme qui évolue avec son temps et ses utilisateurs (23%).
+                      </p>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
                       <ul className="list-disc list-inside space-y-2">
-                        <li>
-                          <span className="font-medium">Snap Ads :</span> Publicités plein écran de 10 secondes
-                        </li>
-                        <li>
-                          <span className="font-medium">Story Ads :</span> Collection de 3-20 Snaps
-                        </li>
-                        <li>
-                          <span className="font-medium">Collection Ads :</span> Vitrine de produits cliquables
-                        </li>
-                        <li>
-                          <span className="font-medium">Filters :</span> Superpositions créatives sur les Snaps
-                        </li>
-                        <li>
-                          <span className="font-medium">Lenses :</span> Expériences AR interactives
-                        </li>
+                        <li>Vidéo</li>
+                        <li>Image fixe</li>
+                        <li>Animation visuelle</li>
                       </ul>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
@@ -133,10 +116,24 @@ export default function PlateformesPlacement() {
 
                   <TabsContent value="meta">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">META (Facebook & Instagram)</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo META.png"
+                          alt="Logo META"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">META (Facebook & Instagram)</h3>
+                      </div>
                       <p>
-                        Les plateformes Meta offrent une large audience et des options de ciblage démographique et
-                        comportemental avancées.
+                        META est la référence en terme de publicité sur les réseaux sociaux : nombreuses possibilités de ciblages, large audience sur la plateforme, possibilité de paramétrage et d'optimisation poussées…
+                      </p>
+                      <p>
+                        META englobe plusieurs plateformes : Facebook, Instagram, WhatsApp, Messenger et depuis peu : Threads (publicité pas encore disponible pour le moment sur cette plateforme)
+                      </p>
+                      <p>
+                        +3,9 milliards d'utilisateurs actifs mensuels sur l'écosystème Meta (2025).
                       </p>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
@@ -151,9 +148,6 @@ export default function PlateformesPlacement() {
                           <span className="font-medium">Carrousel :</span> Plusieurs images/vidéos défilantes
                         </li>
                         <li>
-                          <span className="font-medium">Collection :</span> Vitrine de produits combinée à une vidéo
-                        </li>
-                        <li>
                           <span className="font-medium">Stories :</span> Publicités plein écran entre les stories
                         </li>
                         <li>
@@ -164,33 +158,63 @@ export default function PlateformesPlacement() {
                       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="border rounded-md overflow-hidden">
                           <Image
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/META%20Video-SMZMVp5QnxLLitxMpNcEFOp7voXWTT.png"
-                            alt="Exemple de publicité META Feed"
+                            src="/images/Visuel fixe Facebook.png"
+                            alt="Exemple de publicité Facebook Feed"
                             width={300}
                             height={600}
                             className="w-full h-auto"
                           />
-                          <p className="text-center text-sm p-2">Format Feed</p>
+                          <p className="text-center text-sm p-2">Format Feed Facebook</p>
                         </div>
                         <div className="border rounded-md overflow-hidden">
                           <Image
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/META%20Story-MwHiwYXPrU1UHo6Qehth2eXj2okDvf.png"
-                            alt="Exemple de publicité META Story"
+                            src="/images/Visuel story Facebook.png"
+                            alt="Exemple de publicité Facebook Story"
                             width={300}
                             height={600}
                             className="w-full h-auto"
                           />
-                          <p className="text-center text-sm p-2">Format Story</p>
+                          <p className="text-center text-sm p-2">Format Story Facebook</p>
                         </div>
                         <div className="border rounded-md overflow-hidden">
                           <Image
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/META%20Carrousel-S9nKEIX6aoA4F077SMaUOKZheupATs.png"
-                            alt="Exemple de publicité META Carrousel"
+                            src="/images/Visuel carrousel Facebook.png"
+                            alt="Exemple de publicité Facebook Carrousel"
                             width={300}
                             height={600}
                             className="w-full h-auto"
                           />
-                          <p className="text-center text-sm p-2">Format Carrousel</p>
+                          <p className="text-center text-sm p-2">Format Carrousel Facebook</p>
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Visuel fixe Instagram.png"
+                            alt="Exemple de publicité Instagram Feed"
+                            width={300}
+                            height={600}
+                            className="w-full h-auto"
+                          />
+                          <p className="text-center text-sm p-2">Format Feed Instagram</p>
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Visuel story Instagram.png"
+                            alt="Exemple de publicité Instagram Story"
+                            width={300}
+                            height={600}
+                            className="w-full h-auto"
+                          />
+                          <p className="text-center text-sm p-2">Format Story Instagram</p>
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Visuel carrousel Instagram.png"
+                            alt="Exemple de publicité Instagram Carrousel"
+                            width={300}
+                            height={600}
+                            className="w-full h-auto"
+                          />
+                          <p className="text-center text-sm p-2">Format Carrousel Instagram</p>
                         </div>
                       </div>
                     </div>
@@ -198,7 +222,16 @@ export default function PlateformesPlacement() {
 
                   <TabsContent value="tiktok">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">TikTok</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo TikTok.png"
+                          alt="Logo TikTok"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">TikTok</h3>
+                      </div>
                       <p>
                         TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement
                         les générations Z et Y.
@@ -206,20 +239,9 @@ export default function PlateformesPlacement() {
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
                       <ul className="list-disc list-inside space-y-2">
-                        <li>
-                          <span className="font-medium">In-Feed Ads :</span> Vidéos natives dans le fil "Pour toi"
-                        </li>
-                        <li>
-                          <span className="font-medium">TopView :</span> Première vidéo que les utilisateurs voient en
-                          ouvrant l'app
-                        </li>
-                        <li>
-                          <span className="font-medium">Branded Hashtag Challenge :</span> Défis sponsorisés incitant à
-                          la création de contenu
-                        </li>
-                        <li>
-                          <span className="font-medium">Branded Effects :</span> Filtres et effets AR personnalisés
-                        </li>
+                        <li>Vidéo</li>
+                        <li>Image fixe</li>
+                        <li>Animation visuelle</li>
                       </ul>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
@@ -233,6 +255,29 @@ export default function PlateformesPlacement() {
                       </div>
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="spotify">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Spotify.png"
+                          alt="Logo Spotify"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Spotify</h3>
+                      </div>
+                      <p>
+                        Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.
+                      </p>
+
+                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
+                      <ul className="list-disc list-inside space-y-2">
+                        <li>Audio Ads : annonces audio diffusées entre les chansons, d'une durée maximale de 30 secondes</li>
+                      </ul>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
@@ -242,10 +287,21 @@ export default function PlateformesPlacement() {
           <TabsContent value="google">
             <Card>
               <CardHeader>
-                <CardTitle>Google</CardTitle>
+                <CardTitle>Google Ads</CardTitle>
                 <CardDescription>Publicités Search, Display et YouTube</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-6 space-y-2">
+                  <p>Google Ads (anciennement Google AdWords) est la plateforme publicitaire officielle de Google. Elle permet de créer et diffuser des annonces publicitaires sur :</p>
+                  <ul className="list-disc list-inside ml-6">
+                    <li>Le moteur de recherche Google (quand les gens tapent une requête)</li>
+                    <li>YouTube (publicité vidéo)</li>
+                    <li>Le réseau Display Google (sites partenaires affichant des bannières)</li>
+                    <li>Gmail (annonces sponsorisées dans les mails)</li>
+                    <li>Google Shopping (pour les produits e-commerce) <span className="italic">- non réalisé par Link</span></li>
+                    <li>Applications mobiles via Google Play et AdMob <span className="italic">- non réalisé par Link</span></li>
+                  </ul>
+                </div>
                 <Tabs defaultValue="search">
                   <TabsList className="mb-4">
                     <TabsTrigger value="search">Search</TabsTrigger>
@@ -255,31 +311,35 @@ export default function PlateformesPlacement() {
 
                   <TabsContent value="search">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Google Search</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Le réseau de recherche Google Search</h3>
+                      </div>
                       <p>
                         Les annonces Google Search apparaissent dans les résultats de recherche Google et ciblent les
-                        utilisateurs avec une intention d'achat précise.
+                        utilisateurs avec une intention de recherche précise.
                       </p>
-
                       <h4 className="font-medium mt-6">Types d'annonces</h4>
                       <ul className="list-disc list-inside space-y-2">
                         <li>
-                          <span className="font-medium">Annonces textuelles :</span> Format texte standard dans les
-                          résultats de recherche
+                          <span className="font-medium">Annonces textuelles :</span> Format texte standard dans les résultats de recherche
                         </li>
                         <li>
-                          <span className="font-medium">Annonces dynamiques :</span> Créées automatiquement à partir du
-                          contenu de votre site
+                          <span className="font-medium">Annonces dynamiques :</span> Créées automatiquement à partir du contenu de votre site <span className="italic">—&gt; non réalisé par Link car le contenu est toujours validé par le client</span>
                         </li>
                         <li>
-                          <span className="font-medium">Annonces Shopping :</span> Présentent des produits avec images
-                          et prix
+                          <span className="font-medium">Annonces Shopping :</span> Présentent des produits avec images et prix <span className="italic">—&gt; non réalisé par Link (gestion du stock, inventaire, accès à des bases de données…)</span>
                         </li>
                       </ul>
-
                       <div className="mt-6 border rounded-md overflow-hidden">
                         <Image
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Search-kjmLDrUK6exHnqL9ypP8fVrgZ1g9gc.png"
+                          src="/images/search.png"
                           alt="Exemple de publicité Google Search"
                           width={800}
                           height={600}
@@ -291,76 +351,108 @@ export default function PlateformesPlacement() {
 
                   <TabsContent value="display">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Google Display</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Google Display</h3>
+                      </div>
                       <p>
                         Le réseau Display de Google permet d'afficher des annonces visuelles sur des millions de sites
                         web et applications.
                       </p>
-
-                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>
-                          <span className="font-medium">Bannières adaptatives :</span> S'adaptent automatiquement aux
-                          espaces disponibles
-                        </li>
-                        <li>
-                          <span className="font-medium">Annonces illustrées :</span> Images fixes avec différentes
-                          tailles standard
-                        </li>
-                        <li>
-                          <span className="font-medium">Annonces HTML5 :</span> Contenus interactifs et animés
-                        </li>
-                        <li>
-                          <span className="font-medium">Annonces vidéo :</span> Format vidéo dans l'environnement
-                          Display
-                        </li>
-                      </ul>
-
-                      <div className="mt-6 border rounded-md overflow-hidden">
-                        <Image
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Display-lXomOjJCSh1ozTacWzgfVdPWzqFJE2.png"
-                          alt="Exemple de publicité Google Display"
-                          width={800}
-                          height={400}
-                          className="w-full h-auto"
-                        />
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Display 1.png"
+                            alt="Exemple Display 1"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Display 2.png"
+                            alt="Exemple Display 2"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/Display 3.png"
+                            alt="Exemple Display 3"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="youtube">
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">YouTube</h3>
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo YouTube.png"
+                          alt="Logo YouTube"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">YouTube</h3>
+                      </div>
                       <p>
-                        YouTube permet de diffuser des annonces vidéo à une audience massive avec différents formats
-                        d'engagement.
+                        C'est la référence en terme de contenu vidéo. Cette plateforme est devenue le 2ᵉ moteur de recherche mondial après Google.
+                        Les annonces publicitaires sont diffusées avant (pré-roll), pendant (mid-roll) ou après les vidéos.
                       </p>
-
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
                       <ul className="list-disc list-inside space-y-2">
                         <li>
-                          <span className="font-medium">TrueView In-Stream :</span> Vidéos ignorables après 5 secondes
+                          <span className="font-medium">Annonces in-stream (instant) :</span> Les annonces InStream sont diffusées avant, pendant ou après d'autres vidéos. Les annonces bumper durent six secondes et ne peuvent pas être ignorées. Les annonces InStream désactivables durent au moins sept secondes et peuvent être ignorées au bout de cinq secondes.
                         </li>
                         <li>
-                          <span className="font-medium">Annonces non ignorables :</span> Vidéos de 15-20 secondes
+                          <span className="font-medium">Annonces in-feed (carré) :</span> Les annonces In-Feed durent au moins sept secondes, et comprennent une miniature de vidéo et du texte. Les utilisateurs peuvent regarder l'annonce vidéo en lecture automatique ou cliquer sur la miniature pour visionner l'annonce sur une chaîne YouTube ou une page de lecture.
                         </li>
                         <li>
-                          <span className="font-medium">Annonces Bumper :</span> Vidéos courtes de 6 secondes maximum
-                        </li>
-                        <li>
-                          <span className="font-medium">Annonces Masthead :</span> Format premium en haut de la page
-                          d'accueil
+                          <span className="font-medium">Annonces shorts (story) :</span> Les annonces Shorts durent au moins six secondes et s'affichent entre les vidéos générées par les utilisateurs sur YouTube Shorts. Les utilisateurs peuvent ignorer l'annonce à tout moment. Pour augmenter le nombre de vues de vos annonces Shorts, utilisez une vidéo verticale.
                         </li>
                       </ul>
-
-                      <div className="mt-6 border rounded-md overflow-hidden">
-                        <Image
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Youtube-9fgSsmHIgBqTngyfpa8CW4z2uLHM12.png"
-                          alt="Exemple de publicité YouTube"
-                          width={800}
-                          height={500}
-                          className="w-full h-auto"
-                        />
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/YouTube 1.png"
+                            alt="Exemple YouTube 1"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/YouTube 2.png"
+                            alt="Exemple YouTube 2"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
+                        <div className="border rounded-md overflow-hidden">
+                          <Image
+                            src="/images/YouTube 3.png"
+                            alt="Exemple YouTube 3"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                          />
+                        </div>
                       </div>
                     </div>
                   </TabsContent>
@@ -377,38 +469,7 @@ export default function PlateformesPlacement() {
                 <CardDescription>Marketing par SMS via prestataires externes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p>
-                  Les campagnes SMS sont un canal direct et personnel pour communiquer avec vos clients, avec un taux
-                  d'ouverture moyen de 98%.
-                </p>
-
-                <h3 className="text-lg font-medium">Avantages du marketing par SMS</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Taux d'ouverture élevé</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p>
-                        La plupart des SMS sont lus dans les 3 minutes suivant leur réception, offrant une visibilité
-                        incomparable pour vos communications urgentes.
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Efficacité et ROI</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p>
-                        Le marketing par SMS offre un excellent retour sur investissement, avec des taux de conversion
-                        souvent supérieurs aux autres canaux.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <p>Les campagnes SMS ne sont pas gérées en interne mais elles sont confiées à nos partenaires.</p>
               </CardContent>
               <CardFooter>
                 <Link href="/formation/plateformes-placement/quiz">

@@ -25,7 +25,7 @@ const modules = [
     description: "CM vs TM et processus marketing",
   },
   {
-    title: "Plateformes et placement",
+    title: "Plateformes et placements",
     href: "/formation/plateformes-placement",
     description: "Réseaux sociaux, Google, et SMS",
   },
@@ -95,6 +95,12 @@ export default function Header() {
               <NavigationMenuItem>
                 <Link href="/glossaire" legacyBehavior passHref>
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>Glossaire</NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <Link href="/documents" legacyBehavior passHref>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Documents</NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
 

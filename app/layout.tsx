@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light">
           <AuthProvider>
             <div className="min-h-screen flex flex-col">
@@ -30,7 +30,7 @@ export default function RootLayout({
               <main className="flex-1">{children}</main>
               <footer className="py-6 border-t">
                 <div className="container mx-auto px-4 text-center text-muted-foreground">
-                  © {new Date().getFullYear()} Formation Commerciale Interactive
+                  © {new Date().getFullYear()} Formation Commerciale Interactive Test
                 </div>
               </footer>
             </div>
