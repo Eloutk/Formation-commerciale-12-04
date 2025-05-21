@@ -65,9 +65,8 @@ export default function ObjectifsCampagne() {
           </Card>
         </section>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+        <Tabs defaultValue="meta" className="w-full">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
@@ -75,62 +74,6 @@ export default function ObjectifsCampagne() {
             <TabsTrigger value="spotify">Spotify</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
           </TabsList>
-
-          {/* Onglet Vue d'ensemble */}
-          <TabsContent value="overview">
-            <Card>
-              <CardHeader>
-                <CardTitle>Vue d'ensemble des objectifs de campagne</CardTitle>
-                <CardDescription>
-                  Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <p>
-                  Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
-                </p>
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="/images/Objectifs de campagne V2.png"
-                    alt="Objectifs de campagne V2"
-                    width={900}
-                    height={600}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-primary">La notoriété</h3>
-                    <p className="mt-2">
-                      Les campagnes de notoriété visent à faire connaître votre marque, produit ou service auprès d'un maximum de personnes. L'objectif principal est d'atteindre un large public et de créer une première impression positive.
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-primary">Le trafic web</h3>
-                    <p className="mt-2">
-                      Ces campagnes ont pour but de générer des visites sur votre site web. Elles ciblent des personnes susceptibles d'être intéressées par votre offre et les encouragent à cliquer pour en savoir plus.
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-primary">Les leads</h3>
-                    <p className="mt-2">
-                      Les campagnes de leads sont traitées et gérées par l'univers META. Il s'agit d'un formulaire à remplir directement sur la plateforme sans pour autant se rendre sur le site internet du client. Ce n'est pas le site qui collecte les informations clients mais directement la plateforme publicitaire.
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-primary">La conversion</h3>
-                    <p className="mt-2">
-                      Ces campagnes visent à générer des actions spécifiques à forte valeur, comme des achats, des inscriptions ou des téléchargements directement sur le site de l'annonceur. Elles ciblent des personnes prêtes à passer à l'action et à devenir clients.
-                    </p>
-                  </div>
-                </div>
-                <div className="bg-red-200 border border-red-500 text-red-800 p-4 rounded-lg mt-6">
-                  <h3 className="font-bold mb-2">Règle clé :</h3>
-                  <p>1 campagne = 1 objectif</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Onglet META */}
           <TabsContent value="meta">
