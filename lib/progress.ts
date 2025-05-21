@@ -50,15 +50,6 @@ export function getModulesProgress() {
       icon: "Target",
     },
     {
-      id: "architecture-campagnes",
-      title: "Architecture des campagnes",
-      description: "Structurez efficacement vos campagnes publicitaires",
-      href: "/formation/architecture-campagnes",
-      progress: 40,
-      quizScore: 65,
-      icon: "FolderTree",
-    },
-    {
       id: "ciblage",
       title: "Ciblage",
       description: "Maîtrisez les stratégies de ciblage par plateforme",
@@ -66,6 +57,15 @@ export function getModulesProgress() {
       progress: 30,
       quizScore: null,
       icon: "Users",
+    },
+    {
+      id: "architecture-campagnes",
+      title: "Architecture des campagnes",
+      description: "Structurez efficacement vos campagnes publicitaires",
+      href: "/formation/architecture-campagnes",
+      progress: 40,
+      quizScore: 65,
+      icon: "FolderTree",
     },
     {
       id: "tracking",

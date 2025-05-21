@@ -40,14 +40,14 @@ const modules = [
     description: "Définissez des objectifs SMART",
   },
   {
-    title: "Architecture des campagnes",
-    href: "/formation/architecture-campagnes",
-    description: "Structurez efficacement vos campagnes",
-  },
-  {
     title: "Ciblage",
     href: "/formation/ciblage",
     description: "Stratégies de ciblage par plateforme",
+  },
+  {
+    title: "Architecture des campagnes",
+    href: "/formation/architecture-campagnes",
+    description: "Structurez efficacement vos campagnes",
   },
   {
     title: "Tracking",
