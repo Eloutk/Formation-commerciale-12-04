@@ -9,7 +9,61 @@ export default function ObjectifsCampagne() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Objectifs de Campagne</h1>
+        {/* Vue d'ensemble en en-tête */}
+        <section className="mb-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vue d'ensemble des objectifs de campagne</CardTitle>
+              <CardDescription>
+                Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p>
+                Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
+              </p>
+              <div className="my-8 flex justify-center">
+                <Image
+                  src="/images/Objectifs de campagne V2.png"
+                  alt="Objectifs de campagne V2"
+                  width={900}
+                  height={600}
+                  className="rounded-lg border shadow-sm"
+                />
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-primary">La notoriété</h3>
+                  <p className="mt-2">
+                    Les campagnes de notoriété visent à faire connaître votre marque, produit ou service auprès d'un maximum de personnes. L'objectif principal est d'atteindre un large public et de créer une première impression positive.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-primary">Le trafic web</h3>
+                  <p className="mt-2">
+                    Ces campagnes ont pour but de générer des visites sur votre site web. Elles ciblent des personnes susceptibles d'être intéressées par votre offre et les encouragent à cliquer pour en savoir plus.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-primary">Les leads</h3>
+                  <p className="mt-2">
+                    Les campagnes de leads sont traitées et gérées par l'univers META. Il s'agit d'un formulaire à remplir directement sur la plateforme sans pour autant se rendre sur le site internet du client. Ce n'est pas le site qui collecte les informations clients mais directement la plateforme publicitaire.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-primary">La conversion</h3>
+                  <p className="mt-2">
+                    Ces campagnes visent à générer des actions spécifiques à forte valeur, comme des achats, des inscriptions ou des téléchargements directement sur le site de l'annonceur. Elles ciblent des personnes prêtes à passer à l'action et à devenir clients.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-red-200 border border-red-500 text-red-800 p-4 rounded-lg mt-6">
+                <h3 className="font-bold mb-2">Règle clé :</h3>
+                <p>1 campagne = 1 objectif</p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
@@ -82,7 +136,10 @@ export default function ObjectifsCampagne() {
           <TabsContent value="meta">
             <Card>
               <CardHeader>
-                <CardTitle>Objectifs de campagne META (Facebook & Instagram)</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="/images/Logo META.png" alt="Logo META" width={32} height={32} className="rounded-sm" />
+                  <CardTitle>Objectifs de campagne META (Facebook & Instagram)</CardTitle>
+                </div>
                 <CardDescription>
                   Les différents objectifs disponibles sur les plateformes Facebook et Instagram
                 </CardDescription>
@@ -93,16 +150,6 @@ export default function ObjectifsCampagne() {
                   du parcours client. Les objectifs encadrés en rouge représentent les services que nous proposons à nos
                   clients.
                 </p>
-
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Objectifs-de-campagne-META-IRwo961BRLVm86mYcJj1KVYDMm3Xrr.png"
-                    alt="Objectifs de campagne META"
-                    width={600}
-                    height={600}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
 
                 <div className="space-y-4">
                   <div>
@@ -139,7 +186,10 @@ export default function ObjectifsCampagne() {
           <TabsContent value="tiktok">
             <Card>
               <CardHeader>
-                <CardTitle>Objectifs de campagne TikTok</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="/images/Logo TikTok.png" alt="Logo TikTok" width={32} height={32} className="rounded-sm" />
+                  <CardTitle>Objectifs de campagne TikTok</CardTitle>
+                </div>
                 <CardDescription>Les différents objectifs publicitaires disponibles sur TikTok</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -148,16 +198,6 @@ export default function ObjectifsCampagne() {
                   (Notoriété), Consideration (Considération) et Conversion. Les objectifs encadrés en orange
                   représentent les services que nous proposons à nos clients.
                 </p>
-
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Objectifs-de-campagne-Tiktok-qVRN6x3AoftuKg9xziWw9xuaFDi4PV.png"
-                    alt="Objectifs de campagne TikTok"
-                    width={500}
-                    height={700}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
 
                 <div className="space-y-4">
                   <div>
@@ -186,7 +226,10 @@ export default function ObjectifsCampagne() {
           <TabsContent value="linkedin">
             <Card>
               <CardHeader>
-                <CardTitle>Objectifs de campagne LinkedIn</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="/images/Logo LinkedIn.png" alt="Logo LinkedIn" width={32} height={32} className="rounded-sm" />
+                  <CardTitle>Objectifs de campagne LinkedIn</CardTitle>
+                </div>
                 <CardDescription>Les différents objectifs publicitaires disponibles sur LinkedIn</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -195,16 +238,6 @@ export default function ObjectifsCampagne() {
                   catégories : Notoriété, Considération et Conversion. Les objectifs encadrés représentent les services
                   que nous proposons à nos clients.
                 </p>
-
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Objectifs-de-campagne-Linkedin-miJVwemSQ5OBrGRweg9WOgprYsTCq5.png"
-                    alt="Objectifs de campagne LinkedIn"
-                    width={800}
-                    height={700}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
 
                 <div className="space-y-4">
                   <div>
@@ -341,7 +374,10 @@ export default function ObjectifsCampagne() {
           <TabsContent value="spotify">
             <Card>
               <CardHeader>
-                <CardTitle>Objectifs de campagne Spotify</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="/images/Logo Spotify.png" alt="Logo Spotify" width={32} height={32} className="rounded-sm" />
+                  <CardTitle>Objectifs de campagne Spotify</CardTitle>
+                </div>
                 <CardDescription>Les différents objectifs publicitaires disponibles sur Spotify</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -349,16 +385,6 @@ export default function ObjectifsCampagne() {
                   Spotify propose plusieurs objectifs de campagne adaptés à sa plateforme audio. Les objectifs encadrés
                   représentent les services que nous proposons à nos clients.
                 </p>
-
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Objectifs-de-campagne-Spotify-dEHsGb8GTXttVcIo0sYe1LsPVm3DYg.png"
-                    alt="Objectifs de campagne Spotify"
-                    width={1000}
-                    height={800}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
 
                 <div className="space-y-4">
                   <div>
@@ -395,7 +421,10 @@ export default function ObjectifsCampagne() {
           <TabsContent value="snap">
             <Card>
               <CardHeader>
-                <CardTitle>Objectifs de campagne Snapchat</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="/images/Logo Snapchat.png" alt="Logo Snapchat" width={32} height={32} className="rounded-sm" />
+                  <CardTitle>Objectifs de campagne Snapchat</CardTitle>
+                </div>
                 <CardDescription>Les différents objectifs publicitaires disponibles sur Snapchat</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -403,16 +432,6 @@ export default function ObjectifsCampagne() {
                   Snapchat propose plusieurs objectifs de campagne pour répondre à différents besoins marketing. Les
                   objectifs encadrés en orange représentent les services que nous proposons à nos clients.
                 </p>
-
-                <div className="my-8 flex justify-center">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Objectifs-de-campagne-Snap-ZssmsesKN9fcqZSa2vFi57lLXXddZx.png"
-                    alt="Objectifs de campagne Snapchat"
-                    width={400}
-                    height={600}
-                    className="rounded-lg border shadow-sm"
-                  />
-                </div>
 
                 <div className="space-y-4">
                   <div>
