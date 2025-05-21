@@ -17,14 +17,12 @@ export default function TunnelConversion() {
           </CardHeader>
           <CardContent className="space-y-6">
             <p>
-              Le tunnel de conversion représente le parcours que suit un utilisateur depuis sa première interaction avec
-              votre marque jusqu'à la conversion finale (achat, inscription, etc.). Comprendre ce processus est
-              essentiel pour optimiser vos campagnes marketing et maximiser votre retour sur investissement.
+              Le tunnel de conversion représente le parcours que suit un utilisateur depuis sa première interaction avec l'annonceur jusqu'à la conversion finale souhaitée. Comprendre ce processus est essentiel pour optimiser vos campagnes marketing et maximiser votre retour sur investissement. Attention, chaque campagne publicitaire n'a pas forcément un objectif d'achat. La conversion dans une campagne publicitaire désigne l'action précise qu'un utilisateur accomplit après avoir cliqué (ou vu) une publicité, et qui correspond à l'objectif fixé par l'annonceur (récolter de prospect, achats, ou inscription par exemple).
             </p>
 
             <div className="my-8">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-28%20a%CC%80%2015.19.56-sVOaVxCCZ4MdyzakbPxasm4MI3Q9tc.png"
+                src="/images/tunnel-conversion.png"
                 alt="Schéma du tunnel de conversion marketing"
                 width={1200}
                 height={600}
@@ -37,42 +35,30 @@ export default function TunnelConversion() {
 
             <div className="space-y-6">
               <div>
-                <h3 className="text-xl font-semibold text-primary">1. Mettre en place</h3>
+                <h3 className="text-xl font-semibold text-primary">La mise en place</h3>
                 <p className="mt-2">
-                  Avant même de commencer à attirer des visiteurs, cette phase préparatoire est cruciale. Elle comprend
-                  l'audit de la concurrence, la définition de votre stratégie digitale, la mise en place des outils
-                  d'analyse, la définition des objectifs et KPIs, et l'identification précise de vos cibles. Cette étape
-                  pose les fondations de toute votre stratégie d'acquisition.
+                  Cette phase préparatoire est cruciale et permet de poser correctement le cadre à nos équipes supports pour la création de la campagne. Elle comprend l'audit de la concurrence, la définition de votre stratégie digitale, la mise en place des outils de tracking, la définition des objectifs et KPIs, et l'identification précise de vos cibles.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold text-primary">2. Attirer (Étape 1)</h3>
+                <h3 className="text-xl font-semibold text-primary">Attirer</h3>
                 <p className="mt-2">
-                  La première phase du tunnel vise à générer de la notoriété et à sensibiliser votre audience.
-                  L'objectif est d'attirer un maximum d'internautes pertinents vers vos canaux digitaux. Les campagnes à
-                  ce niveau se concentrent sur la visibilité et l'attraction, transformant des simples internautes en
-                  visiteurs de votre site ou application.
+                  La première phase du tunnel vise à générer de la notoriété (pilotée à l'impression) et à sensibiliser votre audience. L'objectif est d'attirer un maximum d'internautes pertinents vers vos canaux digitaux. Cette phase permet à l'algorithme de comprendre la campagne, de travailler le ciblage, mais surtout d'accumuler de la data pour la prochaine phase.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold text-primary">3. Convertir (Étape 2)</h3>
+                <h3 className="text-xl font-semibold text-primary">Convertir</h3>
                 <p className="mt-2">
-                  Cette phase intermédiaire transforme les visiteurs en prospects qualifiés. Elle se concentre sur la
-                  considération et la génération de trafic qualifié. Les visiteurs commencent à s'intéresser activement
-                  à vos produits ou services, et vos actions marketing visent à renforcer cet intérêt et à encourager
-                  l'engagement.
+                  Cette phase se sert de la phase précédente dans le but de générer du trafic qualifié sur la landing page de l'annonceur. On parle ici de campagne pilotée au clic. Les visiteurs commencent à s'intéresser activement à la publicité mais aussi au site internet.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-xl font-semibold text-primary">4. Conclure (Étape 3)</h3>
+                <h3 className="text-xl font-semibold text-primary">Conclure</h3>
                 <p className="mt-2">
-                  La phase finale du tunnel transforme les prospects en clients. C'est l'étape de conversion où se
-                  concrétise le retour sur investissement de vos actions marketing. Les stratégies à ce niveau se
-                  concentrent sur la réduction des frictions et l'incitation à l'action, avec pour objectif d'augmenter
-                  le taux de conversion et de maximiser la valeur client.
+                  La phase finale du tunnel est la phase de conversion. Après avoir mené toutes les phases dans l'ordre, l'algorithme a cumulé beaucoup de data et a déterminé un profil susceptible de transformer. C'est l'étape de conversion où se concrétise le retour sur investissement. (Si campagne de conversion achat, formulaire sur site… ne pas oublier la pose des outils de tracking lors de la mise en place). Pas obliger d'aller au bout du tunnel de conversion.
                 </p>
               </div>
             </div>
@@ -80,10 +66,10 @@ export default function TunnelConversion() {
             <div className="bg-muted p-4 rounded-lg mt-6">
               <h3 className="font-medium mb-2">Points clés à retenir :</h3>
               <ul className="list-disc list-inside space-y-1">
-                <li>Chaque étape du tunnel nécessite des stratégies et des messages différents</li>
-                <li>La mesure des performances à chaque niveau permet d'identifier les points de friction</li>
-                <li>L'optimisation continue du tunnel est essentielle pour améliorer les taux de conversion</li>
-                <li>Un tunnel efficace maintient l'engagement de l'utilisateur tout au long de son parcours</li>
+                <li>Chaque étape du tunnel nécessite des stratégies et messages différents.</li>
+                <li>La conversion ne veut pas forcément dire achat.</li>
+                <li>Chaque étape du tunnel est indispensable pour obtenir des résultats performants et de qualité.</li>
+                <li>L'algorithme doit cumuler de la data avant de changer d'objectif de campagne.</li>
               </ul>
             </div>
           </CardContent>
