@@ -130,20 +130,20 @@ export default function ArchitectureCampagnes() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
                   <Image
-                    src="/images/Exemple EFS META 2 - Architechture.png"
+                    src="/images/exemple-efs-meta-2-architechture.png"
                     alt="Exemple EFS META 2 - Architechture"
                     width={600}
                     height={400}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                   <Image
-                    src="/images/Exemple EFS META - Architechture.png"
+                    src="/images/exemple-efs-meta-architechture.png"
                     alt="Exemple EFS META - Architechture"
                     width={600}
                     height={400}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
@@ -158,11 +158,11 @@ export default function ArchitectureCampagnes() {
                     <AccordionContent>
                       <div className="my-4">
                         <Image
-                          src="/images/Recap-possible-META.png"
+                          src="/images/recap-possible-meta.png"
                           alt="Tableau récapitulatif des possibilités META"
-                          width={1200}
-                          height={600}
-                          className="rounded-lg border shadow-sm mx-auto"
+                          width={600}
+                          height={400}
+                          className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                         />
                       </div>
                     </AccordionContent>
@@ -271,20 +271,20 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes Display et YouTube</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
                   <Image
-                    src="/images/Display architechture Zone.png"
+                    src="/images/display-architechture-zone.png"
                     alt="Display architechture Zone"
                     width={600}
                     height={400}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                   <Image
-                    src="/images/Architechture Display EFS.png"
+                    src="/images/architechture-display-efs.png"
                     alt="Architechture Display EFS"
                     width={600}
                     height={400}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
@@ -319,13 +319,13 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes Search</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="my-8">
+                <div className="flex justify-center items-center">
                   <Image
-                    src="/images/Exemple EFS - Google Search.png"
+                    src="/images/exemple-efs-google-search.png"
                     alt="Exemple EFS - Google Search"
-                    width={1200}
-                    height={600}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
@@ -380,13 +380,13 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes LinkedIn Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="my-8">
+                <div className="flex justify-center items-center">
                   <Image
-                    src="/images/Exemple architechture Linkedin.png"
+                    src="/images/exemple-architechture-linkedin.png"
                     alt="Exemple architechture Linkedin"
-                    width={1200}
-                    height={600}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
@@ -433,13 +433,13 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes TikTok Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="my-8">
+                <div className="flex justify-center items-center">
                   <Image
-                    src="/images/Architechture Tiktok .png"
+                    src="/images/architechture-tiktok.png"
                     alt="Architechture Tiktok"
-                    width={1200}
-                    height={600}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
@@ -485,13 +485,13 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes Snapchat Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="my-8">
+                <div className="flex justify-center items-center">
                   <Image
-                    src="/images/Architechture Snapchat.png"
+                    src="/images/architechture-snapchat.png"
                     alt="Architechture Snapchat"
-                    width={1200}
-                    height={600}
-                    className="rounded-lg border shadow-sm mx-auto"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
                   />
                 </div>
 
