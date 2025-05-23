@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChevronRight, AlertTriangle, Info } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useState } from "react"
 
 export default function Ciblage() {
   return (
@@ -35,8 +38,7 @@ export default function Ciblage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">
-                      Âge, sexe, situation familiale, niveau d'éducation, profession... Ces critères permettent de
-                      cibler des segments spécifiques de la population.
+                      Âge, sexe, situation familiale, niveau d'éducation, profession... Ces critères permettent de cibler des segments spécifiques de la population.
                     </p>
                   </CardContent>
                 </Card>
@@ -47,8 +49,7 @@ export default function Ciblage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">
-                      Pays, régions, villes, codes postaux ou rayon autour d'un point précis. Permet de cibler des zones
-                      géographiques spécifiques.
+                      Pays, régions, villes, codes postaux ou rayon autour d'un point précis. Permet de cibler des zones géographiques spécifiques.
                     </p>
                   </CardContent>
                 </Card>
@@ -59,30 +60,35 @@ export default function Ciblage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">
-                      Basé sur les intérêts, comportements et préférences des utilisateurs, déterminés par leur activité
-                      en ligne.
+                      Basé sur les intérêts, comportements et préférences des utilisateurs, déterminés par leur activité en ligne.
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Retargeting</CardTitle>
+                    <CardTitle className="text-base">Retargeting & Look alike</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm">
-                      Cible les utilisateurs ayant déjà interagi avec votre marque, site web ou application.
+                      Cible les utilisateurs ayant déjà interagi avec votre marque, site web ou application (retargeting), ainsi que des profils similaires à ces utilisateurs (look alike), pour élargir votre audience tout en restant pertinent.
                     </p>
                   </CardContent>
                 </Card>
+              </div>
+              <div className="flex justify-center my-2">
+                <div className="bg-primary/10 border border-primary/20 rounded px-4 py-2 text-primary font-semibold text-center">
+                  Le groupe "All" sert de ciblage générique, basé uniquement sur deux critères : l'âge et la localisation. Nous y reviendrons souvent.
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="meta" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-8">
+          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
+            <TabsTrigger value="search">Google Search</TabsTrigger>
             <TabsTrigger value="google">Google/YouTube</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
@@ -145,42 +151,29 @@ export default function Ciblage() {
                         <AccordionTrigger>Retargeting</AccordionTrigger>
                         <AccordionContent>
                           <ul className="space-y-2 text-sm">
-                            <li>
-                              Re-cibler toutes les personnes qui ont interagi avec la page Facebook/Instagram du client
-                            </li>
+                            <li>Re-cibler toutes les personnes qui ont interagi avec la page Facebook/Instagram du client</li>
                             <li>Re-cibler toutes les personnes qui ont interagi avec le site web du client (Pixel)</li>
                             <li>Options : achat, ajout au panier, inscription...</li>
                           </ul>
                         </AccordionContent>
                       </AccordionItem>
-
                       <AccordionItem value="lookalike">
                         <AccordionTrigger>Look alike</AccordionTrigger>
                         <AccordionContent>
                           <ul className="space-y-2 text-sm">
                             <li>Profils similaires à ceux qui ont interagi avec la page Facebook</li>
-                            <li>
-                              Profils similaires des personnes qui ont déjà acheté (Look alike achat, ajouté au panier,
-                              inscription...)
-                            </li>
+                            <li>Profils similaires des personnes qui ont déjà acheté (Look alike achat, ajouté au panier, inscription...)</li>
                           </ul>
                         </AccordionContent>
                       </AccordionItem>
-
                       <AccordionItem value="categories">
                         <AccordionTrigger>Catégories spéciales</AccordionTrigger>
                         <AccordionContent>
                           <ul className="space-y-2 text-sm">
                             <li>Crédit (carte de crédit, prêts auto, financement ou autres offres similaires)</li>
                             <li>Emploi (offres d'emploi, stages, programmes de certification pro ou autres)</li>
-                            <li>
-                              Logement (annonces immobilières, assurances habitations, prêts immobiliers ou autres
-                              offres similaires)
-                            </li>
-                            <li>
-                              Enjeu social, électoral ou politique (économie ou les droits, civiques, sociaux, élections
-                              ou des personnalités ou campagnes)
-                            </li>
+                            <li>Logement (annonces immobilières, assurances habitations, prêts immobiliers ou autres offres similaires)</li>
+                            <li>Enjeu social, électoral ou politique (économie ou les droits, civiques, sociaux, élections ou des personnalités ou campagnes)</li>
                           </ul>
                           <p className="mt-2 text-sm text-muted-foreground">
                             Sur ces catégories, nous diffuserons sans ciblage, 18/65+, dans un rayon de 50km min.
@@ -191,304 +184,309 @@ export default function Ciblage() {
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Ciblages disponibles et non exhaustifs</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Démographique et situation</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Famille, parents, parents d'enfants de 0 à 26 ans</li>
-                        <li>Situation familiale (en couple, célibataire, marié, parents, ...)</li>
-                        <li>Étudiants</li>
-                        <li>CSP</li>
-                        <li>Centres d'intérêts</li>
-                        <li>Anniversaires</li>
-                        <li>Employeur (certains)</li>
-                        <li>Métier (certains)</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium mb-2">Ciblages difficiles</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Entreprises ou chefs d'entreprises dans un secteur particulier</li>
-                      </ul>
-
-                      <h4 className="font-medium mt-4 mb-2">Campagnes difficiles</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Alcool / Tabac / Cigarette électronique</li>
-                        <li>Jeux d'argent</li>
-                        <li>Sang</li>
-                        <li>Nudité</li>
-                      </ul>
-                    </div>
+                {/* Séparation visuelle possible / difficile / impossible */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                    <h4 className="font-bold text-green-700 mb-2">Ciblages possibles</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Famille, parents, parents d'enfants de 0 à 26 ans</li>
+                      <li>Situation familiale (en couple, célibataire, marié, parents, ...)</li>
+                      <li>Étudiants</li>
+                      <li>CSP</li>
+                      <li>Centres d'intérêts</li>
+                      <li>Anniversaires</li>
+                      <li>Employeur (certains)</li>
+                      <li>Métier (certains)</li>
+                      <li>Retargeting & Look alike</li>
+                    </ul>
+                  </div>
+                  <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                    <h4 className="font-bold text-orange-700 mb-2">Ciblages possibles mais difficiles</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Entreprises ou chefs d'entreprises dans un secteur particulier</li>
+                      <li>Campagnes : Alcool / Tabac / Cigarette électronique, Jeux d'argent, Sang, Nudité</li>
+                      <li>Catégories spéciales (voir ci-dessus) : diffusion sans ciblage</li>
+                    </ul>
+                  </div>
+                  <div className="bg-gray-100 border-l-4 border-gray-400 p-4 rounded">
+                    <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      <li>Certains secteurs très réglementés ou interdits par META</li>
+                    </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Onglet Google/YouTube */}
-          <TabsContent value="google">
+          {/* Onglet Google Search */}
+          <TabsContent value="search">
             <Card>
               <CardHeader>
-                <CardTitle>Options de ciblage Google Ads & YouTube</CardTitle>
+                <CardTitle>Options de ciblage Google Search</CardTitle>
                 <CardDescription>
-                  Découvrez les différentes possibilités de ciblage sur Google Search, Display et YouTube
+                  Découvrez les spécificités du ciblage sur Google Search
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
-                      </span>
-                      <span>Ciblage par rayon de 1km de 18 à 65+</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
-                      </span>
-                      <span>Pas de campagne en dessous de 18 ans</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
-                      </span>
-                      <span>Ciblage par tranche d'âge : 18/24 - 25/34 - 35/44 - 44/54 - 55/64 - 65+</span>
-                    </li>
-                  </ul>
+                <div className="flex flex-col items-center justify-center">
+                  <img src="/images/Capture-decran-2025-05-23-15-23-41.png" alt="Exemple restaurant Bordeaux Search" className="max-w-xs md:max-w-md rounded shadow mx-auto" />
                 </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-4">Spécificités Google Search</h3>
+                  <p className="mb-4">
+                    Google Search a un fonctionnement particulier : il n'y a pas de ciblage d'audience classique, on achète des mots clés. Le ciblage dépend donc du choix des mots clés et de leur correspondance.
+                  </p>
 
-                <Tabs defaultValue="search" className="mt-6">
-                  <TabsList>
-                    <TabsTrigger value="search">Google Search</TabsTrigger>
-                    <TabsTrigger value="display-youtube">Display & YouTube</TabsTrigger>
-                  </TabsList>
+                  <Alert className="mb-4 border-primary/50">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Peu importe les mots de liaison, les minuscules/majuscules ou les fautes d'orthographe.
+                    </AlertDescription>
+                  </Alert>
 
-                  <TabsContent value="search">
-                    <div className="mt-4">
-                      <h3 className="text-lg font-semibold mb-4">Spécificités Google Search</h3>
-                      <p className="mb-4">
-                        Google Search a un fonctionnement particulier. En effet il n'y a pas de ciblage, nous achetons
-                        certains mots clés.
-                      </p>
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4">Types de correspondance des mots clés</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Requête large</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm">
+                            Permet à votre annonce de s'afficher sur des recherches contenant des synonymes, des expressions connexes et des variations.
+                          </p>
+                          <p className="text-sm mt-2">
+                            Moins précis mais permet à l'algorithme de faire de nombreux tests et d'avoir de nouvelles idées.
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Expression exacte</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm">
+                            Votre annonce peut s'afficher lorsque les termes de recherche incluent l'expression exacte que vous avez spécifiée, avec des mots avant ou après, mais pas entre les mots de l'expression.
+                          </p>
+                          <p className="text-sm mt-2">
+                            Plus de flexibilité que les mots clés exacts sans être trop large.
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Mot clé exact</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm">
+                            Permet de mieux contrôler l'audience qui voit votre annonce. Votre annonce est susceptible d'apparaître uniquement lorsque l'utilisateur saisit exactement le terme de recherche spécifié.
+                          </p>
+                          <p className="text-sm mt-2">Très précis mais limite les possibilités de l'algorithme.</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+                {/* BOUTON AFFICHER L'EXEMPLE RESTAURANT BORDEAUX */}
+                <AfficherExempleSearch />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                      <Alert className="mb-4 border-primary/50">
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                          Peu importe les mots de liaisons, les minuscules/majuscules ou les fautes d'orthographes.
-                        </AlertDescription>
-                      </Alert>
+          {/* Onglet Google/YouTube (Display & YouTube uniquement) */}
+          <TabsContent value="google">
+            <Card>
+              <CardHeader>
+                <CardTitle>Options de ciblage Google Display & YouTube</CardTitle>
+                <CardDescription>
+                  Découvrez les différentes possibilités de ciblage sur Google Display et YouTube
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-4">Options de ciblage Display & YouTube</h3>
+                  <p className="mb-4">
+                    Sur Display & YouTube, on peut cibler des audiences selon leurs intérêts, comportements, visites de sites, mots clés, placements, etc. Les possibilités sont plus larges qu'en Search.
+                  </p>
 
-                      <div className="mt-6">
-                        <h3 className="text-lg font-semibold mb-4">Types de correspondance des mots clés</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base">Requête large</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-sm">
-                                Permet à votre annonce de s'afficher sur des recherches contenant des synonymes, des
-                                expressions connexes et des variations.
-                              </p>
-                              <p className="text-sm mt-2">
-                                Moins précis mais permet à l'algorithme de faire de nombreux tests et d'avoir de
-                                nouvelles idées.
-                              </p>
-                            </CardContent>
-                          </Card>
-
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base">Expression exacte</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-sm">
-                                Votre annonce peut s'afficher lorsque les termes de recherche incluent l'expression
-                                exacte que vous avez spécifiée, avec des mots avant ou après, mais pas entre les mots de
-                                l'expression.
-                              </p>
-                              <p className="text-sm mt-2">
-                                Plus de flexibilité que les mots clés exacts sans être trop large.
-                              </p>
-                            </CardContent>
-                          </Card>
-
-                          <Card>
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-base">Mot clé exact</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-sm">
-                                Permet de mieux contrôler l'audience qui voit votre annonce. Votre annonce est
-                                susceptible d'apparaître uniquement lorsque l'utilisateur saisit exactement le terme de
-                                recherche spécifié.
-                              </p>
-                              <p className="text-sm mt-2">Très précis mais limite les possibilités de l'algorithme.</p>
-                            </CardContent>
-                          </Card>
+                  <Accordion type="multiple" className="w-full">
+                    <AccordionItem value="audience-interests">
+                      <AccordionTrigger>Audience - centres d'intérêt</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">Intérêts de l'audience (liste non exhaustive)</p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous allons sélectionner les centres
+                          d'intérêt des internautes.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <h4 className="font-medium mb-1">Centres d'intérêt populaires :</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Sports et fitness</li>
+                              <li>Technologie</li>
+                              <li>Voyage</li>
+                              <li>Mode et beauté</li>
+                              <li>Alimentation et cuisine</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="font-medium mb-1">Centres d'intérêt spécifiques :</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Jeux vidéo</li>
+                              <li>Automobile</li>
+                              <li>Finance personnelle</li>
+                              <li>Parentalité</li>
+                              <li>Décoration d'intérieur</li>
+                            </ul>
+                          </div>
                         </div>
-                      </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="audience-keywords">
+                      <AccordionTrigger>Audience - mots clés</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">
+                          Retargeting des personnes ayant récemment tapé des mots clés spécifiques.
+                        </p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous avons paramétré le mot clé «
+                          Accessoires animaux » dans notre audience. Si l'internaute tape ce mot clé dans le moteur
+                          de recherche, nous allons pouvoir le toucher sur un site web/chaîne YouTube avec un
+                          emplacement publicitaire.
+                        </p>
+                        <Alert className="mt-2 border-primary/50 bg-primary/10">
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            Cette option permet de cibler des utilisateurs en fonction de leurs recherches récentes,
+                            même lorsqu'ils naviguent sur d'autres sites ou regardent des vidéos YouTube.
+                          </AlertDescription>
+                        </Alert>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="audience-website">
+                      <AccordionTrigger>Audience - site web</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">
+                          Retargeting des personnes ayant été sur des sites spécifiques ou des chaînes pour YouTube
+                        </p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous avons paramétré le site web « Maxi Zoo
+                          » dans notre audience. Si l'internaute se rend sur le site ou la chaîne YouTube de Maxi
+                          Zoo, nous allons pouvoir le toucher sur un autre site web avec un emplacement
+                          publicitaire.
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="placement-keywords">
+                      <AccordionTrigger>Placement - mots clés</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">
+                          Sites avec des mots clés spécifiques sur la page ou des chaînes pour YouTube
+                        </p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
+                          des sites/chaînes YouTube contenant des mots clés spécifiques.
+                        </p>
+                        <p className="mb-2">
+                          Si le site contient le mot clé « Accessoires animaux », nous allons pouvoir positionner la
+                          publicité.
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="placement-website">
+                      <AccordionTrigger>Placement - site web</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">
+                          Ciblage sites en particulier (si disponible) ou des chaînes pour YouTube (si disponible)
+                        </p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
+                          des sites/chaînes YouTube (avec des emplacements publicitaires) en lien avec l'activité du
+                          client/sujet de la campagne.
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    <AccordionItem value="placement-themes">
+                      <AccordionTrigger>Placement - Thèmes</AccordionTrigger>
+                      <AccordionContent>
+                        <p className="mb-2">
+                          Thématiques de site ou des chaînes pour YouTube (Liste non exhaustive)
+                        </p>
+                        <p className="mb-4">
+                          <span className="font-medium">Exemple :</span> Nous allons sélectionner les thèmes de
+                          site/chaînes YouTube où nous pouvons positionner la publicité.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <h4 className="font-medium mb-1">Thèmes populaires :</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Arts & Divertissement</li>
+                              <li>Automobile</li>
+                              <li>Beauté & Fitness</li>
+                              <li>Livres & Littérature</li>
+                              <li>Business & Industrie</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="font-medium mb-1">Thèmes spécifiques :</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Informatique & Électronique</li>
+                              <li>Finance</li>
+                              <li>Alimentation & Boissons</li>
+                              <li>Jeux</li>
+                              <li>Santé</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="font-medium mb-1">Autres thèmes :</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Maison & Jardin</li>
+                              <li>Internet & Télécoms</li>
+                              <li>Emploi & Éducation</li>
+                              <li>Actualités</li>
+                              <li>Shopping</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
+                  {/* Encadrés possible/difficile/impossible pour Display/YouTube */}
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                      <h4 className="font-bold text-green-700 mb-2">Ciblages possibles</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Centres d'intérêt</li>
+                        <li>Intentions d'achat</li>
+                        <li>Audiences personnalisées (visiteurs site, listes clients)</li>
+                        <li>Retargeting</li>
+                        <li>Placements sur sites/chaînes/thèmes</li>
+                        <li>Mots clés contextuels</li>
+                      </ul>
                     </div>
-                  </TabsContent>
-
-                  <TabsContent value="display-youtube">
-                    <div className="mt-4">
-                      <h3 className="text-lg font-semibold mb-4">Options de ciblage Display & YouTube</h3>
-
-                      <Accordion type="multiple" className="w-full">
-                        <AccordionItem value="audience-interests">
-                          <AccordionTrigger>Audience - centres d'intérêt</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">Intérêts de l'audience (liste non exhaustive)</p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous allons sélectionner les centres
-                              d'intérêt des internautes.
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                              <div>
-                                <h4 className="font-medium mb-1">Centres d'intérêt populaires :</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>Sports et fitness</li>
-                                  <li>Technologie</li>
-                                  <li>Voyage</li>
-                                  <li>Mode et beauté</li>
-                                  <li>Alimentation et cuisine</li>
-                                </ul>
-                              </div>
-                              <div>
-                                <h4 className="font-medium mb-1">Centres d'intérêt spécifiques :</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>Jeux vidéo</li>
-                                  <li>Automobile</li>
-                                  <li>Finance personnelle</li>
-                                  <li>Parentalité</li>
-                                  <li>Décoration d'intérieur</li>
-                                </ul>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="audience-keywords">
-                          <AccordionTrigger>Audience - mots clés</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">
-                              Retargeting des personnes ayant récemment tapé des mots clés spécifiques.
-                            </p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous avons paramétré le mot clé «
-                              Accessoires animaux » dans notre audience. Si l'internaute tape ce mot clé dans le moteur
-                              de recherche, nous allons pouvoir le toucher sur un site web/chaîne YouTube avec un
-                              emplacement publicitaire.
-                            </p>
-                            <Alert className="mt-2 border-primary/50 bg-primary/10">
-                              <Info className="h-4 w-4" />
-                              <AlertDescription>
-                                Cette option permet de cibler des utilisateurs en fonction de leurs recherches récentes,
-                                même lorsqu'ils naviguent sur d'autres sites ou regardent des vidéos YouTube.
-                              </AlertDescription>
-                            </Alert>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="audience-website">
-                          <AccordionTrigger>Audience - site web</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">
-                              Retargeting des personnes ayant été sur des sites spécifiques ou des chaînes pour YouTube
-                            </p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous avons paramétré le site web « Maxi Zoo
-                              » dans notre audience. Si l'internaute se rend sur le site ou la chaîne YouTube de Maxi
-                              Zoo, nous allons pouvoir le toucher sur un autre site web avec un emplacement
-                              publicitaire.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="placement-keywords">
-                          <AccordionTrigger>Placement - mots clés</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">
-                              Sites avec des mots clés spécifiques sur la page ou des chaînes pour YouTube
-                            </p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
-                              des sites/chaînes YouTube contenant des mots clés spécifiques.
-                            </p>
-                            <p className="mb-2">
-                              Si le site contient le mot clé « Accessoires animaux », nous allons pouvoir positionner la
-                              publicité.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="placement-website">
-                          <AccordionTrigger>Placement - site web</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">
-                              Ciblage sites en particulier (si disponible) ou des chaînes pour YouTube (si disponible)
-                            </p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
-                              des sites/chaînes YouTube (avec des emplacements publicitaires) en lien avec l'activité du
-                              client/sujet de la campagne.
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="placement-themes">
-                          <AccordionTrigger>Placement - Thèmes</AccordionTrigger>
-                          <AccordionContent>
-                            <p className="mb-2">
-                              Thématiques de site ou des chaînes pour YouTube (Liste non exhaustive)
-                            </p>
-                            <p className="mb-4">
-                              <span className="font-medium">Exemple :</span> Nous allons sélectionner les thèmes de
-                              site/chaînes YouTube où nous pouvons positionner la publicité.
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                              <div>
-                                <h4 className="font-medium mb-1">Thèmes populaires :</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>Arts & Divertissement</li>
-                                  <li>Automobile</li>
-                                  <li>Beauté & Fitness</li>
-                                  <li>Livres & Littérature</li>
-                                  <li>Business & Industrie</li>
-                                </ul>
-                              </div>
-                              <div>
-                                <h4 className="font-medium mb-1">Thèmes spécifiques :</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>Informatique & Électronique</li>
-                                  <li>Finance</li>
-                                  <li>Alimentation & Boissons</li>
-                                  <li>Jeux</li>
-                                  <li>Santé</li>
-                                </ul>
-                              </div>
-                              <div>
-                                <h4 className="font-medium mb-1">Autres thèmes :</h4>
-                                <ul className="list-disc list-inside space-y-1">
-                                  <li>Maison & Jardin</li>
-                                  <li>Internet & Télécoms</li>
-                                  <li>Emploi & Éducation</li>
-                                  <li>Actualités</li>
-                                  <li>Shopping</li>
-                                </ul>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                    <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                      <h4 className="font-bold text-orange-700 mb-2">Ciblages possibles mais difficiles</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Toucher des audiences très B2B ou ultra-niches</li>
+                        <li>Exclure totalement certains contextes (brand safety complexe)</li>
+                      </ul>
                     </div>
-                  </TabsContent>
-                </Tabs>
+                    <div className="bg-gray-100 border-l-4 border-gray-400 p-4 rounded">
+                      <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Ciblage par statut professionnel précis (hors ce que Google propose en audience)</li>
+                        <li>Ciblage par données personnelles sensibles</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1677,6 +1675,27 @@ export default function Ciblage() {
           </Link>
         </div>
       </div>
+    </div>
+  )
+}
+
+function AfficherExempleSearch() {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="flex flex-col items-center justify-center mt-8">
+      <button
+        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+        onClick={() => setShow((v) => !v)}
+      >
+        {show ? "Masquer l'exemple" : "Afficher l'exemple"}
+      </button>
+      {show && (
+        <img
+          src="/images/Capture-decran-2025-05-23-15-23-23.png"
+          alt="Exemple groupe All Search 1"
+          className="max-w-xs md:max-w-md rounded shadow mx-auto"
+        />
+      )}
     </div>
   )
 }

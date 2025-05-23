@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -7,8 +9,16 @@ import { ChevronRight } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { InfoIcon } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { useState } from "react"
 
 export default function ArchitectureCampagnes() {
+  const [showMetaImages, setShowMetaImages] = useState(false);
+  const [showDisplayImages, setShowDisplayImages] = useState(false);
+  const [showSearchImage, setShowSearchImage] = useState(false);
+  const [showLinkedinImage, setShowLinkedinImage] = useState(false);
+  const [showTiktokImage, setShowTiktokImage] = useState(false);
+  const [showSnapImage, setShowSnapImage] = useState(false);
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-5xl mx-auto">
@@ -130,53 +140,38 @@ export default function ArchitectureCampagnes() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-                  <Image
-                    src="/images/exemple-efs-meta-2-architechture.png"
-                    alt="Exemple EFS META 2 - Architechture"
-                    width={320}
-                    height={213}
-                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
-                  />
-                  <Image
-                    src="/images/exemple-efs-meta-architechture.png"
-                    alt="Exemple EFS META - Architechture"
-                    width={320}
-                    height={213}
-                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
-                  />
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowMetaImages(!showMetaImages)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showMetaImages ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
-
-                <Accordion type="single" collapsible className="w-full border rounded-lg p-4 bg-muted/30">
-                  <AccordionItem value="tableau-recap" className="border-none">
-                    <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-                      <div className="flex items-center gap-2">
-                        <InfoIcon className="h-5 w-5 text-primary" />
-                        Tableau récapitulatif des possibilités META
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="my-4">
-                        <Image
-                          src="/images/recap-possible-meta.png"
-                          alt="Tableau récapitulatif des possibilités META"
-                          width={320}
-                          height={213}
-                          className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
-                        />
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-
+                {showMetaImages && (
+                  <div className="flex flex-col md:flex-row gap-6 justify-center items-center mt-4">
+                    <Image
+                      src="/images/exemple-efs-meta-2-architechture.png"
+                      alt="Exemple EFS META 2 - Architechture"
+                      width={320}
+                      height={213}
+                      className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
+                    />
+                    <Image
+                      src="/images/exemple-efs-meta-architechture.png"
+                      alt="Exemple EFS META - Architechture"
+                      width={320}
+                      height={213}
+                      className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
+                    />
+                  </div>
+                )}
                 <p>
                   Sur META (Facebook et Instagram), l'architecture des campagnes est particulièrement flexible et permet
                   différentes approches selon vos objectifs et votre stratégie de ciblage.
                 </p>
-
                 <div className="mt-8">
                   <h3 className="text-xl font-semibold mb-6">Différentes approches d'architecture sur META</h3>
-
                   <div className="space-y-8">
                     <div className="bg-muted/30 p-6 rounded-lg border">
                       <h4 className="text-lg font-semibold text-primary mb-4">
@@ -251,6 +246,29 @@ export default function ArchitectureCampagnes() {
                     </div>
                   </div>
 
+                  {/* Tableau récapitulatif déplacé ici */}
+                  <Accordion type="single" collapsible className="w-full border rounded-lg p-4 bg-muted/30 mt-8">
+                    <AccordionItem value="tableau-recap" className="border-none">
+                      <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <InfoIcon className="h-5 w-5 text-primary" />
+                          Tableau récapitulatif des possibilités META
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="my-4">
+                          <Image
+                            src="/images/recap-possible-meta.png"
+                            alt="Tableau récapitulatif des possibilités META"
+                            width={1000}
+                            height={448}
+                            className="rounded-lg border shadow-sm w-full max-w-2xl mx-auto"
+                          />
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+
                   <Alert className="mt-8 border-primary/50">
                     <InfoIcon className="h-5 w-5" />
                     <AlertTitle>Attention</AlertTitle>
@@ -270,42 +288,59 @@ export default function ArchitectureCampagnes() {
                 <CardTitle>Architecture des campagnes Google Display & YouTube</CardTitle>
                 <CardDescription>Structure et spécificités des campagnes Display et YouTube</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-                  <Image
-                    src="/images/display-architechture-zone.png"
-                    alt="Display architechture Zone"
-                    width={576}
-                    height={384}
-                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
-                  />
-                  <Image
-                    src="/images/architechture-display-efs.png"
-                    alt="Architechture Display EFS"
-                    width={576}
-                    height={384}
-                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
-                  />
+              <CardContent className="space-y-8">
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowDisplayImages(!showDisplayImages)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showDisplayImages ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
-
-                <p>
-                  Google Display et YouTube utilisent une structure hiérarchique similaire, adaptée à leurs formats respectifs.
-                  Cette organisation permet un contrôle précis du budget, du ciblage et des enchères.
-                </p>
-
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-2">Spécificités Google Display & YouTube</h3>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>
-                      Les groupes d'annonces peuvent être organisés par thématique (ex: "Expression exacte", "Mot clé
-                      exact", "Requêtes larges")
-                    </li>
-                    <li>Chaque groupe d'annonces peut avoir ses propres enchères et mots-clés spécifiques</li>
-                    <li>
-                      Le budget est défini au niveau de la campagne, mais peut être réparti différemment entre les
-                      groupes d'annonces selon leurs performances
-                    </li>
-                  </ul>
+                {showDisplayImages && (
+                  <div className="flex flex-col gap-6 justify-center items-center mt-4">
+                    <Image
+                      src="/images/architechture-display-efs.png"
+                      alt="Architechture Display EFS"
+                      width={576}
+                      height={384}
+                      className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
+                    />
+                    <Image
+                      src="/images/display-architechture-zone.png"
+                      alt="Display architechture Zone"
+                      width={576}
+                      height={384}
+                      className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
+                    />
+                  </div>
+                )}
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Campagne</span> <span className="font-normal">(ex. : "Avril 25 - EFS AURA MDD Part Dieu")</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>C'est ici que l'on définit les grandes lignes : type de campagne, réseau de diffusion, objectifs.</li>
+                      <li>Ce niveau sert de base à toute la structure : c'est le <span className="font-semibold">"cadre général "</span> de la campagne.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Groupe d'annonces</span> <span className="font-normal">(ex. : "Audience mots clés", "Placement site web")</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>C'est ici que l'on paramètre les audiences : qui l'on souhaite toucher (en fonction de leur comportement, de leurs intérêts ou de leur navigation).</li>
+                      <li>On crée plusieurs groupes pour tester différentes approches et comparer ce qui fonctionne le mieux.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Annonce</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>C'est là qu'on construit le message : visuels, titres, descriptions.</li>
+                      <li>Ces éléments sont ceux que verront les internautes : ils doivent capter l'attention et donner envie d'en savoir plus.</li>
+                    </ul>
+                  </div>
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+                    <span className="font-semibold text-blue-700">À retenir :</span> <br />
+                    Une bonne organisation permet de tester différentes cibles tout en gardant un message adapté à chacune.
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -318,53 +353,53 @@ export default function ArchitectureCampagnes() {
                 <CardTitle>Architecture des campagnes Google Search</CardTitle>
                 <CardDescription>Structure et spécificités des campagnes Search</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex justify-center items-center">
-                  <Image
-                    src="/images/exemple-efs-google-search.png"
-                    alt="Exemple EFS - Google Search"
-                    width={576}
-                    height={384}
-                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
-                  />
+              <CardContent className="space-y-8">
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowSearchImage(!showSearchImage)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showSearchImage ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
-
-                <p>
-                  Google Search utilise une structure hiérarchique spécifique optimisée pour les recherches en ligne.
-                  Cette organisation permet un contrôle précis des mots-clés, du budget et des enchères.
-                </p>
-
-                <div className="space-y-4">
+                {showSearchImage && (
+                  <div className="flex justify-center items-center mt-4">
+                    <Image
+                      src="/images/exemple-efs-google-search.png"
+                      alt="Exemple EFS - Google Search"
+                      width={576}
+                      height={384}
+                      className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
+                    />
+                  </div>
+                )}
+                <div className="space-y-8">
                   <div>
-                    <h3 className="text-xl font-semibold text-primary">Structure Google Search</h3>
-                    <ul className="list-disc list-inside mt-2 space-y-2">
-                      <li>
-                        <span className="font-medium">Campagne :</span> Niveau supérieur qui définit le budget, la zone
-                        géographique, le réseau de diffusion et d'autres paramètres généraux
-                      </li>
-                      <li>
-                        <span className="font-medium">Groupe d'annonces :</span> Niveau intermédiaire qui regroupe des
-                        annonces autour d'un thème commun ou de mots-clés similaires
-                      </li>
-                      <li>
-                        <span className="font-medium">Annonces :</span> Niveau inférieur qui contient les créations
-                        publicitaires montrées aux utilisateurs
-                      </li>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Campagne</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li><span className="font-semibold">Budget quotidien :</span> c'est le plafond de dépenses par jour.</li>
+                      <li><span className="font-semibold">Stratégie d'enchères :</span> pilotage automatique ou manuel des enchères (ex. : Maximiser les clics).</li>
+                      <li><span className="font-semibold">Ciblage global :</span> zones géographiques, langue, type de réseau (ici : Réseau de Recherche).</li>
                     </ul>
                   </div>
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Spécificités Google Search</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>
-                        Les groupes d'annonces peuvent être organisés par thématique (ex: "Expression exacte", "Mot clé
-                        exact", "Requêtes larges")
-                      </li>
-                      <li>Chaque groupe d'annonces peut avoir ses propres enchères et mots-clés spécifiques</li>
-                      <li>
-                        Le budget est défini au niveau de la campagne, mais peut être réparti différemment entre les
-                        groupes d'annonces selon leurs performances
-                      </li>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Groupe d'annonces</span> <span className="font-normal">(ex. : "Mot clé Exact", "Requête large")</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li><span className="font-semibold">Segmentation des mots-clés selon leur type de correspondance :</span></li>
+                      <ul className="list-disc list-inside ml-8 space-y-1">
+                        <li><span className="font-semibold">Mot clé exact :</span> très ciblé, touche les intentions précises.</li>
+                        <li><span className="font-semibold">Expression exacte :</span> plus souple, mais garde l'ordre des mots.</li>
+                        <li><span className="font-semibold">Requête large :</span> capte plus de volume mais moins précis</li>
+                      </ul>
+                      <li><span className="font-semibold">Objectif :</span> adapter les messages publicitaires au niveau d'intention de l'utilisateur.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary mb-2">Niveau <span className='text-blue-700'>Annonce</span></h3>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li><span className="font-semibold">Texte de l'annonce :</span> titre, description, URL affichée</li>
+                      <li><span className="font-semibold">Extensions :</span> liens annexes, numéros de téléphone, lieu, etc.</li>
+                      <li><span className="font-semibold">Test A/B possible :</span> pour identifier quels arguments ou formulations convertissent le mieux.</li>
                     </ul>
                   </div>
                 </div>
@@ -380,15 +415,25 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes LinkedIn Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex justify-center items-center">
-                  <Image
-                    src="/images/exemple-architechture-linkedin.png"
-                    alt="Exemple architechture Linkedin"
-                    width={320}
-                    height={213}
-                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
-                  />
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowLinkedinImage(!showLinkedinImage)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showLinkedinImage ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
+                {showLinkedinImage && (
+                  <div className="flex justify-center items-center mt-4">
+                    <Image
+                      src="/images/exemple-architechture-linkedin.png"
+                      alt="Exemple architechture Linkedin"
+                      width={320}
+                      height={213}
+                      className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div>
@@ -433,15 +478,25 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes TikTok Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex justify-center items-center">
-                  <Image
-                    src="/images/architechture-tiktok.png"
-                    alt="Architechture Tiktok"
-                    width={400}
-                    height={267}
-                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
-                  />
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowTiktokImage(!showTiktokImage)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showTiktokImage ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
+                {showTiktokImage && (
+                  <div className="flex justify-center items-center mt-4">
+                    <Image
+                      src="/images/architechture-tiktok.png"
+                      alt="Architechture Tiktok"
+                      width={400}
+                      height={267}
+                      className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div>
@@ -485,15 +540,25 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes Snapchat Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex justify-center items-center">
-                  <Image
-                    src="/images/architechture-snapchat.png"
-                    alt="Architechture Snapchat"
-                    width={576}
-                    height={384}
-                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
-                  />
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowSnapImage(!showSnapImage)}
+                    className="px-4 py-2 bg-primary text-white rounded shadow hover:bg-primary/80 transition"
+                  >
+                    {showSnapImage ? "Masquer l'image" : "Afficher l'image"}
+                  </button>
                 </div>
+                {showSnapImage && (
+                  <div className="flex justify-center items-center mt-4">
+                    <Image
+                      src="/images/architechture-snapchat.png"
+                      alt="Architechture Snapchat"
+                      width={576}
+                      height={384}
+                      className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div>
