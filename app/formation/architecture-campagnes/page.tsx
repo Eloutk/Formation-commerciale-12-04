@@ -71,6 +71,14 @@ export default function ArchitectureCampagnes() {
                   campagnes et adapter vos messages à chaque segment d'audience.
                 </p>
               </div>
+
+              <Alert className="mt-4 border-primary/50">
+                <InfoIcon className="h-5 w-5" />
+                <AlertTitle>Terminologie importante</AlertTitle>
+                <AlertDescription>
+                  Dans notre jargon, le terme "Ciblage" est synonyme d'"Audience". Ces deux termes désignent le même concept : le groupe de personnes que vous souhaitez atteindre avec vos publicités.
+                </AlertDescription>
+              </Alert>
             </div>
 
             <p className="mt-4">
@@ -103,9 +111,10 @@ export default function ArchitectureCampagnes() {
         </Card>
 
         <Tabs defaultValue="meta" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-8">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
-            <TabsTrigger value="google">Google Ads</TabsTrigger>
+            <TabsTrigger value="google-display">Display & YouTube</TabsTrigger>
+            <TabsTrigger value="google-search">Google Search</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
@@ -121,12 +130,19 @@ export default function ArchitectureCampagnes() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="my-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/META-HVB6mZ7Qj1xo48fE8yVVA9qPYqAZuk.png"
-                    alt="Architecture des campagnes META"
-                    width={1200}
-                    height={600}
+                    src="/images/Exemple EFS META 2 - Architechture.png"
+                    alt="Exemple EFS META 2 - Architechture"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm mx-auto"
+                  />
+                  <Image
+                    src="/images/Exemple EFS META - Architechture.png"
+                    alt="Exemple EFS META - Architechture"
+                    width={600}
+                    height={400}
                     className="rounded-lg border shadow-sm mx-auto"
                   />
                 </div>
@@ -247,32 +263,80 @@ export default function ArchitectureCampagnes() {
             </Card>
           </TabsContent>
 
-          {/* Onglet Google Ads */}
-          <TabsContent value="google">
+          {/* Onglet Google Display & YouTube */}
+          <TabsContent value="google-display">
             <Card>
               <CardHeader>
-                <CardTitle>Architecture des campagnes Google Ads</CardTitle>
-                <CardDescription>Structure et spécificités des campagnes Google Ads</CardDescription>
+                <CardTitle>Architecture des campagnes Google Display & YouTube</CardTitle>
+                <CardDescription>Structure et spécificités des campagnes Display et YouTube</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Image
+                    src="/images/Display architechture Zone.png"
+                    alt="Display architechture Zone"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm mx-auto"
+                  />
+                  <Image
+                    src="/images/Architechture Display EFS.png"
+                    alt="Architechture Display EFS"
+                    width={600}
+                    height={400}
+                    className="rounded-lg border shadow-sm mx-auto"
+                  />
+                </div>
+
                 <p>
-                  Google Ads utilise une structure hiérarchique claire avec des campagnes, des groupes d'annonces et des
-                  annonces. Cette organisation permet un contrôle précis du budget, du ciblage et des enchères.
+                  Google Display et YouTube utilisent une structure hiérarchique similaire, adaptée à leurs formats respectifs.
+                  Cette organisation permet un contrôle précis du budget, du ciblage et des enchères.
                 </p>
 
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-2">Spécificités Google Display & YouTube</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>
+                      Les groupes d'annonces peuvent être organisés par thématique (ex: "Expression exacte", "Mot clé
+                      exact", "Requêtes larges")
+                    </li>
+                    <li>Chaque groupe d'annonces peut avoir ses propres enchères et mots-clés spécifiques</li>
+                    <li>
+                      Le budget est défini au niveau de la campagne, mais peut être réparti différemment entre les
+                      groupes d'annonces selon leurs performances
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Onglet Google Search */}
+          <TabsContent value="google-search">
+            <Card>
+              <CardHeader>
+                <CardTitle>Architecture des campagnes Google Search</CardTitle>
+                <CardDescription>Structure et spécificités des campagnes Search</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="my-8">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Google-exJ6dpvIXkg6Eu2IjgEVfAxw7PAhPz.png"
-                    alt="Architecture des campagnes Google Ads"
+                    src="/images/Exemple EFS - Google Search.png"
+                    alt="Exemple EFS - Google Search"
                     width={1200}
                     height={600}
                     className="rounded-lg border shadow-sm mx-auto"
                   />
                 </div>
 
+                <p>
+                  Google Search utilise une structure hiérarchique spécifique optimisée pour les recherches en ligne.
+                  Cette organisation permet un contrôle précis des mots-clés, du budget et des enchères.
+                </p>
+
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-primary">Structure Google Ads</h3>
+                    <h3 className="text-xl font-semibold text-primary">Structure Google Search</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
                       <li>
                         <span className="font-medium">Campagne :</span> Niveau supérieur qui définit le budget, la zone
@@ -290,7 +354,7 @@ export default function ArchitectureCampagnes() {
                   </div>
 
                   <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Spécificités Google Ads</h3>
+                    <h3 className="text-lg font-semibold mb-2">Spécificités Google Search</h3>
                     <ul className="list-disc list-inside space-y-1">
                       <li>
                         Les groupes d'annonces peuvent être organisés par thématique (ex: "Expression exacte", "Mot clé
@@ -316,15 +380,10 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes LinkedIn Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p>
-                  LinkedIn Ads utilise une structure similaire aux autres plateformes, adaptée au contexte professionnel
-                  et B2B de ce réseau social.
-                </p>
-
                 <div className="my-8">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Linkedin-UTfbNG8DUQQMx8zBTTH9wy6Aa6S8Nd.png"
-                    alt="Architecture des campagnes LinkedIn"
+                    src="/images/Exemple architechture Linkedin.png"
+                    alt="Exemple architechture Linkedin"
                     width={1200}
                     height={600}
                     className="rounded-lg border shadow-sm mx-auto"
@@ -374,15 +433,10 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes TikTok Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p>
-                  TikTok Ads utilise une structure à trois niveaux similaire aux autres plateformes, adaptée à son
-                  format vidéo court et à son audience jeune.
-                </p>
-
                 <div className="my-8">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Tiktok-DgNZDybgxSyERu7nWzr7ojvO9ttJzw.png"
-                    alt="Architecture des campagnes TikTok"
+                    src="/images/Architechture Tiktok .png"
+                    alt="Architechture Tiktok"
                     width={1200}
                     height={600}
                     className="rounded-lg border shadow-sm mx-auto"
@@ -431,15 +485,10 @@ export default function ArchitectureCampagnes() {
                 <CardDescription>Structure et spécificités des campagnes Snapchat Ads</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p>
-                  Snapchat Ads utilise également une structure à trois niveaux, adaptée à son format éphémère et à son
-                  audience jeune.
-                </p>
-
                 <div className="my-8">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Snap-gTePomS0VLfP97b59HWfBmn0FbEzGK.png"
-                    alt="Architecture des campagnes Snapchat"
+                    src="/images/Architechture Snapchat.png"
+                    alt="Architechture Snapchat"
                     width={1200}
                     height={600}
                     className="rounded-lg border shadow-sm mx-auto"
