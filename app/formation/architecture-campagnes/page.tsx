@@ -275,16 +275,16 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/display-architechture-zone.png"
                     alt="Display architechture Zone"
-                    width={400}
-                    height={267}
-                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
+                    width={576}
+                    height={384}
+                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
                   />
                   <Image
                     src="/images/architechture-display-efs.png"
                     alt="Architechture Display EFS"
-                    width={400}
-                    height={267}
-                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
+                    width={576}
+                    height={384}
+                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
                   />
                 </div>
 
@@ -323,9 +323,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/exemple-efs-google-search.png"
                     alt="Exemple EFS - Google Search"
-                    width={400}
-                    height={267}
-                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
+                    width={576}
+                    height={384}
+                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
                   />
                 </div>
 
@@ -489,9 +489,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/architechture-snapchat.png"
                     alt="Architechture Snapchat"
-                    width={400}
-                    height={267}
-                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
+                    width={576}
+                    height={384}
+                    className="rounded-lg border shadow-sm w-full max-w-lg mx-auto"
                   />
                 </div>
 
