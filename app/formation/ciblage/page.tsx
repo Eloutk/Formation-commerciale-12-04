@@ -215,6 +215,9 @@ export default function Ciblage() {
                     </ul>
                   </div>
                 </div>
+
+                {/* Exemples META */}
+                <AfficherExempleMeta />
               </CardContent>
             </Card>
           </TabsContent>
@@ -307,183 +310,148 @@ export default function Ciblage() {
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-4">Options de ciblage Display & YouTube</h3>
                   <p className="mb-4">
-                    Sur Display & YouTube, on peut cibler des audiences selon leurs intérêts, comportements, visites de sites, mots clés, placements, etc. Les possibilités sont plus larges qu'en Search.
+                    En Display ou YouTube, le ciblage par audience consiste à toucher des personnes selon qui elles sont (comportements, intérêts, intentions), tandis que le ciblage par placement permet de choisir précisément où les annonces s'affichent (sites, vidéos ou chaînes spécifiques).
                   </p>
 
-                  <Accordion type="multiple" className="w-full">
-                    <AccordionItem value="audience-interests">
-                      <AccordionTrigger>Audience - centres d'intérêt</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">Intérêts de l'audience (liste non exhaustive)</p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous allons sélectionner les centres
-                          d'intérêt des internautes.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <h4 className="font-medium mb-1">Centres d'intérêt populaires :</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              <li>Sports et fitness</li>
-                              <li>Technologie</li>
-                              <li>Voyage</li>
-                              <li>Mode et beauté</li>
-                              <li>Alimentation et cuisine</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-medium mb-1">Centres d'intérêt spécifiques :</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              <li>Jeux vidéo</li>
-                              <li>Automobile</li>
-                              <li>Finance personnelle</li>
-                              <li>Parentalité</li>
-                              <li>Décoration d'intérieur</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="audience-keywords">
-                      <AccordionTrigger>Audience - mots clés</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">
-                          Retargeting des personnes ayant récemment tapé des mots clés spécifiques.
-                        </p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous avons paramétré le mot clé «
-                          Accessoires animaux » dans notre audience. Si l'internaute tape ce mot clé dans le moteur
-                          de recherche, nous allons pouvoir le toucher sur un site web/chaîne YouTube avec un
-                          emplacement publicitaire.
-                        </p>
-                        <Alert className="mt-2 border-primary/50 bg-primary/10">
-                          <Info className="h-4 w-4" />
-                          <AlertDescription>
-                            Cette option permet de cibler des utilisateurs en fonction de leurs recherches récentes,
-                            même lorsqu'ils naviguent sur d'autres sites ou regardent des vidéos YouTube.
-                          </AlertDescription>
-                        </Alert>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="audience-website">
-                      <AccordionTrigger>Audience - site web</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">
-                          Retargeting des personnes ayant été sur des sites spécifiques ou des chaînes pour YouTube
-                        </p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous avons paramétré le site web « Maxi Zoo
-                          » dans notre audience. Si l'internaute se rend sur le site ou la chaîne YouTube de Maxi
-                          Zoo, nous allons pouvoir le toucher sur un autre site web avec un emplacement
-                          publicitaire.
-                        </p>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="placement-keywords">
-                      <AccordionTrigger>Placement - mots clés</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">
-                          Sites avec des mots clés spécifiques sur la page ou des chaînes pour YouTube
-                        </p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
-                          des sites/chaînes YouTube contenant des mots clés spécifiques.
-                        </p>
-                        <p className="mb-2">
-                          Si le site contient le mot clé « Accessoires animaux », nous allons pouvoir positionner la
-                          publicité.
-                        </p>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="placement-website">
-                      <AccordionTrigger>Placement - site web</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">
-                          Ciblage sites en particulier (si disponible) ou des chaînes pour YouTube (si disponible)
-                        </p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur
-                          des sites/chaînes YouTube (avec des emplacements publicitaires) en lien avec l'activité du
-                          client/sujet de la campagne.
-                        </p>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="placement-themes">
-                      <AccordionTrigger>Placement - Thèmes</AccordionTrigger>
-                      <AccordionContent>
-                        <p className="mb-2">
-                          Thématiques de site ou des chaînes pour YouTube (Liste non exhaustive)
-                        </p>
-                        <p className="mb-4">
-                          <span className="font-medium">Exemple :</span> Nous allons sélectionner les thèmes de
-                          site/chaînes YouTube où nous pouvons positionner la publicité.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <h4 className="font-medium mb-1">Thèmes populaires :</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              <li>Arts & Divertissement</li>
-                              <li>Automobile</li>
-                              <li>Beauté & Fitness</li>
-                              <li>Livres & Littérature</li>
-                              <li>Business & Industrie</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-medium mb-1">Thèmes spécifiques :</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              <li>Informatique & Électronique</li>
-                              <li>Finance</li>
-                              <li>Alimentation & Boissons</li>
-                              <li>Jeux</li>
-                              <li>Santé</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-medium mb-1">Autres thèmes :</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              <li>Maison & Jardin</li>
-                              <li>Internet & Télécoms</li>
-                              <li>Emploi & Éducation</li>
-                              <li>Actualités</li>
-                              <li>Shopping</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-
-                  {/* Encadrés possible/difficile/impossible pour Display/YouTube */}
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
-                      <h4 className="font-bold text-green-700 mb-2">Ciblages possibles</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Centres d'intérêt</li>
-                        <li>Intentions d'achat</li>
-                        <li>Audiences personnalisées (visiteurs site, listes clients)</li>
-                        <li>Retargeting</li>
-                        <li>Placements sur sites/chaînes/thèmes</li>
-                        <li>Mots clés contextuels</li>
-                      </ul>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Colonne Audiences */}
+                    <div>
+                      <h4 className="font-bold text-lg mb-2 text-primary">Audiences</h4>
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="audience-interests">
+                          <AccordionTrigger>Audience - centres d'intérêt</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">Intérêts de l'audience (liste non exhaustive)</p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous allons sélectionner les centres d'intérêt des internautes.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <h4 className="font-medium mb-1">Centres d'intérêt populaires :</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li>Sports et fitness</li>
+                                  <li>Technologie</li>
+                                  <li>Voyage</li>
+                                  <li>Mode et beauté</li>
+                                  <li>Alimentation et cuisine</li>
+                                </ul>
+                              </div>
+                              <div>
+                                <h4 className="font-medium mb-1">Centres d'intérêt spécifiques :</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li>Jeux vidéo</li>
+                                  <li>Automobile</li>
+                                  <li>Finance personnelle</li>
+                                  <li>Parentalité</li>
+                                  <li>Décoration d'intérieur</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="audience-keywords">
+                          <AccordionTrigger>Audience - mots clés</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">
+                              Retargeting des personnes ayant récemment tapé des mots clés spécifiques.
+                            </p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous avons paramétré le mot clé « Accessoires animaux » dans notre audience. Si l'internaute tape ce mot clé dans le moteur de recherche, nous allons pouvoir le toucher sur un site web/chaîne YouTube avec un emplacement publicitaire.
+                            </p>
+                            <Alert className="mt-2 border-primary/50 bg-primary/10">
+                              <Info className="h-4 w-4" />
+                              <AlertDescription>
+                                Cette option permet de cibler des utilisateurs en fonction de leurs recherches récentes, même lorsqu'ils naviguent sur d'autres sites ou regardent des vidéos YouTube.
+                              </AlertDescription>
+                            </Alert>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="audience-website">
+                          <AccordionTrigger>Audience - site web</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">
+                              Retargeting des personnes ayant été sur des sites spécifiques ou des chaînes pour YouTube
+                            </p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous avons paramétré le site web « Maxi Zoo » dans notre audience. Si l'internaute se rend sur le site ou la chaîne YouTube de Maxi Zoo, nous allons pouvoir le toucher sur un autre site web avec un emplacement publicitaire.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
-                    <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
-                      <h4 className="font-bold text-orange-700 mb-2">Ciblages possibles mais difficiles</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Toucher des audiences très B2B ou ultra-niches</li>
-                        <li>Exclure totalement certains contextes (brand safety complexe)</li>
-                      </ul>
-                    </div>
-                    <div className="bg-gray-100 border-l-4 border-gray-400 p-4 rounded">
-                      <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Ciblage par statut professionnel précis (hors ce que Google propose en audience)</li>
-                        <li>Ciblage par données personnelles sensibles</li>
-                      </ul>
+                    {/* Colonne Placements */}
+                    <div>
+                      <h4 className="font-bold text-lg mb-2 text-primary">Placements</h4>
+                      <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="placement-themes">
+                          <AccordionTrigger>Placement - Thèmes</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">
+                              Thématiques de site ou des chaînes pour YouTube (Liste non exhaustive)
+                            </p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous allons sélectionner les thèmes de site/chaînes YouTube où nous pouvons positionner la publicité.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                              <div>
+                                <h4 className="font-medium mb-1">Thèmes populaires :</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li>Arts & Divertissement</li>
+                                  <li>Automobile</li>
+                                  <li>Beauté & Fitness</li>
+                                  <li>Livres & Littérature</li>
+                                  <li>Business & Industrie</li>
+                                </ul>
+                              </div>
+                              <div>
+                                <h4 className="font-medium mb-1">Thèmes spécifiques :</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li>Informatique & Électronique</li>
+                                  <li>Finance</li>
+                                  <li>Alimentation & Boissons</li>
+                                  <li>Jeux</li>
+                                  <li>Santé</li>
+                                </ul>
+                              </div>
+                              <div>
+                                <h4 className="font-medium mb-1">Autres thèmes :</h4>
+                                <ul className="list-disc list-inside space-y-1">
+                                  <li>Maison & Jardin</li>
+                                  <li>Internet & Télécoms</li>
+                                  <li>Emploi & Éducation</li>
+                                  <li>Actualités</li>
+                                  <li>Shopping</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="placement-keywords">
+                          <AccordionTrigger>Placement - mots clés</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">
+                              Sites avec des mots clés spécifiques sur la page ou des chaînes pour YouTube
+                            </p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur des sites/chaînes YouTube contenant des mots clés spécifiques.
+                            </p>
+                            <p className="mb-2">
+                              Si le site contient le mot clé « Accessoires animaux », nous allons pouvoir positionner la publicité.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="placement-website">
+                          <AccordionTrigger>Placement - site web</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="mb-2">
+                              Ciblage sites en particulier (si disponible) ou des chaînes pour YouTube (si disponible)
+                            </p>
+                            <p className="mb-4">
+                              <span className="font-medium">Exemple :</span> Nous allons positionner la publicité sur des sites/chaînes YouTube (avec des emplacements publicitaires) en lien avec l'activité du client/sujet de la campagne.
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
                   </div>
                 </div>
@@ -1698,5 +1666,65 @@ function AfficherExempleSearch() {
       )}
     </div>
   )
+}
+
+function AfficherExempleMeta() {
+  const [show, setShow] = useState(false);
+  const [currentExample, setCurrentExample] = useState(0);
+  const examples = [
+    {
+      title: "Configuration initiale du ciblage",
+      image: "/images/Lucie-Arnaud1.png"
+    },
+    {
+      title: "Ajout des options de ciblage avancées",
+      image: "/images/Lucie-Arnaud2.png"
+    },
+    {
+      title: "Configuration finale",
+      image: "/images/Lucie-Arnaud3.png"
+    }
+  ];
+
+  return (
+    <div className="mt-8">
+      <div className="flex flex-col items-center justify-center">
+        <button
+          className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+          onClick={() => setShow((v) => !v)}
+        >
+          {show ? "Masquer l'exemple" : "Révéler l'exemple"}
+        </button>
+        
+        {show && (
+          <>
+            <div className="flex gap-4 mb-4">
+              {examples.map((_, index) => (
+                <button
+                  key={index}
+                  className={`px-4 py-2 rounded font-semibold transition ${
+                    currentExample === index
+                      ? "bg-primary text-white"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+                  onClick={() => setCurrentExample(index)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+            <div className="text-center mb-4">
+              <h4 className="text-lg font-semibold">{examples[currentExample].title}</h4>
+            </div>
+            <img
+              src={examples[currentExample].image}
+              alt={examples[currentExample].title}
+              className="max-w-full md:max-w-2xl rounded shadow-lg"
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
