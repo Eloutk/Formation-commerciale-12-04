@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChevronRight } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { InfoIcon } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export default function ArchitectureCampagnes() {
   return (
@@ -13,105 +14,102 @@ export default function ArchitectureCampagnes() {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Architecture des Campagnes</h1>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+        {/* Vue d'ensemble en en-tête */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Principe général d'architecture de campagne</CardTitle>
+            <CardDescription>
+              Comprendre la structure hiérarchique des campagnes publicitaires digitales
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p>
+              L'architecture des campagnes publicitaires suit généralement une structure hiérarchique à trois
+              niveaux, quelle que soit la plateforme utilisée. Cette organisation permet une gestion efficace et une
+              optimisation précise des performances.
+            </p>
+
+            <div className="my-8">
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-28%20a%CC%80%2015.37.04-pewNNZVxNM8WAWZTAOIDEerFQyQ7rl.png"
+                alt="Principe général d'architecture de campagne"
+                width={1200}
+                height={600}
+                className="rounded-lg border shadow-sm mx-auto"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-semibold text-primary">Structure à trois niveaux</h3>
+                <ul className="list-disc list-inside mt-2 space-y-2">
+                  <li>
+                    <span className="font-medium">La campagne :</span> Niveau supérieur qui définit l'objectif
+                    global, le budget total et la période de diffusion
+                  </li>
+                  <li>
+                    <span className="font-medium">Le ciblage :</span> Niveau intermédiaire qui segmente l'audience
+                    selon différents critères (démographiques, géographiques, centres d'intérêt, etc.)
+                  </li>
+                  <li>
+                    <span className="font-medium">Les visuels :</span> Niveau inférieur qui contient les créations
+                    publicitaires (images, vidéos, textes) montrées à l'audience
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-muted p-4 rounded-lg mt-6">
+                <h3 className="font-medium mb-2 flex items-center">
+                  <InfoIcon className="h-5 w-5 mr-2 text-primary" />
+                  Principe clé :
+                </h3>
+                <p>
+                  <span className="text-primary font-semibold">
+                    "Segmentation du ciblage = Optimisations plus poussées"
+                  </span>
+                  . Plus vous segmentez finement votre ciblage, plus vous pourrez optimiser précisément vos
+                  campagnes et adapter vos messages à chaque segment d'audience.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4">
+              Bien que la terminologie puisse varier d'une plateforme à l'autre, cette structure à trois niveaux
+              reste constante :
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-2">
+              <li>
+                <span className="font-medium">Niveau 1 (rouge) :</span> Groupes de campagnes ou campagnes
+              </li>
+              <li>
+                <span className="font-medium">Niveau 2 (orange) :</span> Campagnes ou ensembles de publicités
+                (ciblage)
+              </li>
+              <li>
+                <span className="font-medium">Niveau 3 (vert) :</span> Publicités ou annonces (visuels)
+              </li>
+            </ul>
+
+            <Alert className="mt-8 border-primary/50">
+              <InfoIcon className="h-5 w-5" />
+              <AlertTitle>Toujours le même principe</AlertTitle>
+              <AlertDescription>
+                Quelle que soit la plateforme publicitaire utilisée, cette structure hiérarchique reste la base de
+                l'architecture des campagnes. Les spécificités de chaque plateforme sont détaillées dans les onglets
+                correspondants.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="meta" className="w-full">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
           </TabsList>
-
-          {/* Onglet Vue d'ensemble */}
-          <TabsContent value="overview">
-            <Card>
-              <CardHeader>
-                <CardTitle>Principe général d'architecture de campagne</CardTitle>
-                <CardDescription>
-                  Comprendre la structure hiérarchique des campagnes publicitaires digitales
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <p>
-                  L'architecture des campagnes publicitaires suit généralement une structure hiérarchique à trois
-                  niveaux, quelle que soit la plateforme utilisée. Cette organisation permet une gestion efficace et une
-                  optimisation précise des performances.
-                </p>
-
-                <div className="my-8">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-28%20a%CC%80%2015.37.04-pewNNZVxNM8WAWZTAOIDEerFQyQ7rl.png"
-                    alt="Principe général d'architecture de campagne"
-                    width={1200}
-                    height={600}
-                    className="rounded-lg border shadow-sm mx-auto"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-primary">Structure à trois niveaux</h3>
-                    <ul className="list-disc list-inside mt-2 space-y-2">
-                      <li>
-                        <span className="font-medium">La campagne :</span> Niveau supérieur qui définit l'objectif
-                        global, le budget total et la période de diffusion
-                      </li>
-                      <li>
-                        <span className="font-medium">Le ciblage :</span> Niveau intermédiaire qui segmente l'audience
-                        selon différents critères (démographiques, géographiques, centres d'intérêt, etc.)
-                      </li>
-                      <li>
-                        <span className="font-medium">Les visuels :</span> Niveau inférieur qui contient les créations
-                        publicitaires (images, vidéos, textes) montrées à l'audience
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-muted p-4 rounded-lg mt-6">
-                    <h3 className="font-medium mb-2 flex items-center">
-                      <InfoIcon className="h-5 w-5 mr-2 text-primary" />
-                      Principe clé :
-                    </h3>
-                    <p>
-                      <span className="text-primary font-semibold">
-                        "Segmentation du ciblage = Optimisations plus poussées"
-                      </span>
-                      . Plus vous segmentez finement votre ciblage, plus vous pourrez optimiser précisément vos
-                      campagnes et adapter vos messages à chaque segment d'audience.
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-4">
-                  Bien que la terminologie puisse varier d'une plateforme à l'autre, cette structure à trois niveaux
-                  reste constante :
-                </p>
-                <ul className="list-disc list-inside mt-2 space-y-2">
-                  <li>
-                    <span className="font-medium">Niveau 1 (rouge) :</span> Groupes de campagnes ou campagnes
-                  </li>
-                  <li>
-                    <span className="font-medium">Niveau 2 (orange) :</span> Campagnes ou ensembles de publicités
-                    (ciblage)
-                  </li>
-                  <li>
-                    <span className="font-medium">Niveau 3 (vert) :</span> Publicités ou annonces (visuels)
-                  </li>
-                </ul>
-
-                <Alert className="mt-8 border-primary/50">
-                  <InfoIcon className="h-5 w-5" />
-                  <AlertTitle>Toujours le même principe</AlertTitle>
-                  <AlertDescription>
-                    Quelle que soit la plateforme publicitaire utilisée, cette structure hiérarchique reste la base de
-                    l'architecture des campagnes. Les spécificités de chaque plateforme sont détaillées dans les onglets
-                    correspondants.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Onglet META */}
           <TabsContent value="meta">
@@ -132,6 +130,28 @@ export default function ArchitectureCampagnes() {
                     className="rounded-lg border shadow-sm mx-auto"
                   />
                 </div>
+
+                <Accordion type="single" collapsible className="w-full border rounded-lg p-4 bg-muted/30">
+                  <AccordionItem value="tableau-recap" className="border-none">
+                    <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <InfoIcon className="h-5 w-5 text-primary" />
+                        Tableau récapitulatif des possibilités META
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="my-4">
+                        <Image
+                          src="/images/Recap-possible-META.png"
+                          alt="Tableau récapitulatif des possibilités META"
+                          width={1200}
+                          height={600}
+                          className="rounded-lg border shadow-sm mx-auto"
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
 
                 <p>
                   Sur META (Facebook et Instagram), l'architecture des campagnes est particulièrement flexible et permet
