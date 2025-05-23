@@ -134,16 +134,16 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/exemple-efs-meta-2-architechture.png"
                     alt="Exemple EFS META 2 - Architechture"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={320}
+                    height={213}
+                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
                   />
                   <Image
                     src="/images/exemple-efs-meta-architechture.png"
                     alt="Exemple EFS META - Architechture"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={320}
+                    height={213}
+                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
                   />
                 </div>
 
@@ -160,9 +160,9 @@ export default function ArchitectureCampagnes() {
                         <Image
                           src="/images/recap-possible-meta.png"
                           alt="Tableau récapitulatif des possibilités META"
-                          width={600}
-                          height={400}
-                          className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                          width={320}
+                          height={213}
+                          className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
                         />
                       </div>
                     </AccordionContent>
@@ -275,16 +275,16 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/display-architechture-zone.png"
                     alt="Display architechture Zone"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={400}
+                    height={267}
+                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
                   />
                   <Image
                     src="/images/architechture-display-efs.png"
                     alt="Architechture Display EFS"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={400}
+                    height={267}
+                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
                   />
                 </div>
 
@@ -323,9 +323,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/exemple-efs-google-search.png"
                     alt="Exemple EFS - Google Search"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={400}
+                    height={267}
+                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
                   />
                 </div>
 
@@ -384,9 +384,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/exemple-architechture-linkedin.png"
                     alt="Exemple architechture Linkedin"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={320}
+                    height={213}
+                    className="rounded-lg border shadow-sm w-full max-w-xs mx-auto"
                   />
                 </div>
 
@@ -437,9 +437,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/architechture-tiktok.png"
                     alt="Architechture Tiktok"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={400}
+                    height={267}
+                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
                   />
                 </div>
 
@@ -489,9 +489,9 @@ export default function ArchitectureCampagnes() {
                   <Image
                     src="/images/architechture-snapchat.png"
                     alt="Architechture Snapchat"
-                    width={600}
-                    height={400}
-                    className="rounded-lg border shadow-sm w-full max-w-md mx-auto"
+                    width={400}
+                    height={267}
+                    className="rounded-lg border shadow-sm w-full max-w-sm mx-auto"
                   />
                 </div>
 
