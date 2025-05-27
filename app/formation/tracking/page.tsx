@@ -339,13 +339,15 @@ export default function Tracking() {
                 <section>
                   <h3 className="text-lg font-semibold text-primary mb-2">Structure type d'un UTM utilisé dans nos campagnes</h3>
                   <p>Voici un exemple d'UTM classique que nous intégrons :</p>
-                  <pre className="bg-muted p-4 rounded text-sm overflow-x-auto"><code>utm_source=META&amp;utm_medium=CPM&amp;utm_campaign=052025META&amp;utm_content={{adset.name}}</code></pre>
+                  <pre className="bg-muted p-4 rounded text-sm overflow-x-auto">
+                    <code>utm_source=META&amp;utm_medium=CPM&amp;utm_campaign=052025META&amp;utm_content=&#123;&#123;adset.name&#125;&#125;</code>
+                  </pre>
                   <h4 className="font-medium mt-4 mb-2">Décryptage :</h4>
                   <ul className="list-disc list-inside space-y-2 pl-4">
                     <li><strong>utm_source=META</strong> → la plateforme de diffusion (ex : META, Google, LinkedIn)</li>
                     <li><strong>utm_medium=CPM</strong> → le mode d'achat ou type de campagne (CPM, CPC, etc.)</li>
                     <li><strong>utm_campaign=052025META</strong> → nom ou code de la campagne</li>
-                    <li><strong>utm_content={{adset.name}}</strong> → nom du groupe d'annonces ou variante, pour affiner l'analyse</li>
+                    <li><strong>"utm_content=&#123;&#123;adset.name&#125;&#125;"</strong> → nom du groupe d'annonces ou variante, pour affiner l'analyse</li>
                   </ul>
                 </section>
                 <section>
