@@ -94,6 +94,24 @@ export function getModulesProgress() {
       quizScore: 70,
       icon: "Settings",
     },
+    {
+      id: "bilans-campagne",
+      title: "Bilans de campagne",
+      description: "Analysez et optimisez vos campagnes grâce à des bilans interactifs et en temps réel.",
+      href: "/formation/bilans-campagne",
+      progress: 0,
+      quizScore: null,
+      icon: "LineChart",
+    },
+    {
+      id: "demandes-potentiels",
+      title: "Demandes de potentiels",
+      description: "Fiche brief avancée pour estimer le potentiel d'une campagne.",
+      href: "/formation/demandes-potentiels",
+      progress: 0,
+      quizScore: null,
+      icon: "FolderTree",
+    },
   ]
 
   // Calculer la progression globale

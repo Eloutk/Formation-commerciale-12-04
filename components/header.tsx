@@ -64,6 +64,16 @@ const modules = [
     href: "/formation/optimisations",
     description: "Maximisez vos résultats",
   },
+  {
+    title: "Bilans de campagne",
+    href: "/formation/bilans-campagne",
+    description: "Analysez et optimisez vos campagnes grâce à des bilans interactifs",
+  },
+  {
+    title: "Demandes de potentiels",
+    href: "/formation/demandes-potentiels",
+    description: "Fiche brief avancée pour estimer le potentiel d'une campagne",
+  },
 ]
 
 export default function Header() {
