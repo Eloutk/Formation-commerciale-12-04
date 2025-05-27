@@ -1,9 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronRight, Info } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState } from "react"
 
 export default function ScoreQualite() {
   return (
@@ -25,6 +28,14 @@ export default function ScoreQualite() {
               <p className="mb-4">
                 Cette notation a été créé par Facebook puis repris par l'ensemble des acteurs du marché.
               </p>
+              <Alert className="mt-6 border-primary/50 bg-primary/10">
+                <AlertDescription>
+                  <p className="font-medium">
+                    Ce score qualité est assez méconnu par les autres annonceurs. C'est l'intérêt de passer par les agences.<br />
+                    La note évolue en permanence en fonction des diffusions réalisées pour nos différents clients. On va refuser de mettre en avant des visuels de mauvaises qualités, qui ne respectent pas les exigences des plateformes car cela peut faire baisser notre note.
+                  </p>
+                </AlertDescription>
+              </Alert>
             </div>
 
             <div className="mt-8">
@@ -78,61 +89,7 @@ export default function ScoreQualite() {
                 Le score qualité joue un rôle crucial dans le processus d'enchères publicitaires. Voici comment il
                 fonctionne :
               </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                <div className="border rounded-lg overflow-hidden">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.35-r8Rp84pWHUQdo77VTeA9Ko2wBRPtRc.png"
-                    alt="Calcul du score qualité avec exemples Nike, Uber Eats et IKEA"
-                    width={800}
-                    height={600}
-                    className="w-full h-auto"
-                  />
-                </div>
-
-                <div className="border rounded-lg overflow-hidden">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.50-kR4F67aOJuuA4d1nVK2tYMvQFN05LA.png"
-                    alt="Impact du score qualité sur le coût de la campagne"
-                    width={800}
-                    height={600}
-                    className="w-full h-auto"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="border rounded-lg overflow-hidden">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.45-3sK7x1e2ZBdBSDHJmpVg6LrU4ICZaQ.png"
-                    alt="Exemples de calcul de score qualité"
-                    width={800}
-                    height={600}
-                    className="w-full h-auto"
-                  />
-                </div>
-
-                <div className="border rounded-lg overflow-hidden">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.28-jZHUuRMiJMsRiVR1rM99hTT0Wl8MuH.png"
-                    alt="Processus d'enchères publicitaires"
-                    width={800}
-                    height={600}
-                    className="w-full h-auto"
-                  />
-                </div>
-              </div>
-
-              <Alert className="mt-8 border-primary/50 bg-primary/10">
-                <AlertDescription>
-                  <p className="font-medium">
-                    Comme vous pouvez le voir dans les exemples ci-dessus, un meilleur score qualité peut compenser une
-                    enchère plus basse. IKEA, avec une enchère de seulement 0,15€ mais un score qualité de 9, obtient
-                    une note finale de 135, supérieure à celle de Nike (120) qui a une enchère plus élevée (0,20€) mais
-                    un score qualité inférieur (6).
-                  </p>
-                </AlertDescription>
-              </Alert>
+              <AfficherExempleScoreQualite />
             </div>
           </CardContent>
         </Card>
@@ -148,5 +105,62 @@ export default function ScoreQualite() {
       </div>
     </div>
   )
+}
+
+function AfficherExempleScoreQualite() {
+  const [show, setShow] = useState(false);
+  const [currentExample, setCurrentExample] = useState(0);
+  const examples = [
+    { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.28-jZHUuRMiJMsRiVR1rM99hTT0Wl8MuH.png" },
+    { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.35-r8Rp84pWHUQdo77VTeA9Ko2wBRPtRc.png" },
+    { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.45-3sK7x1e2ZBdBSDHJmpVg6LrU4ICZaQ.png" },
+    { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.50-kR4F67aOJuuA4d1nVK2tYMvQFN05LA.png" }
+  ];
+
+  const goToPrev = () => setCurrentExample((prev) => (prev === 0 ? examples.length - 1 : prev - 1));
+  const goToNext = () => setCurrentExample((prev) => (prev === examples.length - 1 ? 0 : prev + 1));
+
+  return (
+    <div className="mt-8 flex flex-col items-center justify-center">
+      <button
+        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+        onClick={() => setShow((v) => !v)}
+      >
+        {show ? "Masquer l'exemple" : "Afficher l'exemple"}
+      </button>
+      {show && (
+        <>
+          <div className="flex items-center justify-center mb-4 gap-4">
+            <button
+              onClick={goToPrev}
+              aria-label="Exemple précédent"
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold"
+            >
+              ←
+            </button>
+            <img
+              src={examples[currentExample].image}
+              alt={`Exemple ${currentExample + 1}`}
+              className="max-w-full md:max-w-2xl rounded shadow-lg"
+            />
+            <button
+              onClick={goToNext}
+              aria-label="Exemple suivant"
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 text-xl font-bold"
+            >
+              →
+            </button>
+          </div>
+          <Alert className="mt-8 border-primary/50 bg-primary/10">
+            <AlertDescription>
+              <p className="font-medium">
+                Comme vous pouvez le voir dans les exemples ci-dessus, un meilleur score qualité peut compenser une enchère plus basse. IKEA, avec une enchère de seulement 0,15€ mais un score qualité de 9, obtient une note finale de 135, supérieure à celle de Nike (120) qui a une enchère plus élevée (0,20€) mais un score qualité inférieur (6).
+              </p>
+            </AlertDescription>
+          </Alert>
+        </>
+      )}
+    </div>
+  );
 }
 

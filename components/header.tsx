@@ -83,7 +83,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          Formation Commerciale
+          Link academy
         </Link>
 
         <div className="hidden lg:flex lg:flex-1 items-center justify-between">

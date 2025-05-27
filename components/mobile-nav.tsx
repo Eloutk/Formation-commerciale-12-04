@@ -26,7 +26,7 @@ export function MobileNav() {
           </SheetClose>
           <div className="py-6">
             <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setOpen(false)}>
-              Formation Commerciale
+              Link academy
             </Link>
             <div className="mt-4 space-y-2">
               <div className="flex flex-col space-y-3">
