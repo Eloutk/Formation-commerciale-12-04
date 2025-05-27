@@ -44,30 +44,6 @@ export default function Tracking() {
 
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Délais d'attribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">
-                      Périodes pendant lesquelles une conversion peut être attribuée à une campagne publicitaire après
-                      qu'un utilisateur a interagi avec une annonce.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Statistiques de campagne</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm">
-                      Données collectées par les plateformes publicitaires pour mesurer les performances des campagnes,
-                      incluant impressions, clics, conversions, etc.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
                     <CardTitle className="text-base">Balises Google</CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -83,11 +59,12 @@ export default function Tracking() {
         </div>
 
         <Tabs defaultValue="pixel" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 mb-8">
+          <TabsList className="grid grid-cols-1 md:grid-cols-5 mb-8">
             <TabsTrigger value="pixel">Pixel et API</TabsTrigger>
+            <TabsTrigger value="balises">Balise Google</TabsTrigger>
             <TabsTrigger value="attribution">Délais d'attribution</TabsTrigger>
             <TabsTrigger value="stats">Statistiques de campagne</TabsTrigger>
-            <TabsTrigger value="balises">Balises Google</TabsTrigger>
+            <TabsTrigger value="utm">Descriptif des UTM</TabsTrigger>
           </TabsList>
 
           {/* Onglet Pixel et API */}
@@ -98,12 +75,18 @@ export default function Tracking() {
                 <CardDescription>Comprendre le fonctionnement et les limitations du tracking par pixel</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <Alert className="mb-4 border-red-500/50 bg-red-500/10">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertDescription className="text-red-500">
+                    Rappel : sur une campagne de conversion, l'objectif n'est pas forcément un achat.
+                  </AlertDescription>
+                </Alert>
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Fonctionnement du pixel</h3>
-                  <Alert className="mb-4 border-primary/50 bg-primary/10">
-                    <Info className="h-4 w-4" />
-                    <AlertDescription>
-                      Il faut minimum 50 actions sur le pixel/API afin de pouvoir partir en conversion.
+                  <Alert className="mb-4 border-red-500/50 bg-red-500/10">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <AlertDescription className="text-red-500">
+                      Ajouter " 50 actions sur le pixel/API afin de pouvoir partir en conversion sur les 28 derniers jours glissants "
                     </AlertDescription>
                   </Alert>
                   <p className="mb-4">
@@ -127,7 +110,7 @@ export default function Tracking() {
                         Avant vs Maintenant
                       </h4>
                       <p className="mb-2">
-                        Le pixel existe sur toutes les plateformes. Avant grâce au Pixel, il était assez « simple » de
+                        Le pixel existe sur toutes les plateformes. Avant grâce au Pixel, il était assez " simple " de
                         tracker le comportement des internautes, de la publicité jusqu'au site internet.
                       </p>
                       <p>Mais 2 événements sont venus chambouler ce fonctionnement :</p>
@@ -169,6 +152,46 @@ export default function Tracking() {
             </Card>
           </TabsContent>
 
+          {/* Onglet Balises Google */}
+          <TabsContent value="balises">
+            <Card>
+              <CardHeader>
+                <CardTitle>Balises Google</CardTitle>
+                <CardDescription>Comprendre le fonctionnement des balises de conversion Google</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <p>
+                    Les balises Google désignent l'outil de tracking utilisé dans le cadre des campagnes Google Ads. Elles permettent de mesurer les performances des annonces diffusées.<br />
+                    Contrairement à d'autres systèmes de tracking comme le Pixel Meta ou l'API de conversion, les balises Google ne commencent à collecter des données qu'à partir du moment où la campagne est active. Elles enregistrent uniquement les interactions liées à la campagne Google Ads, et non l'ensemble des données de navigation du site ou de la landing page.
+                  </p>
+                  <p>
+                    Ces balises sont des fragments de code à intégrer sur le site internet de l'annonceur. Leur mise en place peut être effectuée de différentes façons :
+                  </p>
+                  <ul className="list-disc list-inside space-y-2 pl-4">
+                    <li>Par le client directement : nous fournissons les balises à son développeur.</li>
+                    <li>Par notre prestataire technique (Aropixel) : nous transmettons également les balises, et cette prestation est facturée.</li>
+                    <li>Par le biais de Google Tag Manager (GTM) ou via une intégration manuelle dans le code source du site.</li>
+                  </ul>
+                  <Alert className="my-6 border-red-500/50 bg-red-500/10">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <AlertDescription className="text-red-500">
+                      ⚠️ Important :<br />
+                      Si des balises sont déjà en place dans le compte publicitaire du client ou dans son GTM, elles ne peuvent pas être réutilisées. Chaque Business Manager doit disposer de ses propres balises dédiées.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-primary mb-2">À mettre à part</h3>
+                    <ul className="list-disc list-inside space-y-2 pl-4">
+                      <li><strong>Google Analytics</strong> concerne l'analyse des données du site internet.</li>
+                      <li><strong>Google Tag Manager</strong> est l'outil de pose des outils de tracking.</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Onglet Délais d'attribution */}
           <TabsContent value="attribution">
             <Card>
@@ -182,7 +205,7 @@ export default function Tracking() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Qu'est-ce que les délais d'attribution ?</h3>
                   <p className="mb-4">
-                    Les délais d'attribution sont mondiales et les mêmes pour tous. Ils servent à cadrer les résultats
+                    Les délais d'attribution sont mondiaux et les mêmes pour tous. Ils servent à cadrer les résultats
                     d'une campagne. Ils sont également soumis à de nombreux changements (plus restrictifs).
                   </p>
                 </div>
@@ -193,13 +216,13 @@ export default function Tracking() {
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Vue d'une publicité</h4>
                       <p>
-                        <span className="font-bold">Rien après une vue</span> (vs 7 jours après une vue avant)
+                        <span className="font-bold">1 jour après une vue</span>
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Clic sur une publicité</h4>
                       <p>
-                        <span className="font-bold">7 jours après un clic</span> (vs 28 jours après un clic avant)
+                        <span className="font-bold">7 jours après un clic</span>
                       </p>
                     </div>
                   </div>
@@ -211,38 +234,20 @@ export default function Tracking() {
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Scénario 1 : Vue sans clic</h4>
                       <p>
-                        Un internaute qui voit notre pub (qui ne clique pas), qui se dit « ça m'intéresse je regarde ça
-                        ce soir » et qui achète le soir en rentrant :{" "}
-                        <span className="font-bold">Pas de C.A. sur notre campagne.</span>
+                        Vue sans clic<br />
+                        Un internaute qui voit notre pub (qui ne clique pas), qui se dit " ça m'intéresse je regarde ça ce soir " et qui achète le soir en rentrant : <span className="font-bold">C.A. attribué à notre campagne</span>
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">Scénario 2 : Clic avec achat dans les 7 jours</h4>
+                      <h4 className="font-medium mb-2">Scénario 2 : clics avec conversion dans les 7 derniers jours</h4>
                       <p>
-                        Un internaute qui voit notre pub, qui clique pour aller voir le site et qui se dit « ça
-                        m'intéresse je regarde ça plus tard ». S'il achète dans les 7 jours alors le chiffre d'affaires
+                        Un internaute qui voit notre pub, qui clique pour aller voir le site et qui se dit " ça
+                        m'intéresse je regarde ça plus tard ". S'il achète dans les 7 jours alors le chiffre d'affaires
                         lié à cet achat est attribué à notre campagne (comme source de la vente). S'il achète au 8ème
                         jour, alors ce chiffre n'est pas comptabilisé sur notre campagne.
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Exemple de rapport d'attribution</h3>
-                  <div className="border rounded-lg overflow-hidden mb-6">
-                    <Image
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2010.48.51-sNlurpXhaTNmsYOdEyCO2R4Hyn1aEF.png"
-                      alt="Rapport d'attribution montrant les achats, clics et montants"
-                      width={1200}
-                      height={400}
-                      className="w-full h-auto"
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Ce rapport montre les principales métriques d'attribution : 1194 achats, 1939 clics sur lien, et 18
-                    973,93€ de montant d'achats, avec leurs évolutions sur la période.
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -274,7 +279,7 @@ export default function Tracking() {
                     <AlertDescription>
                       Pour Google & YouTube, c'est plus compliqué car beaucoup d'utilisateurs ne sont pas connectés à
                       leur compte lors de leur utilisation de ces plateformes. C'est pour cela qu'il y a, souvent, une
-                      grande part « d'inconnus » sur nos rapports.
+                      grande part " d'inconnus " sur nos rapports.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -316,69 +321,54 @@ export default function Tracking() {
             </Card>
           </TabsContent>
 
-          {/* Onglet Balises Google */}
-          <TabsContent value="balises">
+          {/* Onglet Descriptif des UTM */}
+          <TabsContent value="utm">
             <Card>
               <CardHeader>
-                <CardTitle>Balises Google</CardTitle>
-                <CardDescription>Comprendre le fonctionnement des balises de conversion Google</CardDescription>
+                <CardTitle>Descriptif des UTM</CardTitle>
+                <CardDescription>Comprendre l'intérêt et la structure des UTM dans le suivi des campagnes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Installation des balises Google</h3>
-                  <p className="mb-4">Les balises Google peuvent être posées :</p>
-                  <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li>
-                      <span className="font-medium">Par le Service TM</span> - si un GTM est en place sur le site du
-                      client (Google Tag manager) - prévoir un délai de mise en place avant démarrage de la campagne.
-                      <div className="ml-6 mt-1 text-sm text-muted-foreground">
-                        Nous ne pouvons pas poser des balises sur un site e-commerce.
-                      </div>
-                    </li>
-                    <li>
-                      <span className="font-medium">Par le développeur</span> via le GTM ou directement sur le site (en
-                      dur)
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Google Tag Manager (GTM)</h3>
-                  <p className="mb-4">
-                    Le GTM est un gestionnaire de tracking. Cela permet simplement de rassembler et/ou paramétrer tous
-                    les trackings d'un site. Il n'est pas possible d'avoir une analyse ou des stats avec GTM. L'analyse
-                    des stats du site se fait à l'aide de l'outil Google Analytics.
+                <section>
+                  <h3 className="text-lg font-semibold text-primary mb-2">Qu'est-ce qu'un UTM ?</h3>
+                  <p>
+                    Un UTM est un morceau de code ajouté à la fin de l'URL d'une landing page pour suivre l'origine du trafic.<br />
+                    Il est utilisé dans toutes nos campagnes pour permettre au client de retracer précisément les visiteurs générés par nos actions via ses outils de tracking (comme Google Analytics, Matomo, HubSpot, etc.).
                   </p>
-                </div>
-
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Placement et utilisation des balises</h3>
-                  <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li>Les balises Google sont posées sur la Landing Page souhaitée pour la campagne.</li>
-                    <li>
-                      Si les clients ont déjà posé des balises sur leur gestionnaire de publicités ou si des balises
-                      sont disponibles sur leur GTM, nous ne pourrons pas les utiliser. Chaque Business manager doit
-                      avoir ses balises.
-                    </li>
-                    <li>
-                      Le gestionnaire de publicités collectera des données dès lors que la campagne est en diffusion et
-                      pas avant (grande différence avec le pixel/API). Ces balises collecteront les données de la
-                      campagne seulement, et non tous les flux du site/LP du client.
-                    </li>
+                </section>
+                <section>
+                  <h3 className="text-lg font-semibold text-primary mb-2">Structure type d'un UTM utilisé dans nos campagnes</h3>
+                  <p>Voici un exemple d'UTM classique que nous intégrons :</p>
+                  <pre className="bg-muted p-4 rounded text-sm overflow-x-auto"><code>utm_source=META&amp;utm_medium=CPM&amp;utm_campaign=052025META&amp;utm_content={{adset.name}}</code></pre>
+                  <h4 className="font-medium mt-4 mb-2">Décryptage :</h4>
+                  <ul className="list-disc list-inside space-y-2 pl-4">
+                    <li><strong>utm_source=META</strong> → la plateforme de diffusion (ex : META, Google, LinkedIn)</li>
+                    <li><strong>utm_medium=CPM</strong> → le mode d'achat ou type de campagne (CPM, CPC, etc.)</li>
+                    <li><strong>utm_campaign=052025META</strong> → nom ou code de la campagne</li>
+                    <li><strong>utm_content={{adset.name}}</strong> → nom du groupe d'annonces ou variante, pour affiner l'analyse</li>
                   </ul>
-                </div>
-
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Cas particulier : sites multiples</h3>
-                  <Alert className="mb-4 border-primary/50 bg-primary/10">
-                    <Info className="h-4 w-4" />
-                    <AlertDescription>
-                      Par exemple, si site vitrine et billetterie à part et qu'on veut tracker les achats : il faut nous
-                      demander du tracking sur la billetterie et non sur le site vitrine du client. (Pixel/API/Balises
-                      sont posés sur 1 seul site).
-                    </AlertDescription>
-                  </Alert>
-                </div>
+                </section>
+                <section>
+                  <h3 className="text-lg font-semibold text-primary mb-2">Deux cas possibles dans la gestion des UTM :</h3>
+                  <ul className="list-disc list-inside space-y-2 pl-4">
+                    <li><strong>Cas standard :</strong> Si le client ne fait pas de demande particulière, nous utilisons notre structure UTM habituelle, pensée pour être cohérente et lisible.</li>
+                    <li><strong>Cas client digitalement mature :</strong> Si le client suit déjà ses campagnes en détail, il nous fournit son propre format d'UTM. Dans ce cas, nous l'intégrons à la lettre dans la campagne, sans modification.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h3 className="text-lg font-semibold text-primary mb-2">Comment reconnaître un lien tracké ?</h3>
+                  <p>
+                    Si vous cliquez sur une publicité, regardez l'URL de la page d'arrivée :<br />
+                    Si elle contient un <code>?</code> suivi de <code>utm_...</code>, vous êtes sur un lien tracké.<br />
+                    Ce "petit morceau de code" permet aux outils d'analyse de suivre ce que fait l'utilisateur après avoir cliqué sur l'annonce.
+                  </p>
+                </section>
+                <section>
+                  <h3 className="text-lg font-semibold text-primary mb-2">En résumé</h3>
+                  <p>
+                    Les UTM sont invisibles pour l'internaute, mais essentiels pour le client car ils permettent de mesurer l'impact réel de chaque campagne.
+                  </p>
+                </section>
               </CardContent>
             </Card>
           </TabsContent>
