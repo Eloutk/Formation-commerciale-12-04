@@ -34,7 +34,7 @@ const glossaryTerms: GlossaryTerm[] = [
     id: "api",
     term: "API",
     definition:
-      "L'API conversion de META est un pixel « amélioré ». Cela permet de mieux tracker. Cette API fonctionne en parallèle d'un Pixel et permet de mieux tracker les comportements des internautes. Dès lors qu'un internaute clique sur la publicité, nous avons la possibilité de le suivre sur le site internet.",
+      "API  : L'API Conversion de Meta est une technologie avancée de suivi publicitaire qui complète (et renforce) le pixel classique. Contrairement au pixel qui repose uniquement sur le navigateur, l'API Conversion fonctionne côté serveur, ce qui permet de remonter des événements plus fiables et plus complets, même si l'utilisateur refuse les cookies ou utilise un bloqueur.\nCette API agit en parallèle du pixel, et ensemble, ils permettent :\nun meilleur suivi des conversions (clics, achats, inscriptions…)\nune mesure plus précise du comportement des internautes après le clic sur la publicité)\nune meilleure performance de l'algorithme Meta grâce à des données plus complètes.\n👉 Concrètement, dès qu'un internaute clique sur une publicité Meta, l'API Conversion permet d'envoyer directement à Meta les actions qu'il effectue sur le site (ex. : vue d'un produit, ajout au panier, achat), même si le pixel seul ne les capte pas.",
     category: "A",
   },
   {
@@ -75,6 +75,12 @@ const glossaryTerms: GlossaryTerm[] = [
     term: "CTR (Click-Through Rate)",
     definition:
       "Taux de clics, exprimé en pourcentage, qui mesure le nombre de clics sur une annonce divisé par le nombre d'impressions. Un CTR élevé est généralement un signe de pertinence et d'efficacité de l'annonce.",
+    category: "C",
+  },
+  {
+    id: "ctr-sur-lien",
+    term: "CTR sur lien",
+    definition: "Le CTR sur lien mesure uniquement le pourcentage de personnes ayant cliqué sur le lien principal de la publicité (vers la landing page), par rapport au nombre d'impressions. Il se distingue du CTR global qui inclut tous les clics (j'aime, partages, etc.).",
     category: "C",
   },
   {
@@ -154,8 +160,8 @@ const glossaryTerms: GlossaryTerm[] = [
   },
   {
     id: "reaction-publication",
-    term: "Réaction publication",
-    definition: "Emotions autour d'une publication (J'aime, J'adore, Haha, Wouah, Triste ou Grr)",
+    term: "Réactions",
+    definition: "Ensemble des réactions possibles sur une publication (J'aime, J'adore, Haha, Wouah, Triste, Grr, etc.)",
     category: "R",
   },
   {
@@ -167,9 +173,9 @@ const glossaryTerms: GlossaryTerm[] = [
   },
   {
     id: "remarketing",
-    term: "Remarketing",
+    term: "Remarketing (retargeting)",
     definition:
-      "Technique publicitaire qui permet de cibler les utilisateurs qui ont déjà interagi avec votre site web ou application. Le remarketing vise à reconvertir les visiteurs qui n'ont pas complété une action lors de leur première visite.",
+      "Technique publicitaire (aussi appelée retargeting) qui permet de cibler les utilisateurs qui ont déjà interagi avec votre site web ou application. Le remarketing vise à reconvertir les visiteurs qui n'ont pas complété une action lors de leur première visite.",
     category: "R",
   },
   {
@@ -212,6 +218,18 @@ const glossaryTerms: GlossaryTerm[] = [
     term: "Wording",
     definition: "Textes insérés aux abords des visuels (description, titre, etc)",
     category: "W",
+  },
+  {
+    id: "sem",
+    term: "SEM (Search Engine Marketing)",
+    definition: "Le SEM regroupe l'ensemble des techniques visant à améliorer la visibilité d'un site sur les moteurs de recherche, en combinant le SEO (référencement naturel), le SEA (publicité payante) et le SMO (optimisation sur les réseaux sociaux).",
+    category: "S",
+  },
+  {
+    id: "smo",
+    term: "SMO (Social Media Optimization)",
+    definition: "Le SMO consiste à optimiser la présence et la visibilité d'une marque sur les réseaux sociaux (Facebook, Instagram, LinkedIn, TikTok, etc.), de manière organique (non payante).",
+    category: "S",
   },
 ]
 

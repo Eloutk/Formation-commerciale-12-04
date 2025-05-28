@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, LogIn } from "lucide-react"
 import { MobileNav } from "@/components/mobile-nav"
+import Image from 'next/image'
 
 const modules = [
   {
@@ -78,11 +79,27 @@ const modules = [
 
 export default function Header() {
   const pathname = usePathname()
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [showResults, setShowResults] = React.useState(false);
+
+  // Filtrer les modules selon la recherche
+  const filteredModules = modules.filter(
+    (module) =>
+      module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      module.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
         <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Image
+            src="/images/logo-link.png"
+            alt="Logo Link Academy"
+            width={40}
+            height={40}
+            className="object-contain"
+          />
           Link academy
         </Link>
 
@@ -131,7 +148,33 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" placeholder="Rechercher..." className="w-64 pl-8" />
+              <Input
+                type="search"
+                placeholder="Rechercher..."
+                className="w-64 pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowResults(e.target.value.length > 0);
+                }}
+                onBlur={() => setTimeout(() => setShowResults(false), 150)}
+                onFocus={() => setShowResults(searchTerm.length > 0)}
+              />
+              {showResults && filteredModules.length > 0 && (
+                <div className="absolute left-0 mt-2 w-full bg-white border border-gray-200 rounded shadow-lg z-50">
+                  {filteredModules.map((module) => (
+                    <Link
+                      key={module.title}
+                      href={module.href}
+                      className="block px-4 py-2 hover:bg-orange-100 text-sm text-gray-900 cursor-pointer"
+                      onClick={() => setShowResults(false)}
+                    >
+                      <span className="font-semibold">{module.title}</span>
+                      <span className="block text-xs text-gray-500">{module.description}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
             <Button asChild variant="default" size="sm">
