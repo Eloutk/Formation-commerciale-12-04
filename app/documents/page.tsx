@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Download } from "lucide-react"
 
-export default function Documents() {
+export default function DocumentsPage() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Documents</h1>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-bold mb-2">Documents</h1>
+        <p className="text-muted-foreground mb-8">Consultez les documents disponibles</p>
 
         <Card>
           <CardHeader>
