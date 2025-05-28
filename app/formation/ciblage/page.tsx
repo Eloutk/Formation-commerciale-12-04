@@ -477,6 +477,12 @@ export default function Ciblage() {
                         </span>
                         <span>Ciblage par pays, régions, villes (pas de rayon)</span>
                       </li>
+                      <li className="flex items-start">
+                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
+                          <Info className="h-4 w-4" />
+                        </span>
+                        <span>Dépenses minimales : 10 € par jour d'achat d'espace = 25 € par jour PDV</span>
+                      </li>
                     </ul>
 
                     <Alert className="mt-4 border-amber-500/50 bg-amber-500/10">
@@ -544,6 +550,15 @@ export default function Ciblage() {
                         <Info className="h-4 w-4" />
                       </span>
                       <span>Pas de campagne pour les mineurs</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
+                        <Info className="h-4 w-4" />
+                      </span>
+                      <span>
+                        Minimum de dépense : 50 € par jour et par ciblage d'achat d'espace {">"} 50 € PDV par jour et
+                        par ciblage
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -1105,6 +1120,12 @@ export default function Ciblage() {
                       </span>
                       <span>Emploi : ciblage jusqu'à 50+ obligatoire</span>
                     </li>
+                    <li className="flex items-start">
+                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
+                        <Info className="h-4 w-4" />
+                      </span>
+                      <span>Dépenses minimales : 20 € par jour d'achat d'espace = 25 € PDV par jour</span>
+                    </li>
                   </ul>
 
                   <Alert className="mt-4 border-amber-500/50 bg-amber-500/10">
@@ -1322,6 +1343,12 @@ export default function Ciblage() {
                         <Info className="h-4 w-4" />
                       </span>
                       <span>Ciblage mineurs possible</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
+                        <Info className="h-4 w-4" />
+                      </span>
+                      <span>Dépenses minimales : investissement mini 250 € d'achat d'espace {">"} 625 € PDV</span>
                     </li>
                   </ul>
 
