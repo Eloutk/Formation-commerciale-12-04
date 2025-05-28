@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronRight, AlertTriangle, Info } from "lucide-react"
+import { ChevronRight, AlertTriangle, Info, X } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useState } from "react"
@@ -111,28 +111,34 @@ export default function Ciblage() {
                     <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                     <ul className="space-y-2">
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
                         </span>
-                        <span>Ciblage par rayon à partir d'un km de 18 à 65+</span>
+                        <span>Calendrier de diffusion</span>
                       </li>
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
                         </span>
-                        <span>Pas de campagne (tout type) en dessous de 18 ans</span>
+                        <span>Ciblage âge et genre</span>
                       </li>
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
                         </span>
-                        <span>Diffusion à heure précise dans la journée</span>
+                        <span>Ciblage par pays, régions, villes et rayons</span>
                       </li>
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
                         </span>
                         <span>Diffusion sur une ou plusieurs plateformes (Insta ou Facebook seul)</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-red-500" />
+                        </span>
+                        <span>Ciblage mineurs</span>
                       </li>
                     </ul>
 
@@ -237,9 +243,27 @@ export default function Ciblage() {
                 </div>
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-4">Spécificités Google Search</h3>
-                  <p className="mb-4">
-                    Google Search a un fonctionnement particulier : il n'y a pas de ciblage d'audience classique, on achète des mots clés. Le ciblage dépend donc du choix des mots clés et de leur correspondance.
-                  </p>
+                  {/* Bloc d'options avec icônes */}
+                  <div className="mb-6 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Calendrier de diffusion</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Ciblage âge et genre</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Ciblage par pays, régions, villes et rayons</span>
+                    </div>
+                  </div>
 
                   <Alert className="mb-4 border-primary/50">
                     <Info className="h-4 w-4" />
@@ -309,6 +333,33 @@ export default function Ciblage() {
               <CardContent className="space-y-6">
                 <div className="mt-4">
                   <h3 className="text-lg font-semibold mb-4">Options de ciblage Display & YouTube</h3>
+                  {/* Bloc d'options avec icônes */}
+                  <div className="mb-6 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Ciblage âge et genre possible</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Ciblage par pays, régions, villes et rayons</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
+                      </span>
+                      <span>Ciblage pour les mineurs</span>
+                    </div>
+                    <li className="flex items-start">
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
+                      </span>
+                      <span>Pas de campagne de clics en dessous de 18 ans</span>
+                    </li>
+                  </div>
                   <p className="mb-4">
                     En Display ou YouTube, le ciblage par audience consiste à toucher des personnes selon qui elles sont (comportements, intérêts, intentions), tandis que le ciblage par placement permet de choisir précisément où les annonces s'affichent (sites, vidéos ou chaînes spécifiques).
                   </p>
@@ -472,16 +523,22 @@ export default function Ciblage() {
                     <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                     <ul className="space-y-2">
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
                         </span>
-                        <span>Ciblage par pays, régions, villes (pas de rayon)</span>
+                        <span>Calendrier de diffusion possible</span>
                       </li>
                       <li className="flex items-start">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                          <Info className="h-4 w-4" />
+                        <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-red-500" />
                         </span>
-                        <span>Dépenses minimales : 10 € par jour d'achat d'espace = 25 € par jour PDV</span>
+                        <span>Ciblage âge et genre</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-white" />
+                        </span>
+                        <span>Ciblage par pays, régions, villes (pas de rayon)</span>
                       </li>
                     </ul>
 
@@ -528,37 +585,29 @@ export default function Ciblage() {
                   <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
                       </span>
-                      <span>Ciblage par pays ou par région ou par ville de 18 à 55+ (pas de rayon)</span>
+                      <span>Calendrier de diffusion</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
                       </span>
-                      <span>Ciblage par tranche d'âge : 18/24, 25/34, 35/44, 45/54, 55+</span>
+                      <span>Ciblage pour les mineurs</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage par centres d'intérêts des utilisateurs et grâce aux #</span>
+                      <span>Ciblage par pays, régions, villes (pas de rayon)</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Pas de campagne pour les mineurs</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
-                      </span>
-                      <span>
-                        Minimum de dépense : 50 € par jour et par ciblage d'achat d'espace {">"} 50 € PDV par jour et
-                        par ciblage
-                      </span>
+                      <span>Minimum de dépense : 50 € par jour et par ciblage d'achat d'espace {">"} 50 € PDV par jour et
+                        par ciblage</span>
                     </li>
                   </ul>
                 </div>
@@ -1091,38 +1140,32 @@ export default function Ciblage() {
                   <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
                       <span>Ciblage par rayon à partir d'1 km</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
                       <span>Ciblage de 13 à 50+</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Pas de ciblage pour les moins de 18 ans</span>
+                      <span>Ciblage pour les mineurs</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
                       </span>
                       <span>Pas de campagne de clics en dessous de 18 ans</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
-                      </span>
-                      <span>Emploi : ciblage jusqu'à 50+ obligatoire</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
                       <span>Dépenses minimales : 20 € par jour d'achat d'espace = 25 € PDV par jour</span>
                     </li>
@@ -1321,32 +1364,32 @@ export default function Ciblage() {
                   <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage par pays, régions, villes ou par codes postaux (pas de rayon)</span>
+                      <span>Calendrier de diffusion possible</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage par tranche d'âge 16/17, 18/24, 25/34, 35/44, 45/54, 55/64, 65+</span>
+                      <span>Ciblage âge et genre possible</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Pas de campagne de clics en dessous de 18 ans</span>
+                      <span>Ciblage par pays, régions, villes (pas de rayon)</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage mineurs possible</span>
+                      <span>Ciblage pour les mineurs possible</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-primary/10 text-primary rounded-full p-1 mr-2 mt-0.5">
-                        <Info className="h-4 w-4" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
                       <span>Dépenses minimales : investissement mini 250 € d'achat d'espace {">"} 625 € PDV</span>
                     </li>
