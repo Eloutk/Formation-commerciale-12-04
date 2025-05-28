@@ -24,7 +24,7 @@ export default function ObjectifsCampagne() {
             </CardHeader>
             <CardContent className="space-y-6">
               <p>
-                Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
+                Chaque plateforme publicitaire propose différents objectifs de campagne.
               </p>
               <div className="my-8 flex justify-center">
                 <Image
@@ -74,7 +74,7 @@ export default function ObjectifsCampagne() {
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
-            <TabsTrigger value="google">Search</TabsTrigger>
+            <TabsTrigger value="google">Google</TabsTrigger>
             <TabsTrigger value="spotify">Spotify</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
           </TabsList>
@@ -94,8 +94,7 @@ export default function ObjectifsCampagne() {
               <CardContent className="space-y-6">
                 <p>
                   META (Facebook et Instagram) propose une variété d'objectifs de campagne adaptés à différentes étapes
-                  du parcours client. Les objectifs encadrés en rouge représentent les services que nous proposons à nos
-                  clients.
+                  du parcours client.
                 </p>
 
                 <div className="space-y-4">
@@ -142,8 +141,7 @@ export default function ObjectifsCampagne() {
               <CardContent className="space-y-6">
                 <p>
                   TikTok propose plusieurs objectifs de campagne regroupés en trois catégories principales : Awareness
-                  (Notoriété), Consideration (Considération) et Conversion. Les objectifs encadrés en orange
-                  représentent les services que nous proposons à nos clients.
+                  (Notoriété), Consideration (Considération) et Conversion.
                 </p>
 
                 <div className="space-y-4">
@@ -182,8 +180,7 @@ export default function ObjectifsCampagne() {
               <CardContent className="space-y-6">
                 <p>
                   LinkedIn propose des objectifs de campagne adaptés au contexte professionnel, regroupés en trois
-                  catégories : Notoriété, Considération et Conversion. Les objectifs encadrés représentent les services
-                  que nous proposons à nos clients.
+                  catégories : Notoriété, Considération et Conversion.
                 </p>
 
                 <div className="space-y-4">
@@ -227,12 +224,12 @@ export default function ObjectifsCampagne() {
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-2">Vue d'ensemble des objectifs de campagne</h3>
                   <p>
-                    Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
+                    Chaque plateforme publicitaire propose différents objectifs de campagne.
                   </p>
                 </div>
                 <Tabs defaultValue="google-search" className="w-full">
                   <TabsList className="mb-4 grid grid-cols-3">
-                    <TabsTrigger value="google-search">Search Google</TabsTrigger>
+                    <TabsTrigger value="google-search">Google</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
                   </TabsList>
@@ -246,16 +243,14 @@ export default function ObjectifsCampagne() {
                           height={32}
                           className="rounded-sm"
                         />
-                        <h3 className="text-lg font-semibold">Search Google</h3>
+                        <h3 className="text-lg font-semibold">Google</h3>
                       </div>
                       <p>Sur Search, les campagnes publicitaires sont exclusivement orientées vers des objectifs de clics ou de conversion.</p>
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
-                          <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
+                          <li><span className="font-medium">Conversion :</span> Générer des ventes en ligne et du chiffre d'affaires</li>
                         </ul>
                       </div>
                     </div>
@@ -276,10 +271,9 @@ export default function ObjectifsCampagne() {
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
-                          <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
+                          <li><span className="font-medium">Notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
+                          <li><span className="font-medium">Conversion CA :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
                         </ul>
                       </div>
                     </div>
@@ -300,10 +294,9 @@ export default function ObjectifsCampagne() {
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
-                          <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
+                          <li><span className="font-medium">Notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
+                          <li><span className="font-medium">Conversion CA :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
                         </ul>
                       </div>
                     </div>
@@ -325,34 +318,14 @@ export default function ObjectifsCampagne() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
-                  Spotify propose plusieurs objectifs de campagne adaptés à sa plateforme audio. Les objectifs encadrés
-                  représentent les services que nous proposons à nos clients.
+                  Spotify propose plusieurs objectifs de campagne adaptés à sa plateforme audio.
                 </p>
 
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold">Objectifs principaux proposés :</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
-                      <li>
-                        <span className="font-medium">Portée :</span> Partagez vos annonces avec un public le plus large
-                        possible pour développer votre notoriété
-                      </li>
-                      <li>
-                        <span className="font-medium">Impressions :</span> Partagez vos annonces aussi souvent que
-                        possible pour augmenter votre notoriété
-                      </li>
-                      <li>
-                        <span className="font-medium">Vues de vidéo :</span> Captez l'attention et augmentez le nombre
-                        de vues de votre annonce vidéo
-                      </li>
-                      <li>
-                        <span className="font-medium">Website Traffic :</span> Amenez plus de personnes à visiter votre
-                        site web
-                      </li>
-                      <li>
-                        <span className="font-medium">Clics :</span> Suscitez de l'engagement en faisant en sorte que
-                        davantage de personnes cliquent sur vos annonces
-                      </li>
+                      <li><span className="font-medium">Impressions :</span> Partagez vos annonces aussi souvent que possible pour augmenter votre notoriété</li>
                     </ul>
                   </div>
                 </div>
@@ -372,8 +345,7 @@ export default function ObjectifsCampagne() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
-                  Snapchat propose plusieurs objectifs de campagne pour répondre à différents besoins marketing. Les
-                  objectifs encadrés en orange représentent les services que nous proposons à nos clients.
+                  Snapchat propose plusieurs objectifs de campagne pour répondre à différents besoins marketing.
                 </p>
 
                 <div className="space-y-4">
