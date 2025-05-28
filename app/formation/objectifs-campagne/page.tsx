@@ -368,6 +368,7 @@ export default function ObjectifsCampagne() {
           </TabsContent>
         </Tabs>
 
+        <AfficherTableauRecapObjectifs />
         <div className="mt-8 flex justify-end">
           <Link href="/formation/objectifs-campagne/quiz">
             <Button>
@@ -376,7 +377,6 @@ export default function ObjectifsCampagne() {
             </Button>
           </Link>
         </div>
-        <AfficherTableauRecapObjectifs />
       </div>
     </div>
   )

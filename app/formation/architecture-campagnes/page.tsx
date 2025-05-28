@@ -33,12 +33,6 @@ export default function ArchitectureCampagnes() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <p>
-              L'architecture des campagnes publicitaires suit généralement une structure hiérarchique à trois
-              niveaux, quelle que soit la plateforme utilisée. Cette organisation permet une gestion efficace et une
-              optimisation précise des performances.
-            </p>
-
             <div className="my-8">
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-28%20a%CC%80%2015.37.04-pewNNZVxNM8WAWZTAOIDEerFQyQ7rl.png"
@@ -48,6 +42,16 @@ export default function ArchitectureCampagnes() {
                 className="rounded-lg border shadow-sm mx-auto"
               />
             </div>
+
+            <Alert className="mt-4 border-primary/50">
+              <InfoIcon className="h-5 w-5" />
+              <AlertTitle>Toujours le même principe</AlertTitle>
+              <AlertDescription>
+                Quelle que soit la plateforme publicitaire utilisée, cette structure hiérarchique reste la base de
+                l'architecture des campagnes. Les spécificités de chaque plateforme sont détaillées dans les onglets
+                correspondants.
+              </AlertDescription>
+            </Alert>
 
             <div className="space-y-4">
               <div>
@@ -90,38 +94,11 @@ export default function ArchitectureCampagnes() {
                 </AlertDescription>
               </Alert>
             </div>
-
-            <p className="mt-4">
-              Bien que la terminologie puisse varier d'une plateforme à l'autre, cette structure à trois niveaux
-              reste constante :
-            </p>
-            <ul className="list-disc list-inside mt-2 space-y-2">
-              <li>
-                <span className="font-medium">Niveau 1 (rouge) :</span> Groupes de campagnes ou campagnes
-              </li>
-              <li>
-                <span className="font-medium">Niveau 2 (orange) :</span> Campagnes ou ensembles de publicités
-                (ciblage)
-              </li>
-              <li>
-                <span className="font-medium">Niveau 3 (vert) :</span> Publicités ou annonces (visuels)
-              </li>
-            </ul>
-
-            <Alert className="mt-8 border-primary/50">
-              <InfoIcon className="h-5 w-5" />
-              <AlertTitle>Toujours le même principe</AlertTitle>
-              <AlertDescription>
-                Quelle que soit la plateforme publicitaire utilisée, cette structure hiérarchique reste la base de
-                l'architecture des campagnes. Les spécificités de chaque plateforme sont détaillées dans les onglets
-                correspondants.
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
 
         <Tabs defaultValue="meta" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
+          <TabsList className="flex justify-between w-full mb-8 px-6">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="google-display">Display & YouTube</TabsTrigger>
             <TabsTrigger value="google-search">Google Search</TabsTrigger>
@@ -453,18 +430,6 @@ export default function ArchitectureCampagnes() {
                       </li>
                     </ul>
                   </div>
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Spécificités LinkedIn</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>
-                        LinkedIn permet un ciblage très précis basé sur des critères professionnels (poste, secteur,
-                        compétences, etc.)
-                      </li>
-                      <li>Les dates, la zone géographique et le budget sont définis au niveau de la campagne</li>
-                      <li>Les URL de destination sont définies au niveau des publicités</li>
-                    </ul>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -516,17 +481,6 @@ export default function ArchitectureCampagnes() {
                       </li>
                     </ul>
                   </div>
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Spécificités TikTok</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>
-                        Le budget, la zone géographique et les dates sont définis au niveau des ensembles de publicités
-                      </li>
-                      <li>Les URL de destination sont définies au niveau des publicités</li>
-                      <li>TikTok met l'accent sur les formats vidéo courts et engageants, adaptés à sa plateforme</li>
-                    </ul>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -575,18 +529,6 @@ export default function ArchitectureCampagnes() {
                       <li>
                         <span className="font-medium">Publicités :</span> Niveau inférieur qui contient les créations
                         publicitaires (Snap Ads, Story Ads, Filters, etc.)
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Spécificités Snapchat</h3>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>Les dates, la zone géographique et le budget sont définis au niveau de la campagne</li>
-                      <li>Les URL de destination sont définies au niveau des publicités</li>
-                      <li>
-                        Snapchat propose des formats publicitaires uniques comme les filtres AR et les lentilles
-                        interactives
                       </li>
                     </ul>
                   </div>

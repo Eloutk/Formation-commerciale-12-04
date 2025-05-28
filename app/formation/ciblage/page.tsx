@@ -132,7 +132,7 @@ export default function Ciblage() {
                         <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                           <Info className="h-4 w-4 text-white" />
                         </span>
-                        <span>Diffusion sur une ou plusieurs plateformes (Insta ou Facebook seul)</span>
+                        <span>Diffusion sur une ou plusieurs plateformes (Insta, Facebook, Messenger, Threads)</span>
                       </li>
                       <li className="flex items-start">
                         <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
@@ -192,7 +192,7 @@ export default function Ciblage() {
 
                 {/* Séparation visuelle possible / difficile / impossible */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                  <div className="border-l-4 border-green-500 p-4 rounded">
                     <h4 className="font-bold text-green-700 mb-2">Ciblages possibles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Famille, parents, parents d'enfants de 0 à 26 ans</li>
@@ -206,7 +206,7 @@ export default function Ciblage() {
                       <li>Retargeting & Look alike</li>
                     </ul>
                   </div>
-                  <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+                  <div className="border-l-4 border-orange-500 p-4 rounded">
                     <h4 className="font-bold text-orange-700 mb-2">Ciblages possibles mais difficiles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Entreprises ou chefs d'entreprises dans un secteur particulier</li>
@@ -214,7 +214,7 @@ export default function Ciblage() {
                       <li>Catégories spéciales (voir ci-dessus) : diffusion sans ciblage</li>
                     </ul>
                   </div>
-                  <div className="bg-gray-100 border-l-4 border-gray-400 p-4 rounded">
+                  <div className="border-l-4 border-gray-400 p-4 rounded">
                     <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Certains secteurs très réglementés ou interdits par META</li>
@@ -223,7 +223,7 @@ export default function Ciblage() {
                 </div>
 
                 {/* Exemples META */}
-                <AfficherExempleMeta />
+                {/* <AfficherExempleMeta /> */}
               </CardContent>
             </Card>
           </TabsContent>
@@ -252,8 +252,8 @@ export default function Ciblage() {
                       <span>Calendrier de diffusion</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-white" />
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
                       </span>
                       <span>Ciblage âge et genre</span>
                     </div>
@@ -316,7 +316,7 @@ export default function Ciblage() {
                   </div>
                 </div>
                 {/* BOUTON AFFICHER L'EXEMPLE RESTAURANT BORDEAUX */}
-                <AfficherExempleSearch />
+                {/* <AfficherExempleSearch /> */}
               </CardContent>
             </Card>
           </TabsContent>
@@ -339,7 +339,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage âge et genre possible</span>
+                      <span>Ciblage âge et genre</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
@@ -351,7 +351,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage pour les mineurs</span>
+                      <span>Ciblage des mineurs (en impression seulement)</span>
                     </div>
                     <li className="flex items-start">
                       <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
@@ -594,13 +594,13 @@ export default function Ciblage() {
                       <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-red-500" />
                       </span>
-                      <span>Ciblage pour les mineurs</span>
+                      <span>Ciblage pour les mineurs (en impressions seulement)</span>
                     </li>
                     <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage par pays, régions, villes (pas de rayon)</span>
+                      <span>Ciblage par régions ou villes selon la liste disponible</span>
                     </li>
                     <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
@@ -1155,7 +1155,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage pour les mineurs</span>
+                      <span>Ciblage pour les mineurs (en impressions seulement)</span>
                     </li>
                     <li className="flex items-start">
                       <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
@@ -1364,8 +1364,8 @@ export default function Ciblage() {
                   <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-white" />
+                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-red-500" />
                       </span>
                       <span>Calendrier de diffusion possible</span>
                     </li>
@@ -1379,7 +1379,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage par pays, régions, villes (pas de rayon)</span>
+                      <span>Ciblage par régions ou villes selon la liste disponible</span>
                     </li>
                     <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
@@ -1555,219 +1555,16 @@ export default function Ciblage() {
                         </ul>
                       </AccordionContent>
                     </AccordionItem>
-
-                    <AccordionItem value="jeux-video">
-                      <AccordionTrigger>Jeux vidéo</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Jeux vidéo d'action et d'aventure</li>
-                          <li>Jeux sur mobile</li>
-                          <li>Jeux PC</li>
-                          <li>RPG</li>
-                          <li>eSports</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="automobile">
-                      <AccordionTrigger>Automobile</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Automobile</li>
-                          <li>Voitures et véhicules</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="alimentation-boissons">
-                      <AccordionTrigger>Alimentation et boissons</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Boissons alcoolisées</li>
-                          <li>Barbecues et grillades</li>
-                          <li>Cuisine</li>
-                          <li>Alimentation et boissons</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="arts-sciences">
-                      <AccordionTrigger>Arts et sciences</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Arts et sciences humaines : histoire</li>
-                          <li>Médecine et soins de santé</li>
-                          <li>Beaux-arts</li>
-                          <li>Théâtre</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="evenements-celebrations">
-                      <AccordionTrigger>Événements et célébrations</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Fêtes et événements saisonniers</li>
-                          <li>Mariages</li>
-                          <li>Concerts et festivals</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="interets-universitaires">
-                      <AccordionTrigger>Intérêts universitaires</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Sciences</li>
-                          <li>Mathématiques</li>
-                          <li>Histoire</li>
-                          <li>Langues</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="carriere">
-                      <AccordionTrigger>Carrière</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Recherche d'emploi</li>
-                          <li>Développement professionnel</li>
-                          <li>Déplacements domicile-travail</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="actualite-politique">
-                      <AccordionTrigger>Actualité et politique</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Actualités nationales</li>
-                          <li>Actualités internationales</li>
-                          <li>Politique</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="finances-personnelles">
-                      <AccordionTrigger>Finances personnelles</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Investissements</li>
-                          <li>Épargne</li>
-                          <li>Crédit</li>
-                          <li>Assurances</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    <AccordionItem value="animaux-domestiques">
-                      <AccordionTrigger>Animaux domestiques</AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          <li>Chiens</li>
-                          <li>Chats</li>
-                          <li>Animaux de compagnie</li>
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
                   </Accordion>
-                </div>
+                </div> {/* fin .mt-6 */}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-8 flex justify-end">
-          <Link href="/formation/ciblage/quiz">
-            <Button>
-              Passer au quiz
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AfficherExempleSearch() {
-  const [show, setShow] = useState(false)
-  return (
-    <div className="flex flex-col items-center justify-center mt-8">
-      <button
-        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
-        onClick={() => setShow((v) => !v)}
-      >
-        {show ? "Masquer l'exemple" : "Afficher l'exemple"}
-      </button>
-      {show && (
-        <img
-          src="/images/Capture-decran-2025-05-23-15-23-23.png"
-          alt="Exemple groupe All Search 1"
-          className="max-w-xs md:max-w-md rounded shadow mx-auto"
-        />
-      )}
-    </div>
-  )
-}
-
-function AfficherExempleMeta() {
-  const [show, setShow] = useState(false);
-  const [currentExample, setCurrentExample] = useState(0);
-  const examples = [
-    {
-      title: "Configuration initiale du ciblage",
-      image: "/images/Lucie-Arnaud1.png"
-    },
-    {
-      title: "Ajout des options de ciblage avancées",
-      image: "/images/Lucie-Arnaud2.png"
-    },
-    {
-      title: "Configuration finale",
-      image: "/images/Lucie-Arnaud3.png"
-    }
-  ];
-
-  return (
-    <div className="mt-8">
-      <div className="flex flex-col items-center justify-center">
-        <button
-          className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
-          onClick={() => setShow((v) => !v)}
-        >
-          {show ? "Masquer l'exemple" : "Révéler l'exemple"}
-        </button>
-        
-        {show && (
-          <>
-            <div className="flex gap-4 mb-4">
-              {examples.map((_, index) => (
-                <button
-                  key={index}
-                  className={`px-4 py-2 rounded font-semibold transition ${
-                    currentExample === index
-                      ? "bg-primary text-white"
-                      : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-                  onClick={() => setCurrentExample(index)}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-            <div className="text-center mb-4">
-              <h4 className="text-lg font-semibold">{examples[currentExample].title}</h4>
-            </div>
-            <img
-              src={examples[currentExample].image}
-              alt={examples[currentExample].title}
-              className="max-w-full md:max-w-2xl rounded shadow-lg"
-            />
-          </>
-        )}
       </div>
     </div>
   );
 }
-
+// Composants manquants commentés pour éviter les erreurs de compilation
+// function AfficherExempleMeta() { return null; }
+// function AfficherExempleSearch() { return null; }
