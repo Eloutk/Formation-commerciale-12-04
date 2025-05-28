@@ -3,6 +3,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
+const faqItems = [
+  {
+    question: "Mon annonce Google Search ne remonte pas dans les premiers résultats de recherche, pourquoi ?",
+    answer: "Le budget de la campagne n'est pas suffisant pour couvrir toutes les recherches dans la zone ciblée. Même avec des optimisations, il est impossible d'apparaître à chaque recherche pertinente sans un budget bien plus élevé."
+  },
+  {
+    question: "Les stats GA4 ne sont pas les mêmes que les rapports des campagnes ? Pourquoi ?",
+    answer: "Les différences viennent des méthodes de collecte :\n\nGA4 mesure les visites réelles sur le site, mais dépend de l'acceptation des cookies. Il peut donc manquer des données, surtout sur Google/YouTube où de nombreux utilisateurs ne sont pas connectés.\n\nLes plateformes publicitaires (Google Ads, Meta...) mesurent les interactions avec les pubs (clics, vues, conversions) et appliquent leurs propres modèles d'attribution, souvent plus complets mais moins transparents.\n\n👉 Résultat : GA4 peut afficher des stats plus faibles ou différentes, ce qui est normal."
+  },
+  {
+    question: "Est-il possible d'avoir un listing des principaux sites sur lesquels la publicité sera diffusée sur une campagne Display ?",
+    answer: "Non, car les campagnes Display utilisent différents types de ciblage automatisé :\n\nAudience mots clés & sites web (ex. : mot clé \"don de sang\", site visité \"20minutes.fr\")\n\nAudience centres d'intérêts (ex. : centre d'intérêt \"bien-être\")\n\nPlacement par thème (ex. : thème \"bénévolat\")\n\nPlacement par mot clé (ex. : mot clé \"voiture haut de gamme\")\n\nPlacement site web (ex. : site spécifique comme \"leboncoin.fr\")\n\nLes publicités apparaissent selon les enchères gagnées, les centres d'intérêts ou les habitudes de navigation de la cible."
+  },
+  {
+    question: "Pourquoi le nom de ma marque génère-t-il autant de clics et non d'autres mots clés ?",
+    answer: "C'est une stratégie de SEA orientée branding.\n\nEnchérir sur sa propre marque permet de protéger sa visibilité contre les concurrents.\n\nCela renforce la notoriété et maîtrise le message visible sur son propre nom.\n\nCela peut dynamiser la campagne même si cela semble redondant."
+  }
+];
+
 export default function FAQPage() {
   return (
     <div className="container mx-auto px-4 py-12">
@@ -22,98 +41,14 @@ export default function FAQPage() {
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Comment puis-je accéder à tous les modules de formation ?</AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Pour accéder à tous les modules de formation, vous devez d'abord créer un compte ou vous connecter.
-                    Une fois connecté, vous aurez accès à l'ensemble des modules de formation depuis la page d'accueil.
-                    Vous pouvez suivre les modules dans l'ordre de votre choix, mais nous recommandons de commencer par
-                    "Méthodologie Link" puis de progresser de manière séquentielle.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-2">
-                <AccordionTrigger>Comment fonctionne le système de progression ?</AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Votre progression est suivie automatiquement lorsque vous complétez les quizz de chaque module. Pour
-                    valider un module, vous devez répondre aux questions du quizz correspondant. Votre score est
-                    enregistré et contribue à votre progression globale, visible sur la page d'accueil. Si vous
-                    n'obtenez pas un bon score à un quizz, vous pouvez le repasser autant de fois que nécessaire.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-3">
-                <AccordionTrigger>
-                  Quelle est la différence entre les quizz des modules et l'examen final ?
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Les quizz des modules sont des évaluations courtes (3-5 questions) spécifiques à chaque module,
-                    conçues pour tester vos connaissances sur le contenu que vous venez d'étudier. L'examen final, quant
-                    à lui, est plus complet et couvre l'ensemble des modules. Il comporte 10 questions variées et vous
-                    disposez de 30 minutes pour le compléter. Pour obtenir votre certification, vous devez réussir
-                    l'examen final avec un score minimum de 70%.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-4">
-                <AccordionTrigger>
-                  Puis-je télécharger les contenus de formation pour y accéder hors ligne ?
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Certains contenus de formation, comme le guide des formats, peuvent être téléchargés via les boutons
-                    spécifiques présents dans les modules concernés. Cependant, la majorité du contenu, y compris les
-                    quizz interactifs et l'examen final, nécessite une connexion internet pour fonctionner correctement.
-                    Si vous avez besoin d'un accès hors ligne à certains contenus spécifiques, veuillez nous contacter
-                    via le formulaire de support.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-5">
-                <AccordionTrigger>
-                  Comment puis-je obtenir de l'aide si j'ai des questions sur un module ?
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Si vous avez des questions spécifiques sur le contenu d'un module, vous pouvez utiliser la fonction
-                    de recherche dans le glossaire pour trouver des définitions des termes clés. Pour des questions plus
-                    détaillées, vous pouvez contacter notre équipe de support via le formulaire disponible dans votre
-                    espace personnel. Nous nous efforçons de répondre à toutes les demandes dans un délai de 48 heures
-                    ouvrables.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-6">
-                <AccordionTrigger>La formation est-elle régulièrement mise à jour ?</AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Oui, notre équipe pédagogique met régulièrement à jour le contenu de la formation pour refléter les
-                    dernières tendances et évolutions du marketing digital. Chaque module indique sa date de dernière
-                    mise à jour. Lorsque des mises à jour significatives sont effectuées, nous en informons les
-                    utilisateurs par email et via des notifications sur la plateforme.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="item-7">
-                <AccordionTrigger>Comment obtenir mon certificat après avoir réussi l'examen final ?</AccordionTrigger>
-                <AccordionContent>
-                  <p>
-                    Une fois que vous avez réussi l'examen final avec un score d'au moins 70%, votre certificat est
-                    automatiquement généré et disponible dans votre espace personnel, dans la section "Mes certificats".
-                    Vous pouvez le télécharger au format PDF ou partager directement un lien vers votre certification
-                    sur LinkedIn ou d'autres plateformes professionnelles.
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
+              {faqItems.map((item, index) => (
+                <AccordionItem value={`item-${index + 1}`} key={index}>
+                  <AccordionTrigger className="text-left pl-0">{item.question}</AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-left pl-0 m-0">{item.answer}</p>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
             </Accordion>
           </CardContent>
         </Card>
