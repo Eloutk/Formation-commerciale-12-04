@@ -58,8 +58,11 @@ export default function TunnelConversion() {
               <div>
                 <h3 className="text-xl font-semibold text-primary">Conclure</h3>
                 <p className="mt-2">
-                  La phase finale du tunnel est la phase de conversion. Après avoir mené toutes les phases dans l'ordre, l'algorithme a cumulé beaucoup de data et a déterminé un profil susceptible de transformer. C'est l'étape de conversion où se concrétise le retour sur investissement. (Si campagne de conversion achat, formulaire sur site… ne pas oublier la pose des outils de tracking lors de la mise en place). Pas obliger d'aller au bout du tunnel de conversion.
+                  La phase finale du tunnel est la phase de conversion. Après avoir mené toutes les phases dans l'ordre, l'algorithme a cumulé beaucoup de data et a déterminé un profil susceptible de transformer. C'est l'étape de conversion où se concrétise le retour sur investissement. (Si campagne de conversion achat, formulaire sur site… ne pas oublier la pose des outils de tracking lors de la mise en place).
                 </p>
+                <div className="bg-orange-100 border-l-4 border-orange-500 text-orange-800 p-3 rounded text-center font-semibold mt-2">
+                  Noter que l'on n'est pas obligé d'aller au bout du tunnel de conversion.
+                </div>
               </div>
             </div>
 

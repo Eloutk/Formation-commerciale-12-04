@@ -49,17 +49,34 @@ export default function PlateformesPlacement() {
                         />
                         <h3 className="text-lg font-medium">LinkedIn</h3>
                       </div>
-                      <p>
-                        LinkedIn est une plateforme idéale pour toucher les professionnels (B2B). Elle offre un ciblage précis basé sur les données professionnelles : fonction (ex: marketing, RH, finance…), titre de poste (ex: CEO, Marketing Manager…), compétences (skills listées sur le profil), années d'expérience, niveau hiérarchique (ex: employé, manager, directeur…), domaine d'études (ex: ingénierie, commerce, etc.). Ciblage entreprises : nom de l'entreprise (ciblage précis de sociétés spécifiques), taille de l'entreprise (ex: 1–10 employés, 11–50, etc.), secteur d'activité (industrie, IT, finance, santé, etc.).
-                      </p>
-
-                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>Image fixe</li>
-                        <li>Carrousel</li>
-                        <li>Vidéo</li>
-                        <li>Document (mise en avant de contenu PDF à télécharger après soumission d'un formulaire)</li>
-                      </ul>
+                      <div className="border rounded-md bg-white p-4">
+                        <p className="mb-2">
+                          LinkedIn est une plateforme idéale pour toucher les professionnels (B2B). Elle offre un ciblage précis basé sur les données professionnelles :
+                        </p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Fonction (ex : marketing, RH, finance…)</li>
+                          <li>Titre de poste (ex : CEO, Marketing Manager…)</li>
+                          <li>Compétences (skills listées sur le profil)</li>
+                          <li>Années d'expérience</li>
+                          <li>Niveau hiérarchique (ex : employé, manager, directeur…)</li>
+                          <li>Domaine d'études (ex : ingénierie, commerce, etc.)</li>
+                        </ul>
+                        <p className="mt-2">Ciblage entreprises :</p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Nom de l'entreprise (ciblage précis de sociétés spécifiques)</li>
+                          <li>Taille de l'entreprise (ex : 1–10 employés, 11–50, etc.)</li>
+                          <li>Secteur d'activité (industrie, IT, finance, santé, etc.)</li>
+                        </ul>
+                      </div>
+                      <div className="border rounded-md bg-white p-4 mt-4">
+                        <h4 className="font-medium mb-2">Formats publicitaires</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Image fixe</li>
+                          <li>Carrousel</li>
+                          <li>Vidéo</li>
+                          <li>Document (mise en avant de contenu PDF dans le but de faire télécharger la suite du document. Pour cela, l'internaute doit renseigner ses coordonnées)</li>
+                        </ul>
+                      </div>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
                         <Image
@@ -85,22 +102,21 @@ export default function PlateformesPlacement() {
                         />
                         <h3 className="text-lg font-medium">Snapchat</h3>
                       </div>
-                      <p>
-                        Snapchat est idéal pour toucher une audience jeune avec un contenu dynamique.
-                      </p>
-                      <p>
-                        70 % des utilisateurs de Snapchat ont moins de 35 ans, avec une très forte concentration entre 13 et 24 ans.
-                      </p>
-                      <p>
-                        C'est aussi une plateforme qui évolue avec son temps et ses utilisateurs (23%).
-                      </p>
-
-                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>Vidéo</li>
-                        <li>Image fixe</li>
-                        <li>Animation visuelle</li>
-                      </ul>
+                      <div className="border rounded-md bg-white p-4">
+                        <ul className="list-disc list-inside space-y-1 ml-4">
+                          <li>Idéal pour toucher une audience jeune avec un contenu dynamique</li>
+                          <li>70 % des utilisateurs ont moins de 35 ans, forte concentration entre 13 et 24 ans</li>
+                          <li>Plateforme qui évolue avec son temps et ses utilisateurs (23%)</li>
+                        </ul>
+                      </div>
+                      <div className="border rounded-md bg-white p-4 mt-4">
+                        <h4 className="font-medium mb-2">Formats publicitaires</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Vidéo</li>
+                          <li>Image fixe</li>
+                          <li>Animation visuelle</li>
+                        </ul>
+                      </div>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
                         <Image
@@ -126,34 +142,21 @@ export default function PlateformesPlacement() {
                         />
                         <h3 className="text-lg font-medium">META (Facebook & Instagram)</h3>
                       </div>
-                      <p>
-                        META est la référence en terme de publicité sur les réseaux sociaux : nombreuses possibilités de ciblages, large audience sur la plateforme, possibilité de paramétrage et d'optimisation poussées…
-                      </p>
-                      <p>
-                        META englobe plusieurs plateformes : Facebook, Instagram, WhatsApp, Messenger et depuis peu : Threads (publicité pas encore disponible pour le moment sur cette plateforme)
-                      </p>
-                      <p>
-                        +3,9 milliards d'utilisateurs actifs mensuels sur l'écosystème Meta (2025).
-                      </p>
-
-                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>
-                          <span className="font-medium">Image :</span> Publicités statiques avec texte
-                        </li>
-                        <li>
-                          <span className="font-medium">Vidéo :</span> Annonces en mouvement dans le fil d'actualité
-                        </li>
-                        <li>
-                          <span className="font-medium">Carrousel :</span> Plusieurs images/vidéos défilantes
-                        </li>
-                        <li>
-                          <span className="font-medium">Stories :</span> Publicités plein écran entre les stories
-                        </li>
-                        <li>
-                          <span className="font-medium">Reels :</span> Format court vertical similaire à TikTok
-                        </li>
-                      </ul>
+                      <div className="border rounded-md bg-white p-4">
+                        <p className="mb-2">META est la référence en terme de publicité sur les réseaux sociaux : nombreuses possibilités de ciblages, large audience sur la plateforme, possibilité de paramétrage et d'optimisation poussées…</p>
+                        <p>META englobe plusieurs plateformes : Facebook, Instagram, WhatsApp, Messenger et depuis peu : Threads (publicité pas encore disponible pour le moment sur cette plateforme)</p>
+                        <p>+3,9 milliards d'utilisateurs actifs mensuels sur l'écosystème Meta (2025).</p>
+                      </div>
+                      <div className="border rounded-md bg-white p-4 mt-4">
+                        <h4 className="font-medium mb-2">Formats publicitaires</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li><span className="font-medium">Image :</span> Publicités statiques avec texte</li>
+                          <li><span className="font-medium">Vidéo :</span> Annonces en mouvement dans le fil d'actualité</li>
+                          <li><span className="font-medium">Carrousel :</span> Plusieurs images/vidéos défilantes</li>
+                          <li><span className="font-medium">Stories :</span> Publicités plein écran entre les stories</li>
+                          <li><span className="font-medium">Reels :</span> Format court vertical similaire à TikTok</li>
+                        </ul>
+                      </div>
 
                       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="border rounded-md overflow-hidden">
@@ -232,17 +235,17 @@ export default function PlateformesPlacement() {
                         />
                         <h3 className="text-lg font-medium">TikTok</h3>
                       </div>
-                      <p>
-                        TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement
-                        les générations Z et Y.
-                      </p>
-
-                      <h4 className="font-medium mt-6">Formats publicitaires</h4>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>Vidéo</li>
-                        <li>Image fixe</li>
-                        <li>Animation visuelle</li>
-                      </ul>
+                      <div className="border rounded-md bg-white p-4">
+                        <p>TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement les générations Z et Y.</p>
+                      </div>
+                      <div className="border rounded-md bg-white p-4 mt-4">
+                        <h4 className="font-medium mb-2">Formats publicitaires</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Vidéo</li>
+                          <li>Image fixe</li>
+                          <li>Animation visuelle</li>
+                        </ul>
+                      </div>
 
                       <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
                         <Image
@@ -268,14 +271,23 @@ export default function PlateformesPlacement() {
                         />
                         <h3 className="text-lg font-medium">Spotify</h3>
                       </div>
-                      <p>
-                        Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.
-                      </p>
+                      <div className="border rounded-md bg-white p-4">
+                        <p>Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.</p>
+                      </div>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
                       <ul className="list-disc list-inside space-y-2">
                         <li>Audio Ads : annonces audio diffusées entre les chansons, d'une durée maximale de 30 secondes</li>
                       </ul>
+                      <div className="mt-6 border rounded-md overflow-hidden flex justify-center">
+                        <Image
+                          src="/images/Visuel-Spotify.png"
+                          alt="Exemple de publicité Spotify"
+                          width={280}
+                          height={560}
+                          className="h-auto"
+                        />
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -362,9 +374,13 @@ export default function PlateformesPlacement() {
                         <h3 className="text-lg font-medium">Google Display</h3>
                       </div>
                       <p>
-                        Le réseau Display de Google permet d'afficher des annonces visuelles sur des millions de sites
-                        web et applications.
+                        Le réseau Display de Google permet d'afficher des annonces visuelles sur des millions de sites web et applications.
                       </p>
+                      <ul className="list-disc list-inside space-y-1 mb-4 ml-4">
+                        <li><span className="font-medium">Bannières adaptatives :</span> S'adaptent automatiquement aux espaces disponibles</li>
+                        <li><span className="font-medium">Annonces illustrées :</span> Images fixes avec différentes tailles standard</li>
+                        <li><span className="font-medium">Annonces vidéo :</span> Format vidéo dans l'environnement Display</li>
+                      </ul>
                       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="border rounded-md overflow-hidden">
                           <Image
