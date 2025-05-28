@@ -1,14 +1,18 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChevronRight } from "lucide-react"
+import { useState } from "react"
 
 export default function ObjectifsCampagne() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold mb-8">Objectifs de campagne</h1>
         {/* Vue d'ensemble en en-tête */}
         <section className="mb-12">
           <Card>
@@ -70,7 +74,7 @@ export default function ObjectifsCampagne() {
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
-            <TabsTrigger value="google">Google</TabsTrigger>
+            <TabsTrigger value="google">Search</TabsTrigger>
             <TabsTrigger value="spotify">Spotify</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
           </TabsList>
@@ -111,7 +115,7 @@ export default function ObjectifsCampagne() {
                         des commentaires ou des partages
                       </li>
                       <li>
-                        <span className="font-medium">Prospects :</span> Collecter des informations de contact via des
+                        <span className="font-medium">Prospect/Leads :</span> Collecter des informations de contact via des
                         formulaires
                       </li>
                       <li>
@@ -202,10 +206,6 @@ export default function ObjectifsCampagne() {
                         <span className="font-medium">Engagement :</span> Augmenter l'engagement social et les abonnés
                         sur la page
                       </li>
-                      <li>
-                        <span className="font-medium">Conversions de site web :</span> Attirer des leads ou générer des
-                        actions sur votre site web
-                      </li>
                     </ul>
                   </div>
                 </div>
@@ -232,7 +232,7 @@ export default function ObjectifsCampagne() {
                 </div>
                 <Tabs defaultValue="google-search" className="w-full">
                   <TabsList className="mb-4 grid grid-cols-3">
-                    <TabsTrigger value="google-search">Google</TabsTrigger>
+                    <TabsTrigger value="google-search">Search Google</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
                   </TabsList>
@@ -246,14 +246,14 @@ export default function ObjectifsCampagne() {
                           height={32}
                           className="rounded-sm"
                         />
-                        <h3 className="text-lg font-semibold">Google</h3>
+                        <h3 className="text-lg font-semibold">Search Google</h3>
                       </div>
                       <p>Sur Search, les campagnes publicitaires sont exclusivement orientées vers des objectifs de clics ou de conversion.</p>
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
                           <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospects :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
+                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
                           <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                         </ul>
@@ -277,7 +277,7 @@ export default function ObjectifsCampagne() {
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
                           <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospects :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
+                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
                           <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                         </ul>
@@ -301,7 +301,7 @@ export default function ObjectifsCampagne() {
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
                           <li><span className="font-medium">Ventes :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
-                          <li><span className="font-medium">Prospects :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
+                          <li><span className="font-medium">Prospect/Leads :</span> Attirer les prospects et générer d'autres conversions en encourageant les clients à passer à l'action</li>
                           <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
                           <li><span className="font-medium">Couverture et notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                         </ul>
@@ -404,8 +404,34 @@ export default function ObjectifsCampagne() {
             </Button>
           </Link>
         </div>
+        <AfficherTableauRecapObjectifs />
       </div>
     </div>
   )
+}
+
+function AfficherTableauRecapObjectifs() {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="mt-12 flex flex-col items-center">
+      <button
+        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+        onClick={() => setShow((v) => !v)}
+      >
+        {show ? "Masquer le tableau récapitulatif" : "Afficher le tableau récapitulatif des objectifs"}
+      </button>
+      {show && (
+        <div className="border rounded-lg overflow-hidden mt-4">
+          <Image
+            src="/images/Tableau-recap-objectifs-campagnes.png"
+            alt="Tableau récapitulatif des objectifs de campagne"
+            width={1200}
+            height={800}
+            className="w-full h-auto"
+          />
+        </div>
+      )}
+    </div>
+  );
 }
 
