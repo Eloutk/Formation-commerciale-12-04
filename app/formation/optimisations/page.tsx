@@ -28,7 +28,7 @@ export default function Optimisations() {
                 <CardDescription>Comprendre les bases de l'optimisation des campagnes publicitaires</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
-                <div className="bg-primary/5 p-6 rounded-lg border border-primary/20">
+                <div className="bg-white p-6 rounded-lg border border-primary/20">
                   <h3 className="text-xl font-semibold text-primary mb-4">Principe fondamental</h3>
                   <p className="text-lg mb-6">
                     Le principe est de zoomer et d'aller chercher de plus en plus dans le détail au fur et à mesure des
@@ -45,7 +45,7 @@ export default function Optimisations() {
                   </div>
                 </div>
 
-                <div className="bg-primary/5 p-6 rounded-lg border border-primary/20">
+                <div className="bg-white p-6 rounded-lg border border-primary/20">
                   <h3 className="text-xl font-semibold text-primary mb-4">Objectif des optimisations</h3>
                   <p className="text-lg font-medium mb-4">
                     Le but ? Maximiser les performances des campagnes des clients.
@@ -54,16 +54,34 @@ export default function Optimisations() {
                   <div className="mb-6">
                     <p className="font-medium text-primary mb-2">Tout paramétrage peut-être optimisé.</p>
                     <p className="mb-4">
-                      C'est LA grande force du web : nous avons des résultats concrets et chiffrés sur énormément de
-                      paramètres différents. C'est ce qui nous permet d'optimiser les campagnes.
+                      C'est LA grande force de notre travail : nous avons des résultats concrets et chiffrés sur énormément de paramètres différents. C'est ce qui nous permet d'optimiser les campagnes.
                     </p>
+                  </div>
+
+                  <div className="mb-6">
+                    <p className="mb-2">
+                      Optimiser, c'est tout simplement améliorer les résultats d'une publicité en analysant ce qui fonctionne bien… et en changeant ce qui ne fonctionne pas
+                      <br />💡 <span className="font-semibold">But :</span> Dépenser moins pour avoir plus de résultats (plus de clics, plus de ventes, plus de personnes intéressées).
+                    </p>
+                    <p className="mb-2">
+                      On regarde tous les jours les campagnes, on optimise dès que c'est besoin, c'est notre force (contrairement à la programmatique)
+                    </p>
+                    <p className="mb-2 font-semibold">Pourquoi faire des optimisations dans les campagnes digitales :</p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Pertinence/qualité de la campagne (capable de payer un clic plus cher si il est pertinent pour l'annonceur)</li>
+                      <li>Maximiser le ROI (dans les campagnes de conversion)</li>
+                      <li>Réduire les coûts d'acquisition</li>
+                      <li>Améliorer les performances grâce à l'A/B testing</li>
+                      <li>Cibler les bonnes audiences</li>
+                      <li>Adapter en temps réel aux évolutions du marché</li>
+                    </ul>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-primary/5 p-6 rounded-lg border border-primary/20">
+                  <div className="bg-white p-6 rounded-lg border border-primary/20">
                     <h3 className="text-lg font-semibold text-primary mb-4">Exemples d'optimisations</h3>
-                    <ol className="list-decimal list-inside space-y-2">
+                    <ul className="list-disc list-inside space-y-2">
                       <li>Les visuels</li>
                       <li>Les genres</li>
                       <li>Les âges</li>
@@ -75,10 +93,10 @@ export default function Optimisations() {
                       <li>Les sites web / chaînes Youtube</li>
                       <li>Heure de diffusion</li>
                       <li>Etc</li>
-                    </ol>
+                    </ul>
                   </div>
 
-                  <div className="bg-primary/5 p-6 rounded-lg border border-primary/20">
+                  <div className="bg-white p-6 rounded-lg border border-primary/20">
                     <h3 className="text-lg font-semibold text-primary mb-4">Qu'est-ce qu'on optimise ?</h3>
                     <p className="font-medium mb-2">Sauf cas exceptionnel :</p>
 
@@ -89,7 +107,7 @@ export default function Optimisations() {
                           <span className="text-green-600 font-medium border border-green-600 rounded px-2">CPM</span>{" "}
                           pour montrer au maximum
                         </p>
-                        <p className="text-green-600">1 seul facteur d'optimisation</p>
+                        <p className="text-green-600">1 seul facteur clé d'optimisation</p>
                       </div>
 
                       <div className="bg-white p-3 rounded border">
@@ -98,7 +116,7 @@ export default function Optimisations() {
                           <span className="text-green-600 font-medium border border-green-600 rounded px-2">CPC</span>{" "}
                           pour faire cliquer au maximum & le CTR
                         </p>
-                        <p className="text-green-600">1 seul facteur d'optimisation</p>
+                        <p className="text-green-600">1 seul facteur clé d'optimisation</p>
                       </div>
 
                       <div className="bg-white p-3 rounded border">
@@ -110,7 +128,7 @@ export default function Optimisations() {
                           pour faire remplir un maximum de formulaire
                         </p>
                         <p className="text-green-600">
-                          2 facteurs d'optimisation. Attention à bien prendre en compte les 2.
+                          2 facteurs clés d'optimisation. Attention à bien prendre en compte les 2.
                         </p>
                       </div>
 
@@ -122,7 +140,7 @@ export default function Optimisations() {
                           </span>
                         </p>
                         <p className="text-green-600">
-                          3 facteurs d'optimisation. Attention à bien prendre en compte les 3. Surtout le CPM & le ROAS
+                          3 facteurs clés d'optimisation. Attention à bien prendre en compte les 3. Surtout le CPM & le ROAS
                         </p>
                       </div>
                     </div>
@@ -165,8 +183,8 @@ export default function Optimisations() {
                             className="w-full h-auto"
                           />
                         </div>
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
+                        <Alert className="bg-white border-neutral-200">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
                           <AlertDescription>
                             Dans cet exemple, les 3 audiences encadrées sont à couper car elles présentent un CPC trop
                             élevé par rapport aux autres audiences. Attention toutefois à maintenir un minimum de
@@ -205,7 +223,7 @@ export default function Optimisations() {
                     <AccordionTrigger className="text-lg font-medium">Dans le détail</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-4">
-                        <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
+                        <div className="bg-white p-4 rounded-lg border border-primary/20 mb-4">
                           <p className="text-primary font-medium mb-2">
                             Une fois les audiences et les visuels optimisés, nous allons rentrer dans chaque petit
                             détail :
@@ -229,9 +247,9 @@ export default function Optimisations() {
                             className="w-full h-auto"
                           />
                         </div>
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
+                        <Alert className="bg-white border-neutral-200">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <AlertDescription className="text-red-700">
                             Dans cet exemple, on constate que les femmes doivent être enlevées de cette audience
                             particulière car leur CPC est significativement plus élevé (0,81 €) que celui des hommes
                             (0,35 €).
@@ -253,7 +271,7 @@ export default function Optimisations() {
                 <CardDescription>Techniques spécifiques pour optimiser les campagnes Google Search</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="bg-primary/5 p-6 rounded-lg border border-primary/20 mb-8">
+                <div className="bg-white p-6 rounded-lg border border-primary/20 mb-8">
                   <h3 className="text-xl font-semibold text-primary mb-4">Introduction</h3>
 
                   <div className="bg-white p-4 rounded-lg border">
@@ -295,7 +313,7 @@ export default function Optimisations() {
                             </AlertDescription>
                           </Alert>
 
-                          <Alert className="bg-red-50 border-red-200">
+                          <Alert className="bg-white border-neutral-200">
                             <AlertTriangle className="h-4 w-4 text-red-500" />
                             <AlertDescription className="text-red-700">
                               <span className="font-medium">Trop chère. À couper</span> - Les mots clés avec un CPC trop
