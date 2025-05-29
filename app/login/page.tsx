@@ -53,7 +53,7 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto px-4 py-12">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold">Connexion</h1>
-        <p className="text-muted-foreground mt-2">Connectez-vous pour accéder à votre formation</p>
+        <p className="text-muted-foreground mt-2">Connectez-vous pour accéder à la formation</p>
       </div>
 
       <Form {...form}>
