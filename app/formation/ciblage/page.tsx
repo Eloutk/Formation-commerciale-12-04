@@ -210,7 +210,6 @@ export default function Ciblage() {
                     <h4 className="font-bold text-orange-700 mb-2">Ciblages possibles mais difficiles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Entreprises ou chefs d'entreprises dans un secteur particulier</li>
-                      <li>Campagnes : Alcool / Tabac / Cigarette électronique, Jeux d'argent, Sang, Nudité</li>
                       <li>Catégories spéciales (voir ci-dessus) : diffusion sans ciblage</li>
                     </ul>
                   </div>
@@ -218,6 +217,12 @@ export default function Ciblage() {
                     <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Certains secteurs très réglementés ou interdits par META</li>
+                      <li className="flex items-start">
+                        <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
+                          <Info className="h-4 w-4 text-red-500" />
+                        </span>
+                        <span>Campagnes : Alcool / Tabac / Cigarette électronique, Jeux d'argent, Sang, Nudité</span>
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -241,7 +246,8 @@ export default function Ciblage() {
                 <div className="flex flex-col items-center justify-center">
                   <img src="/images/Capture-decran-2025-05-23-15-23-41.png" alt="Exemple restaurant Bordeaux Search" className="max-w-xs md:max-w-md rounded shadow mx-auto" />
                 </div>
-                <div className="mt-4">
+                <AfficherExempleSearch />
+                <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">Spécificités Google Search</h3>
                   {/* Bloc d'options avec icônes */}
                   <div className="mb-6 space-y-2">
@@ -252,8 +258,8 @@ export default function Ciblage() {
                       <span>Calendrier de diffusion</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-red-500" />
+                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
+                        <Info className="h-4 w-4 text-white" />
                       </span>
                       <span>Ciblage âge et genre</span>
                     </div>
@@ -313,6 +319,7 @@ export default function Ciblage() {
                         </CardContent>
                       </Card>
                     </div>
+                    <AfficherExempleSearch />
                   </div>
                 </div>
                 {/* BOUTON AFFICHER L'EXEMPLE RESTAURANT BORDEAUX */}
@@ -347,17 +354,11 @@ export default function Ciblage() {
                       </span>
                       <span>Ciblage par pays, régions, villes et rayons</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-white" />
-                      </span>
-                      <span>Ciblage des mineurs (en impression seulement)</span>
-                    </div>
                     <li className="flex items-start">
                       <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-red-500" />
                       </span>
-                      <span>Pas de campagne de clics en dessous de 18 ans</span>
+                      <span>Pas de campagne en dessous de 18 ans</span>
                     </li>
                   </div>
                   <p className="mb-4">
@@ -1568,3 +1569,24 @@ export default function Ciblage() {
 // Composants manquants commentés pour éviter les erreurs de compilation
 // function AfficherExempleMeta() { return null; }
 // function AfficherExempleSearch() { return null; }
+
+function AfficherExempleSearch() {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex flex-col items-center my-4">
+      <button
+        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+        onClick={() => setShow((v) => !v)}
+      >
+        {show ? "Masquer l'exemple" : "Afficher l'exemple"}
+      </button>
+      {show && (
+        <img
+          src="/images/Motscles-Search.png"
+          alt="Exemple mots clés Google Search"
+          className="max-w-lg rounded shadow border"
+        />
+      )}
+    </div>
+  );
+}

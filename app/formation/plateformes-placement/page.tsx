@@ -242,7 +242,6 @@ export default function PlateformesPlacement() {
                         <h4 className="font-medium mb-2">Formats publicitaires</h4>
                         <ul className="list-disc list-inside space-y-2">
                           <li>Vidéo</li>
-                          <li>Image fixe</li>
                           <li>Animation visuelle</li>
                         </ul>
                       </div>

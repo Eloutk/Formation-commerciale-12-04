@@ -71,7 +71,7 @@ export default function TunnelConversion() {
               <ul className="list-disc list-inside space-y-1">
                 <li>Chaque étape du tunnel nécessite des stratégies et messages différents.</li>
                 <li>La conversion ne veut pas forcément dire achat.</li>
-                <li>Chaque étape du tunnel est indispensable pour obtenir des résultats performants et de qualité.</li>
+                <li>Chaque étapes du tunnel sont indispensables pour obtenir des résultats performants et de qualité</li>
                 <li>L'algorithme doit cumuler de la data avant de changer d'objectif de campagne.</li>
               </ul>
             </div>

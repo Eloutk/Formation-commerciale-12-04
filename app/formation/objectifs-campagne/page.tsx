@@ -269,11 +269,9 @@ export default function ObjectifsCampagne() {
                       </div>
                       <p>Sur YouTube, seules les impressions ou la conversion peuvent être définies comme objectifs de campagne.</p>
                       <div>
-                        <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
+                        <h4 className="text-md font-semibold mt-4">Objectif proposé :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
                           <li><span className="font-medium">Notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
-                          <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Conversion CA :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
                         </ul>
                       </div>
                     </div>
@@ -368,7 +366,6 @@ export default function ObjectifsCampagne() {
           </TabsContent>
         </Tabs>
 
-        <AfficherTableauRecapObjectifs />
         <div className="mt-8 flex justify-end">
           <Link href="/formation/objectifs-campagne/quiz">
             <Button>
@@ -380,30 +377,5 @@ export default function ObjectifsCampagne() {
       </div>
     </div>
   )
-}
-
-function AfficherTableauRecapObjectifs() {
-  const [show, setShow] = useState(false);
-  return (
-    <div className="mt-12 flex flex-col items-center">
-      <button
-        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
-        onClick={() => setShow((v) => !v)}
-      >
-        {show ? "Masquer le tableau récapitulatif" : "Afficher le tableau récapitulatif des objectifs"}
-      </button>
-      {show && (
-        <div className="border rounded-lg overflow-hidden mt-4">
-          <Image
-            src="/images/Tableau-recap-objectifs-campagnes.png"
-            alt="Tableau récapitulatif des objectifs de campagne"
-            width={1200}
-            height={800}
-            className="w-full h-auto"
-          />
-        </div>
-      )}
-    </div>
-  );
 }
 
