@@ -22,7 +22,7 @@ export default function ScoreQualite() {
           <CardContent className="space-y-6">
             <div>
               <p className="text-lg text-primary font-medium mb-4">
-                Le score qualité est une évaluation de l'ensemble des annonces et des pages de destination. Ce score
+                Chaque annonceur est évalué avec un score qualité qui  lui donne une note basée sur la qualité de ses annonces et de ses campagnes. Ce score
                 détermine notre rang dans le processus d'enchères publicitaires.
               </p>
               <p className="mb-4">

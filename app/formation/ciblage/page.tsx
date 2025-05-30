@@ -1542,6 +1542,7 @@ export default function Ciblage() {
             </Card>
           </TabsContent>
         </Tabs>
+        <AfficherTableauRecapObjectifs />
       </div>
     </div>
   );
@@ -1565,6 +1566,27 @@ function AfficherExempleSearch() {
           src="/images/Motscles-Search.png"
           alt="Exemple mots clés Google Search"
           className="max-w-lg rounded shadow border"
+        />
+      )}
+    </div>
+  );
+}
+
+function AfficherTableauRecapObjectifs() {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex flex-col items-center my-8">
+      <button
+        className="px-4 py-2 rounded bg-orange-600 text-white font-semibold hover:bg-orange-700 transition mb-4"
+        onClick={() => setShow((v) => !v)}
+      >
+        {show ? "Masquer le tableau récap des objectifs de campagne" : "Afficher le tableau récap des objectifs de campagne"}
+      </button>
+      {show && (
+        <img
+          src="/images/Tableau-recap-objectifs-campagnes.png"
+          alt="Tableau récapitulatif des objectifs de campagne"
+          className="max-w-5xl w-full rounded shadow border h-auto"
         />
       )}
     </div>

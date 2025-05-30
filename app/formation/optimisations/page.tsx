@@ -278,7 +278,7 @@ export default function Optimisations() {
                       <li>
                         Le terme de recherche est ce que l'utilisateur a écrit avant de cliquer sur notre publicité.
                       </li>
-                      <li>L'exemple utilisé concerne un camping.</li>
+                      <li>L'exemple utilisé concerne un opticien qui propose des lunettes en ligne.</li>
                     </ul>
                   </div>
                 </div>
@@ -300,8 +300,7 @@ export default function Optimisations() {
                         <Alert className="bg-white border-neutral-200">
                           <AlertTriangle className="h-4 w-4 text-red-500" />
                           <AlertDescription className="text-red-700">
-                            Ce tableau présente la performance de chaque mot clé. Repérez ceux qui génèrent le plus de clics ou qui ont un CPC trop élevé pour ajuster votre stratégie et optimiser le budget de la campagne.
-                          </AlertDescription>
+Nous allons regarder à la fois le CPC et le CTR car nous sommes dans le cas d'une campagne pilotée au Clic. Ici, le mieux pour les performances de la campagne est de couper la diffusion sur les mots clés "lunettes pas cher abonnement" et "lunettes sans engagement".                            </AlertDescription>
                         </Alert>
                       </div>
                     </AccordionContent>
@@ -325,7 +324,7 @@ export default function Optimisations() {
                           <AlertTitle>Analyse des termes de recherche</AlertTitle>
                           <AlertDescription className="space-y-2 mt-2">
                             <p>
-                              Ce tableau permet d'identifier les termes de recherche réellement tapés par les internautes. Excluez les termes non pertinents ou trop coûteux pour améliorer la pertinence et la rentabilité de vos campagnes.
+                              Ce tableau permet d'identifier les termes de recherche réellement tapés par les internautes. Nous allons exclure les termes non pertinents ou trop coûteux pour améliorer la pertinence et la rentabilité de nos campagnes.
                             </p>
                           </AlertDescription>
                         </Alert>
