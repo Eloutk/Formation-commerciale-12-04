@@ -217,12 +217,7 @@ export default function Ciblage() {
                     <h4 className="font-bold text-gray-700 mb-2">Ciblages impossibles</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       <li>Certains secteurs très réglementés ou interdits par META</li>
-                      <li className="flex items-start">
-                        <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
-                          <Info className="h-4 w-4 text-red-500" />
-                        </span>
-                        <span>Campagnes : Alcool / Tabac / Cigarette électronique, Jeux d'argent, Sang, Nudité</span>
-                      </li>
+                      <li>Campagnes : Alcool / Tabac / Cigarette électronique, Jeux d'argent, Sang, Nudité</li>
                     </ul>
                   </div>
                 </div>
