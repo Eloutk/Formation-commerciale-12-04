@@ -235,7 +235,7 @@ export default function ArchitectureCampagnes() {
                       <AccordionContent>
                         <div className="my-4">
                           <Image
-                            src="/images/recap-possible-meta.png"
+                            src="/images/Recap-possible-META.png"
                             alt="Tableau récapitulatif des possibilités META"
                             width={1000}
                             height={448}
