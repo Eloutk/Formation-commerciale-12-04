@@ -592,12 +592,6 @@ export default function Ciblage() {
                       <span>Calendrier de diffusion</span>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-red-500" />
-                      </span>
-                      <span>Ciblage pour les mineurs (en impressions seulement)</span>
-                    </li>
-                    <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
@@ -607,8 +601,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Minimum de dépense : 50 € par jour et par ciblage d'achat d'espace {">"} 50 € PDV par jour et
-                        par ciblage</span>
+                      <span>Minimum de dépense : 50 € PDV par jour et par ciblage</span>
                     </li>
                   </ul>
                 </div>
@@ -1158,24 +1151,14 @@ export default function Ciblage() {
                       </span>
                       <span>Ciblage pour les mineurs (en impressions seulement)</span>
                     </li>
-                    <li className="flex items-start">
-                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-red-500" />
-                      </span>
-                      <span>Pas de campagne de clics en dessous de 18 ans</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-white" />
-                      </span>
-                      <span>Dépenses minimales : 20 € par jour d'achat d'espace = 25 € PDV par jour</span>
-                    </li>
+                    {/* Ligne supprimée : Pas de campagne de clics en dessous de 18 ans */}
+                    {/* Ligne supprimée : Dépenses minimales */}
                   </ul>
 
                   <Alert className="mt-4 border-amber-500/50 bg-amber-500/10">
                     <AlertTriangle className="h-4 w-4 text-amber-500" />
                     <AlertDescription>
-                      Seule plateforme dispo pour cibler des mineurs (sans ciblage avancé)
+                      Seule plateforme avec Spotify pour cibler les mineurs (sans ciblage avancé)
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -1365,16 +1348,13 @@ export default function Ciblage() {
                   <h3 className="text-lg font-semibold mb-4">Paramètres de base</h3>
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <span className="bg-red-100 rounded-full p-1 flex items-center justify-center mr-3">
-                        <Info className="h-4 w-4 text-red-500" />
-                      </span>
-                      <span>Calendrier de diffusion possible</span>
+                      
                     </li>
                     <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Ciblage âge et genre possible</span>
+                      <span>Ciblage âge et genre </span>
                     </li>
                     <li className="flex items-start">
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
@@ -1392,7 +1372,7 @@ export default function Ciblage() {
                       <span className="bg-green-300 rounded-full p-1 flex items-center justify-center mr-3">
                         <Info className="h-4 w-4 text-white" />
                       </span>
-                      <span>Dépenses minimales : investissement mini 250 € d'achat d'espace {">"} 625 € PDV</span>
+                      <span>Dépenses minimales : investissement minimum de 625 € PDV</span>
                     </li>
                   </ul>
 

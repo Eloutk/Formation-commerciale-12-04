@@ -86,7 +86,7 @@ export default function Tracking() {
                   <Alert className="mb-4 border-red-500/50 bg-red-500/10">
                     <AlertTriangle className="h-4 w-4 text-red-500" />
                     <AlertDescription className="text-red-500">
-                      Ajouter " 50 actions sur le pixel/API afin de pouvoir partir en conversion sur les 28 derniers jours glissants "
+                      50 actions sur le pixel/API afin de pouvoir partir en conversion sur les 28 derniers jours glissants
                     </AlertDescription>
                   </Alert>
                   <p className="mb-4">
@@ -99,28 +99,7 @@ export default function Tracking() {
                   </p>
                 </div>
 
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Limitations actuelles du tracking</h3>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2 flex items-center">
-                        <span className="bg-primary/10 text-primary rounded-full p-1 mr-2">
-                          <Info className="h-4 w-4" />
-                        </span>
-                        Avant vs Maintenant
-                      </h4>
-                      <p className="mb-2">
-                        Le pixel existe sur toutes les plateformes. Avant grâce au Pixel, il était assez " simple " de
-                        tracker le comportement des internautes, de la publicité jusqu'au site internet.
-                      </p>
-                      <p>Mais 2 événements sont venus chambouler ce fonctionnement :</p>
-                      <ul className="list-disc list-inside mt-2 space-y-1 ml-4">
-                        <li>l'avancement de la RGPD</li>
-                        <li>Apple qui a décidé de tout faire pour bloquer ses concurrents des GAFA</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+      
 
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">Conditions nécessaires pour le tracking</h3>
@@ -282,40 +261,6 @@ export default function Tracking() {
                       grande part " d'inconnus " sur nos rapports.
                     </AlertDescription>
                   </Alert>
-                </div>
-
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold mb-4">Différences entre les statistiques</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Source</TableHead>
-                        <TableHead>Caractéristiques</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Plateformes publicitaires</TableCell>
-                        <TableCell>
-                          <ul className="list-disc list-inside space-y-1">
-                            <li>Données basées sur les interactions avec les publicités</li>
-                            <li>Inclut les vues, clics, et conversions attribuées</li>
-                            <li>Soumis aux délais d'attribution</li>
-                          </ul>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Google Analytics</TableCell>
-                        <TableCell>
-                          <ul className="list-disc list-inside space-y-1">
-                            <li>Données basées sur les visites réelles du site</li>
-                            <li>Dépend de l'acceptation des cookies</li>
-                            <li>Peut montrer des écarts avec les plateformes publicitaires</li>
-                          </ul>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
                 </div>
               </CardContent>
             </Card>
