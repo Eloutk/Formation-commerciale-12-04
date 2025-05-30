@@ -1,10 +1,31 @@
+"use client"
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 export default function BilansCampagne() {
+  const images = [
+    {
+      src: "/images/Rapports-analyse.png",
+      alt: "Rapports analyse 1"
+    },
+    {
+      src: "/images/Rapports-analyse2.png",
+      alt: "Rapports analyse 2"
+    },
+    {
+      src: "/images/Rapports-definitions.png",
+      alt: "Rapports définitions"
+    }
+  ];
+  const [current, setCurrent] = useState(0);
+  const prevImage = () => setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  const nextImage = () => setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
@@ -16,24 +37,39 @@ export default function BilansCampagne() {
             <CardDescription>Accédez à des bilans interactifs et transparents pour chaque campagne</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="my-8">
-              <Image
-                src="/images/Exemple-bilanscampagne.png"
-                alt="Exemple de bilan de campagne"
-                width={800}
-                height={400}
-                className="rounded-lg border shadow-sm mx-auto"
-              />
-              <p className="text-sm text-muted-foreground text-center mt-2">
-                Exemple de bilan interactif fourni à nos clients
-              </p>
-              <div className="flex items-center justify-center mt-6">
-                <div className="flex items-start gap-3 bg-white border border-orange-400 rounded-lg shadow p-4 w-full max-w-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-500 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-                  <div className="text-orange-900 text-base font-semibold text-justify w-full">
-                    <span className="font-bold">À savoir :</span> Les bilans sont réalisés uniquement à la demande et ne sont pas automatiques.<br />Ils ne seront effectués que s'ils apportent une réelle valeur ajoutée pour le client.
-                  </div>
-                </div>
+            <div className="flex flex-col items-center my-8">
+              <div className="relative w-full max-w-5xl flex items-center justify-center">
+                <button
+                  onClick={prevImage}
+                  className="absolute left-0 z-10"
+                  aria-label="Image précédente"
+                  style={{ top: '50%', transform: 'translateY(-50%)' }}
+                >
+                  <span style={{ fontSize: 32 }}>&#8592;</span>
+                </button>
+                <Image
+                  src={images[current].src}
+                  alt={images[current].alt}
+                  width={1100}
+                  height={600}
+                  className="rounded-lg shadow-sm mx-auto"
+                />
+                <button
+                  onClick={nextImage}
+                  className="absolute right-0 z-10"
+                  aria-label="Image suivante"
+                  style={{ top: '50%', transform: 'translateY(-50%)' }}
+                >
+                  <span style={{ fontSize: 32 }}>&#8594;</span>
+                </button>
+              </div>
+              <div className="flex gap-2 mt-2">
+                {images.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`inline-block w-3 h-3 rounded-full ${idx === current ? 'bg-orange-600' : 'bg-gray-300'}`}
+                  />
+                ))}
               </div>
             </div>
             <div className="prose max-w-2xl mx-auto text-justify">

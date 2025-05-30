@@ -45,7 +45,7 @@ export function MobileNav() {
                           { name: "Tracking", href: "/formation/tracking" },
                           { name: "Score qualité", href: "/formation/score-qualite" },
                           { name: "Optimisations", href: "/formation/optimisations" },
-                          { name: "Bilans de campagne", href: "/formation/bilans-campagne" },
+                          { name: "Rapports de campagne", href: "/formation/bilans-campagne" },
                           { name: "Demandes de potentiels", href: "/formation/demandes-potentiels" },
                         ].map((item) => (
                           <Link
