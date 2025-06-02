@@ -56,17 +56,20 @@ export default function Home() {
       <section className="py-8">
         <h2 className="text-3xl font-bold mb-8 text-center">Modules de formation</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {modules.map((module) => (
-            <ModuleCard
-              key={module.id}
-              title={module.title}
-              description={module.description}
-              href={module.href}
-              progress={module.progress}
-              quizScore={module.quizScore}
-              icon={module.icon}
-            />
-          ))}
+          {modules.map((module) => {
+            const moduleTitle = module.title === "Bilans de campagne" ? "Rapports de campagne" : module.title;
+            return (
+              <ModuleCard
+                key={module.id}
+                title={moduleTitle as "BookOpen" | "Layout" | "GitBranch" | "Target" | "FolderTree" | "Users" | "LineChart" | "BadgeCheck" | "Settings"}
+                description={module.description}
+                href={module.href}
+                progress={module.progress}
+                quizScore={module.quizScore}
+                icon={module.icon}
+              />
+            );
+          })}
         </div>
       </section>
     </div>

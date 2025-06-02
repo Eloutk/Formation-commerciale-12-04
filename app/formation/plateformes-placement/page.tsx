@@ -106,7 +106,6 @@ export default function PlateformesPlacement() {
                         <ul className="list-disc list-inside space-y-1 ml-4">
                           <li>Idéal pour toucher une audience jeune avec un contenu dynamique</li>
                           <li>70 % des utilisateurs ont moins de 35 ans, forte concentration entre 13 et 24 ans</li>
-                          <li>Plateforme qui évolue avec son temps et ses utilisateurs (23%)</li>
                         </ul>
                       </div>
                       <div className="border rounded-md bg-white p-4 mt-4">

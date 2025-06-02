@@ -19,12 +19,11 @@ export default function ObjectifsCampagne() {
             <CardHeader>
               <CardTitle>Vue d'ensemble des objectifs de campagne</CardTitle>
               <CardDescription>
-                Chaque plateforme publicitaire propose différents objectifs de campagne. Ce schéma présente une vue d'ensemble des principaux types d'objectifs et leur rôle dans la stratégie marketing digitale.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <p>
-                Chaque plateforme publicitaire propose différents objectifs de campagne.
+                Les plateforme publicitaire propose différents objectifs de campagne.
               </p>
               <div className="my-8 flex justify-center">
                 <Image
@@ -88,7 +87,6 @@ export default function ObjectifsCampagne() {
                   <CardTitle>Objectifs de campagne META (Facebook & Instagram)</CardTitle>
                 </div>
                 <CardDescription>
-                  Les différents objectifs disponibles sur les plateformes Facebook et Instagram
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -136,7 +134,6 @@ export default function ObjectifsCampagne() {
                   <Image src="/images/Logo TikTok.png" alt="Logo TikTok" width={32} height={32} className="rounded-sm" />
                   <CardTitle>Objectifs de campagne TikTok</CardTitle>
                 </div>
-                <CardDescription>Les différents objectifs publicitaires disponibles sur TikTok</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
@@ -175,7 +172,6 @@ export default function ObjectifsCampagne() {
                   <Image src="/images/Logo LinkedIn.png" alt="Logo LinkedIn" width={32} height={32} className="rounded-sm" />
                   <CardTitle>Objectifs de campagne LinkedIn</CardTitle>
                 </div>
-                <CardDescription>Les différents objectifs publicitaires disponibles sur LinkedIn</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
@@ -216,7 +212,6 @@ export default function ObjectifsCampagne() {
               <CardHeader>
                 <CardTitle>Objectifs de campagne Google</CardTitle>
                 <CardDescription>
-                  Retrouvez ci-dessous la présentation indépendante des objectifs pour Google, YouTube et Display.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
@@ -229,7 +224,7 @@ export default function ObjectifsCampagne() {
                 </div>
                 <Tabs defaultValue="google-search" className="w-full">
                   <TabsList className="mb-4 grid grid-cols-3">
-                    <TabsTrigger value="google-search">Google</TabsTrigger>
+                    <TabsTrigger value="google-search">Search</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
                   </TabsList>
@@ -243,7 +238,7 @@ export default function ObjectifsCampagne() {
                           height={32}
                           className="rounded-sm"
                         />
-                        <h3 className="text-lg font-semibold">Google</h3>
+                        <h3 className="text-lg font-semibold">Search</h3>
                       </div>
                       <p>Sur Search, les campagnes publicitaires sont exclusivement orientées vers des objectifs de clics ou de conversion.</p>
                       <div>
@@ -267,7 +262,6 @@ export default function ObjectifsCampagne() {
                         />
                         <h3 className="text-lg font-semibold">YouTube</h3>
                       </div>
-                      <p>Sur YouTube, seules les impressions ou la conversion peuvent être définies comme objectifs de campagne.</p>
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectif proposé :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
@@ -312,11 +306,9 @@ export default function ObjectifsCampagne() {
                   <Image src="/images/Logo Spotify.png" alt="Logo Spotify" width={32} height={32} className="rounded-sm" />
                   <CardTitle>Objectifs de campagne Spotify</CardTitle>
                 </div>
-                <CardDescription>Les différents objectifs publicitaires disponibles sur Spotify</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
-                  Spotify propose plusieurs objectifs de campagne adaptés à sa plateforme audio.
                 </p>
 
                 <div className="space-y-4">
@@ -339,7 +331,6 @@ export default function ObjectifsCampagne() {
                   <Image src="/images/Logo Snapchat.png" alt="Logo Snapchat" width={32} height={32} className="rounded-sm" />
                   <CardTitle>Objectifs de campagne Snapchat</CardTitle>
                 </div>
-                <CardDescription>Les différents objectifs publicitaires disponibles sur Snapchat</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>

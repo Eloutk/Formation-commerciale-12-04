@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-export default function BilansCampagne() {
+export default function RapportsCampagne() {
   const images = [
     {
       src: "/images/Rapports-analyse.png",

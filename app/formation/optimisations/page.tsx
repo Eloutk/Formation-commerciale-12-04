@@ -34,15 +34,6 @@ export default function Optimisations() {
                     Le principe est de zoomer et d'aller chercher de plus en plus dans le détail au fur et à mesure des
                     optimisations
                   </p>
-
-                  <div className="bg-white p-4 rounded-lg border mb-6">
-                    <p className="font-medium">Exemple concret :</p>
-                    <p>
-                      Nous prendrons comme exemple la campagne EFS Nouvelle Aquitaine qui a pour objectif des clics.
-                      Pour rappel sur une campagne de clics, nous allons optimiser sur le CPC en gardant un œil sur les
-                      CTR.
-                    </p>
-                  </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg border border-primary/20">

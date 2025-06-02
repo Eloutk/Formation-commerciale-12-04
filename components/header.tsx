@@ -67,7 +67,7 @@ const modules = [
   },
   {
     title: "Rapports de campagne",
-    href: "/formation/bilans-campagne",
+    href: "/formation/rapports-campagne",
     description: "Analysez et optimisez vos campagnes grâce à des bilans interactifs",
   },
   {
