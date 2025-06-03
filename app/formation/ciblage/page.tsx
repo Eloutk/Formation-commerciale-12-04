@@ -89,7 +89,7 @@ export default function Ciblage() {
           <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="search">Google Search</TabsTrigger>
-            <TabsTrigger value="google">Google/YouTube</TabsTrigger>
+            <TabsTrigger value="google">Display/YouTube</TabsTrigger>
             <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
             <TabsTrigger value="tiktok">TikTok</TabsTrigger>
             <TabsTrigger value="snap">Snapchat</TabsTrigger>
