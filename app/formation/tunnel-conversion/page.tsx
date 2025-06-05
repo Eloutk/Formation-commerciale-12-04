@@ -17,7 +17,7 @@ export default function TunnelConversion() {
           </CardHeader>
           <CardContent className="space-y-6">
             <p>
-              Le tunnel de conversion représente le parcours que suit un utilisateur depuis sa première interaction avec l'annonceur jusqu'à la conversion finale souhaitée. Comprendre ce processus est essentiel pour optimiser vos campagnes marketing et maximiser votre retour sur investissement. Attention, chaque campagne publicitaire n'a pas forcément un objectif d'achat. La conversion dans une campagne publicitaire désigne l'action précise qu'un utilisateur accomplit après avoir cliqué (ou vu) une publicité, et qui correspond à l'objectif fixé par l'annonceur (récolter de prospect, achats, ou inscription par exemple).
+              Le tunnel de conversion représente le parcours que suit un utilisateur depuis sa première interaction avec l'annonceur jusqu'à la conversion finale souhaitée. Comprendre ce processus est essentiel pour optimiser vos campagnes marketing et maximiser votre retour sur investissement. Attention, chaque campagne publicitaire n'a pas forcément un objectif d'achat. La conversion dans une campagne publicitaire désigne l'action précise qu'un utilisateur accomplit après avoir cliqué (ou vu) une publicité, et qui correspond à l'objectif fixé par l'annonceur (récolte de prospect, achats, ou inscription par exemple).
             </p>
 
             <div className="my-8">

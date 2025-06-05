@@ -137,8 +137,8 @@ export default function ObjectifsCampagne() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p>
-                  TikTok propose plusieurs objectifs de campagne regroupés en trois catégories principales : Awareness
-                  (Notoriété), Consideration (Considération) et Conversion.
+                  TikTok propose plusieurs objectifs de campagne regroupés en trois catégories principales : 
+                  Notoriété, Traffic et Conversion.
                 </p>
 
                 <div className="space-y-4">
@@ -146,15 +146,15 @@ export default function ObjectifsCampagne() {
                     <h3 className="text-lg font-semibold">Objectifs principaux proposés :</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
                       <li>
-                        <span className="font-medium">Reach (Portée) :</span> Maximiser la portée de vos annonces auprès
+                        <span className="font-medium">Notoriété :</span> Maximiser la portée de vos annonces auprès
                         d'un public large
                       </li>
                       <li>
-                        <span className="font-medium">Traffic (Trafic) :</span> Diriger les utilisateurs vers votre site
+                        <span className="font-medium">Traffic :</span> Diriger les utilisateurs vers votre site
                         web ou application
                       </li>
                       <li>
-                        <span className="font-medium">Website conversions (Conversions sur site web) :</span> Encourager
+                        <span className="font-medium">Conversions :</span> Encourager
                         des actions spécifiques sur votre site web
                       </li>
                     </ul>
@@ -184,15 +184,15 @@ export default function ObjectifsCampagne() {
                     <h3 className="text-lg font-semibold">Objectifs principaux proposés :</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
                       <li>
-                        <span className="font-medium">Notoriété de la marque :</span> Atteindre plus de personnes avec
+                        <span className="font-medium">Notoriété :</span> Atteindre plus de personnes avec
                         votre post
                       </li>
                       <li>
-                        <span className="font-medium">Visites du site web :</span> Obtenir plus de clics sur votre page
+                        <span className="font-medium">Traffic :</span> Obtenir plus de clics sur votre page
                         de destination
                       </li>
                       <li>
-                        <span className="font-medium">Génération de leads :</span> Recueillir des informations sur les
+                        <span className="font-medium">Leads :</span> Recueillir des informations sur les
                         personnes intéressées par votre activité
                       </li>
                       <li>
@@ -244,8 +244,8 @@ export default function ObjectifsCampagne() {
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
-                          <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Conversion :</span> Générer des ventes en ligne et du chiffre d'affaires</li>
+                          <li><span className="font-medium">Trafic :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
+                          <li><span className="font-medium">Conversion :</span> Générer de la conversion (ventes en ligne, chiffre d'affaires, formulaires...)</li>
                         </ul>
                       </div>
                     </div>
@@ -286,9 +286,9 @@ export default function ObjectifsCampagne() {
                       <div>
                         <h4 className="text-md font-semibold mt-4">Objectifs principaux proposés :</h4>
                         <ul className="list-disc list-inside mt-2 space-y-2">
-                          <li><span className="font-medium">Notoriété de la marque :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
-                          <li><span className="font-medium">Trafic vers le site Web :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
-                          <li><span className="font-medium">Conversion CA :</span> Générer des ventes en ligne, via une application, par téléphone ou en magasin</li>
+                          <li><span className="font-medium">Notoriété :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
+                          <li><span className="font-medium">Trafic :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
+                          <li><span className="font-medium">Conversion :</span> Générer de la conversion (ventes en ligne, chiffre d'affaires, formulaires...)</li>
                         </ul>
                       </div>
                     </div>
@@ -313,9 +313,9 @@ export default function ObjectifsCampagne() {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold">Objectifs principaux proposés :</h3>
+                    <h3 className="text-lg font-semibold">Un seul objectif proposé :</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
-                      <li><span className="font-medium">Impressions :</span> Partagez vos annonces aussi souvent que possible pour augmenter votre notoriété</li>
+                      <li><span className="font-medium">Notoriété :</span> Partagez vos annonces aussi souvent que possible pour augmenter votre notoriété</li>
                     </ul>
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default function ObjectifsCampagne() {
                     <h3 className="text-lg font-semibold">Objectifs principaux proposés :</h3>
                     <ul className="list-disc list-inside mt-2 space-y-2">
                       <li>
-                        <span className="font-medium">Notoriété et engagement :</span> Augmenter la visibilité de votre
+                        <span className="font-medium">Notoriété :</span> Augmenter la visibilité de votre
                         marque et encourager les interactions
                       </li>
                       <li>
