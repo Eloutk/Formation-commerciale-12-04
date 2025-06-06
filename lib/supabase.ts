@@ -1,27 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = 'https://giypbnrlmscsnkivfogu.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpeXBibnJsbXNjc25raXZmb2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0NDA4ODAsImV4cCI6MjA2NDAxNjg4MH0.004Y5Zl2PvOqUI43Rq_d6seSWCtOGJkQXwnts1URF4w'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token',
-    storage: {
-      getItem: (key) => {
-        if (typeof window === 'undefined') return null
-        return window.localStorage.getItem(key)
-      },
-      setItem: (key, value) => {
-        if (typeof window === 'undefined') return
-        window.localStorage.setItem(key, value)
-      },
-      removeItem: (key) => {
-        if (typeof window === 'undefined') return
-        window.localStorage.removeItem(key)
-      },
-    },
-  },
-}) 
+export const createClient = () => {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+}
+
+// Instance unique pour les composants qui en ont besoin
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey) 

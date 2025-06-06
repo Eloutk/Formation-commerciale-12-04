@@ -1,33 +1,65 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-  // Rafraîchir la session si elle existe
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
+
   const { data: { session } } = await supabase.auth.getSession()
-  console.log('Session dans le middleware:', session)
 
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une route protégée
-  if (!session && !req.nextUrl.pathname.startsWith('/login') && !req.nextUrl.pathname.startsWith('/register')) {
-    const redirectUrl = new URL('/login', req.url)
+  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
+  if (!session && !request.nextUrl.pathname.startsWith('/login')) {
+    const redirectUrl = new URL('/login', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Si l'utilisateur est connecté et essaie d'accéder aux pages de login/register
-  if (session && (req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/register'))) {
-    const redirectUrl = new URL('/', req.url)
+  // Si l'utilisateur est connecté et essaie d'accéder à la page de login
+  if (session && request.nextUrl.pathname.startsWith('/login')) {
+    const redirectUrl = new URL('/', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
-  return res
+  return response
 }
 
-// Configuration des routes à protéger
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images/|api/).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
 } 
