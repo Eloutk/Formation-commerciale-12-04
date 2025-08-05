@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Target, Plus, Trash2, FileText } from "lucide-react"
+import { Calculator, TrendingUp, Target, Plus, Trash2, FileText, PieChart, BarChart3 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
 // Configuration des plateformes et leurs objectifs
 const platforms = {
@@ -20,6 +21,9 @@ const platforms = {
   'Tiktok': ['Impressions', 'Clics'],
   'Spotify': ['Impressions']
 }
+
+// Couleurs pour les diagrammes
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
 
 interface PlatformCalculation {
   id: string
@@ -104,27 +108,27 @@ export default function PDVPage() {
     return calculations.reduce((total, calc) => total + (calc.price || 0), 0)
   }
 
-  const generateQuotation = () => {
+  // Données pour les diagrammes
+  const getChartData = () => {
+    return calculations.map((calc, index) => ({
+      name: calc.platform,
+      value: calc.price || 0,
+      color: COLORS[index % COLORS.length]
+    }))
+  }
+
+  const getPercentageData = () => {
     const total = getTotalPDV()
-    const details = calculations.map(calc => 
-      `${calc.platform} - ${calc.objective}: ${calc.price?.toFixed(2)}€`
-    ).join('\n')
-    
-    const quotation = `DEVIS MULTI-PLATEFORMES\n\n${details}\n\nTOTAL PDV: ${total.toFixed(2)}€`
-    
-    // Créer et télécharger le fichier
-    const blob = new Blob([quotation], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'devis-multi-plateformes.txt'
-    link.click()
-    URL.revokeObjectURL(url)
+    return calculations.map((calc, index) => ({
+      name: calc.platform,
+      value: total > 0 ? ((calc.price || 0) / total * 100) : 0,
+      color: COLORS[index % COLORS.length]
+    }))
   }
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Calculateur PDV</h1>
           <p className="text-muted-foreground">
@@ -434,20 +438,101 @@ export default function PDVPage() {
               </CardContent>
             </Card>
 
-            {/* Récapitulatif multi-plateformes */}
+            {/* Dashboard avec diagrammes */}
             {calculations.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Récapitulatif multi-plateformes
-                  </CardTitle>
-                  <CardDescription>
-                    Détail des calculs par plateforme et total PDV
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+              <div className="grid gap-6">
+                {/* Récapitulatif avec diagrammes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PieChart className="h-5 w-5" />
+                      Dashboard - Répartition du budget
+                    </CardTitle>
+                    <CardDescription>
+                      Visualisez la répartition de votre budget par plateforme
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Diagramme circulaire - Répartition en euros */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-center">Répartition en euros</h3>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart>
+                              <Pie
+                                data={getChartData()}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, value }) => `${name}: ${(value as number).toFixed(0)}€`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {getChartData().map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => `${value}€`} />
+                              <Legend />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Diagramme circulaire - Répartition en pourcentage */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-center">Répartition en pourcentage</h3>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RechartsPieChart>
+                              <Pie
+                                data={getPercentageData()}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, value }) => `${name}: ${(value as number).toFixed(1)}%`}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {getPercentageData().map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value) => `${(value as number).toFixed(1)}%`} />
+                              <Legend />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total PDV */}
+                    <div className="flex justify-center items-center pt-6 border-t mt-6">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {getTotalPDV().toFixed(2)}€
+                        </div>
+                        <div className="text-sm text-muted-foreground">Total PDV</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Tableau détaillé */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Détail par plateforme
+                    </CardTitle>
+                    <CardDescription>
+                      Tableau récapitulatif avec tous les paramètres
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -492,15 +577,9 @@ export default function PDVPage() {
                         ))}
                       </TableBody>
                     </Table>
-
-                                         <div className="flex justify-center items-center pt-4 border-t">
-                       <div className="text-lg font-semibold">
-                         Total PDV: <span className="text-2xl text-green-600">{getTotalPDV().toFixed(2)}€</span>
-                       </div>
-                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         )}
