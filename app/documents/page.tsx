@@ -40,7 +40,7 @@ export default function DocumentsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Guide de la chefferie de projet diffusion et production</CardTitle>
-              <CardDescription>Chefferie de projet, Monday, rapports, davis et besoins n'auront plus de secret pour vous </CardDescription>
+              <CardDescription>Chefferie de projet, Monday, rapports, devis et besoins n'auront plus de secret pour vous</CardDescription>
             </CardHeader>
             <CardContent>
               <Button 
