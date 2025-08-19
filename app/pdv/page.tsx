@@ -6,26 +6,28 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Target, Plus, Trash2, FileText, PieChart, BarChart3 } from "lucide-react"
+import { Calculator, TrendingUp, Target, Plus, Trash2, FileText, PieChart, BarChart3, Download, AlertCircle } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import { PDFGenerator } from '@/components/pdf-generator'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  calculatePriceForKPIs,
+  calculateKPIsForBudget,
+  validateInputs,
+  listObjectivesForPlatform,
+  type PDVCalculation,
+  UNIT_COSTS,
+} from '@/lib/pdv-calculations'
 
-// Configuration des plateformes et leurs objectifs
-const platforms = {
-  'META': ['Impressions', 'Clics sur lien', 'Clics', 'Leads'],
-  'Insta only': ['Impressions', 'Clics sur lien', 'Clics'],
-  'Display': ['Impressions', 'Clics'],
-  'Youtube': ['Impressions'],
-  'LinkedIn': ['Impressions', 'Clics', 'Leads'],
-  'Snapchat': ['Impressions', 'Clics'],
-  'Tiktok': ['Impressions', 'Clics'],
-  'Spotify': ['Impressions']
-}
+// Configuration des plateformes et leurs objectifs (depuis les coûts unitaires)
+const platforms = UNIT_COSTS as const
 
 // Couleurs pour les diagrammes
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
 
-interface PlatformCalculation {
+export interface PlatformCalculation {
   id: string
   platform: string
   objective: string
@@ -35,6 +37,7 @@ interface PlatformCalculation {
   budget?: string
   kpis?: string
   price?: number
+  calculatedKpis?: number
 }
 
 export default function PDVPage() {
@@ -47,22 +50,52 @@ export default function PDVPage() {
   const [calculationType, setCalculationType] = useState('')
   const [budget, setBudget] = useState('')
   const [kpis, setKpis] = useState('')
+  const [currentResult, setCurrentResult] = useState<PDVCalculation | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleCalculate = () => {
-    // Ici on ajoutera la logique de calcul une fois le fichier Excel disponible
-    console.log('Calcul avec:', {
-      platform: selectedPlatform,
-      objective: selectedObjective,
-      aePercentage,
-      diffusionDays,
-      calculationType,
-      budget,
-      kpis
-    })
+    setError(null)
+    setCurrentResult(null)
+    
+    try {
+      const aePercentageNum = parseFloat(aePercentage)
+      const validationError = validateInputs(
+        selectedPlatform,
+        selectedObjective,
+        aePercentageNum,
+        calculationType === 'price-for-kpis' ? parseFloat(kpis) : undefined,
+        calculationType === 'kpis-for-budget' ? parseFloat(budget) : undefined
+      )
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+
+      let result: PDVCalculation
+      if (calculationType === 'price-for-kpis') {
+        result = calculatePriceForKPIs(
+          selectedPlatform,
+          selectedObjective,
+          aePercentageNum,
+          parseFloat(kpis)
+        )
+      } else {
+        result = calculateKPIsForBudget(
+          selectedPlatform,
+          selectedObjective,
+          aePercentageNum,
+          parseFloat(budget)
+        )
+      }
+
+      setCurrentResult(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du calcul')
+    }
   }
 
   const getAvailableObjectives = () => {
-    return selectedPlatform ? platforms[selectedPlatform as keyof typeof platforms] || [] : []
+    return selectedPlatform ? Object.keys(platforms[selectedPlatform as keyof typeof platforms] || {}) : []
   }
 
   const resetObjectiveWhenPlatformChanges = (newPlatform: string) => {
@@ -72,32 +105,65 @@ export default function PDVPage() {
 
   const addPlatform = () => {
     if (!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      setError('Veuillez remplir tous les champs obligatoires')
       return
     }
 
-    const newCalculation: PlatformCalculation = {
-      id: Date.now().toString(),
-      platform: selectedPlatform,
-      objective: selectedObjective,
-      aePercentage,
-      diffusionDays,
-      calculationType: calculationType as 'price-for-kpis' | 'kpis-for-budget',
-      budget: calculationType === 'kpis-for-budget' ? budget : undefined,
-      kpis: calculationType === 'price-for-kpis' ? kpis : undefined,
-      price: Math.random() * 1000 + 500 // Simulation de calcul - à remplacer par la vraie logique Excel
-    }
+    try {
+      const aePercentageNum = parseFloat(aePercentage)
+      let result: PDVCalculation
 
-    setCalculations([...calculations, newCalculation])
-    
-    // Reset form
-    setSelectedPlatform('')
-    setSelectedObjective('')
-    setAePercentage('')
-    setDiffusionDays('')
-    setCalculationType('')
-    setBudget('')
-    setKpis('')
+      if (calculationType === 'price-for-kpis') {
+        if (!kpis) {
+          setError('Veuillez saisir le nombre de KPIs')
+          return
+        }
+        result = calculatePriceForKPIs(
+          selectedPlatform,
+          selectedObjective,
+          aePercentageNum,
+          parseFloat(kpis)
+        )
+      } else {
+        if (!budget) {
+          setError('Veuillez saisir le budget')
+          return
+        }
+        result = calculateKPIsForBudget(
+          selectedPlatform,
+          selectedObjective,
+          aePercentageNum,
+          parseFloat(budget)
+        )
+      }
+
+      const newCalculation: PlatformCalculation = {
+        id: Date.now().toString(),
+        platform: selectedPlatform,
+        objective: selectedObjective,
+        aePercentage,
+        diffusionDays,
+        calculationType: calculationType as 'price-for-kpis' | 'kpis-for-budget',
+        budget: calculationType === 'kpis-for-budget' ? budget : undefined,
+        kpis: calculationType === 'price-for-kpis' ? kpis : undefined,
+        price: result.price,
+        calculatedKpis: result.calculatedKpis,
+      }
+
+      setCalculations([...calculations, newCalculation])
+      setError(null)
+
+      // Reset form
+      setSelectedPlatform('')
+      setSelectedObjective('')
+      setAePercentage('')
+      setDiffusionDays('')
+      setCalculationType('')
+      setBudget('')
+      setKpis('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du calcul')
+    }
   }
 
   const removePlatform = (id: string) => {
@@ -106,6 +172,10 @@ export default function PDVPage() {
 
   const getTotalPDV = () => {
     return calculations.reduce((total, calc) => total + (calc.price || 0), 0)
+  }
+
+  const getTotalKPIs = () => {
+    return calculations.reduce((total, calc) => total + (calc.calculatedKpis || 0), 0)
   }
 
   // Données pour les diagrammes
@@ -302,14 +372,36 @@ export default function PDVPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Les calculs seront disponibles une fois le fichier Excel intégré
-                  </p>
+                {error && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                
+                {currentResult && (
+                  <div className="space-y-4">
+                    <div className="text-center p-8 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-primary mb-2">
+                        {calculationType === 'price-for-kpis' 
+                          ? `${(currentResult.price || 0).toFixed(2)}€`
+                          : `${(currentResult.calculatedKpis || 0).toLocaleString()}`
+                        }
+                      </div>
+                      <div className="text-lg text-muted-foreground">
+                        {calculationType === 'price-for-kpis' ? 'Prix FDV' : 'KPIs calculés'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="text-center mt-6">
                   <Button 
                     onClick={handleCalculate}
                     className="mt-4"
-                    disabled={!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType}
+                    disabled={!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType || 
+                             (calculationType === 'price-for-kpis' && !kpis) ||
+                             (calculationType === 'kpis-for-budget' && !budget)}
                   >
                     Calculer
                   </Button>
@@ -331,7 +423,13 @@ export default function PDVPage() {
                   Configurez les paramètres pour cette plateforme
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+                            <CardContent className="space-y-4">
+                {error && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Plateforme</Label>
@@ -509,13 +607,28 @@ export default function PDVPage() {
                       </div>
                     </div>
 
-                    {/* Total PDV */}
+                    {/* Total PDV et bouton PDF */}
                     <div className="flex justify-center items-center pt-6 border-t mt-6">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
                           {getTotalPDV().toFixed(2)}€
                         </div>
-                        <div className="text-sm text-muted-foreground">Total PDV</div>
+                        <div className="text-sm text-muted-foreground mb-4">Total PDV</div>
+                        
+                        {/* Bouton de téléchargement PDF */}
+                        {calculations.length > 0 && (
+                          <PDFDownloadLink
+                            document={<PDFGenerator calculations={calculations} totalPDV={getTotalPDV()} totalKPIs={getTotalKPIs()} />}
+                            fileName={`recapitulatif-pdv-${new Date().toISOString().split('T')[0]}.pdf`}
+                          >
+                            {({ blob, url, loading, error }) => (
+                              <Button disabled={loading} className="bg-green-600 hover:bg-green-700">
+                                <Download className="mr-2 h-4 w-4" />
+                                {loading ? 'Génération...' : 'Télécharger PDF'}
+                              </Button>
+                            )}
+                          </PDFDownloadLink>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -542,7 +655,7 @@ export default function PDVPage() {
                           <TableHead>Jours</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Valeur</TableHead>
-                          <TableHead>Prix (€)</TableHead>
+                          <TableHead>Résultat</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -563,7 +676,10 @@ export default function PDVPage() {
                               }
                             </TableCell>
                             <TableCell className="font-bold">
-                              {calc.price?.toFixed(2)}€
+                              {calc.calculationType === 'price-for-kpis' 
+                                ? `${(calc.price || 0).toFixed(2)}€`
+                                : `${(calc.calculatedKpis || 0).toLocaleString()}`
+                              }
                             </TableCell>
                             <TableCell>
                               <Button

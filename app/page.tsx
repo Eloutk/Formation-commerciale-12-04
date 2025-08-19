@@ -61,12 +61,12 @@ export default function Home() {
             return (
               <ModuleCard
                 key={module.id}
-                title={moduleTitle as "BookOpen" | "Layout" | "GitBranch" | "Target" | "FolderTree" | "Users" | "LineChart" | "BadgeCheck" | "Settings"}
+                title={moduleTitle}
                 description={module.description}
                 href={module.href}
                 progress={module.progress}
                 quizScore={module.quizScore}
-                icon={module.icon}
+                icon={module.icon as "BookOpen" | "Layout" | "GitBranch" | "Target" | "FolderTree" | "Users" | "LineChart" | "BadgeCheck" | "Settings"}
               />
             );
           })}
