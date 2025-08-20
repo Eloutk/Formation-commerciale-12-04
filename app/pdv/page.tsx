@@ -496,23 +496,6 @@ export default function PDVPage() {
                   </div>
                 </div>
 
-                {/* Insights */}
-                {selectedPlatform && selectedObjective && (
-                  <div className="mt-2 rounded-md border bg-muted/40 p-3">
-                    <div className="font-medium mb-1">Insights</div>
-                    {(() => {
-                      const i = getInsights(selectedPlatform, selectedObjective)
-                      return (
-                        <div className="text-sm text-muted-foreground flex flex-col gap-1">
-                          <div>CTR moyen: <span className="font-medium text-foreground">{formatPercentFR(i.ctrPct)}</span></div>
-                          {!isClicksObjective(selectedObjective) && i.avgClicks !== undefined && (
-                            <div>Nombre de clics moyen: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -747,23 +730,6 @@ export default function PDVPage() {
                   </div>
                 </div>
 
-                {/* Insights */}
-                {selectedPlatform && selectedObjective && (
-                  <div className="mt-2 rounded-md border bg-muted/40 p-3">
-                    <div className="font-medium mb-1">Insights</div>
-                    {(() => {
-                      const i = getInsights(selectedPlatform, selectedObjective)
-                      return (
-                        <div className="text-sm text-muted-foreground flex flex-col gap-1">
-                          <div>CTR moyen: <span className="font-medium text-foreground">{formatPercentFR(i.ctrPct)}</span></div>
-                          {!isClicksObjective(selectedObjective) && i.avgClicks !== undefined && (
-                            <div>Nombre de clics moyen: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
-                          )}
-                        </div>
-                      )
-                    })()}
-                  </div>
-                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
