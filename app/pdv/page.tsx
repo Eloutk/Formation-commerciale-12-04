@@ -102,7 +102,7 @@ export default function PDVPage() {
   const [selectedSector, setSelectedSector] = useState('')
   const [selectedObjective, setSelectedObjective] = useState('')
   const [aePercentage, setAePercentage] = useState('40')
-  const [diffusionDays, setDiffusionDays] = useState('')
+  const [diffusionDays, setDiffusionDays] = useState('15')
   const [calculationType, setCalculationType] = useState('')
   const [budget, setBudget] = useState('')
   const [kpis, setKpis] = useState('')
