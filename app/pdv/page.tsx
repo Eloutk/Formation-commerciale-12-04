@@ -894,40 +894,7 @@ export default function PDVPage() {
                   </CardContent>
                 </Card>
 
-                {/* Suggestions stratégiques */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      Autres opportunités sur cette plateforme
-                    </CardTitle>
-                    <CardDescription>
-                      Estimations avec le même budget en changeant uniquement l'objectif
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {getStrategicSuggestions().length === 0 ? (
-                      <div className="text-sm text-muted-foreground">Définissez KPI ou Budget pour voir des suggestions.</div>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Objectif</TableHead>
-                            <TableHead>KPI atteignable</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getStrategicSuggestions().map((s) => (
-                            <TableRow key={s.objective}>
-                              <TableCell>{s.objective}</TableCell>
-                              <TableCell className="font-bold">{s.kpis.toLocaleString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* Suggestions stratégiques supprimées */}
 
                 {/* Tableau détaillé */}
                 <Card>

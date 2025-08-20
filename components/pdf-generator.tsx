@@ -10,6 +10,33 @@ const formatKPIs = (value: number): string => {
   return formatNumberSpaces(Math.round(value))
 }
 
+// Insights (doivent correspondre au site)
+const INSIGHTS: Record<string, Record<string, { ctrPct: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number }>> = {
+  META: {
+    Impressions: { ctrPct: 0.9, avgClicks: 1200 },
+    'Clics sur lien': { ctrPct: 1.1, avgClicksLink: 900 },
+    Clics: { ctrPct: 1.2 },
+    Leads: { ctrPct: 1.5, avgClicks: 800, avgImpressions: 200000, avgClicksLink: 600 },
+  },
+  Display: {
+    Impressions: { ctrPct: 0.2, avgClicks: 300 },
+    Clics: { ctrPct: 0.25 },
+  },
+}
+
+function isClicksObjective(objective: string): boolean {
+  return /clic/i.test(objective)
+}
+
+function getInsights(platform: string, objective: string) {
+  const p = (INSIGHTS[platform] && INSIGHTS[platform][objective]) || undefined
+  if (p) return p
+  if (isClicksObjective(objective)) return { ctrPct: 1.0 }
+  if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500 }
+  if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400, avgImpressions: 150000 }
+  return { ctrPct: 0.5 }
+}
+
 // Couleurs pour les diagrammes (mêmes que sur le site)
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
 
@@ -262,7 +289,7 @@ export const PDFGenerator = ({ calculations, totalPDV, totalKPIs }: PDFGenerator
           <Text style={styles.subtitle}>Calculateur PDV - Link Academy</Text>
         </View>
 
-        {/* Tableau détaillé */}
+        {/* Tableau détaillé + Insights */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Détail par plateforme</Text>
           <View style={styles.table}>
@@ -278,27 +305,55 @@ export const PDFGenerator = ({ calculations, totalPDV, totalKPIs }: PDFGenerator
             </View>
 
             {/* Données du tableau */}
-            {calculations.map((calc, index) => (
-              <View key={calc.id} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{calc.platform}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>
-                  {calc.calculationType === 'price-for-kpis'
-                    ? `${Number(calc.kpis || '0').toLocaleString('fr-FR')}`
-                    : `${Math.ceil(calc.calculatedKpis || 0).toLocaleString('fr-FR')}`}
-                </Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{calc.objective}</Text>
-                <Text style={[styles.tableCell, { flex: 1 }]}>{calc.aePercentage}%</Text>
-                <Text style={[styles.tableCell, { flex: 1 }]}>{calc.diffusionDays}j</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>
-                  {calc.calculationType === 'price-for-kpis' ? 'Prix pour KPIs' : 'KPIs pour budget'}
-                </Text>
-                <Text style={[styles.tableCell, { flex: 1, fontWeight: 'bold' }]}>
-                  {calc.calculationType === 'price-for-kpis'
-                    ? `${(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0)).toLocaleString('fr-FR')}€`
-                    : `${Math.ceil(parseFloat(calc.budget || '0')).toLocaleString('fr-FR')}€`}
-                </Text>
-              </View>
-            ))}
+            {calculations.map((calc, index) => {
+              const i = getInsights(calc.platform, calc.objective)
+              const isClicks = /clic/i.test(calc.objective)
+              return (
+                <View key={calc.id} style={{ marginBottom: 6 }}>
+                  <View style={styles.tableRow}>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>{calc.platform}</Text>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>
+                      {calc.calculationType === 'price-for-kpis'
+                        ? `${Number(calc.kpis || '0').toLocaleString('fr-FR')}`
+                        : `${Math.ceil(calc.calculatedKpis || 0).toLocaleString('fr-FR')}`}
+                    </Text>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>{calc.objective}</Text>
+                    <Text style={[styles.tableCell, { flex: 1 }]}>{calc.aePercentage}%</Text>
+                    <Text style={[styles.tableCell, { flex: 1 }]}>{calc.diffusionDays}j</Text>
+                    <Text style={[styles.tableCell, { flex: 2 }]}>
+                      {calc.calculationType === 'price-for-kpis' ? 'Prix pour KPIs' : 'KPIs pour budget'}
+                    </Text>
+                    <Text style={[styles.tableCell, { flex: 1, fontWeight: 'bold' }]}> 
+                      {calc.calculationType === 'price-for-kpis'
+                        ? `${(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0)).toLocaleString('fr-FR')}€`
+                        : `${Math.ceil(parseFloat(calc.budget || '0')).toLocaleString('fr-FR')}€`}
+                    </Text>
+                  </View>
+                  {/* Insights par ligne */}
+                  <View style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 10, color: '#374151' }}>
+                      {(() => {
+                        const ctr = `${i.ctrPct.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
+                        if (/impr/i.test(calc.objective)) {
+                          const clicks = i.avgClicks ? i.avgClicks.toLocaleString('fr-FR') : '-'
+                          return `Insights: CTR moyen ${ctr} · Clics moyens ${clicks}`
+                        }
+                        if (/lead/i.test(calc.objective)) {
+                          const impr = i.avgImpressions ? i.avgImpressions.toLocaleString('fr-FR') : '-'
+                          const clicks = i.avgClicks ? i.avgClicks.toLocaleString('fr-FR') : '-'
+                          const clicksLink = i.avgClicksLink ? i.avgClicksLink.toLocaleString('fr-FR') : '-'
+                          return `Insights: Impressions moyennes ${impr} · Clics moyens ${clicks} · Clics lien moyens ${clicksLink} · CTR moyen ${ctr}`
+                        }
+                        if (isClicks) {
+                          return `Insights: CTR moyen ${ctr}`
+                        }
+                        return `Insights: CTR moyen ${ctr}`
+                      })()}
+                    </Text>
+                  </View>
+                </View>
+              )
+            })}
           </View>
         </View>
 
