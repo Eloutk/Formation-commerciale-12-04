@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   description: "Plateforme de formation commerciale pour améliorer vos compétences",
   generator: "v0.dev",
   icons: {
-    icon: "/images/logo-link.png",
-    shortcut: "/images/logo-link.png",
-    apple: "/images/logo-link.png",
+    icon: "/Logo Link Vertical (Orange).png",
+    shortcut: "/Logo Link Vertical (Orange).png",
+    apple: "/Logo Link Vertical (Orange).png",
   },
 }
 

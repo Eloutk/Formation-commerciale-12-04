@@ -94,7 +94,7 @@ export default function Header() {
       <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <Image
-            src="/images/logo-link.png"
+            src="/Logo Link Vertical (Orange).png"
             alt="Logo Link Academy"
             width={40}
             height={40}
