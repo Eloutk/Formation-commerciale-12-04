@@ -1,7 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+// Evite l'erreur si le client n'existe pas en local
+let supabase: any
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  supabase = require('@/lib/supabaseClient').supabase
+} catch (_) {
+  supabase = null
+}
 
 export default function TestSupabase() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -10,6 +17,7 @@ export default function TestSupabase() {
   useEffect(() => {
     async function testConnection() {
       try {
+        if (!supabase) throw new Error('Client Supabase manquant')
         const { data, error } = await supabase.from('test').select('*').limit(1)
         
         if (error) {
@@ -19,9 +27,9 @@ export default function TestSupabase() {
           setStatus('success')
           setMessage('Connexion à Supabase réussie !')
         }
-      } catch (err) {
+      } catch (err: unknown) {
         setStatus('error')
-        setMessage(`Erreur: ${err.message}`)
+        setMessage(`Erreur: ${err instanceof Error ? err.message : 'inconnue'}`)
       }
     }
 

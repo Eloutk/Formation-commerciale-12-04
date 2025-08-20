@@ -104,9 +104,6 @@ const questions: Question[] = [
     correctAnswer: 1,
     explanation:
       "Le gestionnaire de publicités Google collectera des données dès lors que la campagne est en diffusion et pas avant (grande différence avec le pixel/API). Ces balises collecteront les données de la campagne seulement, et non tous les flux du site/LP du client.",
-    correctAnswer: 1,
-    explanation:
-      "Le gestionnaire de publicités Google collectera des données dès lors que la campagne est en diffusion et pas avant (grande différence avec le pixel/API). Ces balises collecteront les données de la campagne seulement, et non tous les flux du site/LP du client.",
   },
 ]
 

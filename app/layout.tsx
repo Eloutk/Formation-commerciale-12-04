@@ -32,11 +32,12 @@ export default function RootLayout({
         {gaId && (
           <>
             {/* Charge gtag.js le plus tôt possible pour qu’il apparaisse aussi dans le code source */}
+            {/* Balise meta de contrôle pour vérifier la présence de l'ID GA dans le <head> */}
+            <meta name="ga-id-check" content={gaId} />
             <Script
               id="ga4-src"
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
               strategy="beforeInteractive"
-              {gaId && <meta name="ga-id-check" content={gaId} />}
             />
             <Script id="ga4-init" strategy="beforeInteractive">
               {`

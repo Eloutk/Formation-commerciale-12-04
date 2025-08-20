@@ -22,7 +22,7 @@ import {
 } from '@/lib/pdv-calculations'
 
 // Configuration des plateformes et leurs objectifs (depuis les coûts unitaires)
-const platforms = UNIT_COSTS as const
+const platforms = UNIT_COSTS
 
 // Couleurs pour les diagrammes
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
