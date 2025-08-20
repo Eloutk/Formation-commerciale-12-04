@@ -1,15 +1,13 @@
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { PlatformCalculation } from '@/app/pdv/page'
 // Fonctions de formatage locales
-const formatCurrency = (value: number): string => `${value.toFixed(2)}€`
+const normalizeSpaces = (s: string): string => s.replace(/\u00A0/g, ' ')
+const formatNumberSpaces = (value: number): string => normalizeSpaces(new Intl.NumberFormat('fr-FR').format(value))
+
+const formatCurrency = (value: number): string => `${formatNumberSpaces(Number(value.toFixed(2)))}€`
 
 const formatKPIs = (value: number): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`
-  }
-  return value.toFixed(0)
+  return formatNumberSpaces(Math.round(value))
 }
 
 // Couleurs pour les diagrammes (mêmes que sur le site)

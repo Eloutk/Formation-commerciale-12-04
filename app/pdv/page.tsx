@@ -52,10 +52,12 @@ export default function PDVPage() {
   const [kpis, setKpis] = useState('')
   const [currentResult, setCurrentResult] = useState<PDVCalculation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lowBudgetWarning, setLowBudgetWarning] = useState<string | null>(null)
 
   const handleCalculate = () => {
     setError(null)
     setCurrentResult(null)
+    setLowBudgetWarning(null)
     
     try {
       const aePercentageNum = parseFloat(aePercentage)
@@ -79,6 +81,9 @@ export default function PDVPage() {
           aePercentageNum,
           parseFloat(kpis)
         )
+        if ((result.price || 0) < 500) {
+          setLowBudgetWarning('Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.')
+        }
       } else {
         result = calculateKPIsForBudget(
           selectedPlatform,
@@ -86,6 +91,9 @@ export default function PDVPage() {
           aePercentageNum,
           parseFloat(budget)
         )
+        if (parseFloat(budget) < 500) {
+          setLowBudgetWarning('Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.')
+        }
       }
 
       setCurrentResult(result)
@@ -101,6 +109,57 @@ export default function PDVPage() {
   const resetObjectiveWhenPlatformChanges = (newPlatform: string) => {
     setSelectedPlatform(newPlatform)
     setSelectedObjective('')
+  }
+
+  // Inline editing handlers
+  const handleInlineObjectiveChange = (id: string, newObjective: string) => {
+    setCalculations((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      try {
+        const aeNum = parseFloat(c.aePercentage)
+        if (c.calculationType === 'price-for-kpis') {
+          const result = calculatePriceForKPIs(c.platform, newObjective, aeNum, Number(c.kpis || '0'))
+          return { ...c, objective: newObjective, price: result.price }
+        } else {
+          const result = calculateKPIsForBudget(c.platform, newObjective, aeNum, Number(c.budget || '0'))
+          return { ...c, objective: newObjective, calculatedKpis: result.calculatedKpis }
+        }
+      } catch {
+        return { ...c, objective: newObjective }
+      }
+    }))
+  }
+
+  const handleInlineResultChange = (id: string, newValue: string) => {
+    // kept for compatibility if needed in future
+  }
+
+  const handleInlineKPIsChange = (id: string, newValue: string) => {
+    setCalculations((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      const aeNum = parseFloat(c.aePercentage)
+      const k = Number(newValue)
+      try {
+        const res = calculatePriceForKPIs(c.platform, c.objective, aeNum, k)
+        return { ...c, kpis: String(k), calculatedKpis: k, price: res.price }
+      } catch {
+        return { ...c, kpis: String(k) }
+      }
+    }))
+  }
+
+  const handleInlinePriceChange = (id: string, newValue: string) => {
+    setCalculations((prev) => prev.map((c) => {
+      if (c.id !== id) return c
+      const aeNum = parseFloat(c.aePercentage)
+      const budget = Number(newValue)
+      try {
+        const res = calculateKPIsForBudget(c.platform, c.objective, aeNum, budget)
+        return { ...c, price: budget, budget: String(budget), calculatedKpis: res.calculatedKpis, kpis: String(Math.ceil(res.calculatedKpis || 0)) }
+      } catch {
+        return { ...c, price: budget }
+      }
+    }))
   }
 
   const addPlatform = () => {
@@ -194,6 +253,34 @@ export default function PDVPage() {
       value: total > 0 ? ((calc.price || 0) / total * 100) : 0,
       color: COLORS[index % COLORS.length]
     }))
+  }
+
+  // Alerte budget minimum (multi-plateformes)
+  const hasLowBudgetInCalculations = () => {
+    // N'affiche l'avertissement que si AU MOINS une ligne a un PRIX (< 500€).
+    return calculations.some((calc) => calc.calculationType === 'price-for-kpis' && Number(calc.price || 0) < 500)
+  }
+
+  // Suggestions stratégiques pour la plateforme/objectifs alternatifs
+  const getStrategicSuggestions = () => {
+    if (!selectedPlatform || !selectedObjective || !aePercentage) return [] as { objective: string; kpis: number }[]
+    const aeNum = parseFloat(aePercentage)
+    // On dérive le budget de référence en fonction du type sélectionné
+    let referenceBudget: number | null = null
+    if (calculationType === 'price-for-kpis' && kpis) {
+      // Prix pour KPIs -> calculer le budget à partir du KPI courant
+      const res = calculatePriceForKPIs(selectedPlatform, selectedObjective, aeNum, Number(kpis))
+      referenceBudget = res.price ?? null
+    } else if (calculationType === 'kpis-for-budget' && budget) {
+      referenceBudget = Number(budget)
+    }
+    if (!referenceBudget) return []
+
+    const objectives = listObjectivesForPlatform(selectedPlatform).filter((obj) => obj !== selectedObjective)
+    return objectives.map((obj) => {
+      const alt = calculateKPIsForBudget(selectedPlatform, obj, aeNum, referenceBudget as number)
+      return { objective: obj, kpis: Math.ceil(alt.calculatedKpis || 0) }
+    })
   }
 
   return (
@@ -384,13 +471,18 @@ export default function PDVPage() {
                     <div className="text-center p-8 bg-muted rounded-lg">
                       <div className="text-3xl font-bold text-primary mb-2">
                         {calculationType === 'price-for-kpis' 
-                          ? `${(currentResult.price || 0).toFixed(2)}€`
-                          : `${(currentResult.calculatedKpis || 0).toLocaleString()}`
+                          ? `${Number.isInteger(currentResult.price || 0) ? (currentResult.price || 0) : Math.ceil(currentResult.price || 0)}€`
+                          : `${Math.ceil(currentResult.calculatedKpis || 0).toLocaleString()}`
                         }
                       </div>
                       <div className="text-lg text-muted-foreground">
                         {calculationType === 'price-for-kpis' ? 'Prix FDV' : 'KPIs calculés'}
                       </div>
+                      {lowBudgetWarning && (
+                        <div className="mt-4 text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-3 py-2">
+                          ⚠️ {lowBudgetWarning}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -608,7 +700,12 @@ export default function PDVPage() {
                     </div>
 
                     {/* Total PDV et bouton PDF */}
-                    <div className="flex justify-center items-center pt-6 border-t mt-6">
+                    <div className="flex flex-col items-center pt-6 border-t mt-6 gap-2">
+                      {hasLowBudgetInCalculations() && (
+                        <div className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-3 py-2">
+                          ⚠️ Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.
+                        </div>
+                      )}
                       <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
                           {getTotalPDV().toFixed(2)}€
@@ -634,6 +731,41 @@ export default function PDVPage() {
                   </CardContent>
                 </Card>
 
+                {/* Suggestions stratégiques */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Autres opportunités sur cette plateforme
+                    </CardTitle>
+                    <CardDescription>
+                      Estimations avec le même budget en changeant uniquement l'objectif
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {getStrategicSuggestions().length === 0 ? (
+                      <div className="text-sm text-muted-foreground">Définissez KPI ou Budget pour voir des suggestions.</div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Objectif</TableHead>
+                            <TableHead>KPI atteignable</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getStrategicSuggestions().map((s) => (
+                            <TableRow key={s.objective}>
+                              <TableCell>{s.objective}</TableCell>
+                              <TableCell className="font-bold">{s.kpis.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Tableau détaillé */}
                 <Card>
                   <CardHeader>
@@ -650,12 +782,12 @@ export default function PDVPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Plateforme</TableHead>
+                          <TableHead>KPI</TableHead>
                           <TableHead>Objectif</TableHead>
                           <TableHead>% AE</TableHead>
                           <TableHead>Jours</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead>Valeur</TableHead>
-                          <TableHead>Résultat</TableHead>
+                          <TableHead>Prix</TableHead>
                           <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -663,23 +795,39 @@ export default function PDVPage() {
                         {calculations.map((calc) => (
                           <TableRow key={calc.id}>
                             <TableCell className="font-medium">{calc.platform}</TableCell>
+                            <TableCell>
+                              <input
+                                className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
+                                type="number"
+                                inputMode="numeric"
+                                key={`${calc.id}-${calc.kpis ?? ''}-${calc.calculatedKpis ?? ''}`}
+                                defaultValue={
+                                  calc.calculationType === 'price-for-kpis'
+                                    ? String(Number(calc.kpis || '0'))
+                                    : String(Math.ceil(Number(calc.calculatedKpis || 0)))
+                                }
+                                onBlur={(e) => handleInlineKPIsChange(calc.id, e.target.value)}
+                              />
+                            </TableCell>
                             <TableCell>{calc.objective}</TableCell>
                             <TableCell>{calc.aePercentage}%</TableCell>
                             <TableCell>{calc.diffusionDays}j</TableCell>
                             <TableCell>
                               {calc.calculationType === 'price-for-kpis' ? 'Prix pour KPIs' : 'KPIs pour budget'}
                             </TableCell>
-                            <TableCell>
-                              {calc.calculationType === 'price-for-kpis' 
-                                ? `${calc.kpis} KPIs` 
-                                : `${calc.budget}€`
-                              }
-                            </TableCell>
                             <TableCell className="font-bold">
-                              {calc.calculationType === 'price-for-kpis' 
-                                ? `${(calc.price || 0).toFixed(2)}€`
-                                : `${(calc.calculatedKpis || 0).toLocaleString()}`
-                              }
+                              <input
+                                className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
+                                type="number"
+                                inputMode="numeric"
+                                key={`${calc.id}-${calc.price ?? ''}-${calc.budget ?? ''}`}
+                                defaultValue={
+                                  calc.calculationType === 'price-for-kpis'
+                                    ? String(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0))
+                                    : String(Math.ceil(Number(calc.budget || '0')))
+                                }
+                                onBlur={(e) => handleInlinePriceChange(calc.id, e.target.value)}
+                              />€
                             </TableCell>
                             <TableCell>
                               <Button
