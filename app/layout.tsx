@@ -39,6 +39,14 @@ export default function RootLayout({
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
                   gtag('js', new Date());
+                  // Consent Mode par défaut: tous cookies acceptés
+                  gtag('consent', 'default', {
+                    ad_storage: 'granted',
+                    analytics_storage: 'granted',
+                    functionality_storage: 'granted',
+                    personalization_storage: 'granted',
+                    security_storage: 'granted'
+                  });
                   gtag('config', '${gaId}', {
                     page_path: window.location.pathname,
                   });
