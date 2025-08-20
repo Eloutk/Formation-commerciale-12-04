@@ -53,6 +53,8 @@ export default function PDVPage() {
   const [currentResult, setCurrentResult] = useState<PDVCalculation | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [lowBudgetWarning, setLowBudgetWarning] = useState<string | null>(null)
+  const [tempKpiById, setTempKpiById] = useState<Record<string, string>>({})
+  const [tempPriceById, setTempPriceById] = useState<Record<string, string>>({})
 
   const handleCalculate = () => {
     setError(null)
@@ -135,13 +137,16 @@ export default function PDVPage() {
   }
 
   const handleInlineKPIsChange = (id: string, newValue: string) => {
+    setTempKpiById((prev) => ({ ...prev, [id]: newValue }))
     setCalculations((prev) => prev.map((c) => {
       if (c.id !== id) return c
       const aeNum = parseFloat(c.aePercentage)
       const k = Number(newValue)
       try {
         const res = calculatePriceForKPIs(c.platform, c.objective, aeNum, k)
-        return { ...c, kpis: String(k), calculatedKpis: k, price: res.price }
+        const nextPrice = res.price || 0
+        setTempPriceById((prev) => ({ ...prev, [id]: String(Math.ceil(nextPrice)) }))
+        return { ...c, kpis: String(k), calculatedKpis: k, price: nextPrice }
       } catch {
         return { ...c, kpis: String(k) }
       }
@@ -149,13 +154,16 @@ export default function PDVPage() {
   }
 
   const handleInlinePriceChange = (id: string, newValue: string) => {
+    setTempPriceById((prev) => ({ ...prev, [id]: newValue }))
     setCalculations((prev) => prev.map((c) => {
       if (c.id !== id) return c
       const aeNum = parseFloat(c.aePercentage)
       const budget = Number(newValue)
       try {
         const res = calculateKPIsForBudget(c.platform, c.objective, aeNum, budget)
-        return { ...c, price: budget, budget: String(budget), calculatedKpis: res.calculatedKpis, kpis: String(Math.ceil(res.calculatedKpis || 0)) }
+        const nextKpi = Math.ceil(res.calculatedKpis || 0)
+        setTempKpiById((prev) => ({ ...prev, [id]: String(nextKpi) }))
+        return { ...c, price: budget, budget: String(budget), calculatedKpis: res.calculatedKpis, kpis: String(nextKpi) }
       } catch {
         return { ...c, price: budget }
       }
@@ -259,6 +267,35 @@ export default function PDVPage() {
   const hasLowBudgetInCalculations = () => {
     // N'affiche l'avertissement que si AU MOINS une ligne a un PRIX (< 500€).
     return calculations.some((calc) => calc.calculationType === 'price-for-kpis' && Number(calc.price || 0) < 500)
+  }
+
+  // Opportunités par ligne (budget de la ligne)
+  const getRowSuggestions = (calc: PlatformCalculation) => {
+    const platform = calc.platform
+    const objective = calc.objective
+    const aeNum = parseFloat(calc.aePercentage)
+    let referenceBudget = 0
+    if (calc.calculationType === 'price-for-kpis') {
+      referenceBudget = Number(calc.price || 0)
+      if (!referenceBudget) {
+        const k = Number(calc.kpis || '0')
+        if (platform && objective && aeNum && k > 0) {
+          const res = calculatePriceForKPIs(platform, objective, aeNum, k)
+          referenceBudget = Number(res.price || 0)
+        }
+      }
+    } else {
+      referenceBudget = Number(calc.budget || 0)
+      if (!referenceBudget) {
+        referenceBudget = Number(calc.price || 0)
+      }
+    }
+    if (!referenceBudget || !platform) return [] as { objective: string; kpis: number }[]
+    const others = listObjectivesForPlatform(platform).filter((o) => o !== objective)
+    return others.map((obj) => {
+      const alt = calculateKPIsForBudget(platform, obj, aeNum, referenceBudget)
+      return { objective: obj, kpis: Math.ceil(alt.calculatedKpis || 0) }
+    })
   }
 
   // Suggestions stratégiques pour la plateforme/objectifs alternatifs
@@ -793,19 +830,22 @@ export default function PDVPage() {
                       </TableHeader>
                       <TableBody>
                         {calculations.map((calc) => (
-                          <TableRow key={calc.id}>
+                          <>
+                          <TableRow key={calc.id} className="bg-orange-50">
                             <TableCell className="font-medium">{calc.platform}</TableCell>
                             <TableCell>
                               <input
                                 className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
                                 type="number"
                                 inputMode="numeric"
-                                key={`${calc.id}-${calc.kpis ?? ''}-${calc.calculatedKpis ?? ''}`}
-                                defaultValue={
-                                  calc.calculationType === 'price-for-kpis'
-                                    ? String(Number(calc.kpis || '0'))
-                                    : String(Math.ceil(Number(calc.calculatedKpis || 0)))
+                                value={
+                                  tempKpiById[calc.id] !== undefined
+                                    ? tempKpiById[calc.id]
+                                    : (calc.calculationType === 'price-for-kpis'
+                                      ? String(Number(calc.kpis || '0'))
+                                      : String(Math.ceil(Number(calc.calculatedKpis || 0))))
                                 }
+                                onChange={(e) => setTempKpiById((prev) => ({ ...prev, [calc.id]: e.target.value }))}
                                 onBlur={(e) => handleInlineKPIsChange(calc.id, e.target.value)}
                               />
                             </TableCell>
@@ -820,12 +860,14 @@ export default function PDVPage() {
                                 className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
                                 type="number"
                                 inputMode="numeric"
-                                key={`${calc.id}-${calc.price ?? ''}-${calc.budget ?? ''}`}
-                                defaultValue={
-                                  calc.calculationType === 'price-for-kpis'
-                                    ? String(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0))
-                                    : String(Math.ceil(Number(calc.budget || '0')))
+                                value={
+                                  tempPriceById[calc.id] !== undefined
+                                    ? tempPriceById[calc.id]
+                                    : (calc.calculationType === 'price-for-kpis'
+                                      ? String(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0))
+                                      : String(Math.ceil(Number(calc.budget || '0'))))
                                 }
+                                onChange={(e) => setTempPriceById((prev) => ({ ...prev, [calc.id]: e.target.value }))}
                                 onBlur={(e) => handleInlinePriceChange(calc.id, e.target.value)}
                               />€
                             </TableCell>
@@ -838,6 +880,28 @@ export default function PDVPage() {
                               </Button>
                             </TableCell>
                           </TableRow>
+                          {getRowSuggestions(calc).length > 0 && (
+                            <>
+                              <TableRow className="bg-muted/40">
+                                <TableCell colSpan={8} className="text-muted-foreground py-2">
+                                  Avec ce budget, tu peux aussi avoir :
+                                </TableCell>
+                              </TableRow>
+                              {getRowSuggestions(calc).map((s) => (
+                                <TableRow key={`${calc.id}-${s.objective}`} className="bg-muted/30">
+                                  <TableCell className="text-muted-foreground">{calc.platform}</TableCell>
+                                  <TableCell className="text-muted-foreground">{s.kpis.toLocaleString()}</TableCell>
+                                  <TableCell className="text-muted-foreground">{s.objective}</TableCell>
+                                  <TableCell className="text-muted-foreground">{calc.aePercentage}%</TableCell>
+                                  <TableCell className="text-muted-foreground">{calc.diffusionDays}j</TableCell>
+                                  <TableCell className="text-muted-foreground">Suggestion</TableCell>
+                                  <TableCell className="text-muted-foreground">{(calc.calculationType === 'price-for-kpis' ? Math.ceil(Number(calc.price || 0)) : Math.ceil(Number(calc.budget || '0'))).toLocaleString()}€</TableCell>
+                                  <TableCell></TableCell>
+                                </TableRow>
+                              ))}
+                            </>
+                          )}
+                          </>
                         ))}
                       </TableBody>
                     </Table>

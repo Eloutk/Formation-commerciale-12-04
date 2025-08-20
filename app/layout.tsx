@@ -12,7 +12,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Formation Commerciale Interactive",
   description: "Plateforme de formation commerciale pour améliorer vos compétences",
-    generator: 'v0.dev'
+    generator: 'v0.dev',
+    icons: {
+      icon: '/images/logo-link.png',
+      shortcut: '/images/logo-link.png',
+      apple: '/images/logo-link.png'
+    }
 }
 
 export default function RootLayout({
