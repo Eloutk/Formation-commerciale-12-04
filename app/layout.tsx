@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import GATracker from "@/components/ga-tracker"
 import Header from "@/components/header"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
@@ -44,6 +45,7 @@ export default function RootLayout({
                 `,
               }}
             />
+            <GATracker />
           </>
         )}
         <ThemeProvider attribute="class" defaultTheme="light">
