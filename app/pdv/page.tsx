@@ -101,7 +101,7 @@ export default function PDVPage() {
   const [selectedPlatform, setSelectedPlatform] = useState('')
   const [selectedSector, setSelectedSector] = useState('')
   const [selectedObjective, setSelectedObjective] = useState('')
-  const [aePercentage, setAePercentage] = useState('')
+  const [aePercentage, setAePercentage] = useState('40')
   const [diffusionDays, setDiffusionDays] = useState('')
   const [calculationType, setCalculationType] = useState('')
   const [budget, setBudget] = useState('')
