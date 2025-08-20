@@ -338,14 +338,19 @@ export const PDFGenerator = ({ calculations, totalPDV, totalKPIs }: PDFGenerator
                           const clicks = i.avgClicks ? i.avgClicks.toLocaleString('fr-FR') : '-'
                           return `Insights: CTR moyen ${ctr} · Clics moyens ${clicks}`
                         }
+                        if (isClicks && !/lien/i.test(calc.objective)) {
+                          const impr = i.avgImpressions ? i.avgImpressions.toLocaleString('fr-FR') : '-'
+                          return `Insights: CTR moyen ${ctr} · Impressions moyennes ${impr}`
+                        }
+                        if (/lien/i.test(calc.objective) && !/lead/i.test(calc.objective)) {
+                          const impr = i.avgImpressions ? i.avgImpressions.toLocaleString('fr-FR') : '-'
+                          return `Insights: CTR moyen ${ctr} · Impressions moyennes ${impr}`
+                        }
                         if (/lead/i.test(calc.objective)) {
                           const impr = i.avgImpressions ? i.avgImpressions.toLocaleString('fr-FR') : '-'
                           const clicks = i.avgClicks ? i.avgClicks.toLocaleString('fr-FR') : '-'
                           const clicksLink = i.avgClicksLink ? i.avgClicksLink.toLocaleString('fr-FR') : '-'
                           return `Insights: Impressions moyennes ${impr} · Clics moyens ${clicks} · Clics lien moyens ${clicksLink} · CTR moyen ${ctr}`
-                        }
-                        if (isClicks) {
-                          return `Insights: CTR moyen ${ctr}`
                         }
                         return `Insights: CTR moyen ${ctr}`
                       })()}

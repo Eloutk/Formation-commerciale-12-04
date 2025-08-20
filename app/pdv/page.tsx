@@ -27,37 +27,38 @@ const platforms = UNIT_COSTS
 
 // Données internes: CTR moyen (%) et nombre moyen de clics par couple plateforme+objectif
 // Les valeurs sont indicatives pour donner du contexte commercial.
-const INSIGHTS: Record<string, Record<string, { ctrPct: number; avgClicks?: number }>> = {
+type InsightRow = { ctrPct: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number }
+const INSIGHTS: Record<string, Record<string, InsightRow>> = {
   META: {
     Impressions: { ctrPct: 0.9, avgClicks: 1200 },
-    'Clics sur lien': { ctrPct: 1.1 },
-    Clics: { ctrPct: 1.2 },
-    Leads: { ctrPct: 1.5, avgClicks: 800 },
+    'Clics sur lien': { ctrPct: 1.1, avgImpressions: 180000 },
+    Clics: { ctrPct: 1.2, avgImpressions: 200000 },
+    Leads: { ctrPct: 1.5, avgClicks: 800, avgImpressions: 220000, avgClicksLink: 600 },
   },
   'Insta only': {
     Impressions: { ctrPct: 0.8, avgClicks: 900 },
-    'Clics sur lien': { ctrPct: 1.0 },
-    Clics: { ctrPct: 1.1 },
-    Leads: { ctrPct: 1.2, avgClicks: 600 },
+    'Clics sur lien': { ctrPct: 1.0, avgImpressions: 150000 },
+    Clics: { ctrPct: 1.1, avgImpressions: 160000 },
+    Leads: { ctrPct: 1.2, avgClicks: 600, avgImpressions: 180000, avgClicksLink: 450 },
   },
   'Facebook only': {
     Impressions: { ctrPct: 0.85, avgClicks: 950 },
-    'Clics sur lien': { ctrPct: 1.05 },
-    Clics: { ctrPct: 1.15 },
-    Leads: { ctrPct: 1.3, avgClicks: 650 },
+    'Clics sur lien': { ctrPct: 1.05, avgImpressions: 155000 },
+    Clics: { ctrPct: 1.15, avgImpressions: 170000 },
+    Leads: { ctrPct: 1.3, avgClicks: 650, avgImpressions: 190000, avgClicksLink: 480 },
   },
   Display: {
     Impressions: { ctrPct: 0.2, avgClicks: 300 },
-    Clics: { ctrPct: 0.25 },
+    Clics: { ctrPct: 0.25, avgImpressions: 100000 },
   },
   YouTube: {
     Impressions: { ctrPct: 0.15, avgClicks: 200 },
-    Clics: { ctrPct: 0.2 },
+    Clics: { ctrPct: 0.2, avgImpressions: 120000 },
   },
   LinkedIn: {
     Impressions: { ctrPct: 0.6, avgClicks: 700 },
-    Clics: { ctrPct: 0.7 },
-    Leads: { ctrPct: 0.9, avgClicks: 400 },
+    Clics: { ctrPct: 0.7, avgImpressions: 140000 },
+    Leads: { ctrPct: 0.9, avgClicks: 400, avgImpressions: 160000, avgClicksLink: 300 },
   },
 }
 
@@ -65,14 +66,14 @@ function isClicksObjective(objective: string): boolean {
   return /clic/i.test(objective)
 }
 
-function getInsights(platform: string, objective: string) {
+function getInsights(platform: string, objective: string): InsightRow {
   const p = INSIGHTS[platform]?.[objective]
   if (p) return p
   // Fallbacks par type d'objectif si non défini précisément
-  if (isClicksObjective(objective)) return { ctrPct: 1.0 }
+  if (isClicksObjective(objective)) return { ctrPct: 1.0, avgImpressions: 120000 }
   if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500 }
-  if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400 }
-  return { ctrPct: 0.5 }
+  if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400, avgImpressions: 150000, avgClicksLink: 300 }
+  return { ctrPct: 0.5, avgImpressions: 100000 }
 }
 
 function formatPercentFR(value: number): string {
@@ -596,39 +597,50 @@ export default function PDVPage() {
                       {(() => {
                         const i = getInsights(selectedPlatform, selectedObjective)
                         const ctrText = formatPercentFR(i.ctrPct)
-                        const showClicks = !isClicksObjective(selectedObjective)
-                        let clicksValue: number | undefined
-                        if (showClicks) {
-                          const budgetForClicks = calculationType === 'price-for-kpis'
-                            ? (currentResult.price || 0)
-                            : parseFloat(budget || '0')
-                          if (budgetForClicks > 0) {
-                            try {
-                              const objectives = Object.keys(platforms[selectedPlatform as keyof typeof platforms] || {})
-                              const clickObjective = objectives.find((o) => /clic/i.test(o)) || 'Clics'
-                              const res = calculateKPIsForBudget(
-                                selectedPlatform,
-                                clickObjective,
-                                parseFloat(aePercentage),
-                                budgetForClicks
-                              )
-                              clicksValue = res.calculatedKpis ? Math.ceil(res.calculatedKpis) : undefined
-                            } catch {}
-                          }
-                          if (!clicksValue && i.avgClicks !== undefined) {
-                            clicksValue = Math.ceil(i.avgClicks)
-                          }
-                        }
+                        const isClicks = /clic/i.test(selectedObjective)
 
                         return (
                           <div className="text-sm text-muted-foreground space-y-2">
-                            <div>
-                              CTR moyen: <span className="font-medium text-foreground">{ctrText}</span>
-                            </div>
-                            {showClicks && clicksValue !== undefined && (
-                              <div>
-                                Nombre de clics moyen: <span className="font-medium text-foreground">{clicksValue.toLocaleString('fr-FR')}</span>
-                              </div>
+                            {/impr/i.test(selectedObjective) && (
+                              <>
+                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
+                                {i.avgClicks !== undefined && (
+                                  <div>Clics moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
+                                )}
+                              </>
+                            )}
+
+                            {isClicks && (
+                              <>
+                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
+                                {i.avgImpressions !== undefined && (
+                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
+                                )}
+                              </>
+                            )}
+
+                            {/lien/i.test(selectedObjective) && !/lead/i.test(selectedObjective) && (
+                              <>
+                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
+                                {i.avgImpressions !== undefined && (
+                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
+                                )}
+                              </>
+                            )}
+
+                            {/lead/i.test(selectedObjective) && (
+                              <>
+                                {i.avgImpressions !== undefined && (
+                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
+                                )}
+                                {i.avgClicks !== undefined && (
+                                  <div>Clics moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
+                                )}
+                                {i.avgClicksLink !== undefined && (
+                                  <div>Clics sur lien moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicksLink).toLocaleString('fr-FR')}</span></div>
+                                )}
+                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
+                              </>
                             )}
                           </div>
                         )
