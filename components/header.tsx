@@ -96,9 +96,9 @@ export default function Header() {
           <Image
             src="/Logo Link Vertical (Orange).png"
             alt="Logo Link Academy"
-            width={40}
-            height={40}
-            className="object-contain"
+            width={28}
+            height={28}
+            className="object-contain h-8 w-auto"
           />
           Link academy
         </Link>
