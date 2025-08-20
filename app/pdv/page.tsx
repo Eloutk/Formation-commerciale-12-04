@@ -589,7 +589,7 @@ export default function PDVPage() {
                 )}
                 
                 {currentResult && (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                     <div className="text-center p-8 bg-muted rounded-lg">
                       <div className="text-3xl font-bold text-primary mb-2">
                         {calculationType === 'price-for-kpis' 
@@ -605,6 +605,51 @@ export default function PDVPage() {
                           ⚠️ {lowBudgetWarning}
                         </div>
                       )}
+                    </div>
+
+                    {/* Insights affichés après calcul */}
+                    <div className="p-6 rounded-lg border bg-muted/30">
+                      <div className="font-semibold mb-3">Insights</div>
+                      {(() => {
+                        const i = getInsights(selectedPlatform, selectedObjective)
+                        const ctrText = formatPercentFR(i.ctrPct)
+                        const showClicks = !isClicksObjective(selectedObjective)
+                        let clicksValue: number | undefined
+                        if (showClicks) {
+                          const budgetForClicks = calculationType === 'price-for-kpis'
+                            ? (currentResult.price || 0)
+                            : parseFloat(budget || '0')
+                          if (budgetForClicks > 0) {
+                            try {
+                              const objectives = Object.keys(platforms[selectedPlatform as keyof typeof platforms] || {})
+                              const clickObjective = objectives.find((o) => /clic/i.test(o)) || 'Clics'
+                              const res = calculateKPIsForBudget(
+                                selectedPlatform,
+                                clickObjective,
+                                parseFloat(aePercentage),
+                                budgetForClicks
+                              )
+                              clicksValue = res.calculatedKpis ? Math.ceil(res.calculatedKpis) : undefined
+                            } catch {}
+                          }
+                          if (!clicksValue && i.avgClicks !== undefined) {
+                            clicksValue = Math.ceil(i.avgClicks)
+                          }
+                        }
+
+                        return (
+                          <div className="text-sm text-muted-foreground space-y-2">
+                            <div>
+                              CTR moyen: <span className="font-medium text-foreground">{ctrText}</span>
+                            </div>
+                            {showClicks && clicksValue !== undefined && (
+                              <div>
+                                Nombre de clics moyen: <span className="font-medium text-foreground">{clicksValue.toLocaleString('fr-FR')}</span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
