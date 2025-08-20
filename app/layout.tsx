@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import GATracker from "@/components/ga-tracker"
 import Script from "next/script"
 import Header from "@/components/header"
 import { Toaster } from "@/components/ui/toaster"
@@ -14,35 +13,37 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Formation Commerciale Interactive",
   description: "Plateforme de formation commerciale pour améliorer vos compétences",
-    generator: 'v0.dev',
-    icons: {
-      icon: '/images/logo-link.png',
-      shortcut: '/images/logo-link.png',
-      apple: '/images/logo-link.png'
-    }
+  generator: "v0.dev",
+  icons: {
+    icon: "/images/logo-link.png",
+    shortcut: "/images/logo-link.png",
+    apple: "/images/logo-link.png",
+  },
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID
+}: Readonly<{ children: React.ReactNode }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID // ex: G-XXXXXXX
+
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
         {gaId && (
           <>
+            {/* Charge gtag.js le plus tôt possible pour qu’il apparaisse aussi dans le code source */}
             <Script
-              id="ga-src"
+              id="ga4-src"
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-              strategy="afterInteractive"
+              strategy="beforeInteractive"
             />
-            <Script id="ga-init" strategy="afterInteractive">
+            <Script id="ga4-init" strategy="beforeInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
+
+                // Consent par défaut (adapte si besoin)
                 gtag('consent', 'default', {
                   ad_storage: 'granted',
                   analytics_storage: 'granted',
@@ -50,8 +51,10 @@ export default function RootLayout({
                   personalization_storage: 'granted',
                   security_storage: 'granted'
                 });
+
+                // Config de base
                 gtag('config', '${gaId}', {
-                  page_path: window.location.pathname,
+                  anonymize_ip: true
                 });
               `}
             </Script>
@@ -59,7 +62,8 @@ export default function RootLayout({
         )}
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        {gaId && <GATracker />}
+
+
         <ThemeProvider attribute="class" defaultTheme="light">
           <AuthProvider>
             <div className="min-h-screen flex flex-col">
@@ -79,7 +83,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'

@@ -66,7 +66,7 @@ export default function Home() {
                 href={module.href}
                 progress={module.progress}
                 quizScore={module.quizScore}
-                icon={module.icon as "BookOpen" | "Layout" | "GitBranch" | "Target" | "FolderTree" | "Users" | "LineChart" | "BadgeCheck" | "Settings"}
+                icon={module.icon as any}
               />
             );
           })}
