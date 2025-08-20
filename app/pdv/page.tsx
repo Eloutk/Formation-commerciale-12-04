@@ -45,6 +45,7 @@ export default function PDVPage() {
   const [isMultiPlatform, setIsMultiPlatform] = useState(false)
   const [calculations, setCalculations] = useState<PlatformCalculation[]>([])
   const [selectedPlatform, setSelectedPlatform] = useState('')
+  const [selectedSector, setSelectedSector] = useState('')
   const [selectedObjective, setSelectedObjective] = useState('')
   const [aePercentage, setAePercentage] = useState('')
   const [diffusionDays, setDiffusionDays] = useState('')
@@ -389,6 +390,20 @@ export default function PDVPage() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Secteur</Label>
+                    <Select value={selectedSector} onValueChange={setSelectedSector}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez un secteur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['Automobile','Industrie','Tourisme','Institution'].map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {selectedPlatform && (
                     <div className="space-y-2">
                       <Label>Objectif</Label>
@@ -572,6 +587,20 @@ export default function PDVPage() {
                           <SelectItem key={platform} value={platform}>
                             {platform}
                           </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Secteur</Label>
+                    <Select value={selectedSector} onValueChange={setSelectedSector}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez un secteur" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['Automobile','Industrie','Tourisme','Institution'].map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
