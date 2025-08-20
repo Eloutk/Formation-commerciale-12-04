@@ -25,6 +25,60 @@ import {
 // Configuration des plateformes et leurs objectifs (depuis les coûts unitaires)
 const platforms = UNIT_COSTS
 
+// Données internes: CTR moyen (%) et nombre moyen de clics par couple plateforme+objectif
+// Les valeurs sont indicatives pour donner du contexte commercial.
+const INSIGHTS: Record<string, Record<string, { ctrPct: number; avgClicks?: number }>> = {
+  META: {
+    Impressions: { ctrPct: 0.9, avgClicks: 1200 },
+    'Clics sur lien': { ctrPct: 1.1 },
+    Clics: { ctrPct: 1.2 },
+    Leads: { ctrPct: 1.5, avgClicks: 800 },
+  },
+  'Insta only': {
+    Impressions: { ctrPct: 0.8, avgClicks: 900 },
+    'Clics sur lien': { ctrPct: 1.0 },
+    Clics: { ctrPct: 1.1 },
+    Leads: { ctrPct: 1.2, avgClicks: 600 },
+  },
+  'Facebook only': {
+    Impressions: { ctrPct: 0.85, avgClicks: 950 },
+    'Clics sur lien': { ctrPct: 1.05 },
+    Clics: { ctrPct: 1.15 },
+    Leads: { ctrPct: 1.3, avgClicks: 650 },
+  },
+  Display: {
+    Impressions: { ctrPct: 0.2, avgClicks: 300 },
+    Clics: { ctrPct: 0.25 },
+  },
+  YouTube: {
+    Impressions: { ctrPct: 0.15, avgClicks: 200 },
+    Clics: { ctrPct: 0.2 },
+  },
+  LinkedIn: {
+    Impressions: { ctrPct: 0.6, avgClicks: 700 },
+    Clics: { ctrPct: 0.7 },
+    Leads: { ctrPct: 0.9, avgClicks: 400 },
+  },
+}
+
+function isClicksObjective(objective: string): boolean {
+  return /clic/i.test(objective)
+}
+
+function getInsights(platform: string, objective: string) {
+  const p = INSIGHTS[platform]?.[objective]
+  if (p) return p
+  // Fallbacks par type d'objectif si non défini précisément
+  if (isClicksObjective(objective)) return { ctrPct: 1.0 }
+  if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500 }
+  if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400 }
+  return { ctrPct: 0.5 }
+}
+
+function formatPercentFR(value: number): string {
+  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
+}
+
 // Couleurs pour les diagrammes
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
 
@@ -373,7 +427,7 @@ export default function PDVPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Plateforme</Label>
                     <Select value={selectedPlatform} onValueChange={resetObjectiveWhenPlatformChanges}>
@@ -403,24 +457,21 @@ export default function PDVPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {selectedPlatform && (
-                    <div className="space-y-2">
-                      <Label>Objectif</Label>
-                      <Select value={selectedObjective} onValueChange={setSelectedObjective}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez un objectif" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAvailableObjectives().map((objective) => (
-                            <SelectItem key={objective} value={objective}>
-                              {objective}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label>Objectif</Label>
+                    <Select value={selectedObjective} onValueChange={setSelectedObjective} disabled={!selectedPlatform}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedPlatform ? "Sélectionnez un objectif" : "Sélectionnez d'abord une plateforme"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableObjectives().map((objective) => (
+                          <SelectItem key={objective} value={objective}>
+                            {objective}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -444,6 +495,24 @@ export default function PDVPage() {
                     />
                   </div>
                 </div>
+
+                {/* Insights */}
+                {selectedPlatform && selectedObjective && (
+                  <div className="mt-2 rounded-md border bg-muted/40 p-3">
+                    <div className="font-medium mb-1">Insights</div>
+                    {(() => {
+                      const i = getInsights(selectedPlatform, selectedObjective)
+                      return (
+                        <div className="text-sm text-muted-foreground flex flex-col gap-1">
+                          <div>CTR moyen: <span className="font-medium text-foreground">{formatPercentFR(i.ctrPct)}</span></div>
+                          {!isClicksObjective(selectedObjective) && i.avgClicks !== undefined && (
+                            <div>Nombre de clics moyen: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -606,23 +675,21 @@ export default function PDVPage() {
                     </Select>
                   </div>
 
-                  {selectedPlatform && (
-                    <div className="space-y-2">
-                      <Label>Objectif</Label>
-                      <Select value={selectedObjective} onValueChange={setSelectedObjective}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionnez un objectif" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getAvailableObjectives().map((objective) => (
-                            <SelectItem key={objective} value={objective}>
-                              {objective}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label>Objectif</Label>
+                    <Select value={selectedObjective} onValueChange={setSelectedObjective} disabled={!selectedPlatform}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedPlatform ? "Sélectionnez un objectif" : "Sélectionnez d'abord une plateforme"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableObjectives().map((objective) => (
+                          <SelectItem key={objective} value={objective}>
+                            {objective}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <div className="space-y-2">
                     <Label>% AE</Label>
@@ -634,6 +701,24 @@ export default function PDVPage() {
                     />
                   </div>
                 </div>
+
+                {/* Insights */}
+                {selectedPlatform && selectedObjective && (
+                  <div className="mt-2 rounded-md border bg-muted/40 p-3">
+                    <div className="font-medium mb-1">Insights</div>
+                    {(() => {
+                      const i = getInsights(selectedPlatform, selectedObjective)
+                      return (
+                        <div className="text-sm text-muted-foreground flex flex-col gap-1">
+                          <div>CTR moyen: <span className="font-medium text-foreground">{formatPercentFR(i.ctrPct)}</span></div>
+                          {!isClicksObjective(selectedObjective) && i.avgClicks !== undefined && (
+                            <div>Nombre de clics moyen: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
