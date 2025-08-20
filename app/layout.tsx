@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import GATracker from "@/components/ga-tracker"
+import Script from "next/script"
 import Header from "@/components/header"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
@@ -29,33 +30,36 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_ID
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+      <head>
         {gaId && (
           <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  // Consent Mode par défaut: tous cookies acceptés
-                  gtag('consent', 'default', {
-                    ad_storage: 'granted',
-                    analytics_storage: 'granted',
-                    functionality_storage: 'granted',
-                    personalization_storage: 'granted',
-                    security_storage: 'granted'
-                  });
-                  gtag('config', '${gaId}', {
-                    page_path: window.location.pathname,
-                  });
-                `,
-              }}
+            <Script
+              id="ga-src"
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
             />
-            <GATracker />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('consent', 'default', {
+                  ad_storage: 'granted',
+                  analytics_storage: 'granted',
+                  functionality_storage: 'granted',
+                  personalization_storage: 'granted',
+                  security_storage: 'granted'
+                });
+                gtag('config', '${gaId}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
           </>
         )}
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
+        {gaId && <GATracker />}
         <ThemeProvider attribute="class" defaultTheme="light">
           <AuthProvider>
             <div className="min-h-screen flex flex-col">
