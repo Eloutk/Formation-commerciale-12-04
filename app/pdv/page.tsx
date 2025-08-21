@@ -72,6 +72,7 @@ export default function PDVPage() {
   const [simBudget, setSimBudget] = useState<string>("")
   const [simAE, setSimAE] = useState<string>("40")
   const [simSelectedPlatforms, setSimSelectedPlatforms] = useState<string[]>([])
+  const [simAllocations, setSimAllocations] = useState<Record<string, string>>({})
   const [simObjective, setSimObjective] = useState<string>("")
   const [simResults, setSimResults] = useState<Array<{platform: string; objective: string; kpis: number; ctrPct?: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number; budgetUsed: number; warnLow?: boolean}>>([])
 
@@ -645,22 +646,38 @@ export default function PDVPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Plateformes</Label>
-                    <div className="grid grid-cols-2 gap-2 border rounded-md p-3">
-                      {Object.keys(platforms).map((p) => (
-                        <label key={p} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={simSelectedPlatforms.includes(p)}
-                            onChange={(e) => {
-                              setSimSelectedPlatforms((prev) =>
-                                e.target.checked ? [...prev, p] : prev.filter((x) => x !== p)
-                              )
-                            }}
-                          />
-                          {p}
-                        </label>
-                      ))}
+                    <Label>Plateformes (répartition %)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border rounded-md p-3">
+                      {Object.keys(platforms).map((p) => {
+                        const checked = simSelectedPlatforms.includes(p)
+                        return (
+                          <div key={p} className="flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  setSimSelectedPlatforms((prev) =>
+                                    e.target.checked ? [...prev, p] : prev.filter((x) => x !== p)
+                                  )
+                                }}
+                              />
+                              {p}
+                            </label>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                placeholder="%"
+                                className="w-20 h-8"
+                                value={simAllocations[p] || ""}
+                                onChange={(e) => setSimAllocations((prev) => ({ ...prev, [p]: e.target.value }))}
+                                disabled={!checked}
+                              />
+                              <span className="text-sm text-muted-foreground">%</span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -676,14 +693,25 @@ export default function PDVPage() {
                           setError('Veuillez saisir un budget, un % AE et sélectionner au moins une plateforme.')
                           return
                         }
+                        // Budget net après AE
+                        const budgetNet = budgetNum / (1 + aeNum / 100)
+                        // Calcul des parts
+                        const provided = simSelectedPlatforms.map((p) => Number(simAllocations[p] || '0'))
+                        const sumProvided = provided.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0)
+                        const equalShare = simSelectedPlatforms.length > 0 ? 100 / simSelectedPlatforms.length : 0
+
                         const next: Array<{platform: string; objective: string; kpis: number; ctrPct?: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number; budgetUsed: number; warnLow?: boolean}> = []
                         for (const platform of simSelectedPlatforms) {
                           const objective = simObjective
-                          const res = calculateKPIsForBudget(platform, objective, aeNum, budgetNum)
-                          const kpis = Math.ceil(res.calculatedKpis || 0)
+                          const pct = sumProvided > 0 ? (Number(simAllocations[platform] || '0') / sumProvided) : (equalShare / 100)
+                          const allocatedNet = budgetNet * pct
+                          // Conversion KPIs directe à partir du budget net et des coûts unitaires
+                          const unit = (platforms as any)[platform]?.[objective]
+                          if (!unit) continue
+                          const kpis = Math.ceil(unit.perThousand ? (allocatedNet / unit.cost) * 1000 : allocatedNet / unit.cost)
                           const ins = getSimInsights(platform, objective)
-                          const warnLow = budgetNum < 500
-                          next.push({ platform, objective, kpis, ctrPct: ins.ctrPct, avgClicks: ins.avgClicks, avgImpressions: ins.avgImpressions, avgClicksLink: ins.avgClicksLink, budgetUsed: budgetNum, warnLow })
+                          const warnLow = allocatedNet < 500
+                          next.push({ platform, objective, kpis, ctrPct: ins.ctrPct, avgClicks: ins.avgClicks, avgImpressions: ins.avgImpressions, avgClicksLink: ins.avgClicksLink, budgetUsed: allocatedNet, warnLow })
                         }
                         setSimResults(next)
                       } catch (e) {
