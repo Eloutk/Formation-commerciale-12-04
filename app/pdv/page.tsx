@@ -27,54 +27,7 @@ const platforms = UNIT_COSTS
 
 // Données internes: CTR moyen (%) et nombre moyen de clics par couple plateforme+objectif
 // Les valeurs sont indicatives pour donner du contexte commercial.
-type InsightRow = { ctrPct: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number }
-const INSIGHTS: Record<string, Record<string, InsightRow>> = {
-  META: {
-    Impressions: { ctrPct: 0.9, avgClicks: 1200 },
-    'Clics sur lien': { ctrPct: 1.1, avgImpressions: 180000 },
-    Clics: { ctrPct: 1.2, avgImpressions: 200000 },
-    Leads: { ctrPct: 1.5, avgClicks: 800, avgImpressions: 220000, avgClicksLink: 600 },
-  },
-  'Insta only': {
-    Impressions: { ctrPct: 0.8, avgClicks: 900 },
-    'Clics sur lien': { ctrPct: 1.0, avgImpressions: 150000 },
-    Clics: { ctrPct: 1.1, avgImpressions: 160000 },
-    Leads: { ctrPct: 1.2, avgClicks: 600, avgImpressions: 180000, avgClicksLink: 450 },
-  },
-  'Facebook only': {
-    Impressions: { ctrPct: 0.85, avgClicks: 950 },
-    'Clics sur lien': { ctrPct: 1.05, avgImpressions: 155000 },
-    Clics: { ctrPct: 1.15, avgImpressions: 170000 },
-    Leads: { ctrPct: 1.3, avgClicks: 650, avgImpressions: 190000, avgClicksLink: 480 },
-  },
-  Display: {
-    Impressions: { ctrPct: 0.2, avgClicks: 300 },
-    Clics: { ctrPct: 0.25, avgImpressions: 100000 },
-  },
-  YouTube: {
-    Impressions: { ctrPct: 0.15, avgClicks: 200 },
-    Clics: { ctrPct: 0.2, avgImpressions: 120000 },
-  },
-  LinkedIn: {
-    Impressions: { ctrPct: 0.6, avgClicks: 700 },
-    Clics: { ctrPct: 0.7, avgImpressions: 140000 },
-    Leads: { ctrPct: 0.9, avgClicks: 400, avgImpressions: 160000, avgClicksLink: 300 },
-  },
-}
-
-function isClicksObjective(objective: string): boolean {
-  return /clic/i.test(objective)
-}
-
-function getInsights(platform: string, objective: string): InsightRow {
-  const p = INSIGHTS[platform]?.[objective]
-  if (p) return p
-  // Fallbacks par type d'objectif si non défini précisément
-  if (isClicksObjective(objective)) return { ctrPct: 1.0, avgImpressions: 120000 }
-  if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500 }
-  if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400, avgImpressions: 150000, avgClicksLink: 300 }
-  return { ctrPct: 0.5, avgImpressions: 100000 }
-}
+// Insights supprimés
 
 function formatPercentFR(value: number): string {
   return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
@@ -98,6 +51,7 @@ export interface PlatformCalculation {
 
 export default function PDVPage() {
   const [isMultiPlatform, setIsMultiPlatform] = useState(false)
+  const [isBudgetSimulation, setIsBudgetSimulation] = useState(false)
   const [calculations, setCalculations] = useState<PlatformCalculation[]>([])
   const [selectedPlatform, setSelectedPlatform] = useState('')
   const [selectedSector, setSelectedSector] = useState('')
@@ -112,6 +66,12 @@ export default function PDVPage() {
   const [lowBudgetWarning, setLowBudgetWarning] = useState<string | null>(null)
   const [tempKpiById, setTempKpiById] = useState<Record<string, string>>({})
   const [tempPriceById, setTempPriceById] = useState<Record<string, string>>({})
+
+  // Simulation Budget states
+  const [simBudget, setSimBudget] = useState<string>("")
+  const [simAE, setSimAE] = useState<string>("40")
+  const [simSelectedPlatforms, setSimSelectedPlatforms] = useState<string[]>([])
+  const [simResults, setSimResults] = useState<Array<{platform: string; objective: string; kpis: number}>>([])
 
   const handleCalculate = () => {
     setError(null)
@@ -398,22 +358,28 @@ export default function PDVPage() {
           <CardContent>
             <div className="flex gap-4">
               <Button
-                onClick={() => setIsMultiPlatform(false)}
-                className={!isMultiPlatform ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
+                onClick={() => { setIsMultiPlatform(false); setIsBudgetSimulation(false) }}
+                className={!isMultiPlatform && !isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
               >
                 Calcul simple
               </Button>
               <Button
-                onClick={() => setIsMultiPlatform(true)}
-                className={isMultiPlatform ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
+                onClick={() => { setIsMultiPlatform(true); setIsBudgetSimulation(false) }}
+                className={isMultiPlatform && !isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
               >
                 Calcul multi-plateformes
+              </Button>
+              <Button
+                onClick={() => { setIsBudgetSimulation(true); setIsMultiPlatform(false) }}
+                className={isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
+              >
+                Simulation Budget
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {!isMultiPlatform ? (
+        {!isMultiPlatform && !isBudgetSimulation ? (
           // Mode calcul simple
           <div className="grid gap-6">
             {/* Paramètres de base */}
@@ -591,61 +557,7 @@ export default function PDVPage() {
                       )}
                     </div>
 
-                    {/* Insights affichés après calcul */}
-                    <div className="p-6 rounded-lg border bg-muted/30">
-                      <div className="font-semibold mb-3">Insights</div>
-                      {(() => {
-                        const i = getInsights(selectedPlatform, selectedObjective)
-                        const ctrText = formatPercentFR(i.ctrPct)
-                        const isClicks = /clic/i.test(selectedObjective)
-
-                        return (
-                          <div className="text-sm text-muted-foreground space-y-2">
-                            {/impr/i.test(selectedObjective) && (
-                              <>
-                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
-                                {i.avgClicks !== undefined && (
-                                  <div>Clics moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
-                                )}
-                              </>
-                            )}
-
-                            {isClicks && (
-                              <>
-                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
-                                {i.avgImpressions !== undefined && (
-                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
-                                )}
-                              </>
-                            )}
-
-                            {/lien/i.test(selectedObjective) && !/lead/i.test(selectedObjective) && (
-                              <>
-                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
-                                {i.avgImpressions !== undefined && (
-                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
-                                )}
-                              </>
-                            )}
-
-                            {/lead/i.test(selectedObjective) && (
-                              <>
-                                {i.avgImpressions !== undefined && (
-                                  <div>Impressions moyennes: <span className="font-medium text-foreground">{Math.ceil(i.avgImpressions).toLocaleString('fr-FR')}</span></div>
-                                )}
-                                {i.avgClicks !== undefined && (
-                                  <div>Clics moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicks).toLocaleString('fr-FR')}</span></div>
-                                )}
-                                {i.avgClicksLink !== undefined && (
-                                  <div>Clics sur lien moyens: <span className="font-medium text-foreground">{Math.ceil(i.avgClicksLink).toLocaleString('fr-FR')}</span></div>
-                                )}
-                                <div>CTR moyen: <span className="font-medium text-foreground">{ctrText}</span></div>
-                              </>
-                            )}
-                          </div>
-                        )
-                      })()}
-                    </div>
+                    {/* Insights supprimés */}
                   </div>
                 )}
                 
@@ -660,6 +572,106 @@ export default function PDVPage() {
                     Calculer
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : isBudgetSimulation ? (
+          // Mode Simulation Budget
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Simulation Budget
+                </CardTitle>
+                <CardDescription>
+                  Entrez un budget total et un % AE, puis sélectionnez les plateformes à simuler.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Budget total (€)</Label>
+                    <Input type="number" placeholder="Ex: 5000" value={simBudget} onChange={(e) => setSimBudget(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>% AE</Label>
+                    <Input type="number" placeholder="Ex: 40" value={simAE} onChange={(e) => setSimAE(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Plateformes</Label>
+                    <div className="grid grid-cols-2 gap-2 border rounded-md p-3">
+                      {Object.keys(platforms).map((p) => (
+                        <label key={p} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={simSelectedPlatforms.includes(p)}
+                            onChange={(e) => {
+                              setSimSelectedPlatforms((prev) =>
+                                e.target.checked ? [...prev, p] : prev.filter((x) => x !== p)
+                              )
+                            }}
+                          />
+                          {p}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <Button
+                    onClick={() => {
+                      setError(null)
+                      try {
+                        const budgetNum = parseFloat(simBudget)
+                        const aeNum = parseFloat(simAE)
+                        if (!budgetNum || !aeNum || simSelectedPlatforms.length === 0) {
+                          setError('Veuillez saisir un budget, un % AE et sélectionner au moins une plateforme.')
+                          return
+                        }
+                        const next: Array<{platform: string; objective: string; kpis: number}> = []
+                        for (const platform of simSelectedPlatforms) {
+                          const objectives = Object.keys(platforms[platform as keyof typeof platforms] || {})
+                          for (const objective of objectives) {
+                            const res = calculateKPIsForBudget(platform, objective, aeNum, budgetNum)
+                            const kpis = Math.ceil(res.calculatedKpis || 0)
+                            next.push({ platform, objective, kpis })
+                          }
+                        }
+                        setSimResults(next)
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : 'Erreur lors de la simulation')
+                      }
+                    }}
+                  >
+                    Simuler
+                  </Button>
+                </div>
+
+                {/* Résultats Simulation */}
+                {simResults.length > 0 && (
+                  <div className="mt-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Plateforme</TableHead>
+                          <TableHead>Objectif</TableHead>
+                          <TableHead>KPIs possibles</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {simResults.map((r, idx) => (
+                          <TableRow key={`${r.platform}-${r.objective}-${idx}`}>
+                            <TableCell>{r.platform}</TableCell>
+                            <TableCell>{r.objective}</TableCell>
+                            <TableCell className="font-bold">{r.kpis.toLocaleString('fr-FR')}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
