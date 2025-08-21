@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { PDFGenerator } from '@/components/pdf-generator'
+import { PDFSimulation } from '@/components/pdf-simulation'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   calculatePriceForKPIs,
@@ -71,7 +72,38 @@ export default function PDVPage() {
   const [simBudget, setSimBudget] = useState<string>("")
   const [simAE, setSimAE] = useState<string>("40")
   const [simSelectedPlatforms, setSimSelectedPlatforms] = useState<string[]>([])
-  const [simResults, setSimResults] = useState<Array<{platform: string; objective: string; kpis: number}>>([])
+  const [simObjective, setSimObjective] = useState<string>("")
+  const [simResults, setSimResults] = useState<Array<{platform: string; objective: string; kpis: number; ctrPct?: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number; budgetUsed: number; warnLow?: boolean}>>([])
+
+  // Insights pour Simulation Budget (moyennes indicatives)
+  type SimInsight = { ctrPct: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number }
+  const SIM_INSIGHTS: Record<string, Record<string, SimInsight>> = {
+    META: {
+      Impressions: { ctrPct: 0.9, avgClicks: 6600, avgImpressions: 120000 },
+      Clics: { ctrPct: 1.2, avgImpressions: 200000 },
+      'Clics sur lien': { ctrPct: 1.1, avgImpressions: 180000 },
+      Leads: { ctrPct: 5.5, avgClicks: 6600, avgImpressions: 120000, avgClicksLink: 5200 },
+    },
+    LinkedIn: {
+      Impressions: { ctrPct: 0.55, avgClicks: 1200, avgImpressions: 18000 },
+      Clics: { ctrPct: 0.6, avgImpressions: 18000 },
+      'Clics sur lien': { ctrPct: 0.6, avgImpressions: 18000 },
+      Leads: { ctrPct: 5.5, avgClicks: 1000, avgImpressions: 18000, avgClicksLink: 800 },
+    },
+    Display: {
+      Impressions: { ctrPct: 0.2, avgClicks: 300, avgImpressions: 100000 },
+      Clics: { ctrPct: 0.25, avgImpressions: 100000 },
+    },
+  }
+  const getSimInsights = (platform: string, objective: string): SimInsight => {
+    const p = SIM_INSIGHTS[platform]?.[objective]
+    if (p) return p
+    if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400, avgImpressions: 150000, avgClicksLink: 300 }
+    if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500, avgImpressions: 120000 }
+    if (/lien/i.test(objective)) return { ctrPct: 1.0, avgImpressions: 150000 }
+    return { ctrPct: 1.0, avgImpressions: 120000 }
+  }
+  const formatPct = (n?: number) => (n === undefined ? '-' : `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`)
 
   const handleCalculate = () => {
     setError(null)
@@ -589,7 +621,7 @@ export default function PDVPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Budget total (€)</Label>
                     <Input type="number" placeholder="Ex: 5000" value={simBudget} onChange={(e) => setSimBudget(e.target.value)} />
@@ -597,6 +629,20 @@ export default function PDVPage() {
                   <div className="space-y-2">
                     <Label>% AE</Label>
                     <Input type="number" placeholder="Ex: 40" value={simAE} onChange={(e) => setSimAE(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Objectif</Label>
+                    <Select value={simObjective} onValueChange={setSimObjective}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez un objectif" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Impressions">Impressions</SelectItem>
+                        <SelectItem value="Clics">Clics</SelectItem>
+                        <SelectItem value="Clics sur lien">Clics sur lien</SelectItem>
+                        <SelectItem value="Leads">Leads</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Plateformes</Label>
@@ -626,18 +672,18 @@ export default function PDVPage() {
                       try {
                         const budgetNum = parseFloat(simBudget)
                         const aeNum = parseFloat(simAE)
-                        if (!budgetNum || !aeNum || simSelectedPlatforms.length === 0) {
+                        if (!budgetNum || !aeNum || simSelectedPlatforms.length === 0 || !simObjective) {
                           setError('Veuillez saisir un budget, un % AE et sélectionner au moins une plateforme.')
                           return
                         }
-                        const next: Array<{platform: string; objective: string; kpis: number}> = []
+                        const next: Array<{platform: string; objective: string; kpis: number; ctrPct?: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number; budgetUsed: number; warnLow?: boolean}> = []
                         for (const platform of simSelectedPlatforms) {
-                          const objectives = Object.keys(platforms[platform as keyof typeof platforms] || {})
-                          for (const objective of objectives) {
-                            const res = calculateKPIsForBudget(platform, objective, aeNum, budgetNum)
-                            const kpis = Math.ceil(res.calculatedKpis || 0)
-                            next.push({ platform, objective, kpis })
-                          }
+                          const objective = simObjective
+                          const res = calculateKPIsForBudget(platform, objective, aeNum, budgetNum)
+                          const kpis = Math.ceil(res.calculatedKpis || 0)
+                          const ins = getSimInsights(platform, objective)
+                          const warnLow = budgetNum < 500
+                          next.push({ platform, objective, kpis, ctrPct: ins.ctrPct, avgClicks: ins.avgClicks, avgImpressions: ins.avgImpressions, avgClicksLink: ins.avgClicksLink, budgetUsed: budgetNum, warnLow })
                         }
                         setSimResults(next)
                       } catch (e) {
@@ -657,19 +703,49 @@ export default function PDVPage() {
                         <TableRow>
                           <TableHead>Plateforme</TableHead>
                           <TableHead>Objectif</TableHead>
-                          <TableHead>KPIs possibles</TableHead>
+                          <TableHead>KPIs estimés</TableHead>
+                          <TableHead>CTR moyen</TableHead>
+                          <TableHead>Clics moyens</TableHead>
+                          <TableHead>Impressions moyennes</TableHead>
+                          <TableHead>Leads moyens</TableHead>
+                          <TableHead>Budget utilisé</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {simResults.map((r, idx) => (
-                          <TableRow key={`${r.platform}-${r.objective}-${idx}`}>
-                            <TableCell>{r.platform}</TableCell>
-                            <TableCell>{r.objective}</TableCell>
-                            <TableCell className="font-bold">{r.kpis.toLocaleString('fr-FR')}</TableCell>
-                          </TableRow>
-                        ))}
+                        {simResults.map((r, idx) => {
+                          const isImpr = /impr/i.test(r.objective)
+                          const isLeads = /lead/i.test(r.objective)
+                          const isClicks = /clic/i.test(r.objective)
+                          return (
+                            <TableRow key={`${r.platform}-${r.objective}-${idx}`}>
+                              <TableCell>{r.platform}</TableCell>
+                              <TableCell>{r.objective}</TableCell>
+                              <TableCell className="font-bold">{r.kpis.toLocaleString('fr-FR')}</TableCell>
+                              <TableCell>{formatPct(r.ctrPct)}</TableCell>
+                              <TableCell>{(isImpr || isLeads) ? (r.avgClicks ? Math.ceil(r.avgClicks).toLocaleString('fr-FR') : '-') : (isClicks ? '-' : '-')}</TableCell>
+                              <TableCell>{(isClicks || isLeads) ? (r.avgImpressions ? Math.ceil(r.avgImpressions).toLocaleString('fr-FR') : '-') : (isImpr ? (r.avgImpressions ? Math.ceil(r.avgImpressions).toLocaleString('fr-FR') : '-') : '-')}</TableCell>
+                              <TableCell>{isLeads ? (r.avgClicksLink ? Math.ceil(r.avgClicksLink).toLocaleString('fr-FR') : '-') : '-'}</TableCell>
+                              <TableCell className="font-semibold">{Math.ceil(r.budgetUsed).toLocaleString('fr-FR')}€</TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
+                    {simResults.some(r => r.warnLow) && (
+                      <div className="mt-3 text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-3 py-2">
+                        ⚠️ Nous ne faisons pas de campagnes en dessous de 500 €. Voir avec Junior pour une dérogation.
+                      </div>
+                    )}
+                    <div className="mt-4 flex justify-end">
+                      <PDFDownloadLink document={<PDFSimulation rows={simResults} />} fileName={`simulation-budget-${new Date().toISOString().split('T')[0]}.pdf`}>
+                        {({ loading }) => (
+                          <Button disabled={loading} className="bg-green-600 hover:bg-green-700">
+                            <Download className="mr-2 h-4 w-4" />
+                            {loading ? 'Génération...' : 'Exporter PDF'}
+                          </Button>
+                        )}
+                      </PDFDownloadLink>
+                    </div>
                   </div>
                 )}
               </CardContent>
