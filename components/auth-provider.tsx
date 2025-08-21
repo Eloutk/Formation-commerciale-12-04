@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/src/lib/supabaseClient"
 
 interface User {
   id: string
@@ -29,13 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Simulation d'un appel d'API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setUser({
-        id: "1",
-        name: "Utilisateur Test",
-        email,
-      })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      const sessionUser = data.user
+      setUser(sessionUser ? { id: sessionUser.id, name: sessionUser.user_metadata?.full_name || "", email: sessionUser.email || email } : null)
       toast({
         title: "Connexion réussie",
         description: "Vous êtes maintenant connecté",
@@ -55,13 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Simulation d'un appel d'API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setUser({
-        id: "1",
-        name,
-        email,
-      })
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+      if (error) throw error
+      const u = data.user
+      setUser(u ? { id: u.id, name, email: u.email || email } : null)
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès",
@@ -78,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut()
     setUser(null)
     toast({
       title: "Déconnexion réussie",
