@@ -15,6 +15,11 @@ export default function GATracker() {
     const pagePath = query ? `${pathname}?${query}` : pathname
     // @ts-ignore
     window.gtag?.('config', GA_ID, { page_path: pagePath })
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: pagePath, userAgent: navigator.userAgent, referrer: document.referrer })
+    }).catch(() => {})
   }, [pathname, searchParams])
 
   return null
