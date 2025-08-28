@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  console.log("🔍 Middleware - Path:", req.nextUrl.pathname, "Session:", !!session)
+  console.log("🔍 Middleware - Path:", req.nextUrl.pathname, "Session:", !!session, "User ID:", session?.user?.id)
 
   // Pages publiques autorisées
   const publicPages = ['/login', '/register']
@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  console.log("✅ Accès autorisé")
+  console.log("✅ Accès autorisé pour:", req.nextUrl.pathname)
   return res
 }
 

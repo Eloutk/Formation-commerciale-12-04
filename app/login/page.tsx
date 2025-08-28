@@ -33,9 +33,26 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        // Connexion réussie - redirection vers la homepage
-        console.log("✅ Connexion réussie, redirection vers la homepage...")
-        window.location.href = "/"
+        // Connexion réussie - attendre un peu pour que la session soit établie
+        console.log("✅ Connexion réussie, établissement de la session...")
+        
+        // Attendre que la session soit correctement établie
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Vérifier que la session est bien établie
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log("🔍 Session après connexion:", !!session)
+        
+        if (session) {
+          console.log("✅ Session établie, redirection vers la homepage...")
+          window.location.href = "/"
+        } else {
+          console.log("❌ Session non établie, nouvelle tentative...")
+          // Nouvelle tentative après un délai
+          setTimeout(() => {
+            window.location.href = "/"
+          }, 2000)
+        }
       }
     } catch (error) {
       setError("Une erreur est survenue lors de la connexion")

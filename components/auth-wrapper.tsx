@@ -23,7 +23,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     // Vérifier la session au démarrage
     const checkSession = async () => {
       try {
-        console.log("🔍 Vérification de la session...")
+        console.log("🔍 AuthWrapper - Vérification de la session...")
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
@@ -32,7 +32,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           return
         }
         
-        console.log("📋 Session trouvée:", session?.user?.id)
+        console.log("📋 AuthWrapper - Session trouvée:", session?.user?.id)
+        console.log("📋 AuthWrapper - Cookies disponibles:", document.cookie ? "Oui" : "Non")
         
         if (session?.user) {
           const u = session.user
@@ -41,10 +42,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             name: u.user_metadata?.full_name || '', 
             email: u.email || '' 
           }
-          console.log("👤 Utilisateur connecté:", userData)
+          console.log("👤 AuthWrapper - Utilisateur connecté:", userData)
           setUser(userData)
         } else {
-          console.log("❌ Aucun utilisateur connecté")
+          console.log("❌ AuthWrapper - Aucun utilisateur connecté")
         }
       } catch (error) {
         console.error("❌ Erreur lors de la vérification de session:", error)
@@ -58,7 +59,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("🔄 Auth state change:", event, session?.user?.id)
+        console.log("🔄 AuthWrapper - Auth state change:", event, session?.user?.id)
         
         if (event === "SIGNED_IN" && session?.user) {
           const u = session.user
@@ -67,10 +68,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             name: u.user_metadata?.full_name || '', 
             email: u.email || '' 
           }
-          console.log("✅ Utilisateur connecté:", userData)
+          console.log("✅ AuthWrapper - Utilisateur connecté:", userData)
           setUser(userData)
         } else if (event === "SIGNED_OUT") {
-          console.log("🚪 Utilisateur déconnecté")
+          console.log("🚪 AuthWrapper - Utilisateur déconnecté")
           setUser(null)
         }
       }
@@ -80,7 +81,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }, [])
 
   const handleLogout = async () => {
-    console.log("🚪 Déconnexion en cours...")
+    console.log("🚪 AuthWrapper - Déconnexion en cours...")
     await supabase.auth.signOut()
     setUser(null)
     window.location.href = "/login"
