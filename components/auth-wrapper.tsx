@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from '@supabase/supabase-js'
+import Image from 'next/image'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
@@ -22,23 +23,31 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     // Vérifier la session au démarrage
     const checkSession = async () => {
       try {
+        console.log("🔍 Vérification de la session...")
         const { data: { session }, error } = await supabase.auth.getSession()
+        
         if (error) {
-          console.error("Erreur lors de la vérification de session:", error)
+          console.error("❌ Erreur lors de la vérification de session:", error)
           setLoading(false)
           return
         }
         
+        console.log("📋 Session trouvée:", session?.user?.id)
+        
         if (session?.user) {
           const u = session.user
-          setUser({ 
+          const userData = { 
             id: u.id, 
             name: u.user_metadata?.full_name || '', 
             email: u.email || '' 
-          })
+          }
+          console.log("👤 Utilisateur connecté:", userData)
+          setUser(userData)
+        } else {
+          console.log("❌ Aucun utilisateur connecté")
         }
       } catch (error) {
-        console.error("Erreur lors de la vérification de session:", error)
+        console.error("❌ Erreur lors de la vérification de session:", error)
       } finally {
         setLoading(false)
       }
@@ -49,16 +58,19 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     // Écouter les changements d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth state change:", event, session?.user?.id)
+        console.log("🔄 Auth state change:", event, session?.user?.id)
         
         if (event === "SIGNED_IN" && session?.user) {
           const u = session.user
-          setUser({ 
+          const userData = { 
             id: u.id, 
             name: u.user_metadata?.full_name || '', 
             email: u.email || '' 
-          })
+          }
+          console.log("✅ Utilisateur connecté:", userData)
+          setUser(userData)
         } else if (event === "SIGNED_OUT") {
+          console.log("🚪 Utilisateur déconnecté")
           setUser(null)
         }
       }
@@ -68,20 +80,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }, [])
 
   const handleLogout = async () => {
+    console.log("🚪 Déconnexion en cours...")
     await supabase.auth.signOut()
     setUser(null)
-    window.location.href = "/"
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Chargement...</p>
-        </div>
-      </div>
-    )
+    window.location.href = "/login"
   }
 
   return (
@@ -89,10 +91,19 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       <header className="sticky top-0 z-50 w-full border-b bg-background">
         <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
           <div className="flex items-center gap-2 font-semibold">
+            <Image
+              src="/Logo Link Vertical (Orange).png"
+              alt="Logo Link Academy"
+              width={32}
+              height={32}
+              className="object-contain h-8 w-auto"
+            />
             Link academy
           </div>
           <div className="flex items-center gap-4">
-            {user ? (
+            {loading ? (
+              <div className="text-sm text-gray-500">Chargement...</div>
+            ) : user ? (
               <>
                 <span className="text-sm text-gray-600">
                   Bonjour, {user.name || user.email}
@@ -110,7 +121,20 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           </div>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      
+      <main className="flex-1">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Chargement...</p>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
+      </main>
+      
       <footer className="py-6 border-t">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           © {new Date().getFullYear()} Formation Commerciale Link Academy<br />

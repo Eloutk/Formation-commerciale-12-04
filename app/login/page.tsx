@@ -63,7 +63,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="exemple@email.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
             required
             disabled={loading}
           />
@@ -75,7 +75,7 @@ export default function LoginPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
             required
             disabled={loading}
           />
@@ -84,7 +84,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50"
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
@@ -93,7 +93,7 @@ export default function LoginPage() {
       <div className="text-center mt-6">
         <p className="text-sm text-muted-foreground">
           Pas encore de compte ?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
+          <Link href="/register" className="text-orange-600 hover:underline">
             Créer un compte
           </Link>
         </p>
