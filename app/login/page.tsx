@@ -1,5 +1,5 @@
 "use client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -20,8 +20,17 @@ const formSchema = z.object({
 })
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth()
+  const { user, login, isLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Si déjà connecté, redirige immédiatement vers la destination
+  if (user) {
+    const redirectTo = searchParams?.get('redirect') || '/'
+    // utiliser replace pour ne pas garder /login dans l'historique
+    router.replace(redirectTo)
+    return null
+  }
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -39,7 +48,8 @@ export default function LoginPage() {
         title: "Connexion réussie",
         description: "Vous êtes maintenant connecté",
       })
-      router.push("/")
+      const redirectTo = searchParams?.get('redirect') || '/'
+      router.replace(redirectTo)
     } catch (error) {
       toast({
         variant: "destructive",

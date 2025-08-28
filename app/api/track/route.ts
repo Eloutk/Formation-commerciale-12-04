@@ -7,8 +7,11 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { path, userAgent, referrer } = body || {}
-  await supabase.from('page_views').insert({ user_id: session.user.id, path, user_agent: userAgent, referrer })
+  // Aligne les noms de champs avec le tracker client { path, ua, referer }
+  const { path, ua, referer } = body || {}
+  await supabase
+    .from('page_views')
+    .insert({ user_id: session.user.id, path, user_agent: ua, referrer: referer })
   return NextResponse.json({ ok: true })
 }
 

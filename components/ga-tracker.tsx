@@ -18,7 +18,7 @@ export default function GATracker() {
     fetch('/api/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: pagePath, userAgent: navigator.userAgent, referrer: document.referrer })
+      body: JSON.stringify({ path: pagePath, ua: navigator.userAgent, referer: document.referrer })
     }).catch(() => {})
   }, [pathname, searchParams])
 
