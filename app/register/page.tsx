@@ -1,64 +1,63 @@
 "use client"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { useAuth } from "@/components/auth-provider"
-import { useToast } from "@/components/ui/use-toast"
 
-const formSchema = z
-  .object({
-    name: z.string().min(2, {
-      message: "Le nom doit contenir au moins 2 caractères.",
-    }),
-    email: z.string().email({
-      message: "Veuillez entrer une adresse email valide.",
-    }),
-    password: z.string().min(6, {
-      message: "Le mot de passe doit contenir au moins 6 caractères.",
-    }),
-    confirmPassword: z.string().min(6, {
-      message: "La confirmation du mot de passe doit contenir au moins 6 caractères.",
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Les mots de passe ne correspondent pas.",
-    path: ["confirmPassword"],
-  })
+import { useState } from "react"
+import Link from "next/link"
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function RegisterPage() {
-  const { register, isLoading } = useAuth()
-  const router = useRouter()
-  const { toast } = useToast()
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setSuccess("")
+    setLoading(true)
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (password !== confirmPassword) {
+      setError("Les mots de passe ne correspondent pas")
+      setLoading(false)
+      return
+    }
+
     try {
-      await register(values.name, values.email, values.password)
-      toast({
-        title: "Compte créé avec succès",
-        description: "Vous êtes maintenant connecté",
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name }
+        }
       })
-      router.push("/")
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          setError("Un compte avec cet email existe déjà")
+        } else {
+          setError("Une erreur est survenue lors de la création du compte")
+        }
+        return
+      }
+
+      if (data.user) {
+        setSuccess("Compte créé avec succès ! Redirection vers la page d'accueil...")
+        setTimeout(() => {
+          window.location.href = "/"
+        }, 2000)
+      }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur d'inscription",
-        description: "Une erreur est survenue lors de la création de votre compte",
-      })
+      setError("Une erreur est survenue lors de la création du compte")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -69,70 +68,82 @@ export default function RegisterPage() {
         <p className="text-muted-foreground mt-2">Inscrivez-vous pour accéder à la formation</p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nom</FormLabel>
-                <FormControl>
-                  <Input placeholder="Votre nom" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {success}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Nom</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Votre nom"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            disabled={loading}
           />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="exemple@email.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="exemple@email.com"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            disabled={loading}
           />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mot de passe</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Mot de passe</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            disabled={loading}
           />
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirmer le mot de passe</FormLabel>
-                <FormControl>
-                  <Input type="password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Confirmer le mot de passe</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            disabled={loading}
           />
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Chargement..." : "Créer un compte"}
-          </Button>
-        </form>
-      </Form>
+        </div>
+        
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {loading ? "Création du compte..." : "Créer un compte"}
+        </button>
+      </form>
 
       <div className="text-center mt-6">
         <p className="text-sm text-muted-foreground">
           Déjà un compte ?{" "}
-          <Link href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="text-blue-600 hover:underline">
             Se connecter
           </Link>
         </p>

@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Search, LogIn, LogOut, User2 } from "lucide-react"
 import { MobileNav } from "@/components/mobile-nav"
 import Image from 'next/image'
-import { useAuth } from "@/components/auth-provider"
+
 
 const modules = [
   {
@@ -82,7 +82,7 @@ export default function Header() {
   const pathname = usePathname()
   const [searchTerm, setSearchTerm] = React.useState("");
   const [showResults, setShowResults] = React.useState(false);
-  const { user, logout } = useAuth()
+
 
   // Filtrer les modules selon la recherche
   const filteredModules = modules.filter(
@@ -185,25 +185,12 @@ export default function Header() {
               )}
             </div>
 
-            {user ? (
-              <div className="flex items-center gap-3">
-                <Link href="/account" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
-                  <User2 className="h-4 w-4" />
-                  Bonjour, {user.name || user.email}
-                </Link>
-                <Button variant="outline" size="sm" onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Se déconnecter
-                </Button>
-              </div>
-            ) : (
-              <Button asChild variant="default" size="sm">
-                <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Connexion
-                </Link>
-              </Button>
-            )}
+            <Button asChild variant="default" size="sm">
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" />
+                Connexion
+              </Link>
+            </Button>
           </div>
         </div>
 
