@@ -28,16 +28,17 @@ export default function LoginPage() {
       
       if (error) {
         setError("Email ou mot de passe incorrect")
+        setLoading(false)
         return
       }
 
       if (data.user) {
-        // Connexion réussie
+        // Connexion réussie - redirection vers la homepage
+        console.log("✅ Connexion réussie, redirection vers la homepage...")
         window.location.href = "/"
       }
     } catch (error) {
       setError("Une erreur est survenue lors de la connexion")
-    } finally {
       setLoading(false)
     }
   }

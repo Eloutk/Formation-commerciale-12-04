@@ -11,12 +11,15 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
+  console.log("🔍 Middleware - Path:", req.nextUrl.pathname, "Session:", !!session)
+
   // Pages publiques autorisées
   const publicPages = ['/login', '/register']
   const isPublicPage = publicPages.includes(req.nextUrl.pathname)
 
   // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
   if (!session && !isPublicPage) {
+    console.log("🚫 Accès refusé - redirection vers /login")
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
@@ -24,11 +27,13 @@ export async function middleware(req: NextRequest) {
 
   // Si l'utilisateur est connecté et essaie d'accéder aux pages de login/register
   if (session && isPublicPage) {
+    console.log("✅ Utilisateur connecté sur page publique - redirection vers /")
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/'
     return NextResponse.redirect(redirectUrl)
   }
 
+  console.log("✅ Accès autorisé")
   return res
 }
 
