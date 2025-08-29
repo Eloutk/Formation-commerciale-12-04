@@ -58,8 +58,17 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
               Link academy
             </Link>
+
+            <nav className="hidden md:flex items-center gap-6 text-sm">
+              <Link href="/" className="hover:underline">Formation</Link>
+              <Link href="/pdv" className="hover:underline">PDV</Link>
+              <Link href="/documents" className="hover:underline">Documents</Link>
+              <Link href="/glossaire" className="hover:underline">Glossaire</Link>
+              <Link href="/faq" className="hover:underline">FAQ</Link>
+            </nav>
+
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
+              <span className="hidden sm:inline text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
               <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800">Se déconnecter</button>
             </div>
           </div>
