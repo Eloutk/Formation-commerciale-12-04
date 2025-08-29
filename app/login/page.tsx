@@ -27,6 +27,15 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+      // Synchroniser la session côté serveur avant de passer le middleware
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+        })
+      } catch {}
       // redirection avec prise en charge d'un éventuel redirect=?
       const redirectTo = search?.get('redirect') || '/'
       router.push(redirectTo)

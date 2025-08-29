@@ -39,6 +39,15 @@ export default function RegisterPage() {
       }
       // Mettre à jour le nom en asynchrone (non bloquant)
       await supabase.auth.updateUser({ data: { full_name: name } })
+      // Synchroniser la session côté serveur si sign-in implicite
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+        })
+      } catch {}
       setSuccess("Compte créé avec succès ! Redirection...")
       router.push('/')
     } catch (error) {
