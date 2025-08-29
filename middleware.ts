@@ -1,39 +1,46 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const pathname = req.nextUrl.pathname
 
-  // Vérifier la session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  // Public paths
+  if (
+    pathname === '/login' ||
+    pathname === '/auth' ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/robots') ||
+    pathname.startsWith('/sitemap') ||
+    pathname.match(/\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|woff2?)$/)
+  ) {
+    return res
+  }
 
-  console.log("🔍 Middleware - Path:", req.nextUrl.pathname, "Session:", !!session, "User ID:", session?.user?.id)
+  // Read-only server client; never writes cookies in middleware
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name: string) => req.cookies.get(name)?.value,
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  )
 
-  // Pages publiques autorisées
-  const publicPages = ['/login', '/register']
-  const isPublicPage = publicPages.includes(req.nextUrl.pathname)
+  const { data: { session } } = await supabase.auth.getSession()
 
-  // Si l'utilisateur n'est pas connecté et essaie d'accéder à une page protégée
-  if (!session && !isPublicPage) {
-    console.log("🚫 Accès refusé - redirection vers /login")
+  if (!session) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Si l'utilisateur est connecté et essaie d'accéder aux pages de login/register
-  if (session && isPublicPage) {
-    console.log("✅ Utilisateur connecté sur page publique - redirection vers /")
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/'
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  console.log("✅ Accès autorisé pour:", req.nextUrl.pathname)
   return res
 }
 
@@ -47,6 +54,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (images, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next|favicon|robots|sitemap|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|woff|woff2)$).*)',
   ],
 } 

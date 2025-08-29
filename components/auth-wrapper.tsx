@@ -31,7 +31,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
     checkSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const u = session.user
         setUser({ id: u.id, name: (u.user_metadata as any)?.full_name || '', email: u.email || '' })
@@ -39,11 +39,27 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       if (event === 'SIGNED_OUT') {
         setUser(null)
       }
+      // Sync server cookies (fire-and-forget)
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, session }),
+        })
+      } catch {}
     })
     return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {
+    try {
+      // Inform server first
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: 'SIGNED_OUT' }),
+      })
+    } catch {}
     await supabase.auth.signOut()
     setUser(null)
     window.location.href = "/login"
