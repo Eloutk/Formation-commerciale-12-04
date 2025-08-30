@@ -33,15 +33,15 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // If user is authenticated and trying to access /login, redirect to /
-  if (session && pathname === '/login') {
+  // If user is authenticated and trying to access /login or /register, redirect to /
+  if (session && (pathname === '/login' || pathname === '/register')) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/'
     return NextResponse.redirect(redirectUrl)
   }
 
   // If no session and trying to access protected route, redirect to /login
-  if (!session && pathname !== '/login') {
+  if (!session && pathname !== '/login' && pathname !== '/register') {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
