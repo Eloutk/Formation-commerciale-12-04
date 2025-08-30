@@ -10,6 +10,30 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Fonction de validation d'email pour @link.fr uniquement
+const validateEmail = (email: string): { isValid: boolean; message: string } => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+  if (!emailRegex.test(email)) {
+    return { isValid: false, message: "Format d'email invalide" }
+  }
+  
+  const domain = email.split('@')[1]?.toLowerCase()
+  
+  if (!domain) {
+    return { isValid: false, message: "Domaine d'email invalide" }
+  }
+  
+  if (domain !== 'link.fr') {
+    return { 
+      isValid: false, 
+      message: "Seuls les emails @link.fr sont acceptés" 
+    }
+  }
+  
+  return { isValid: true, message: "" }
+}
+
 export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -18,7 +42,20 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+  const [emailError, setEmailError] = useState("")
   const router = useRouter()
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value
+    setEmail(newEmail)
+    
+    if (newEmail) {
+      const validation = validateEmail(newEmail)
+      setEmailError(validation.message)
+    } else {
+      setEmailError("")
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,6 +65,14 @@ export default function RegisterPage() {
 
     if (password !== confirmPassword) {
       setError("Les mots de passe ne correspondent pas")
+      setLoading(false)
+      return
+    }
+
+    // Validation de l'email
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.isValid) {
+      setError(emailValidation.message)
       setLoading(false)
       return
     }
@@ -65,6 +110,9 @@ export default function RegisterPage() {
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold">Créer un compte</h1>
         <p className="text-muted-foreground mt-2">Inscrivez-vous pour accéder à la formation</p>
+        <p className="text-xs text-gray-500 mt-1">
+          Seuls les emails @link.fr sont acceptés
+        </p>
       </div>
 
       {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
@@ -77,7 +125,20 @@ export default function RegisterPage() {
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
+          <input 
+            type="email" 
+            value={email} 
+            onChange={handleEmailChange} 
+            placeholder="exemple@link.fr" 
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+              emailError ? 'border-red-400' : 'border-gray-300'
+            }`} 
+            required 
+            disabled={loading} 
+          />
+          {emailError && (
+            <p className="text-red-500 text-sm mt-1">{emailError}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Mot de passe</label>
@@ -87,7 +148,13 @@ export default function RegisterPage() {
           <label className="block text-sm font-medium mb-2">Confirmer le mot de passe</label>
           <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50">{loading ? "Création du compte..." : "Créer un compte"}</button>
+        <button 
+          type="submit" 
+          disabled={loading || !!emailError} 
+          className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50"
+        >
+          {loading ? "Création du compte..." : "Créer un compte"}
+        </button>
       </form>
 
       <div className="text-center mt-6">
