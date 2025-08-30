@@ -1,3 +1,8 @@
+export const dynamic = 'force-dynamic'; // empêche le prerender/caching en prod
+// ou, à défaut :
+export const revalidate = 0;           // désactive la revalidation ISR
+
+
 "use client"
 
 import { useEffect } from "react"
