@@ -40,7 +40,7 @@ export default function LoginPage() {
         })
       } catch {}
       // redirection avec prise en charge d'un éventuel redirect=?
-      const redirectTo = search?.get('redirect') || '/'
+      const redirectTo = search?.get('redirect') || '/formation'
       router.push(redirectTo)
     } catch (error) {
       setError("Une erreur est survenue lors de la connexion")

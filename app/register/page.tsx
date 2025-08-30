@@ -97,7 +97,7 @@ export default function RegisterPage() {
         })
       } catch {}
       setSuccess("Compte créé avec succès ! Redirection...")
-      router.push('/')
+      router.push('/formation')
     } catch (error) {
       setError("Une erreur est survenue lors de la création du compte")
     } finally {

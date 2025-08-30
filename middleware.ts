@@ -33,10 +33,10 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // If user is authenticated and trying to access /login or /register, redirect to /
+  // If user is authenticated and trying to access /login or /register, redirect to /formation
   if (session && (pathname === '/login' || pathname === '/register')) {
     const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/'
+    redirectUrl.pathname = '/formation'
     return NextResponse.redirect(redirectUrl)
   }
 
