@@ -51,70 +51,65 @@ const glossaryTerms: GlossaryTerm[] = [
     category: "C",
   },
   {
-    id: "cta-call-to-action",
-    term: "CTA/call to action",
+    id: "conversion",
+    term: "Conversion",
     definition:
-      "Appel à l'action auprès de l'internaute, généralement un bouton situé aux abords de la publicité (acheter, s'inscrire, en savoir plus, etc...)",
-    category: "C",
-  },
-  {
-    id: "couverture",
-    term: "Couverture",
-    definition: "Nombre de personnes qui ont vu la publicité",
+      "Action souhaitée effectuée par un utilisateur après avoir cliqué sur une publicité (achat, inscription, téléchargement, etc.). Le taux de conversion mesure le pourcentage de visiteurs qui effectuent cette action.",
     category: "C",
   },
   {
     id: "cpc",
     term: "CPC (Coût Par Clic)",
     definition:
-      "Modèle de tarification publicitaire où l'annonceur paie uniquement lorsqu'un utilisateur clique sur son annonce. Le CPC est calculé en divisant le coût total de la campagne par le nombre de clics.",
+      "Métrique publicitaire indiquant le coût moyen payé pour chaque clic sur une annonce. Le CPC est calculé en divisant le coût total de la campagne par le nombre de clics générés.",
+    category: "C",
+  },
+  {
+    id: "cpm",
+    term: "CPM (Coût Par Mille)",
+    definition:
+      "Métrique publicitaire indiquant le coût payé pour 1000 impressions (affichages) d'une annonce. Le CPM est utilisé pour comparer l'efficacité de différentes campagnes en termes de visibilité.",
     category: "C",
   },
   {
     id: "ctr",
     term: "CTR (Click-Through Rate)",
     definition:
-      "Taux de clics, exprimé en pourcentage, qui mesure le nombre de clics sur une annonce divisé par le nombre d'impressions. Un CTR élevé est généralement un signe de pertinence et d'efficacité de l'annonce.",
+      "Taux de clics exprimé en pourcentage, calculé en divisant le nombre de clics par le nombre d'impressions. Un CTR élevé indique que l'annonce est pertinente et attrayante pour l'audience ciblée.",
     category: "C",
   },
   {
-    id: "ctr-sur-lien",
-    term: "CTR sur lien",
-    definition: "Le CTR sur lien mesure uniquement le pourcentage de personnes ayant cliqué sur le lien principal de la publicité (vers la landing page), par rapport au nombre d'impressions. Il se distingue du CTR global qui inclut tous les clics (j'aime, partages, etc.).",
-    category: "C",
-  },
-  {
-    id: "ctr-plusieurs",
-    term: "CTR (plusieurs)",
+    id: "display",
+    term: "Display",
     definition:
-      "Click Through Rate - Taux de clics : il en existe plusieurs : CTR Total / CTR sur lien. C'est le taux de clic (X% du temps, un internaute qui voit la pub clique)...",
-    category: "C",
+      "Format publicitaire visuel (bannières, images, vidéos) diffusé sur des sites web partenaires. Le display permet de toucher une large audience et de renforcer la notoriété de marque.",
+    category: "D",
   },
   {
-    id: "conversion",
-    term: "Conversion",
+    id: "funnel",
+    term: "Funnel (Entonnoir)",
     definition:
-      "Action spécifique effectuée par un utilisateur qui répond à l'objectif marketing défini, comme un achat, une inscription à une newsletter, ou le téléchargement d'un document.",
-    category: "C",
-  },
-  {
-    id: "cpa",
-    term: "CPA (Coût Par Acquisition)",
-    definition:
-      "Métrique qui mesure le coût moyen pour acquérir un client ou générer une conversion. Calculé en divisant le coût total de la campagne par le nombre d'acquisitions ou de conversions.",
-    category: "C",
-  },
-  {
-    id: "cpm",
-    term: "CPM (Coût Pour Mille)",
-    definition:
-      "Modèle de tarification publicitaire où l'annonceur paie pour mille impressions de son annonce, indépendamment des clics ou des conversions générés.",
-    category: "C",
+      "Modèle marketing représentant le parcours client depuis la prise de conscience jusqu'à l'achat. Chaque étape de l'entonnoir correspond à un niveau d'engagement croissant avec la marque.",
+    category: "F",
   },
   {
     id: "impression",
     term: "Impression",
     definition: "Nombre de fois où la pub s'est affichée à l'écran",
+    category: "I",
+  },
+  {
+    id: "infos-bulles",
+    term: "Infos bulles",
+    definition:
+      "Les infos bulles sont des accroches. Elles permettent d'afficher du texte supplémentaire sur certains aspects populaires ou uniques de votre entreprise dans votre annonce. Vous pouvez ainsi mettre en avant des offres promotionnelles comme \"livraison gratuite\" ou \"service client 24h/24, 7j/7\".",
+    category: "I",
+  },
+  {
+    id: "images-search",
+    term: "Images Search",
+    definition:
+      "Format publicitaire spécifique aux moteurs de recherche (Google, Bing) qui affiche des images dans les résultats de recherche. Ces annonces apparaissent dans l'onglet 'Images' et permettent d'attirer l'attention visuellement tout en ciblant des requêtes spécifiques.",
     category: "I",
   },
   {
@@ -135,68 +130,56 @@ const glossaryTerms: GlossaryTerm[] = [
     id: "landing-page",
     term: "Landing Page",
     definition:
-      "URL de redirection des publicités. Page web spécifique sur laquelle un utilisateur arrive après avoir cliqué sur une annonce ou un lien. Elle est conçue pour encourager une action spécifique, comme un achat ou une inscription.",
+      "Page web spécialement conçue pour recevoir le trafic provenant d'une campagne publicitaire. Elle est optimisée pour convertir les visiteurs en prospects ou clients en présentant une offre claire et un appel à l'action visible.",
     category: "L",
   },
   {
-    id: "lead",
-    term: "Lead",
+    id: "liens-annexes",
+    term: "Liens annexes",
     definition:
-      "Client potentiel ayant un intérêt qu'il manifeste par le remplissage d'un formulaire sur site ou directement sur META.",
+      "Les liens annexes ajoutent à votre annonce des liens hypertextes supplémentaires qui redirigent les utilisateurs vers des pages spécifiques de votre site Web. Ces liens sont situés en dessous des descriptions et infos bulles. Les liens annexes doivent s'accompagner d'une description. Il s'agit d'informations supplémentaires positionnées sous les liens annexes. Cela permet aux internautes de savoir à quoi s'attendre s'ils cliquent dessus. Les liens annexes correspondent à des rubriques de votre site.",
+    category: "L",
+  },
+  {
+    id: "lookalike",
+    term: "Lookalike",
+    definition:
+      "Technique de ciblage publicitaire qui consiste à créer une audience similaire à une audience source (clients existants, visiteurs du site). Les plateformes utilisent des algorithmes pour identifier des utilisateurs ayant des caractéristiques similaires.",
     category: "L",
   },
   {
     id: "pixel",
     term: "Pixel",
     definition:
-      "Élément de tracking. Il permet de remonter les infos du comportement des utilisateurs du site web vers META. Il peut remonter différentes informations (inscription à la newsletter, envoi de formulaire de contact, ajout au panier, achat, etc...). Cela est très important pour comprendre comment les internautes se comportent une fois qu'ils ont cliqué sur nos publicités et arrivent sur le site web du client. Il est indispensable pour les campagnes de conversion. Il peut être déjà posé sur le site, auquel cas nous aurons besoin des accès. Il est également possible qu'il n'y en ait pas. Dans ce cas, nous créons et envoyons les instruction (de META) pour la pose de ce dernier.",
+      "Petit code JavaScript placé sur un site web pour suivre les actions des visiteurs et mesurer l'efficacité des campagnes publicitaires. Le pixel permet de créer des audiences personnalisées et d'optimiser les campagnes.",
     category: "P",
   },
   {
-    id: "repetition",
-    term: "Répétition",
-    definition: "Nombre de fois (moyen) où une seule personne a vu la publicité",
-    category: "R",
-  },
-  {
-    id: "reaction-publication",
-    term: "Réactions",
-    definition: "Ensemble des réactions possibles sur une publication (J'aime, J'adore, Haha, Wouah, Triste, Grr, etc.)",
-    category: "R",
-  },
-  {
-    id: "roi",
-    term: "ROI (Return On Investment)",
-    definition:
-      "Retour sur investissement, mesure le bénéfice ou la perte générée par un investissement par rapport à son coût initial. En marketing digital, il aide à évaluer l'efficacité des campagnes et à optimiser les budgets.",
-    category: "R",
-  },
-  {
     id: "remarketing",
-    term: "Remarketing (retargeting)",
+    term: "Remarketing",
     definition:
-      "Technique publicitaire (aussi appelée retargeting) qui permet de cibler les utilisateurs qui ont déjà interagi avec votre site web ou application. Le remarketing vise à reconvertir les visiteurs qui n'ont pas complété une action lors de leur première visite.",
+      "Technique publicitaire consistant à cibler à nouveau les utilisateurs qui ont déjà visité un site web ou interagi avec une marque, mais n'ont pas effectué l'action souhaitée (achat, inscription, etc.).",
     category: "R",
   },
   {
     id: "roas",
-    term: "ROAS (Return On Ad Spend)",
+    term: "ROAS (Return on Ad Spend)",
     definition:
-      "Métrique qui mesure le revenu généré pour chaque euro dépensé en publicité. Un ROAS de 5:1 signifie que vous gagnez 5€ pour chaque euro dépensé en publicité.",
+      "Métrique mesurant le retour sur investissement publicitaire, calculée en divisant le chiffre d'affaires généré par le coût des publicités. Un ROAS de 4:1 signifie que chaque euro investi en publicité génère 4 euros de revenus.",
     category: "R",
-  },
-  {
-    id: "sea",
-    term: "SEA (Search Engine Advertising)",
-    definition:
-      "Publicité sur les moteurs de recherche, méthode de marketing digital qui consiste à acheter des annonces payantes qui apparaissent dans les résultats des moteurs de recherche, généralement via des plateformes comme Google Ads.",
-    category: "S",
   },
   {
     id: "seo",
     term: "SEO (Search Engine Optimization)",
     definition:
-      "Optimisation pour les moteurs de recherche, ensemble de techniques visant à améliorer le positionnement d'un site web dans les résultats organiques (non payants) des moteurs de recherche.",
+      "Ensemble de techniques visant à améliorer la visibilité d'un site web dans les résultats de recherche organiques (non payants) des moteurs de recherche comme Google.",
+    category: "S",
+  },
+  {
+    id: "sea",
+    term: "SEA (Search Engine Advertising)",
+    definition:
+      "Publicité payante sur les moteurs de recherche (Google Ads, Bing Ads). Contrairement au SEO, le SEA permet d'obtenir une visibilité immédiate en achetant des mots-clés pertinents.",
     category: "S",
   },
   {
@@ -205,6 +188,25 @@ const glossaryTerms: GlossaryTerm[] = [
     definition:
       "Évaluation attribuée par les plateformes publicitaires (comme Google Ads) à vos annonces et mots-clés, basée sur leur pertinence, leur taux de clics attendu et l'expérience de la page de destination. Un score qualité élevé peut réduire le coût par clic et améliorer le positionnement des annonces.",
     category: "S",
+  },
+  {
+    id: "sem",
+    term: "SEM (Search Engine Marketing)",
+    definition: "Le SEM regroupe l'ensemble des techniques visant à améliorer la visibilité d'un site sur les moteurs de recherche, en combinant le SEO (référencement naturel), le SEA (publicité payante) et le SMO (optimisation sur les réseaux sociaux).",
+    category: "S",
+  },
+  {
+    id: "smo",
+    term: "SMO (Social Media Optimization)",
+    definition: "Le SMO consiste à optimiser la présence et la visibilité d'une marque sur les réseaux sociaux (Facebook, Instagram, LinkedIn, TikTok, etc.), de manière organique (non payante).",
+    category: "S",
+  },
+  {
+    id: "titres-descriptions",
+    term: "Titres et descriptions",
+    definition:
+      "Les titres et les descriptions sont affichés de manière aléatoire en fonction de la requête du client. Il est possible d'épingler 1 titre et 1 description pour rester affiché en première position.",
+    category: "T",
   },
   {
     id: "vue-youtube",
@@ -218,18 +220,6 @@ const glossaryTerms: GlossaryTerm[] = [
     term: "Wording",
     definition: "Textes insérés aux abords des visuels (description, titre, etc)",
     category: "W",
-  },
-  {
-    id: "sem",
-    term: "SEM (Search Engine Marketing)",
-    definition: "Le SEM regroupe l'ensemble des techniques visant à améliorer la visibilité d'un site sur les moteurs de recherche, en combinant le SEO (référencement naturel), le SEA (publicité payante) et le SMO (optimisation sur les réseaux sociaux).",
-    category: "S",
-  },
-  {
-    id: "smo",
-    term: "SMO (Social Media Optimization)",
-    definition: "Le SMO consiste à optimiser la présence et la visibilité d'une marque sur les réseaux sociaux (Facebook, Instagram, LinkedIn, TikTok, etc.), de manière organique (non payante).",
-    category: "S",
   },
 ]
 
@@ -248,80 +238,71 @@ export default function GlossairePage() {
     } else {
       return (
         matchesSearch &&
-        ((activeFilter === "A-E" && "ABCDE".includes(term.category)) ||
-          (activeFilter === "F-M" && "FGHIJKLM".includes(term.category)) ||
-          (activeFilter === "N-Z" && "NOPQRSTUVWXYZ".includes(term.category)))
+        term.category === activeFilter
       )
     }
   })
 
-  // Regrouper les termes par catégorie
-  const groupedTerms = filteredTerms.reduce(
-    (acc, term) => {
-      if (!acc[term.category]) {
-        acc[term.category] = []
-      }
-      acc[term.category].push(term)
-      return acc
-    },
-    {} as Record<string, GlossaryTerm[]>,
-  )
-
-  // Trier les catégories alphabétiquement
-  const sortedCategories = Object.keys(groupedTerms).sort()
+  // Obtenir toutes les catégories uniques pour les filtres
+  const categories = ["Tous", ...Array.from(new Set(glossaryTerms.map((term) => term.category)))]
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Glossaire</h1>
-        <p className="text-muted-foreground mb-8">Lexique des termes utilisés en marketing digital</p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-4">Glossaire</h1>
+          <p className="text-muted-foreground">
+            Découvrez les définitions des termes clés du marketing digital et de la publicité en ligne.
+          </p>
+        </div>
 
-        <div className="relative mb-8">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Barre de recherche */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Rechercher un terme..."
-            className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {["Tous", "A-E", "F-M", "N-Z"].map((filter) => (
+        {/* Filtres par catégorie */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {categories.map((category) => (
             <Badge
-              key={filter}
-              variant={activeFilter === filter ? "default" : "outline"}
-              className="flex justify-center items-center py-2 cursor-pointer hover:bg-muted"
-              onClick={() => setActiveFilter(filter)}
+              key={category}
+              variant={activeFilter === category ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setActiveFilter(category)}
             >
-              {filter}
+              {category}
             </Badge>
           ))}
         </div>
 
-        {filteredTerms.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">Aucun terme ne correspond à votre recherche.</div>
-        ) : (
-          <div className="space-y-8">
-            {sortedCategories.map((category) => (
-              <section key={category}>
-                <h2 className="text-2xl font-bold mb-4">{category}</h2>
-                {groupedTerms[category].map((term) => (
-                  <Card key={term.id} className="mb-4">
-                    <CardHeader>
-                      <CardTitle>{term.term}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{term.definition}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </section>
-            ))}
+        {/* Liste des termes */}
+        <div className="space-y-4">
+          {filteredTerms.map((term) => (
+            <Card key={term.id}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {term.term}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground whitespace-pre-line">{term.definition}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredTerms.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Aucun terme trouvé pour votre recherche.</p>
           </div>
         )}
       </div>
     </div>
   )
 }
-
