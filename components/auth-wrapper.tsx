@@ -5,6 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,38 +31,63 @@ interface User {
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mustCompleteName, setMustCompleteName] = useState(false)
+  const [nickname, setNickname] = useState("")
+  const [savingName, setSavingName] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
+  const checkPseudo = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const u = session?.user
+    if (!u) {
+      setUser(null)
+      return false
+    }
+    const metaName = (u.user_metadata as any)?.full_name as string | undefined
+    // lire dans profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', u.id)
+      .maybeSingle()
+    const profileName = profile?.full_name as string | undefined
+    const currentName = (metaName || profileName || '').trim()
+    setUser({ id: u.id, name: currentName, email: u.email || '' })
+    if (!currentName) {
+      setNickname((u.email || '').split('@')[0] || '')
+      setMustCompleteName(true)
+      return true
+    }
+    setMustCompleteName(false)
+    return false
+  }
+
   useEffect(() => {
-    const checkSession = async () => {
+    const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          const u = session.user
-          setUser({ id: u.id, name: (u.user_metadata as any)?.full_name || '', email: u.email || '' })
-        } else {
-          setUser(null)
-          if (pathname !== '/login' && pathname !== '/register') {
-            router.replace('/login')
-          }
+        const need = await checkPseudo()
+        if (need) {
+          // keep on modal
+        } else if (!user && pathname !== '/login' && pathname !== '/register') {
+          // already handled below
         }
       } finally {
         setLoading(false)
       }
     }
-    checkSession()
+    init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const u = session.user
-        setUser({ id: u.id, name: (u.user_metadata as any)?.full_name || '', email: u.email || '' })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_IN') {
+        await checkPseudo()
         if (pathname === '/login' || pathname === '/register') {
           router.replace('/formation')
         }
       }
       if (event === 'SIGNED_OUT') {
         setUser(null)
+        setMustCompleteName(false)
         router.replace('/login')
       }
     })
@@ -70,6 +98,25 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     try {
       await supabase.auth.signOut()
     } catch {}
+  }
+
+  const saveNickname = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const name = nickname.trim()
+    if (!name) return
+    setSavingName(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const u = session?.user
+      if (!u) return
+      // update profiles and auth metadata
+      await supabase.from('profiles').upsert({ id: u.id, full_name: name }, { onConflict: 'id' })
+      await supabase.auth.updateUser({ data: { full_name: name } })
+      setUser({ id: u.id, name, email: u.email || '' })
+      setMustCompleteName(false)
+    } finally {
+      setSavingName(false)
+    }
   }
 
   if (loading) {
@@ -103,6 +150,24 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       )}
 
       <main className="flex-1">{children}</main>
+
+      <Dialog open={mustCompleteName} onOpenChange={() => {}}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choisissez votre pseudo</DialogTitle>
+            <DialogDescription>
+              Nous devons te redemander ton pseudo.
+              Choisis-le bien : comme la photo de ton permis, il va te suivre toute ta vie 🙂
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={saveNickname} className="space-y-4">
+            <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Votre pseudo" />
+            <DialogFooter>
+              <Button type="submit" disabled={savingName}>{savingName ? 'Enregistrement...' : 'Enregistrer'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
