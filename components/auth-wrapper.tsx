@@ -142,36 +142,38 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background">
-        <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
-          <Link href="/formation" className="flex items-center gap-2 font-semibold">
-            <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
-            Link academy
-          </Link>
+      {!(pathname === '/login' || pathname === '/register') && (
+        <header className="sticky top-0 z-50 w-full border-b bg-background">
+          <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
+            <Link href="/formation" className="flex items-center gap-2 font-semibold">
+              <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
+              Link academy
+            </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="/formation" className="hover:underline">Formation</Link>
-            <Link href="/pdv" className="hover:underline">PDV</Link>
-            <Link href="/documents" className="hover:underline">Documents</Link>
-            <Link href="/glossaire" className="hover:underline">Glossaire</Link>
-            <Link href="/faq" className="hover:underline">FAQ</Link>
-          </nav>
+            <nav className="hidden md:flex items-center gap-6 text-sm">
+              <Link href="/formation" className="hover:underline">Formation</Link>
+              <Link href="/pdv" className="hover:underline">PDV</Link>
+              <Link href="/documents" className="hover:underline">Documents</Link>
+              <Link href="/glossaire" className="hover:underline">Glossaire</Link>
+              <Link href="/faq" className="hover:underline">FAQ</Link>
+            </nav>
 
-          <div className="flex items-center gap-4">
-            <div className="md:hidden">
-              <MobileNav />
+            <div className="flex items-center gap-4">
+              <div className="md:hidden">
+                <MobileNav />
+              </div>
+              {user ? (
+                <>
+                  <span className="hidden sm:inline text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
+                  <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800">Se déconnecter</button>
+                </>
+              ) : (
+                <Link href="/login" className="text-sm text-orange-600 hover:underline">Se connecter</Link>
+              )}
             </div>
-            {user ? (
-              <>
-                <span className="hidden sm:inline text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
-                <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800">Se déconnecter</button>
-              </>
-            ) : (
-              <Link href="/login" className="text-sm text-orange-600 hover:underline">Se connecter</Link>
-            )}
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="flex-1">{children}</main>
 
