@@ -372,24 +372,24 @@ export default function PDVPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Calculateur PDV</h1>
-          <p className="text-muted-foreground">
-            Calculez vos prix de vente selon la plateforme et vos paramètres
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold mb-3">Calculateur PDV</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Calculez vos prix de vente selon la plateforme, l'objectif et votre budget. Unifiez vos simulations en un seul endroit.
           </p>
         </div>
 
         {/* Mode de calcul */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Mode de calcul</CardTitle>
+            <CardTitle className="text-center">Mode de calcul</CardTitle>
             <CardDescription>
               Choisissez entre un calcul simple ou multi-plateformes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex gap-4 justify-center">
               <Button
                 onClick={() => { setIsMultiPlatform(false); setIsBudgetSimulation(false) }}
                 className={!isMultiPlatform && !isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
