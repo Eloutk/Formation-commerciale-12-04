@@ -3,11 +3,20 @@
 import { useState, useEffect } from "react"
 import Image from 'next/image'
 import Link from 'next/link'
-import { createBrowserClient } from '@supabase/ssr'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@supabase/supabase-js'
 
-const supabase = createBrowserClient(
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
+  }
 )
 
 interface User {
@@ -19,6 +28,8 @@ interface User {
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     const checkSession = async () => {
@@ -27,6 +38,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (session?.user) {
           const u = session.user
           setUser({ id: u.id, name: (u.user_metadata as any)?.full_name || '', email: u.email || '' })
+        } else {
+          setUser(null)
+          if (pathname !== '/login' && pathname !== '/register') {
+            router.replace('/login')
+          }
         }
       } finally {
         setLoading(false)
@@ -38,34 +54,26 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       if (event === 'SIGNED_IN' && session?.user) {
         const u = session.user
         setUser({ id: u.id, name: (u.user_metadata as any)?.full_name || '', email: u.email || '' })
+        if (pathname === '/login' || pathname === '/register') {
+          router.replace('/formation')
+        }
       }
       if (event === 'SIGNED_OUT') {
         setUser(null)
+        router.replace('/login')
       }
-      // Sync server cookies (fire-and-forget)
-      try {
-        await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event, session }),
-        })
-      } catch {}
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [pathname, router])
 
   const handleLogout = async () => {
     try {
-      // Inform server first
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: 'SIGNED_OUT' }),
-      })
+      await supabase.auth.signOut()
     } catch {}
-    await supabase.auth.signOut()
-    setUser(null)
-    window.location.href = "/login"
+  }
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
   }
 
   return (
@@ -95,15 +103,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       )}
 
       <main className="flex-1">{children}</main>
-
-      {user && (
-        <footer className="py-6 border-t">
-          <div className="container mx-auto px-4 text-center text-muted-foreground">
-            © {new Date().getFullYear()} Formation Commerciale Link Academy<br />
-            Tous droits réservés à l'agence Link
-          </div>
-        </footer>
-      )}
     </div>
   )
 } 

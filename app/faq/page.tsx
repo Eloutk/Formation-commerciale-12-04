@@ -1,5 +1,19 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { createClient } from "@supabase/supabase-js"
 
 const faqItems = [
   {
@@ -21,9 +35,73 @@ const faqItems = [
 ];
 
 export default function FAQPage() {
+  const [open, setOpen] = useState(false)
+  const [question, setQuestion] = useState("")
+  const [pseudo, setPseudo] = useState("")
+  const [userId, setUserId] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+  const [submitOk, setSubmitOk] = useState("")
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
+    }
+  )
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
+        if (user) {
+          setUserId(user.id)
+          const fullName = (user.user_metadata as any)?.full_name as string | undefined
+          const fallback = (user.email || "").split("@")[0]
+          setPseudo(fullName && fullName.trim() ? fullName.trim() : fallback)
+        }
+      } catch {}
+    }
+    load()
+  }, [])
+
+  const submitSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitError("")
+    setSubmitOk("")
+    if (!question.trim()) {
+      setSubmitError("Veuillez renseigner votre question.")
+      return
+    }
+    setSubmitting(true)
+    try {
+      const payload: Record<string, any> = { question: question.trim(), pseudo: pseudo || null }
+      if (userId) payload.user_id = userId
+      const { error } = await supabase.from('faq_suggestions').insert(payload)
+      if (error) throw error
+      setSubmitOk("Question envoyée. Merci !")
+      setQuestion("")
+      setTimeout(() => setOpen(false), 800)
+    } catch (err: any) {
+      setSubmitError(err?.message || "Impossible d'envoyer la question")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Questions Fréquentes</h1>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold">Questions Fréquentes</h1>
+        <Button onClick={() => setOpen(true)} className="shrink-0">Suggérer une question</Button>
+      </div>
       
       <Card>
         <CardHeader>
@@ -77,6 +155,29 @@ export default function FAQPage() {
           </Accordion>
         </CardContent>
       </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Proposer une question</DialogTitle>
+            <DialogDescription>
+              Nous étudierons votre proposition et pourrons l'ajouter à la FAQ.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitSuggestion} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Votre question</label>
+              <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ex: Comment est calculé le score de qualité ?" />
+            </div>
+            {submitError && <div className="text-sm text-red-600">{submitError}</div>}
+            {submitOk && <div className="text-sm text-green-600">{submitOk}</div>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Annuler</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? "Envoi..." : "Envoyer"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
