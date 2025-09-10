@@ -1,10 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { createBrowserClient } from "@supabase/ssr"
 
 // Définition de l'interface pour les termes du glossaire
 interface GlossaryTerm {
@@ -227,6 +237,37 @@ export default function GlossairePage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeFilter, setActiveFilter] = useState("Tous")
 
+  // Etat pour suggestion
+  const [open, setOpen] = useState(false)
+  const [suggestTerm, setSuggestTerm] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [pseudo, setPseudo] = useState("")
+  const [userId, setUserId] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState("")
+  const [submitOk, setSubmitOk] = useState("")
+
+  // Supabase client
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user
+        if (user) {
+          setUserId(user.id)
+          const fullName = (user.user_metadata as any)?.full_name as string | undefined
+          const fallback = (user.email || "").split("@")[0]
+          setPseudo(fullName && fullName.trim() ? fullName.trim() : fallback)
+        }
+      } catch {}
+    }
+    load()
+  }, [])
+
   // Filtrer les termes en fonction de la recherche et du filtre actif
   const filteredTerms = glossaryTerms.filter((term) => {
     const matchesSearch =
@@ -246,14 +287,45 @@ export default function GlossairePage() {
   // Obtenir toutes les catégories uniques pour les filtres
   const categories = ["Tous", ...Array.from(new Set(glossaryTerms.map((term) => term.category)))]
 
+  const submitSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitError("")
+    setSubmitOk("")
+    if (!suggestTerm.trim()) {
+      setSubmitError("Veuillez renseigner un terme.")
+      return
+    }
+    setSubmitting(true)
+    try {
+      const payload: Record<string, any> = {
+        term: suggestTerm.trim(),
+        pseudo: pseudo || null,
+      }
+      if (userId) payload.user_id = userId
+      const { error } = await supabase.from("glossary_suggestions").insert(payload)
+      if (error) throw error
+      setSubmitOk("Suggestion envoyée. Merci !")
+      setSuggestTerm("")
+      setTimeout(() => setOpen(false), 800)
+    } catch (err: any) {
+      const message = String(err?.message || "Impossible d'envoyer la suggestion")
+      setSubmitError(message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">Glossaire</h1>
-          <p className="text-muted-foreground">
-            Découvrez les définitions des termes clés du marketing digital et de la publicité en ligne.
-          </p>
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="text-left">
+            <h1 className="text-3xl font-bold mb-2">Glossaire</h1>
+            <p className="text-muted-foreground">
+              Découvrez les définitions des termes clés du marketing digital et de la publicité en ligne.
+            </p>
+          </div>
+          <Button onClick={() => setOpen(true)} className="shrink-0">Suggérer une définition</Button>
         </div>
 
         {/* Barre de recherche */}
@@ -303,6 +375,29 @@ export default function GlossairePage() {
           </div>
         )}
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Proposer une définition</DialogTitle>
+            <DialogDescription>
+              Nous étudierons votre proposition et ajouterons le mot clé et sa définition.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitSuggestion} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Mot à définir</label>
+              <Input value={suggestTerm} onChange={(e) => setSuggestTerm(e.target.value)} placeholder="Ex: Titres et descriptions" />
+            </div>
+            {submitError && <div className="text-sm text-red-600">{submitError}</div>}
+            {submitOk && <div className="text-sm text-green-600">{submitOk}</div>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Annuler</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? "Envoi..." : "Envoyer"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
