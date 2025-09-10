@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { MobileNav } from '@/components/mobile-nav'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -145,6 +146,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             </nav>
 
             <div className="flex items-center gap-4">
+              <div className="md:hidden">
+                <MobileNav />
+              </div>
               <span className="hidden sm:inline text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
               <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800">Se déconnecter</button>
             </div>
