@@ -132,13 +132,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       {user && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
           <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
+            <Link href="/formation" className="flex items-center gap-2 font-semibold">
               <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
               Link academy
             </Link>
 
             <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Link href="/" className="hover:underline">Formation</Link>
+              <Link href="/formation" className="hover:underline">Formation</Link>
               <Link href="/pdv" className="hover:underline">PDV</Link>
               <Link href="/documents" className="hover:underline">Documents</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>

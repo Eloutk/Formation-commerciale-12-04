@@ -27,7 +27,7 @@ export function MobileNav() {
             <span className="sr-only">Close</span>
           </SheetClose>
           <div className="py-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold" onClick={handleNav}>
+            <Link href="/formation" className="flex items-center gap-2 font-semibold" onClick={handleNav}>
               Link academy
             </Link>
             <div className="mt-4 space-y-3">
