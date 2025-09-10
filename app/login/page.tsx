@@ -28,6 +28,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loading) return
     setError("")
     setLoading(true)
 
@@ -38,6 +39,14 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+        })
+      } catch {}
       const redirectTo = search?.get('redirect') || '/formation'
       router.replace(redirectTo)
     } catch (error) {
