@@ -384,7 +384,7 @@ export default function GlossairePage() {
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) { setSuggestTerm(""); setSubmitError(""); setSubmitOk(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Proposer une définition</DialogTitle>

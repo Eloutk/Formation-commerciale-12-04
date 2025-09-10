@@ -69,8 +69,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         const need = await checkPseudo()
         if (need) {
           // keep on modal
-        } else if (!user && pathname !== '/login' && pathname !== '/register') {
-          // already handled below
+        } else {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (!session?.user && pathname !== '/login' && pathname !== '/register') {
+            router.replace('/login')
+          }
         }
       } finally {
         setLoading(false)
