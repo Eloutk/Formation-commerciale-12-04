@@ -67,6 +67,17 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const init = async () => {
       try {
+        // Fast path for auth pages to avoid any blocking fetch
+        if (pathname === '/login' || pathname === '/register') {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            await checkPseudo()
+          } else {
+            setUser(null)
+          }
+          return
+        }
+
         const need = await checkPseudo()
         if (need) {
           // keep on modal
@@ -80,7 +91,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         setLoading(false)
       }
     }
-    init()
+    // Fail-safe timeout in case of unexpected hangs
+    const timeout = setTimeout(() => setLoading(false), 2000)
+    init().finally(() => clearTimeout(timeout))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_IN') {
