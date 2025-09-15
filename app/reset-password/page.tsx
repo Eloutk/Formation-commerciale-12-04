@@ -11,8 +11,11 @@ const supabase = createClient(
 
 export default function ResetPasswordPage(): JSX.Element {
   const searchParams = useSearchParams()
-  const accessToken = searchParams?.get('access_token') || ''
-  const refreshToken = searchParams?.get('refresh_token') || ''
+  // Supabase envoie souvent les tokens dans le hash URL (#access_token=...)
+  const qpAccess = searchParams?.get('access_token') || ''
+  const qpRefresh = searchParams?.get('refresh_token') || ''
+  const [accessToken, setAccessToken] = useState(qpAccess)
+  const [refreshToken, setRefreshToken] = useState(qpRefresh)
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -23,6 +26,15 @@ export default function ResetPasswordPage(): JSX.Element {
 
   // Ensure we have a valid session from the recovery link
   useEffect(() => {
+    // Si pas de token en query, tenter depuis le hash (#access_token=...)
+    if (!qpAccess && typeof window !== 'undefined') {
+      const hash = window.location.hash.replace(/^#/, '')
+      const hashParams = new URLSearchParams(hash)
+      const at = hashParams.get('access_token') || ''
+      const rt = hashParams.get('refresh_token') || ''
+      if (at) setAccessToken(at)
+      if (rt) setRefreshToken(rt)
+    }
     let mounted = true
     ;(async () => {
       try {
@@ -45,7 +57,7 @@ export default function ResetPasswordPage(): JSX.Element {
     return () => {
       mounted = false
     }
-  }, [accessToken, refreshToken])
+  }, [qpAccess, accessToken, refreshToken])
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
