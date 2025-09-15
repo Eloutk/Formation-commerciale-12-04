@@ -1,21 +1,14 @@
 "use client";
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useRouter, useSearchParams } from 'next/navigation'
+import supabase from '@/utils/supabase/client'
 
 export default function ResetPasswordPage(): JSX.Element {
   const searchParams = useSearchParams()
-  // Supabase envoie souvent les tokens dans le hash URL (#access_token=...)
+  const router = useRouter()
+  const qpCode = searchParams?.get('code') || ''
   const qpAccess = searchParams?.get('access_token') || ''
-  const qpRefresh = searchParams?.get('refresh_token') || ''
-  const [accessToken, setAccessToken] = useState(qpAccess)
-  const [refreshToken, setRefreshToken] = useState(qpRefresh)
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -24,27 +17,15 @@ export default function ResetPasswordPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
 
-  // Ensure we have a valid session from the recovery link
+  // 1) Échanger le code/access_token pour obtenir une session
   useEffect(() => {
-    // Si pas de token en query, tenter depuis le hash (#access_token=...)
-    if (!qpAccess && typeof window !== 'undefined') {
-      const hash = window.location.hash.replace(/^#/, '')
-      const hashParams = new URLSearchParams(hash)
-      const at = hashParams.get('access_token') || ''
-      const rt = hashParams.get('refresh_token') || ''
-      if (at) setAccessToken(at)
-      if (rt) setRefreshToken(rt)
-    }
     let mounted = true
     ;(async () => {
       try {
-        if (accessToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          })
-          if (error) throw error
-        }
+        const codeOrToken = qpCode || qpAccess
+        if (!codeOrToken) throw new Error('Lien invalide ou expiré.')
+        const { error } = await supabase.auth.exchangeCodeForSession(codeOrToken)
+        if (error) throw error
         const { data } = await supabase.auth.getSession()
         if (!mounted) return
         setReady(!!data.session)
@@ -57,7 +38,7 @@ export default function ResetPasswordPage(): JSX.Element {
     return () => {
       mounted = false
     }
-  }, [qpAccess, accessToken, refreshToken])
+  }, [qpCode, qpAccess])
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -71,7 +52,10 @@ export default function ResetPasswordPage(): JSX.Element {
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
     if (error) setError(error.message)
-    else setMessage('Mot de passe mis à jour. Vous pouvez vous connecter.')
+    else {
+      setMessage('Mot de passe mis à jour. Vous pouvez vous connecter.')
+      setTimeout(() => router.push('/login'), 1500)
+    }
   }
 
   if (!ready) {
