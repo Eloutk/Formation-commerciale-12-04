@@ -9,6 +9,7 @@ export default function ResetPasswordPage(): JSX.Element {
   const router = useRouter()
   const qpCode = searchParams?.get('code') || ''
   const qpAccess = searchParams?.get('access_token') || ''
+  const [code, setCode] = useState(qpCode)
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -22,7 +23,17 @@ export default function ResetPasswordPage(): JSX.Element {
     let mounted = true
     ;(async () => {
       try {
-        const codeOrToken = qpCode || qpAccess
+        // Support hash fragments (#code=... or #access_token=...)
+        if (typeof window !== 'undefined') {
+          const hash = window.location.hash?.replace(/^#/, '')
+          if (hash) {
+            const hp = new URLSearchParams(hash)
+            const hashCode = hp.get('code')
+            if (hashCode && !code) setCode(hashCode)
+          }
+        }
+
+        const codeOrToken = code || qpAccess
         if (!codeOrToken) throw new Error('Lien invalide ou expiré.')
         const { error } = await supabase.auth.exchangeCodeForSession(codeOrToken)
         if (error) throw error
