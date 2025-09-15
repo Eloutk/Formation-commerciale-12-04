@@ -16,8 +16,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Always allow login/register, rely on client-side redirects for auth gating
-  if (pathname === '/login' || pathname === '/register') {
+  // Always allow public auth pages (login/register/reset-password)
+  if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
     return NextResponse.next()
   }
 
