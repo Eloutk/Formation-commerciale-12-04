@@ -58,7 +58,8 @@ export default function LoginPage() {
           body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
         })
       } catch {}
-      const redirectTo = search?.get('redirect') || '/'
+      const requested = search?.get('redirect') || ''
+      const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/formation' : requested
       router.push(redirectTo)
     } catch {
       setError("Une erreur est survenue lors de la connexion")
