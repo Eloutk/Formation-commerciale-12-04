@@ -33,8 +33,15 @@ export default function ResetPasswordPage() {
           const { error } = await supabase.auth.exchangeCodeForSession(code)
           if (error) err = error.message
         } else if (accessToken) {
-          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
-          if (error) err = error.message
+          // 1) tenter setSession avec refresh_token si dispo
+          let setErr: string | null = null
+          const { error: setError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
+          if (setError) setErr = setError.message
+          // 2) fallback: tenter exchangeCodeForSession avec le token brut (certains providers renvoient "code" dans le hash)
+          if (setErr) {
+            const { error: exErr } = await supabase.auth.exchangeCodeForSession(accessToken)
+            if (exErr) err = setErr || exErr.message
+          }
         }
         const { data } = await supabase.auth.getSession()
         if (!data.session && !err) err = "Session introuvable après validation"
@@ -45,6 +52,10 @@ export default function ResetPasswordPage() {
       if (err) setError(err)
       else setError(null)
       setReady(true)
+      // Nettoie l'URL pour éviter de relancer la vérif au refresh
+      if (typeof window !== 'undefined' && (code || accessToken)) {
+        window.history.replaceState(null, '', '/reset-password')
+      }
     })()
 
     return () => { mounted = false }
