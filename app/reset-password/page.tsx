@@ -14,18 +14,46 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    let mounted = true
+    const hash = window.location.hash.substring(1)
+    const params = new URLSearchParams(hash)
+    const code = params.get("code")
+    const accessToken = params.get("access_token")
+    const refreshToken = params.get("refresh_token")
+
+    if (!code && !accessToken) {
+      setError("Lien invalide ou expiré")
+      return
+    }
+
     ;(async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error || !session) {
-        setError("Lien invalide ou expiré")
-      } else {
-        setReady(true)
+      let err: string | null = null
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (error) err = error.message
+        } else if (accessToken) {
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
+          if (error) err = error.message
+        }
+        const { data } = await supabase.auth.getSession()
+        if (!data.session && !err) err = "Session introuvable après validation"
+      } catch (e: any) {
+        err = e?.message || "Lien invalide ou expiré"
       }
+      if (!mounted) return
+      if (err) setError(err)
+      else setError(null)
+      setReady(true)
     })()
+
+    return () => { mounted = false }
   }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+    setMessage(null)
     if (password !== confirm) {
       setError("Les mots de passe ne correspondent pas")
       return
@@ -52,16 +80,20 @@ export default function ResetPasswordPage() {
         placeholder="Nouveau mot de passe"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="w-full border p-2"
+        className="w-full border p-2 rounded"
+        minLength={8}
+        required
       />
       <input
         type="password"
         placeholder="Confirmer le mot de passe"
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
-        className="w-full border p-2"
+        className="w-full border p-2 rounded"
+        minLength={8}
+        required
       />
-      <button disabled={loading} className="w-full bg-orange-600 text-white p-2 rounded">
+      <button disabled={loading} className="w-full bg-orange-600 text-white p-2 rounded disabled:opacity-50">
         {loading ? "Mise à jour..." : "Valider"}
       </button>
       {message && <p className="text-green-600">{message}</p>}
