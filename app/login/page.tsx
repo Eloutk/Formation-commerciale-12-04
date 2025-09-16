@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [resetMsg, setResetMsg] = useState("") // 👈 pour afficher un message après demande de reset
+  const [resetLoading, setResetLoading] = useState(false)
   const router = useRouter()
   const search = useSearchParams()
 
@@ -76,11 +77,16 @@ export default function LoginPage() {
       setError("Veuillez entrer votre email avant de réinitialiser le mot de passe")
       return
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://link-academy.vercel.app/reset-password", // 👈 redirection vers ta page dédiée
-    })
-    if (error) setError(error.message)
-    else setResetMsg("Un email de réinitialisation a été envoyé si l'adresse est valide.")
+    setResetLoading(true)
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://link-academy.vercel.app'
+      const redirectTo = `${origin}/reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      if (error) setError(error.message)
+      else setResetMsg("Un email de réinitialisation a été envoyé si l'adresse est valide.")
+    } finally {
+      setResetLoading(false)
+    }
   }
 
   return (
@@ -114,9 +120,9 @@ export default function LoginPage() {
         <button
           onClick={handlePasswordReset}
           className="text-sm text-orange-600 hover:underline"
-          disabled={loading}
+          disabled={loading || resetLoading || !email}
         >
-          Mot de passe oublié ?
+          {resetLoading ? "Envoi..." : "Mot de passe oublié ?"}
         </button>
       </div>
 
