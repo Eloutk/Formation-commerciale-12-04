@@ -35,22 +35,23 @@ export default function ResetPasswordPage() {
       } else if (accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         err = error
-      } else if (accessToken) {
-        // fallback rare si pas de refresh_token dans l'URL
-        const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: "" })
-        err = error
+        // Force a session read to ensure propagation
+        await supabase.auth.getSession().catch(() => {})
       }
 
       if (!mounted) return
-      if (err) {
-        setError("Lien invalide ou expiré")
-      } else {
-        setReady(true)
-      }
+      if (err) setError("Lien invalide ou expiré")
+      setReady(true)
     })()
+
+    // Safety timeout if something hangs
+    const t = setTimeout(() => {
+      if (!ready && !error) setError("Lien invalide ou expiré")
+    }, 8000)
 
     return () => {
       mounted = false
+      clearTimeout(t)
     }
   }, [])
 
