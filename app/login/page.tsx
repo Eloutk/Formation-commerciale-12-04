@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
 import supabase from '@/utils/supabase/client'
@@ -13,6 +13,19 @@ export default function LoginPage() {
   const [resetMsg, setResetMsg] = useState("") // 👈 pour afficher un message après demande de reset
   const router = useRouter()
   const search = useSearchParams()
+
+  // Si le lien de reset envoie vers /login#... (type=recovery), rediriger vers /reset-password
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash.substring(1)
+    if (!hash) return
+    const params = new URLSearchParams(hash)
+    const hasToken = params.get('access_token') || params.get('code')
+    const type = params.get('type')
+    if (hasToken && type === 'recovery') {
+      router.replace(`/reset-password#${hash}`)
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
