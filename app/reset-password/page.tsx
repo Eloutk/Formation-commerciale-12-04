@@ -15,6 +15,14 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     let mounted = true
+    setReady(false)
+    setError(null)
+    const safety = setTimeout(() => {
+      if (mounted) {
+        setError((e) => e || "Lien invalide ou expiré")
+        setReady(true)
+      }
+    }, 6000)
     const hash = window.location.hash.substring(1)
     const params = new URLSearchParams(hash)
     const code = params.get("code")
@@ -58,7 +66,7 @@ export default function ResetPasswordPage() {
       }
     })()
 
-    return () => { mounted = false }
+    return () => { mounted = false; clearTimeout(safety) }
   }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
