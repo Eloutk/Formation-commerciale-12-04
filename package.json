@@ -38,6 +38,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@react-pdf/renderer": "^4.3.0",
     "@supabase/ssr": "^0.6.1",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.55.0",
     "caniuse-lite": "^1.0.30001720",
     "class-variance-authority": "^0.7.0",
