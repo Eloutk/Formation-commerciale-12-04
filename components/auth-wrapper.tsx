@@ -46,7 +46,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       return false
     }
     const metaName = (u.user_metadata as any)?.full_name as string | undefined
-    // lire dans profiles
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name')
@@ -67,8 +66,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const init = async () => {
       try {
-        // Fast path for auth pages to avoid any blocking fetch
-        if (pathname === '/login' || pathname === '/register') {
+        // ⚡ Pages publiques : login, register, reset-password
+        if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user) {
             await checkPseudo()
@@ -79,11 +78,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         }
 
         const need = await checkPseudo()
-        if (need) {
-          // keep on modal
-        } else {
+        if (!need) {
           const { data: { session } } = await supabase.auth.getSession()
-          if (!session?.user && pathname !== '/login' && pathname !== '/register') {
+          // ⚡ On ne redirige plus si on est sur reset-password
+          if (
+            !session?.user &&
+            pathname !== '/login' &&
+            pathname !== '/register' &&
+            pathname !== '/reset-password'
+          ) {
             router.replace('/login')
           }
         }
@@ -91,7 +94,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         setLoading(false)
       }
     }
-    // Fail-safe timeout in case of unexpected hangs
+
     const timeout = setTimeout(() => setLoading(false), 2000)
     init().finally(() => clearTimeout(timeout))
 
@@ -126,7 +129,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       const { data: { session } } = await supabase.auth.getSession()
       const u = session?.user
       if (!u) return
-      // update profiles and auth metadata
       await supabase.from('profiles').upsert({ id: u.id, full_name: name }, { onConflict: 'id' })
       await supabase.auth.updateUser({ data: { full_name: name } })
       setUser({ id: u.id, name, email: u.email || '' })
@@ -142,7 +144,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!(pathname === '/login' || pathname === '/register') && (
+      {!(pathname === '/login' || pathname === '/register' || pathname === '/reset-password') && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
           <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
             <Link href="/formation" className="flex items-center gap-2 font-semibold">
@@ -196,4 +198,4 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       </Dialog>
     </div>
   )
-} 
+}

@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
-  // Public assets
+  // Public assets (toujours accessibles)
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
@@ -16,17 +16,21 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // Always allow public auth pages (login/register/reset-password)
-  if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
+  // ✅ Pages publiques : login, register, reset-password
+  if (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname.startsWith('/reset-password')
+  ) {
     return NextResponse.next()
   }
 
-  // For other paths, let the client handle redirect based on sessionStorage auth
+  // Tous les autres chemins passent par la logique côté client (AuthWrapper)
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next|favicon|robots|sitemap|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|woff|woff2)$).*)',
+    '/((?!api|_next|favicon|robots|sitemap|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|woff|woff2)$).*)',
   ],
-} 
+}
