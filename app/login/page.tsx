@@ -1,34 +1,24 @@
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 "use client"
 
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  }
-)
+import supabase from '@/utils/supabase/client'
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState("") // 👈 pour afficher un message après demande de reset
   const router = useRouter()
   const search = useSearchParams()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (loading) return
     setError("")
     setLoading(true)
 
@@ -39,6 +29,7 @@ export default function LoginPage() {
         setLoading(false)
         return
       }
+      // Synchroniser la session côté serveur
       try {
         await fetch('/api/auth/session', {
           method: 'POST',
@@ -47,13 +38,28 @@ export default function LoginPage() {
           body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
         })
       } catch {}
-      const redirectTo = search?.get('redirect') || '/formation'
-      router.replace(redirectTo)
-    } catch (error) {
+      const redirectTo = search?.get('redirect') || '/'
+      router.push(redirectTo)
+    } catch {
       setError("Une erreur est survenue lors de la connexion")
     } finally {
       setLoading(false)
     }
+  }
+
+  // 👇 Nouveau handler pour reset password
+  const handlePasswordReset = async () => {
+    setError("")
+    setResetMsg("")
+    if (!email) {
+      setError("Veuillez entrer votre email avant de réinitialiser le mot de passe")
+      return
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://link-academy.vercel.app/reset-password", // 👈 redirection vers ta page dédiée
+    })
+    if (error) setError(error.message)
+    else setResetMsg("Un email de réinitialisation a été envoyé si l'adresse est valide.")
   }
 
   return (
@@ -66,43 +72,41 @@ export default function LoginPage() {
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>
       )}
+      {resetMsg && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">{resetMsg}</div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium mb-2">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="exemple@email.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            required
-            disabled={loading}
-          />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Mot de passe</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            required
-            disabled={loading}
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50"
-        >
-          {loading ? "Connexion..." : "Se connecter"}
-        </button>
-        <div className="text-center text-sm mt-4">
-          <Link href="/register" className="text-orange-600 hover:underline">Créer un compte</Link>
-        </div>
+        <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50">{loading ? "Connexion..." : "Se connecter"}</button>
       </form>
+
+      {/* 👇 Lien mot de passe oublié */}
+      <div className="text-center mt-4">
+        <button
+          onClick={handlePasswordReset}
+          className="text-sm text-orange-600 hover:underline"
+          disabled={loading}
+        >
+          Mot de passe oublié ?
+        </button>
+      </div>
+
+      <div className="text-center mt-6">
+        <p className="text-sm text-muted-foreground">
+          Pas encore de compte ?{" "}
+          <Link href="/register" className="text-orange-600 hover:underline">
+            Créer un compte
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }
-

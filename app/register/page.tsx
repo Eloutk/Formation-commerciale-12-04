@@ -3,20 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  }
-)
+import supabase from '@/utils/supabase/client'
 
 // Fonction de validation d'email pour @link.fr uniquement
 const validateEmail = (email: string): { isValid: boolean; message: string } => {

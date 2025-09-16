@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { createClient } from "@supabase/supabase-js"
+import supabase from "@/utils/supabase/client"
 
 // Définition de l'interface pour les termes du glossaire
 interface GlossaryTerm {
@@ -246,19 +246,7 @@ export default function GlossairePage() {
   const [submitError, setSubmitError] = useState("")
   const [submitOk, setSubmitOk] = useState("")
 
-  // Supabase client (session par onglet)
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
-    }
-  )
+  // supabase singleton
 
   useEffect(() => {
     const load = async () => {
