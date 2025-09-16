@@ -22,8 +22,18 @@ export default function LoginPage() {
     const params = new URLSearchParams(hash)
     const hasToken = params.get('access_token') || params.get('code')
     const type = params.get('type')
+    const errorCode = params.get('error_code')
+    const errorDesc = params.get('error_description')
     if (hasToken && type === 'recovery') {
       router.replace(`/reset-password#${hash}`)
+      return
+    }
+    // Gérer les liens expirés/invalides renvoyés par Supabase
+    if (params.get('error')) {
+      const message = errorDesc ? decodeURIComponent(errorDesc) : 'Lien invalide ou expiré'
+      setError(message)
+      // Nettoyer le hash pour éviter de re-déclencher au refresh
+      window.history.replaceState(null, '', '/login')
     }
   }, [router])
 
