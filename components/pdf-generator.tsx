@@ -1,5 +1,17 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
-import { PlatformCalculation } from '@/app/pdv/page'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+// Redéclare une version minimale du type pour éviter les imports circulaires depuis la page
+export interface PlatformCalculation {
+  id: string
+  platform: string
+  calculationType: 'price-for-kpis' | 'kpis-for-budget'
+  objective: string
+  aePercentage: number
+  diffusionDays: number
+  price?: number
+  calculatedKpis?: number
+  budget?: string
+  kpis?: string
+}
 // Fonctions de formatage locales
 const normalizeSpaces = (s: string): string => s.replace(/\u00A0/g, ' ')
 const formatNumberSpaces = (value: number): string => normalizeSpaces(new Intl.NumberFormat('fr-FR').format(value))
