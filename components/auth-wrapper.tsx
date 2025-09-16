@@ -4,24 +4,13 @@ import { useState, useEffect } from "react"
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  }
-)
+// ✅ On utilise uniquement le client Supabase centralisé
+import supabase from "@/utils/supabase/client"
 
 interface User {
   id: string
@@ -80,7 +69,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         const need = await checkPseudo()
         if (!need) {
           const { data: { session } } = await supabase.auth.getSession()
-          // ⚡ On ne redirige plus si on est sur reset-password
           if (
             !session?.user &&
             pathname !== '/login' &&
