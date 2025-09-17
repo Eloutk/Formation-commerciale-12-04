@@ -10,8 +10,13 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
+    domains: [
+      'hebbkxlanhila5yf.public.blob.vercel-storage.com',
+      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+    ],
     remotePatterns: [
       { protocol: 'https', hostname: 'hebbkxlanhila5yf.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com' },
       { protocol: 'https', hostname: 'vercel-storage.com' },
     ],
   },
