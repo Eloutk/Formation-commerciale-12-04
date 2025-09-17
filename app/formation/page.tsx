@@ -1,14 +1,13 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { UserCircle, LogIn } from "lucide-react"
 import ModuleCard from "@/components/module-card"
 import { getModulesProgress } from "@/lib/progress"
 
 export default function FormationPage() {
   // Récupérer les données de progression des modules
-  const { modules, overallProgress } = getModulesProgress()
+  const { modules } = getModulesProgress()
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -35,22 +34,7 @@ export default function FormationPage() {
         </div>
       </section>
 
-      {/* Progress Section */}
-      <section className="py-8 max-w-3xl mx-auto mb-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Votre progression</CardTitle>
-            <CardDescription>Suivez votre avancement dans les modules de formation</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Progress value={overallProgress} className="h-3" />
-            <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-              <span>{overallProgress}%</span>
-              <span>Complété</span>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+      {/* Progress Section removed per UX request */}
 
       {/* Modules Section */}
       <section className="py-8">

@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import {
   BookOpen,
@@ -53,20 +52,15 @@ export default function ModuleCard({ title, description, href, progress, quizSco
           <div className="p-2 bg-primary/10 rounded-lg text-primary">
             <IconComponent className="h-6 w-6" />
           </div>
-          <div className="text-sm text-muted-foreground">{progress}% complété</div>
+          {/* Progress percentage removed per UX */}
         </div>
         <CardTitle className="mt-4">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground">{description}</p>
-        <Progress value={progress} className="h-2 mt-4" />
+        {/* Progress bar removed per UX */}
 
-        {quizScore !== null && quizScore !== undefined && (
-          <div className="mt-3 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Quiz:</span>
-            <span className={`font-medium ${quizScore >= 70 ? "text-green-600" : "text-amber-600"}`}>{quizScore}%</span>
-          </div>
-        )}
+        {/* Quiz percentage removed per UX */}
       </CardContent>
       <CardFooter>
         <Button asChild variant="ghost" className="w-full justify-between">
