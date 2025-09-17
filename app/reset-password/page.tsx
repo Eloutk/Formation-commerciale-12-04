@@ -79,14 +79,25 @@ export default function ResetPasswordPage() {
     }
     setLoading(true)
     try {
-      const safety = setTimeout(() => {
-        setLoading(false)
-        setError((prev) => prev || "La mise à jour prend trop de temps. Réessayez.")
-      }, 8000)
-      const { error } = await supabase.auth.updateUser({ password })
-      clearTimeout(safety)
+      // Vérifier qu'une session est active
+      const { data: sess } = await supabase.auth.getSession()
+      if (!sess.session) {
+        setError("Session invalide ou expirée. Rouvrez le lien depuis l'email.")
+        return
+      }
+
+      // Envoyer la mise à jour avec un timeout de sécurité
+      const timeoutMs = 7000
+      const result = await Promise.race([
+        supabase.auth.updateUser({ password }),
+        new Promise<{ error: any }>((resolve) =>
+          setTimeout(() => resolve({ error: new Error('TIMEOUT') }), timeoutMs)
+        ),
+      ])
+
+      const error = (result as any)?.error as any | null
       if (error) {
-        setError(error.message)
+        setError(error.message === 'TIMEOUT' ? "Réseau lent. Réessayez dans un instant." : String(error.message || error))
       } else {
         setMessage("Mot de passe mis à jour. Vous pouvez vous connecter.")
         // nettoie l'URL hash et redirige
