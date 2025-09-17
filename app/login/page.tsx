@@ -120,7 +120,7 @@ export default function LoginPage() {
         <button
           onClick={handlePasswordReset}
           className="text-sm text-orange-600 hover:underline"
-          disabled={loading || resetLoading || !email}
+          disabled={loading || resetLoading}
         >
           {resetLoading ? "Envoi..." : "Mot de passe oublié ?"}
         </button>
