@@ -105,6 +105,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut()
+      // sync server-side session cookies
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ event: 'SIGNED_OUT' }),
+        })
+      } catch {}
+      router.replace('/login')
     } catch {}
   }
 
