@@ -13,102 +13,53 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
 
+  // Vérifie le token dans l’URL et initialise la session
   useEffect(() => {
-    let mounted = true
-    setReady(false)
-    setError(null)
-    const safety = setTimeout(() => {
-      if (mounted) {
-        setError((e) => e || "Lien invalide ou expiré")
-        setReady(true)
-      }
-    }, 6000)
     const hash = window.location.hash.substring(1)
     const params = new URLSearchParams(hash)
-    const code = params.get("code")
     const accessToken = params.get("access_token")
     const refreshToken = params.get("refresh_token")
 
-    if (!code && !accessToken) {
+    if (!accessToken || !refreshToken) {
       setError("Lien invalide ou expiré")
+      setReady(true)
       return
     }
 
     ;(async () => {
-      let err: string | null = null
-      try {
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) err = error.message
-        } else if (accessToken) {
-          // 1) tenter setSession avec refresh_token si dispo
-          let setErr: string | null = null
-          const { error: setError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || "" })
-          if (setError) setErr = setError.message
-          // 2) fallback: tenter exchangeCodeForSession avec le token brut (certains providers renvoient "code" dans le hash)
-          if (setErr) {
-            const { error: exErr } = await supabase.auth.exchangeCodeForSession(accessToken)
-            if (exErr) err = setErr || exErr.message
-          }
-        }
-        const { data } = await supabase.auth.getSession()
-        if (!data.session && !err) err = "Session introuvable après validation"
-      } catch (e: any) {
-        err = e?.message || "Lien invalide ou expiré"
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      })
+      if (error) {
+        setError("Session invalide ou expirée. Rouvrez le lien depuis l'email.")
       }
-      if (!mounted) return
-      if (err) setError(err)
-      else setError(null)
       setReady(true)
-      // Nettoie l'URL pour éviter de relancer la vérif au refresh
-      if (typeof window !== 'undefined' && (code || accessToken)) {
-        window.history.replaceState(null, '', '/reset-password')
-      }
+      // Nettoie l’URL
+      window.history.replaceState(null, "", "/reset-password")
     })()
-
-    return () => { mounted = false; clearTimeout(safety) }
   }, [])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setMessage(null)
+
     if (password !== confirm) {
       setError("Les mots de passe ne correspondent pas")
       return
     }
+
     setLoading(true)
-    try {
-      // Vérifier qu'une session est active
-      const { data: sess } = await supabase.auth.getSession()
-      if (!sess.session) {
-        setError("Session invalide ou expirée. Rouvrez le lien depuis l'email.")
-        return
-      }
+    const { error } = await supabase.auth.updateUser({ password })
 
-      // Envoyer la mise à jour avec un timeout de sécurité
-      const timeoutMs = 7000
-      const result = await Promise.race([
-        supabase.auth.updateUser({ password }),
-        new Promise<{ error: any }>((resolve) =>
-          setTimeout(() => resolve({ error: new Error('TIMEOUT') }), timeoutMs)
-        ),
-      ])
-
-      const error = (result as any)?.error as any | null
-      if (error) {
-        setError(error.message === 'TIMEOUT' ? "Réseau lent. Réessayez dans un instant." : String(error.message || error))
-      } else {
-        setMessage("Mot de passe mis à jour. Vous pouvez vous connecter.")
-        // nettoie l'URL hash et redirige
-        try { if (typeof window !== 'undefined') window.history.replaceState(null, '', '/login') } catch {}
-        setTimeout(() => router.push("/login"), 1200)
-      }
-    } catch (e: any) {
-      setError(e?.message || "Impossible de mettre à jour le mot de passe")
-    } finally {
-      setLoading(false)
+    if (error) {
+      setError(error.message)
+    } else {
+      setMessage("Mot de passe mis à jour. Vous pouvez vous connecter.")
+      setTimeout(() => router.push("/login"), 1500)
     }
+    setLoading(false)
   }
 
   if (!ready) {
@@ -136,7 +87,11 @@ export default function ResetPasswordPage() {
         minLength={8}
         required
       />
-      <button disabled={loading} className="w-full bg-orange-600 text-white p-2 rounded disabled:opacity-50">
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-orange-600 text-white p-2 rounded disabled:opacity-50"
+      >
         {loading ? "Mise à jour..." : "Valider"}
       </button>
       {message && <p className="text-green-600">{message}</p>}
