@@ -18,20 +18,6 @@ export default function FormationPage() {
           Bienvenue sur la plateforme de formation commerciale. Accédez facilement à toutes les ressources dont vous
           avez besoin pour améliorer vos compétences.
         </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Button asChild size="lg">
-            <Link href="/login">
-              <LogIn className="mr-2 h-5 w-5" />
-              Se connecter
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/register">
-              <UserCircle className="mr-2 h-5 w-5" />
-              Créer un compte
-            </Link>
-          </Button>
-        </div>
       </section>
 
       {/* Progress Section removed per UX request */}
