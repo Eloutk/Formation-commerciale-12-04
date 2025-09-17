@@ -5,8 +5,8 @@ export interface PlatformCalculation {
   platform: string
   calculationType: 'price-for-kpis' | 'kpis-for-budget'
   objective: string
-  aePercentage: number
-  diffusionDays: number
+  aePercentage: number | string
+  diffusionDays: number | string
   price?: number
   calculatedKpis?: number
   budget?: string
