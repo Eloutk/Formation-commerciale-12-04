@@ -25,7 +25,7 @@ export default function LoginPage() {
     const type = params.get('type')
     const errorCode = params.get('error_code')
     const errorDesc = params.get('error_description')
-    if (hasToken && type === 'recovery') {
+    if (hasToken && (type === 'recovery' || !type)) {
       router.replace(`/reset-password#${hash}`)
       return
     }
