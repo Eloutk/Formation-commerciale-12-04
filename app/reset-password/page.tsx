@@ -79,7 +79,12 @@ export default function ResetPasswordPage() {
     }
     setLoading(true)
     try {
+      const safety = setTimeout(() => {
+        setLoading(false)
+        setError((prev) => prev || "La mise à jour prend trop de temps. Réessayez.")
+      }, 8000)
       const { error } = await supabase.auth.updateUser({ password })
+      clearTimeout(safety)
       if (error) {
         setError(error.message)
       } else {
