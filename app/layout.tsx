@@ -21,6 +21,12 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="fr">
       <body className={inter.className}>
+        {/* Early client-side redirect for Supabase recovery links to preserve hash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(() => { try { var loc = window.location; var path = loc.pathname; var hash = loc.hash || ''; if (hash && (path === '/' || path === '/login')) { var qs = new URLSearchParams(hash.slice(1)); var hasToken = qs.get('access_token') || qs.get('code'); var type = qs.get('type'); if (hasToken && (type === 'recovery' || !type)) { loc.replace('/reset-password' + hash); } } } catch (_) {} })();`,
+          }}
+        />
         <AuthWrapper>{children}</AuthWrapper>
       </body>
     </html>
