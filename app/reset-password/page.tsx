@@ -78,12 +78,20 @@ export default function ResetPasswordPage() {
       return
     }
     setLoading(true)
-    const { error } = await supabase.auth.updateUser({ password })
-    setLoading(false)
-    if (error) setError(error.message)
-    else {
-      setMessage("Mot de passe mis à jour. Vous pouvez vous connecter.")
-      setTimeout(() => router.push("/login"), 1500)
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) {
+        setError(error.message)
+      } else {
+        setMessage("Mot de passe mis à jour. Vous pouvez vous connecter.")
+        // nettoie l'URL hash et redirige
+        try { if (typeof window !== 'undefined') window.history.replaceState(null, '', '/login') } catch {}
+        setTimeout(() => router.push("/login"), 1200)
+      }
+    } catch (e: any) {
+      setError(e?.message || "Impossible de mettre à jour le mot de passe")
+    } finally {
+      setLoading(false)
     }
   }
 
