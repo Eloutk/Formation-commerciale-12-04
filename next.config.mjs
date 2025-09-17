@@ -9,6 +9,12 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'hebbkxlanhila5yf.public.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'vercel-storage.com' },
+    ],
+  },
 }
 
 mergeConfig(nextConfig, userConfig)
