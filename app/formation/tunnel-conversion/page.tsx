@@ -75,14 +75,7 @@ export default function TunnelConversion() {
               </ul>
             </div>
           </CardContent>
-          <CardFooter>
-            <Link href="/formation/tunnel-conversion/quiz">
-              <Button>
-                Passer au quiz
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardFooter>
+          {/* Quiz button removed */}
         </Card>
       </div>
     </div>

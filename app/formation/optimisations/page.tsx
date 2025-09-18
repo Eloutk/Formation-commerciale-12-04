@@ -328,14 +328,7 @@ Nous allons regarder à la fois le CPC et le CTR car nous sommes dans le cas d'u
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8 flex justify-end">
-          <Link href="/formation/optimisations/quiz">
-            <Button>
-              Passer au quiz
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+      {/* Quiz button removed */}
       </div>
     </div>
   )

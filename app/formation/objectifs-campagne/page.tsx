@@ -357,14 +357,7 @@ export default function ObjectifsCampagne() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8 flex justify-end">
-          <Link href="/formation/objectifs-campagne/quiz">
-            <Button>
-              Passer au quiz
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+      {/* Quiz button removed */}
       </div>
     </div>
   )

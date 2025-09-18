@@ -39,14 +39,7 @@ export default function MethodologieLink() {
                   />
                 </div>
               </CardContent>
-              <CardFooter>
-                <Link href="/formation/methodologie-link/quiz">
-                  <Button>
-                    Passer au quiz
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardFooter>
+              {/* Quiz button removed */}
             </Card>
           </TabsContent>
 
@@ -95,14 +88,7 @@ export default function MethodologieLink() {
                   </Card>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Link href="/formation/methodologie-link/quiz">
-                  <Button>
-                    Passer au quiz
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardFooter>
+              {/* Quiz button removed */}
             </Card>
           </TabsContent>
         </Tabs>

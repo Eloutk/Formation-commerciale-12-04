@@ -55,7 +55,6 @@ export default function PDVPage() {
   const [isBudgetSimulation, setIsBudgetSimulation] = useState(false)
   const [calculations, setCalculations] = useState<PlatformCalculation[]>([])
   const [selectedPlatform, setSelectedPlatform] = useState('')
-  const [selectedSector, setSelectedSector] = useState('')
   const [selectedObjective, setSelectedObjective] = useState('')
   const [aePercentage, setAePercentage] = useState('40')
   const [diffusionDays, setDiffusionDays] = useState('15')
@@ -440,19 +439,6 @@ export default function PDVPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Secteur</Label>
-                    <Select value={selectedSector} onValueChange={setSelectedSector}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez un secteur" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['Automobile','Industrie','Tourisme','Institution'].map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
                     <Label>Objectif</Label>
                     <Select value={selectedObjective} onValueChange={setSelectedObjective} disabled={!selectedPlatform}>
                       <SelectTrigger>
@@ -648,19 +634,6 @@ export default function PDVPage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Secteur</Label>
-                    <Select value={selectedSector} onValueChange={setSelectedSector}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez un secteur" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {['Automobile','Industrie','Tourisme','Institution'].map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
                   <div className="space-y-2">
                     <Label>Objectif</Label>

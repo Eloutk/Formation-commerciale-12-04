@@ -485,14 +485,7 @@ export default function PlateformesPlacement() {
               <CardContent className="space-y-6">
                 <p>Les campagnes SMS ne sont pas gérées en interne mais elles sont confiées à nos partenaires.</p>
               </CardContent>
-              <CardFooter>
-                <Link href="/formation/plateformes-placement/quiz">
-                  <Button>
-                    Passer au quiz
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </CardFooter>
+              {/* Quiz button removed */}
             </Card>
           </TabsContent>
         </Tabs>

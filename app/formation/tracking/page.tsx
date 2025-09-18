@@ -321,14 +321,7 @@ export default function Tracking() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8 flex justify-end">
-          <Link href="/formation/tracking/quiz">
-            <Button>
-              Passer au quiz
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+      {/* Quiz button removed */}
       </div>
     </div>
   )
