@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
   }
 
   if (!ready) {
-    return <p className="text-center mt-10">{error || "Vérification du lien..."}</p>
+    return <p className="text-center mt-10">Vérification du lien...</p>
   }
 
   return (
@@ -95,7 +95,6 @@ export default function ResetPasswordPage() {
         {loading ? "Mise à jour..." : "Valider"}
       </button>
       {message && <p className="text-green-600">{message}</p>}
-      {error && <p className="text-red-600">{error}</p>}
     </form>
   )
 }
