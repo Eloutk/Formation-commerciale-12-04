@@ -104,8 +104,10 @@ function AfficherExempleScoreQualite() {
   const [show, setShow] = useState(false);
   const [currentExample, setCurrentExample] = useState(0);
   const examples = [
-    { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.28-jZHUuRMiJMsRiVR1rM99hTT0Wl8MuH.png" },
+    { image: "/images/premiere.png" },
     { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.35-r8Rp84pWHUQdo77VTeA9Ko2wBRPtRc.png" },
+    // Uber Eats en 3e slide
+    { image: "/images/ubereats.png" },
     { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.45-3sK7x1e2ZBdBSDHJmpVg6LrU4ICZaQ.png" },
     { image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Capture%20d%E2%80%99e%CC%81cran%202025-03-29%20a%CC%80%2011.03.50-kR4F67aOJuuA4d1nVK2tYMvQFN05LA.png" }
   ];
