@@ -103,18 +103,11 @@ export default function PlateformesPlacement() {
                         <h3 className="text-lg font-medium">Snapchat</h3>
                       </div>
                       <div className="border rounded-md bg-white p-4">
-                        <ul className="list-disc list-inside space-y-1 ml-4">
-                          <li>Idéal pour toucher une audience jeune avec un contenu dynamique</li>
-                          <li>on Snapchat est très fortement utilisé par les jeunes : la tranche 18-24 ans représente autour de 37-38 % des utilisateurs globaux. 
-
-La deuxième tranche importante est 25-34 ans (~ 24-25 %) ; ensuite ça chute pour les 35-49 ans (~ 14-15 %) et beaucoup plus pour les plus de 50 ans. 
-
-
-
-Par genre, la répartition est assez équilibrée : légèrement plus d’utilisateurs masculins dans certains cas et équilibré dans d’autres. 
-
-
-En France, Snapchat atteint environ 27-28 millions d’utilisateurs (premier semestre 2025), ce qui représente environ 41-42 % de la population (à partir de 13 ans) selon les chiffres d'audience publicitaire.</li>
+                        <ul className="list-disc list-inside space-y-2 ml-4">
+                          <li>Idéal pour toucher une audience jeune avec un contenu dynamique.</li>
+                          <li>18–24 ans ≈ 37–39 % des utilisateurs globaux; 25–34 ans ≈ 24–25 %; baisse après 35–49 ans (~14–15 %) et 50+.</li>
+                          <li>Répartition par genre assez équilibrée (légère majorité masculine dans certains cas).</li>
+                          <li>En France: ~27–28 M d’utilisateurs (S1 2025), soit ~41–42 % de la population 13+.</li>
                         </ul>
                       </div>
                       <div className="border rounded-md bg-white p-4 mt-4">
@@ -244,18 +237,15 @@ En France, Snapchat atteint environ 27-28 millions d’utilisateurs (premier sem
                         <h3 className="text-lg font-medium">TikTok</h3>
                       </div>
                       <div className="border rounded-md bg-white p-4">
-                        <p>TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement les générations Z et Y.
-                        1,7 milliard d’utilisateurs actifs dans le monde, dont ~21,5 millions en France (40 % des adultes).
-
-25-34 ans = cœur de l’audience (≈29 % en France), suivis de près par les 18-24 ; les 35-44 ans progressent fortement.
-
-Temps moyen élevé : ≈1h par jour par utilisateur, l’un des réseaux où l’engagement est le plus fort.
-
-Contenus dominants : vidéos courtes, verticales, avec montée en puissance des tutoriels, de l’éducation et du business aux côtés du divertissement.
-
-TikTok devient aussi un moteur de recherche alternatif (près de 40 % des 18-24 préfèrent chercher sur TikTok plutôt que Google).
-⚖️ Répartition de genre équilibrée (légère majorité féminine en France : 52/48).
-                        </p>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Plateforme idéale pour un contenu créatif et authentique (générations Z et Y).</li>
+                          <li>≈ 1,7 milliard d’utilisateurs actifs dans le monde, ~21,5 millions en France (≈ 40 % des adultes).</li>
+                          <li>25–34 ans = cœur de l’audience (~29 % en France), suivis de près par les 18–24 ; les 35–44 ans progressent.</li>
+                          <li>Temps moyen élevé ≈ 1h/jour par utilisateur, engagement très fort.</li>
+                          <li>Contenus dominants : vidéos courtes, verticales (montée des tutos, éducation et business en plus du divertissement).</li>
+                          <li>Tendance moteur de recherche alternatif (près de 40 % des 18–24 préfèrent chercher sur TikTok plutôt que Google).</li>
+                          <li>Répartition de genre globalement équilibrée (légère majorité féminine en France ≈ 52/48).</li>
+                        </ul>
                       </div>
                       <div className="border rounded-md bg-white p-4 mt-4">
                         <h4 className="font-medium mb-2">Formats publicitaires</h4>
@@ -290,17 +280,14 @@ TikTok devient aussi un moteur de recherche alternatif (près de 40 % des 18-24 
                         <h3 className="text-lg font-medium">Spotify</h3>
                       </div>
                       <div className="border rounded-md bg-white p-4">
-                        <p>Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.
-                        Dans le monde, 696 millions d’utilisateurs actifs mensuels, dont ~276 millions abonnés Premium.
-
-25-34 ans = tranche d’âge la plus représentée, suivie de près par les 18-24 ans ; les +55 ans progressent doucement.
-
-Répartition par genre équilibrée avec légère majorité masculine (~56 % hommes vs 44 % femmes).
-
-Contenus diversifiés : musique, podcasts, audiobooks ; usage quotidien. 
-
-Modèle économique dominé par les abonnements Premium, mais la version gratuite avec publicité reste clé pour recruter.
-                        </p>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Plateforme audio pour atteindre une audience captive pendant l’écoute de musique.</li>
+                          <li>~696 M d’utilisateurs actifs mensuels dans le monde, dont ~276 M abonnés Premium.</li>
+                          <li>25–34 ans = tranche la plus représentée, suivie de près par les 18–24 ; les 55+ progressent.</li>
+                          <li>Répartition par genre équilibrée avec légère majorité masculine (~56 % hommes vs 44 % femmes).</li>
+                          <li>Contenus variés : musique, podcasts, audiobooks ; usage souvent quotidien.</li>
+                          <li>Modèle économique dominé par le Premium, mais la version gratuite avec publicité reste clé pour recruter.</li>
+                        </ul>
                       </div>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
