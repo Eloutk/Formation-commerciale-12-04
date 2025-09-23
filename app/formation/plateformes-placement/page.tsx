@@ -105,7 +105,16 @@ export default function PlateformesPlacement() {
                       <div className="border rounded-md bg-white p-4">
                         <ul className="list-disc list-inside space-y-1 ml-4">
                           <li>Idéal pour toucher une audience jeune avec un contenu dynamique</li>
-                          <li>70 % des utilisateurs ont moins de 35 ans, forte concentration entre 13 et 24 ans</li>
+                          <li>on Snapchat est très fortement utilisé par les jeunes : la tranche 18-24 ans représente autour de 37-38 % des utilisateurs globaux. 
+
+La deuxième tranche importante est 25-34 ans (~ 24-25 %) ; ensuite ça chute pour les 35-49 ans (~ 14-15 %) et beaucoup plus pour les plus de 50 ans. 
+
+
+
+Par genre, la répartition est assez équilibrée : légèrement plus d’utilisateurs masculins dans certains cas et équilibré dans d’autres. 
+
+
+En France, Snapchat atteint environ 27-28 millions d’utilisateurs (premier semestre 2025), ce qui représente environ 41-42 % de la population (à partir de 13 ans) selon les chiffres d'audience publicitaire.</li>
                         </ul>
                       </div>
                       <div className="border rounded-md bg-white p-4 mt-4">
@@ -235,7 +244,18 @@ export default function PlateformesPlacement() {
                         <h3 className="text-lg font-medium">TikTok</h3>
                       </div>
                       <div className="border rounded-md bg-white p-4">
-                        <p>TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement les générations Z et Y.</p>
+                        <p>TikTok est la plateforme idéale pour un contenu créatif et authentique ciblant principalement les générations Z et Y.
+                        1,7 milliard d’utilisateurs actifs dans le monde, dont ~21,5 millions en France (40 % des adultes).
+
+25-34 ans = cœur de l’audience (≈29 % en France), suivis de près par les 18-24 ; les 35-44 ans progressent fortement.
+
+Temps moyen élevé : ≈1h par jour par utilisateur, l’un des réseaux où l’engagement est le plus fort.
+
+Contenus dominants : vidéos courtes, verticales, avec montée en puissance des tutoriels, de l’éducation et du business aux côtés du divertissement.
+
+TikTok devient aussi un moteur de recherche alternatif (près de 40 % des 18-24 préfèrent chercher sur TikTok plutôt que Google).
+⚖️ Répartition de genre équilibrée (légère majorité féminine en France : 52/48).
+                        </p>
                       </div>
                       <div className="border rounded-md bg-white p-4 mt-4">
                         <h4 className="font-medium mb-2">Formats publicitaires</h4>
@@ -270,7 +290,17 @@ export default function PlateformesPlacement() {
                         <h3 className="text-lg font-medium">Spotify</h3>
                       </div>
                       <div className="border rounded-md bg-white p-4">
-                        <p>Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.</p>
+                        <p>Spotify est une plateforme audio qui permet d'atteindre une audience captive pendant l'écoute de musique.
+                        Dans le monde, 696 millions d’utilisateurs actifs mensuels, dont ~276 millions abonnés Premium.
+
+25-34 ans = tranche d’âge la plus représentée, suivie de près par les 18-24 ans ; les +55 ans progressent doucement.
+
+Répartition par genre équilibrée avec légère majorité masculine (~56 % hommes vs 44 % femmes).
+
+Contenus diversifiés : musique, podcasts, audiobooks ; usage quotidien. 
+
+Modèle économique dominé par les abonnements Premium, mais la version gratuite avec publicité reste clé pour recruter.
+                        </p>
                       </div>
 
                       <h4 className="font-medium mt-6">Formats publicitaires</h4>
