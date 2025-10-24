@@ -1,10 +1,7 @@
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import AuthWrapper from "@/components/auth-wrapper"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Formation Commerciale Interactive",
@@ -20,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
+      <body>
         {/* Early client-side redirect for Supabase recovery links to preserve hash */}
         <script
           dangerouslySetInnerHTML={{

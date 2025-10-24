@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Avenir Next Font Faces */
+@font-face {
+  font-family: 'Avenir Next';
+  src: url('/fonts/AvenirNext-Regular.woff2') format('woff2'),
+       url('/fonts/AvenirNext-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Avenir Next';
+  src: url('/fonts/AvenirNext-DemiBold.woff2') format('woff2'),
+       url('/fonts/AvenirNext-DemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Avenir Next';
+  src: url('/fonts/AvenirNext-Bold.woff2') format('woff2'),
+       url('/fonts/AvenirNext-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -71,7 +99,12 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Avenir Next', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  }
+  
+  * {
+    font-family: 'Avenir Next', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
   }
 }
 
