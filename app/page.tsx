@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function HomePage() {
+export default function RootPage() {
   const router = useRouter()
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function HomePage() {
         return
       }
     }
-    router.replace('/login')
+    router.replace('/formation')
   }, [router])
 
   return null
