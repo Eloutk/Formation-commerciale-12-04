@@ -17,7 +17,7 @@ export default function RootPage() {
         return
       }
     }
-    router.replace('/formation')
+    router.replace('/home')
   }, [router])
 
   return null

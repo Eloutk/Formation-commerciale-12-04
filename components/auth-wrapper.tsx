@@ -90,7 +90,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       if (event === 'SIGNED_IN') {
         await checkPseudo()
         if (pathname === '/login' || pathname === '/register') {
-          router.replace('/formation')
+          router.replace('/home')
         }
       }
       if (event === 'SIGNED_OUT') {
@@ -135,15 +135,18 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       {!(pathname === '/login' || pathname === '/register' || pathname === '/reset-password') && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
           <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
-            <Link href="/formation" className="flex items-center gap-2 font-semibold">
+            <Link href="/home" className="flex items-center gap-2 font-semibold">
               <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
               Link academy
             </Link>
 
             <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Link href="/formation" className="hover:underline">Formation</Link>
+              <Link href="/home" className="hover:underline">Home</Link>
+              <Link href="/diffusion" className="hover:underline">Diffusion</Link>
+              <Link href="/chefferie" className="hover:underline">Chefferie de projet</Link>
+              <Link href="/studio" className="hover:underline">Studio</Link>
               <Link href="/pdv" className="hover:underline">PDV</Link>
-              <Link href="/documents" className="hover:underline">Documents</Link>
+              <Link href="/documents" className="hover:underline">Document</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>
               <Link href="/faq" className="hover:underline">FAQ</Link>
             </nav>

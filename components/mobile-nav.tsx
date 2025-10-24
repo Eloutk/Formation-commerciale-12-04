@@ -25,18 +25,27 @@ export function MobileNav() {
             <span className="sr-only">Close</span>
           </SheetClose>
           <div className="py-6">
-            <Link href="/formation" className="flex items-center gap-2 font-semibold mb-4" onClick={handleNav}>
+            <Link href="/home" className="flex items-center gap-2 font-semibold mb-4" onClick={handleNav}>
               Link academy
             </Link>
             <nav className="flex flex-col space-y-3">
-              <Link href="/formation" className="text-sm hover:underline" onClick={handleNav}>
-                Formation
+              <Link href="/home" className="text-sm hover:underline" onClick={handleNav}>
+                Home
               </Link>
-              <Link href="/documents" className="text-sm hover:underline" onClick={handleNav}>
-                Documents
+              <Link href="/diffusion" className="text-sm hover:underline" onClick={handleNav}>
+                Diffusion
+              </Link>
+              <Link href="/chefferie" className="text-sm hover:underline" onClick={handleNav}>
+                Chefferie de projet
+              </Link>
+              <Link href="/studio" className="text-sm hover:underline" onClick={handleNav}>
+                Studio
               </Link>
               <Link href="/pdv" className="text-sm hover:underline" onClick={handleNav}>
                 PDV
+              </Link>
+              <Link href="/documents" className="text-sm hover:underline" onClick={handleNav}>
+                Document
               </Link>
               <Link href="/glossaire" className="text-sm hover:underline" onClick={handleNav}>
                 Glossaire
