@@ -501,7 +501,7 @@ export default function StudioPage() {
                             <li>format carré : 1080 × 1080 px</li>
                             <li>format vertical : 1080 × 1920 px</li>
                             <li>format horizontal : 1200 × 628 px</li>
-                        </ul>
+                          </ul>
                       </CardContent>
                     </Card>
                     </div>
@@ -693,16 +693,16 @@ export default function StudioPage() {
                     </Card>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                      </CardContent>
+                    </Card>
           </TabsContent>
 
           {/* Onglet LinkedIn */}
           <TabsContent value="linkedin">
-            <Card>
+                    <Card>
               <CardHeader>
                 <CardTitle className="text-3xl font-bold">Formats visuels LinkedIn</CardTitle>
-              </CardHeader>
+                      </CardHeader>
               <CardContent className="space-y-6">
 
                 {/* H3 : Liste des formats */}
@@ -761,7 +761,7 @@ export default function StudioPage() {
                             <li>format carré : 1080 × 1080 px</li>
                             <li>format vertical : 1080 × 1920 px (déprécié)</li>
                             <li>format horizontal : 1200 × 628 px</li>
-                          </ul>
+                        </ul>
                       </CardContent>
                     </Card>
                 </div>
@@ -832,13 +832,13 @@ export default function StudioPage() {
                 </div>
 
                 {/* H2 : Limites de caractères pour les wordings */}
-                  <div>
-                  <h3 className="text-lg font-semibold mb-4">Limites de caractères pour les wordings</h3>
+                <div className="mt-7 md:mt-9 lg:mt-12">
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Limites de caractères pour les wordings</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Encart visuel à gauche */}
                     <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
                       <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                  </div>
+                    </div>
                     {/* Texte à droite */}
                     <div className="space-y-2 text-sm">
                       <p><strong>photo de profil + nom de page</strong></p>
@@ -1055,11 +1055,11 @@ export default function StudioPage() {
                       {/* Encadré fichiers acceptés */}
                       <Alert>
                         <AlertTitle>Fichiers acceptés pour les publicités images :</AlertTitle>
-                  <AlertDescription>
+                      <AlertDescription>
                           .jpg, .png<br />
                           Taille maximale : 5 Mo.
-                  </AlertDescription>
-                </Alert>
+                      </AlertDescription>
+                    </Alert>
                     </div>
 
                     {/* Colonne droite : publicités vidéos */}
@@ -1081,12 +1081,12 @@ export default function StudioPage() {
                       {/* Encadré fichiers acceptés */}
                       <Alert>
                         <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                  <AlertDescription>
+                      <AlertDescription>
                           .mov, .mp4 et H.264<br />
                           Durée optimale : 14 secondes maximum<br />
                           Durée maximum : 30 secondes
-                  </AlertDescription>
-                </Alert>
+                      </AlertDescription>
+                    </Alert>
                     </div>
                   </div>
                 </div>
@@ -1096,7 +1096,7 @@ export default function StudioPage() {
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ Snapchat</h2>
                   
                   {/* 2 colonnes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Colonne gauche : Limites de caractères */}
                   <div>
                     <Card>
@@ -1106,7 +1106,7 @@ export default function StudioPage() {
                             <li><strong>titre :</strong><br />34 caractères maximum, espaces inclus</li>
                             <li>répétition du nom de marque + titre + lien</li>
                             <li>bloc CTA²</li>
-                          </ul>
+                        </ul>
                       </CardContent>
                     </Card>
                   </div>
@@ -1133,7 +1133,7 @@ export default function StudioPage() {
                               <li><strong>bloc nom de marque + titre + lien</strong><br />
                                 marge de 18,5 % environ<br />
                                 350 pixels environ</li>
-                          </ul>
+                        </ul>
                       </CardContent>
                     </Card>
                       </div>
@@ -1192,7 +1192,7 @@ export default function StudioPage() {
                             <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
                             <li>2 maximum.</li>
                             </ul>
-                          </div>
+                  </div>
                           <div>
                           <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
                           <ul className="text-sm space-y-1 ml-4 list-disc">
@@ -1211,98 +1211,105 @@ export default function StudioPage() {
 
           {/* Onglet TikTok */}
           <TabsContent value="tiktok">
-                    <Card>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-3xl font-bold">Formats visuels TikTok</CardTitle>
-                      </CardHeader>
+              </CardHeader>
               <CardContent className="space-y-6">
 
                 {/* H3 : Liste des formats */}
-                          <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 md:mb-5 lg:mb-6">Liste des formats</h3>
                   
-                  {/* Une seule colonne : publicités vidéos */}
-                  <div className="mb-6">
-                    <h4 className="font-semibold mb-4">publicités vidéos</h4>
-                    
-                    {/* Encart visuel vertical */}
-                    <div className="mb-4 max-w-xs">
-                      <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                        <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format vertical</p>
-                        <p>1080 × 1920 px</p>
-                        <p>ratio 9:16</p>
-                          </div>
+                  {/* 2 colonnes équilibrées : visuel à gauche (45-50%), infos à droite (50-55%) */}
+                  <div className="grid grid-cols-1 md:grid-cols-[48%_52%] gap-6 mb-6 items-end">
+                    {/* COLONNE GAUCHE : Encart visuel vertical (hauteur limitée pour équilibrer) */}
+                    <div className="flex flex-col">
+                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                      <div className="w-full max-w-[240px] mx-auto">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
                         </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format vertical</p>
+                          <p>1080 × 1920 px</p>
+                          <p>ratio 9:16</p>
+                        </div>
+                      </div>
+                    </div>
 
-                    {/* Résolution alternative acceptable */}
-                    <Card className="mb-4 max-w-xs">
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Résolution alternative acceptable</p>
-                        <p className="text-sm">format vertical : 1080 × 1920 px</p>
-                      </CardContent>
-                    </Card>
+                    {/* COLONNE DROITE : Encadrés d'informations (alignement bas avec l'image) */}
+                    <div>
+                      {/* Encadré 1 : Résolution alternative acceptable */}
+                      <Card className="mb-6">
+                        <CardContent className="pt-4">
+                          <p className="text-sm font-semibold mb-2">Résolution alternative acceptable</p>
+                          <p className="text-sm">format vertical : 1080 × 1920 px</p>
+                        </CardContent>
+                      </Card>
 
-                    {/* Encadré fichiers acceptés */}
-                    <Alert className="max-w-xs">
-                      <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                      <AlertDescription>
-                        .mov, .mp4<br />
-                        Durée optimale : 14 secondes maximum<br />
-                        Durée maximum : 30 secondes
-                      </AlertDescription>
-                    </Alert>
+                      {/* Encadré 2 : Fichiers acceptés */}
+                      <Alert>
+                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                  <AlertDescription>
+                          .mov, .mp4<br />
+                          Durée optimale : 14 secondes maximum<br />
+                          Durée maximum : 30 secondes
+                  </AlertDescription>
+                </Alert>
+                    </div>
                   </div>
                 </div>
 
-                {/* H2 : Limites de caractères pour les wordings¹ TikTok */}
+                {/* H3 : Limites de caractères pour les wordings¹ TikTok + Marges de sécurité */}
+                <div className="mt-7 md:mt-9 lg:mt-12">
+                  {/* 2 colonnes côte à côte */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* SOUS-BLOC GAUCHE : Limites de caractères */}
                   <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ TikTok</h2>
-                  
-                  {/* 2 colonnes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Limites de caractères */}
-                  <div>
-                    <Card>
-                        <CardContent className="pt-4">
-                          <ul className="text-sm space-y-2">
-                            <li>photo de profil</li>
-                            <li>nom de marque</li>
-                            <li><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</li>
-                            <li>bloc CTA²</li>
-                            <li>bloc navigation application</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                      <h3 className="text-lg font-semibold mb-4">Limites de caractères pour les wordings¹ TikTok</h3>
+                      
+                      {/* Encart visuel vertical */}
+                      <div className="mb-4">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        </div>
                   </div>
 
-                    {/* Colonne droite : Marges de sécurité */}
+                      {/* Liste de texte */}
+                      <div className="space-y-2 text-sm">
+                        <p>photo de profil</p>
+                        <p>nom de marque</p>
+                        <p><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</p>
+                        <p>bloc CTA²</p>
+                        <p>bloc navigation application</p>
+                      </div>
+                    </div>
+
+                    {/* SOUS-BLOC DROIT : Marges de sécurité */}
                   <div>
                       <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités verticales TikTok</h3>
                       
-                      {/* Bloc visuel : encart vertical vide */}
-                      <div className="mb-4 max-w-xs">
+                      {/* Encart visuel vertical (même taille que celui de gauche) */}
+                      <div className="mb-4">
                         <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
                           <span className="text-xs text-muted-foreground">Encadré vide</span>
+                  </div>
                 </div>
 
-                        {/* Zones de sécurité */}
-                    <Card>
-                          <CardContent className="pt-4">
-                            <p className="text-sm font-semibold mb-2">Zones de sécurité :</p>
-                            <ul className="text-sm space-y-2">
-                              <li><strong>bloc following / for you</strong><br />
-                                marge de 6 % environ<br />
-                                126 pixels environ<br />
-                                Dans cette zone, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.</li>
-                              <li><strong>bloc nom de marque + texte principal + interactions</strong><br />
-                                marge de 20 % environ<br />
-                                400 pixels environ</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
+                      {/* Zones de sécurité */}
+                      <div className="space-y-4 text-sm">
+                        <div>
+                          <p className="font-semibold mb-2">bloc following / for you</p>
+                          <p>marge de 6 % environ</p>
+                          <p>126 pixels environ</p>
+                          <p className="text-orange-500 mt-2">Dans cette zone, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold mb-2">bloc nom de marque + texte principal + interactions</p>
+                          <p>marge de 20 % environ</p>
+                          <p>400 pixels environ</p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1359,7 +1366,7 @@ export default function StudioPage() {
                             <li>1 vidéo déclinée au format vertical.</li>
                             <li>2 maximum.</li>
                             <li>1 logo en format carré.</li>
-                        </ul>
+                            </ul>
                           </div>
                           <div>
                           <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
@@ -1391,7 +1398,7 @@ export default function StudioPage() {
                   {/* 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images et logos */}
-                    <div>
+                          <div>
                       <h4 className="font-semibold mb-4">publicités images (hors fichier audio)</h4>
                       
                       {/* Encart visuel carré */}
@@ -1790,9 +1797,9 @@ export default function StudioPage() {
                   <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
                   
                   {/* 2 colonnes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-start">
                     {/* Colonne gauche : publicités vidéos */}
-                    <div>
+                  <div>
                       <h4 className="font-semibold mb-4">publicités vidéos</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart visuel carré */}
@@ -1805,10 +1812,10 @@ export default function StudioPage() {
                             <p>1440 × 1440 px</p>
                             <p>ratio 1:1</p>
                   </div>
-                  </div>
+                </div>
 
                         {/* Encart visuel vertical */}
-                  <div>
+                        <div>
                           <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                             <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
@@ -1833,30 +1840,16 @@ export default function StudioPage() {
                 </div>
 
                       {/* Résolutions alternatives acceptables */}
-                      <Card className="mb-4">
+                      <Card className="mt-4">
                         <CardContent className="pt-4">
                           <p className="text-sm font-semibold mb-2">Résolutions alternatives acceptables</p>
                           <ul className="text-sm space-y-1">
                             <li>format InFeed : 1080 × 1080 px</li>
                             <li>format Shorts : 1080 × 1920 px</li>
                             <li>format InStream, Bumper : 1200 × 628 px</li>
-                          </ul>
+                        </ul>
                       </CardContent>
                     </Card>
-
-                      {/* Encadré fichiers acceptés pour les publicités vidéos */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                      <AlertDescription>
-                          Lien YouTube au format https://…<br />
-                          Durée optimale : entre 6 et 14 secondes maximum<br />
-                          Durée maximum : 30 secondes<br />
-                          4 liens vidéos maximum<br />
-                          Les vidéos doivent être déjà auto-hébergées sur votre compte YouTube<br />
-                          L'importation se fait uniquement via le lien YouTube de la vidéo<br />
-                          Les vidéos peuvent être non référencées mais doivent être impérativement publiques
-                      </AlertDescription>
-                    </Alert>
                     </div>
 
                     {/* Colonne droite : bannière associée à la publicité */}
@@ -1875,11 +1868,29 @@ export default function StudioPage() {
                 </div>
 
                       {/* Encadré fichiers acceptés pour les bannières */}
-                      <Alert>
+                      <Alert className="mt-4">
                         <AlertTitle>Fichiers acceptés pour les bannières :</AlertTitle>
                       <AlertDescription>
                           .jpg, .png, .gif<br />
                           Taille maximale : 150 ko
+                      </AlertDescription>
+                    </Alert>
+
+                      {/* Encadré fichiers acceptés pour les publicités vidéos */}
+                      <Alert className="mt-4">
+                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                      <AlertDescription>
+                          Lien YouTube au format https://…<br />
+                          <span className="text-orange-500">
+                            Durée optimale : entre 6 et 14 secondes maximum<br />
+                            Durée maximum : 30 secondes<br />
+                            4 liens vidéos maximum<br />
+                          </span>
+                          Les vidéos doivent être déjà auto-hébergées sur votre compte YouTube<br />
+                          <span className="text-orange-500">
+                            L'importation se fait uniquement via le lien YouTube de la vidéo<br />
+                            Les vidéos peuvent être non référencées mais doivent être impérativement publiques
+                          </span>
                       </AlertDescription>
                     </Alert>
                   </div>
