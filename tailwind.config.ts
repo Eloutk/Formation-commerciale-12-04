@@ -22,6 +22,10 @@ const config = {
       fontFamily: {
         sans: ['Avenir Next', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
+      fontSize: {
+        'h1': '30px',
+        'h2': '22px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

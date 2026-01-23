@@ -13,9 +13,9 @@ import MetaRecommendationsTabs from "@/components/meta/MetaRecommendationsTabs"
 
 export default function StudioPage() {
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 py-6 md:py-12">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Studio - Guide des formats visuels</h1>
+        <h1 className="mb-4 md:mb-8">Studio - Guide des formats visuels</h1>
 
         <div className="mb-8">
           <Card>
@@ -35,7 +35,7 @@ export default function StudioPage() {
         </div>
 
         <Tabs defaultValue="meta" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 mb-8">
+          <TabsList className="flex flex-wrap gap-1 md:gap-2 mb-4 md:mb-8 overflow-x-auto pb-2 md:pb-0">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="google">Display</TabsTrigger>
             <TabsTrigger value="googlesearch">Search</TabsTrigger>
@@ -51,7 +51,7 @@ export default function StudioPage() {
           <TabsContent value="meta">
             <Card>
               <CardHeader>
-                <h1 className="text-3xl font-bold">Formats visuels META (Facebook & Instagram)</h1>
+                <h1>Publicités sur META (Facebook & Instagram)</h1>
                 <CardDescription>
                   Formats et contraintes pour Facebook et Instagram Ads
                 </CardDescription>
@@ -88,15 +88,15 @@ export default function StudioPage() {
 
                   {/* Bloc 2: Liste des formats */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                    <h2 className="mb-6">Liste des formats</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Colonne gauche: publicités images */}
                       <div>
-                        <h4 className="font-semibold mb-4">publicités images</h4>
+                        <h3 className="font-semibold mb-4">publicités images</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                           {/* Encart 1: format carré */}
                           <div>
-                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                             </div>
                             <div className="text-sm text-center">
@@ -108,7 +108,7 @@ export default function StudioPage() {
 
                           {/* Encart 2: format vertical */}
                           <div>
-                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
                             <div className="text-sm text-center">
@@ -120,7 +120,7 @@ export default function StudioPage() {
 
                           {/* Encart 3: format horizontal */}
                           <div>
-                            <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
                             <div className="text-sm text-center">
@@ -134,11 +134,11 @@ export default function StudioPage() {
 
                       {/* Colonne droite: publicités vidéos */}
                           <div>
-                        <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                        <h3 className="font-semibold mb-4">publicités vidéos</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* Encart 1: format carré */}
                           <div>
-                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
                             <div className="text-sm text-center">
@@ -150,7 +150,7 @@ export default function StudioPage() {
                           
                           {/* Encart 2: format vertical */}
                           <div>
-                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
                             <div className="text-sm text-center">
@@ -162,7 +162,7 @@ export default function StudioPage() {
 
                           {/* Encart 3: format TV */}
                           <div>
-                            <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
+                            <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
                               <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
                             <div className="text-sm text-center">
@@ -232,7 +232,7 @@ export default function StudioPage() {
                     <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                        <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 cursor-default">
+                        <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
                           <span className="text-sm text-muted-foreground">Encart visuel vide (publicité)</span>
                         </div>
                       </div>
@@ -271,10 +271,10 @@ export default function StudioPage() {
 
                   {/* Bloc 5: Marges de sécurité */}
                           <div>
-                    <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités story et reels</h3>
+                    <h2 className="mb-4">Marges de sécurité pour les publicités story et reels</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="h-full">
-                        <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 cursor-default">
+                        <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
                           <span className="text-sm text-muted-foreground">Encart visuel vertical vide (story/reel)</span>
                           </div>
                 </div>
@@ -322,21 +322,21 @@ export default function StudioPage() {
                 <div className="mt-6">
                     <h2 className="text-2xl font-bold text-orange-500 mb-6">Rappel des livrables attendus par META en fonction du type de publicité</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      {/* Colonne gauche: groupe publicitaire standard */}
+                    {/* Colonne gauche: groupe publicitaire standard */}
                           <div>
-                        <h4 className="font-semibold mb-4">groupe publicitaire standard</h4>
+                        <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                         
                         {/* Bloc visuel explicatif */}
                         <div className="grid grid-cols-3 gap-2 mb-6">
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2 cursor-default">
+                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
                             <span className="text-xs font-medium text-center">IMAGE 1</span>
                             <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                     </div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2 cursor-default">
+                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
                             <span className="text-xs font-medium text-center">IMAGE 1</span>
                             <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                   </div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2 cursor-default">
+                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
                             <span className="text-xs font-medium text-center">IMAGE 1</span>
                             <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                   </div>
@@ -374,23 +374,23 @@ export default function StudioPage() {
 
                       {/* Colonne droite: groupe publicitaire carrousel */}
                       <div>
-                        <h4 className="font-semibold mb-4">groupe publicitaire carrousel</h4>
+                        <h3 className="font-semibold mb-4">groupe publicitaire carrousel</h3>
                         
                         {/* Bloc visuel explicatif */}
-                        <div className="flex gap-2 mb-6 overflow-x-hidden">
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2 cursor-default">
+                        <div className="flex gap-2 mb-6 overflow-x-auto">
+                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
                             <span className="text-xs font-medium text-center">VIGNETTE 1</span>
                             <span className="text-xs font-medium text-center mt-1">IMAGE 1</span>
                             <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                   </div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2 cursor-default">
+                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
                             <span className="text-xs font-medium text-center">VIGNETTE 2</span>
                             <span className="text-xs font-medium text-center mt-1">IMAGE 2</span>
                             <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                           </div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 cursor-default"></div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 cursor-default"></div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 cursor-default"></div>
+                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
+                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
+                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
                 </div>
 
                         {/* Pré-requis média minimum obligatoires */}
@@ -442,19 +442,19 @@ export default function StudioPage() {
           <TabsContent value="google">
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels Google Display</CardTitle>
+                <h1>Publicités sur Google Display</h1>
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes : images et vidéos */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images */}
                   <div>
-                      <h4 className="font-semibold mb-4">publicités images</h4>
+                      <h3 className="font-semibold mb-4">publicités images</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart 1 : format carré */}
                         <div>
@@ -508,7 +508,7 @@ export default function StudioPage() {
 
                     {/* Colonne droite : publicités vidéos */}
                     <div>
-                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                      <h3 className="font-semibold mb-4">publicités vidéos</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Encart 1 : format carré */}
                         <div>
@@ -550,9 +550,9 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H3 : Logos obligatoires */}
+                {/* H2 : Logos obligatoires */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 md:mb-5 lg:mb-6">logos obligatoires</h3>
+                  <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
                   
                   {/* Partie 1 : Bloc visuel logos */}
                   <div className="flex gap-4 mb-5 md:mb-6 lg:mb-8">
@@ -701,19 +701,19 @@ export default function StudioPage() {
           <TabsContent value="linkedin">
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels LinkedIn</CardTitle>
+                <h1>Publicités sur LinkedIn</h1>
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes : images et vidéos */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images */}
                   <div>
-                      <h4 className="font-semibold mb-4">publicités images</h4>
+                      <h3 className="font-semibold mb-4">publicités images</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart 1 : format carré */}
                         <div>
@@ -768,7 +768,7 @@ export default function StudioPage() {
 
                     {/* Colonne droite : publicités vidéos */}
                           <div>
-                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                      <h3 className="font-semibold mb-4">publicités vidéos</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Encart 1 : format carré */}
                           <div>
@@ -833,7 +833,7 @@ export default function StudioPage() {
 
                 {/* H2 : Limites de caractères pour les wordings */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-4">Limites de caractères pour les wordings</h3>
+                  <h2 className="mb-4">Limites de caractères pour les wordings</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Encart visuel à gauche */}
                     <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
@@ -850,45 +850,28 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Rappel des principales recommandations et contraintes */}
+                {/* H2 : Recommandations et contraintes */}
                 <div className="mt-6">
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des principales recommandations et contraintes</h2>
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Recommandations et contraintes</h2>
                   
-                  {/* 3 colonnes égales */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Colonne 1 */}
+                  {/* 2 colonnes de texte */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <Card>
                       <CardContent className="pt-4">
-                        <p className="font-semibold mb-2">Il n'est pas essentiel de mettre votre logo ou votre nom de marque sur le visuel</p>
                         <p className="text-sm">
-                          Votre logo et votre nom de marque sont déjà présents dans l'environnement LinkedIn sous deux formes :
+                          Il n'est pas essentiel de mettre votre logo ou votre nom de marque sur le visuel.<br /><br />
+                          Votre logo et votre nom de marque sont déjà présents dans l'environnement LinkedIn sous deux formes :<br /><br />
+                          • votre photo de profil<br />
+                          • votre nom de page de diffusion
                         </p>
-                        <ul className="text-sm mt-2 ml-4 list-disc">
-                          <li>votre photo de profil</li>
-                          <li>votre nom de page de diffusion</li>
-                        </ul>
                       </CardContent>
                     </Card>
-                    
-                    {/* Colonne 2 */}
                     <Card>
                       <CardContent className="pt-4">
-                        <p className="font-semibold mb-2">Ne pas dépasser les limites de caractères pour les wordings¹</p>
                         <p className="text-sm">
-                          Dépasser les limites de caractères a pour conséquence de tronquer votre texte et d'empêcher sa lecture totale.
+                          Ne pas dépasser les limites de caractères pour les wordings¹.<br /><br />
+                          Dépasser les limites de caractères a pour conséquence de tronquer votre texte et d'empêcher sa lecture totale.<br /><br />
                           Un bouton « Voir plus » peut apparaître.
-                        </p>
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Colonne 3 */}
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="font-semibold mb-2">Respecter les marges de sécurité pour les médias story</p>
-                        <p className="text-sm">
-                          Les formats story sont particulièrement sensibles aux marges de sécurité.
-                          Il est important de ne pas disposer d'éléments importants (texte ou image) en dehors des limites fixées par les marges de sécurité.
-                          Ils pourraient être illisibles ou tronqués.
                         </p>
                       </CardContent>
                     </Card>
@@ -912,7 +895,7 @@ export default function StudioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : groupe publicitaire standard */}
                           <div>
-                      <h4 className="font-semibold mb-4">groupe publicitaire standard</h4>
+                      <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                       
                       {/* Bloc visuel : plusieurs encarts avec un vertical déprécié */}
                       <div className="grid grid-cols-3 gap-2 mb-4">
@@ -961,7 +944,7 @@ export default function StudioPage() {
 
                     {/* Colonne droite : groupe publicitaire carrousel */}
                           <div>
-                      <h4 className="font-semibold mb-4">groupe publicitaire carrousel</h4>
+                      <h3 className="font-semibold mb-4">groupe publicitaire carrousel</h3>
                       
                       {/* Bloc visuel : vignettes carrées alignées horizontalement */}
                       <div className="flex gap-2 mb-4">
@@ -1035,39 +1018,34 @@ export default function StudioPage() {
           <TabsContent value="snap">
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels Snapchat</CardTitle>
+                <h1>Publicités sur Snapchat</h1>
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes : images et vidéos */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images */}
                   <div>
-                      <h4 className="font-semibold mb-4">publicités images</h4>
+                      <h3 className="font-semibold mb-4">publicités images</h3>
                       
-                      {/* Grille 2 colonnes pour limiter la taille comme dans TikTok */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart visuel vertical */}
-                        <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">format vertical</p>
-                            <p>1440 × 2560 px</p>
-                            <p>ratio 9:16</p>
-                          </div>
+                      {/* Encart visuel vertical */}
+                      <div className="mb-4 max-w-xs">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
                         </div>
-                        {/* Placeholder vide pour maintenir la structure de grille */}
-                        <div></div>
-                      </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format vertical</p>
+                          <p>1440 × 2560 px</p>
+                          <p>ratio 9:16</p>
+                  </div>
+                </div>
 
                       {/* Résolution alternative acceptable */}
-                      <Card className="mt-4">
+                      <Card className="mb-4">
                         <CardContent className="pt-4">
                           <p className="text-sm font-semibold mb-2">Résolution alternative acceptable</p>
                           <p className="text-sm">format vertical : 1080 × 1920 px</p>
@@ -1075,7 +1053,7 @@ export default function StudioPage() {
                     </Card>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert className="mt-4">
+                      <Alert>
                         <AlertTitle>Fichiers acceptés pour les publicités images :</AlertTitle>
                   <AlertDescription>
                           .jpg, .png<br />
@@ -1088,25 +1066,20 @@ export default function StudioPage() {
                     <div>
                       <h4 className="font-semibold mb-4">publicités vidéos</h4>
                       
-                      {/* Grille 2 colonnes pour limiter la taille comme dans TikTok */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart visuel vertical */}
-                        <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">format vertical</p>
-                            <p>1080 × 1920 px</p>
-                            <p>ratio 9:16</p>
-                          </div>
+                      {/* Encart visuel vertical */}
+                      <div className="mb-4 max-w-xs">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
                         </div>
-                        {/* Placeholder vide pour maintenir la structure de grille */}
-                        <div></div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format vertical</p>
+                          <p>1080 × 1920 px</p>
+                          <p>ratio 9:16</p>
+                        </div>
                       </div>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert className="mt-4">
+                      <Alert>
                         <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                   <AlertDescription>
                           .mov, .mp4 et H.264<br />
@@ -1122,66 +1095,47 @@ export default function StudioPage() {
                   <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ Snapchat</h2>
                   
-                  {/* 2 colonnes alignées : image + texte à droite */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 2 colonnes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Colonne gauche : Limites de caractères */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Limites de caractères pour les wordings¹ Snapchat</h3>
-                    
-                    {/* Structure : encart visuel à gauche, liste à droite */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Encart visuel vierge avec contrainte de taille */}
-                      <div className="max-w-xs">
-                        <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                        </div>
-                      </div>
-                      
-                      {/* Liste des limites de caractères */}
-                      <div className="space-y-2 text-sm">
-                        <p><strong>nom de marque + mention « Publicité » :</strong><br />25 caractères maximum, espaces inclus</p>
-                        <p><strong>titre :</strong><br />34 caractères maximum, espaces inclus</p>
-                        <p>répétition du nom de marque + titre + lien</p>
-                        <p>bloc CTA²</p>
-                      </div>
-                    </div>
+                    <Card>
+                        <CardContent className="pt-4">
+                          <ul className="text-sm space-y-2">
+                            <li><strong>nom de marque + mention « Publicité » :</strong><br />25 caractères maximum, espaces inclus</li>
+                            <li><strong>titre :</strong><br />34 caractères maximum, espaces inclus</li>
+                            <li>répétition du nom de marque + titre + lien</li>
+                            <li>bloc CTA²</li>
+                          </ul>
+                      </CardContent>
+                    </Card>
                   </div>
 
                     {/* Colonne droite : Marges de sécurité */}
                   <div>
                       <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités verticales Snapchat</h3>
                       
-                      {/* Structure : encart visuel à gauche, texte à droite */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Encart visuel vierge (même dimensions que colonne gauche) */}
-                        <div className="max-w-xs">
-                          <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                            <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                          </div>
+                      {/* Bloc visuel : encart vertical vide */}
+                      <div className="mb-4 max-w-xs">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
                         </div>
-                        
-                        {/* Informations sur les marges */}
-                        <div className="space-y-3 text-sm">
-                          <div>
-                            <p className="font-semibold mb-1">Zone haute :</p>
-                            <ul className="ml-4 space-y-1 list-disc">
-                              <li>bloc nom de marque + titre</li>
-                              <li>marge de 9% environ</li>
-                              <li>165 pixels environ</li>
-                            </ul>
-                          </div>
-                          <p className="text-red-700 text-sm mt-3 mb-3">
-                            Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.
-                          </p>
-                          <div>
-                            <p className="font-semibold mb-1">Zone basse :</p>
-                            <ul className="ml-4 space-y-1 list-disc">
-                              <li>bloc nom de marque + titre + lien</li>
-                              <li>marge de 18,5% environ</li>
-                              <li>350 pixels environ</li>
-                            </ul>
-                          </div>
-                        </div>
+
+                        {/* Zones de sécurité */}
+                    <Card>
+                          <CardContent className="pt-4">
+                            <p className="text-sm font-semibold mb-2">Zones de sécurité :</p>
+                            <ul className="text-sm space-y-2">
+                              <li><strong>bloc nom de marque + titre</strong><br />
+                                marge de 9 % environ<br />
+                                165 pixels environ<br />
+                                Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.</li>
+                              <li><strong>bloc nom de marque + titre + lien</strong><br />
+                                marge de 18,5 % environ<br />
+                                350 pixels environ</li>
+                          </ul>
+                      </CardContent>
+                    </Card>
                       </div>
                     </div>
                   </div>
@@ -1229,31 +1183,27 @@ export default function StudioPage() {
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des livrables attendus par Snapchat</h2>
                   
-                  {/* 2 colonnes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Pré-requis média */}
                     <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
-                          <li>2 maximum.</li>
-                        </ul>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                          <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
+                            <li>2 maximum.</li>
+                            </ul>
+                          </div>
+                          <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>Nom de marque.</li>
+                            <li>1 titre.</li>
+                            <li>1 CTA².</li>
+                            </ul>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                    
-                    {/* Colonne droite : Pré-requis wording */}
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>Nom de marque.</li>
-                          <li>1 titre.</li>
-                          <li>1 CTA².</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1263,78 +1213,47 @@ export default function StudioPage() {
           <TabsContent value="tiktok">
                     <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels TikTok</CardTitle>
+                <h1>Publicités sur TikTok</h1>
                       </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                           <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
-                  {/* Grille 2 colonnes : publicités vidéos + logo obligatoire */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Colonne gauche : Publicités vidéos */}
-                    <div>
-                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
-                      
-                      {/* Grille 2 colonnes pour limiter la taille comme dans Search */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart visuel vertical */}
-                        <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                  {/* Une seule colonne : publicités vidéos */}
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                    
+                    {/* Encart visuel vertical */}
+                    <div className="mb-4 max-w-xs">
+                      <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                        <span className="text-xs text-muted-foreground">Encadré vide</span>
                           </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">format vertical</p>
-                            <p>1080 × 1920 px</p>
-                            <p>ratio 9:16</p>
+                      <div className="text-sm text-center">
+                        <p className="font-medium">format vertical</p>
+                        <p>1080 × 1920 px</p>
+                        <p>ratio 9:16</p>
                           </div>
                         </div>
-                        {/* Placeholder vide pour maintenir la structure de grille */}
-                        <div></div>
-                      </div>
 
-                      {/* Cadre fichiers acceptés SOUS l'image */}
-                      <Alert className="mt-4">
-                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                        <AlertDescription>
-                          .mov, .mp4<br />
-                          Durée optimale : 14 secondes maximum<br />
-                          Durée maximum : 30 secondes
-                        </AlertDescription>
-                      </Alert>
-                    </div>
+                    {/* Résolution alternative acceptable */}
+                    <Card className="mb-4 max-w-xs">
+                      <CardContent className="pt-4">
+                        <p className="text-sm font-semibold mb-2">Résolution alternative acceptable</p>
+                        <p className="text-sm">format vertical : 1080 × 1920 px</p>
+                      </CardContent>
+                    </Card>
 
-                    {/* Colonne droite : Logo obligatoire */}
-                    <div>
-                      <h4 className="font-semibold mb-4">logo obligatoire</h4>
-                      
-                      {/* Grille 2 colonnes pour limiter la taille comme dans Search */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart logo carré */}
-                        <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">format carré</p>
-                            <p>1080 × 1080 px</p>
-                            <p>ratio 1:1</p>
-                          </div>
-                        </div>
-                        {/* Placeholder vide pour maintenir la structure de grille */}
-                        <div></div>
-                      </div>
-
-                      {/* Cadre fichiers acceptés SOUS le logo */}
-                      <Alert className="mt-4">
-                        <AlertTitle>Fichiers acceptés pour les logos :</AlertTitle>
-                        <AlertDescription>
-                          .jpg, .png<br />
-                          Taille maximale : 5120 ko
-                        </AlertDescription>
-                      </Alert>
-                    </div>
+                    {/* Encadré fichiers acceptés */}
+                    <Alert className="max-w-xs">
+                      <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                      <AlertDescription>
+                        .mov, .mp4<br />
+                        Durée optimale : 14 secondes maximum<br />
+                        Durée maximum : 30 secondes
+                      </AlertDescription>
+                    </Alert>
                   </div>
                 </div>
 
@@ -1342,64 +1261,48 @@ export default function StudioPage() {
                   <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ TikTok</h2>
                   
-                  {/* 2 colonnes alignées : image + texte à droite */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 2 colonnes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Colonne gauche : Limites de caractères */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Limites de caractères pour les wordings¹ TikTok</h3>
-                    
-                    {/* Structure : encart visuel à gauche, liste à droite */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Encart visuel vierge */}
-                      <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                      </div>
-                      
-                      {/* Liste des limites de caractères */}
-                      <div className="space-y-2 text-sm">
-                        <p><strong>photo de profil + nom de page</strong></p>
-                        <p><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</p>
-                        <p><strong>bloc CTA²</strong></p>
-                        <p><strong>bloc navigation application</strong></p>
-                      </div>
-                    </div>
+                    <Card>
+                        <CardContent className="pt-4">
+                          <ul className="text-sm space-y-2">
+                            <li>photo de profil</li>
+                            <li>nom de marque</li>
+                            <li><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</li>
+                            <li>bloc CTA²</li>
+                            <li>bloc navigation application</li>
+                          </ul>
+                      </CardContent>
+                    </Card>
                   </div>
 
                     {/* Colonne droite : Marges de sécurité */}
                   <div>
                       <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités verticales TikTok</h3>
                       
-                      {/* Structure : encart visuel à gauche, texte à droite */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Encart visuel vierge (même dimensions que colonne gauche) */}
-                        <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                        </div>
-                        
-                        {/* Informations sur les marges */}
-                        <div className="space-y-3 text-sm">
-                          <div>
-                            <p className="font-semibold mb-1">Zone haute :</p>
-                            <ul className="ml-4 space-y-1 list-disc">
-                              <li>bloc following / for you</li>
-                              <li>marge de 6% environ</li>
-                              <li>126 pixels</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <p className="font-semibold mb-1">Zone basse :</p>
-                            <ul className="ml-4 space-y-1 list-disc">
-                              <li>bloc nom de marque + texte principal + interactions</li>
-                              <li>marge de 20% environ</li>
-                              <li>400 pixels</li>
-                            </ul>
-                          </div>
-                          <div className="mt-4 pt-4 border-t">
-                            <p className="text-orange-700">
-                              <strong>Zone sensible :</strong> Il est recommandé de ne placer aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire dans les zones oranges. Les éléments placés hors des marges de sécurité peuvent être tronqués ou illisibles.
-                            </p>
-                          </div>
-                        </div>
+                      {/* Bloc visuel : encart vertical vide */}
+                      <div className="mb-4 max-w-xs">
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                </div>
+
+                        {/* Zones de sécurité */}
+                    <Card>
+                          <CardContent className="pt-4">
+                            <p className="text-sm font-semibold mb-2">Zones de sécurité :</p>
+                            <ul className="text-sm space-y-2">
+                              <li><strong>bloc following / for you</strong><br />
+                                marge de 6 % environ<br />
+                                126 pixels environ<br />
+                                Dans cette zone, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.</li>
+                              <li><strong>bloc nom de marque + texte principal + interactions</strong><br />
+                                marge de 20 % environ<br />
+                                400 pixels environ</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
                       </div>
                     </div>
                   </div>
@@ -1447,30 +1350,27 @@ export default function StudioPage() {
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des livrables attendus par TikTok</h2>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Pré-requis média */}
                     <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>1 vidéo déclinée au format vertical.</li>
-                          <li>2 maximum.</li>
-                          <li>1 logo en format carré.</li>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                          <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 vidéo déclinée au format vertical.</li>
+                            <li>2 maximum.</li>
+                            <li>1 logo en format carré.</li>
                         </ul>
+                          </div>
+                          <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 texte principal.</li>
+                            <li>1 CTA².</li>
+                            </ul>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
-                    
-                    {/* Colonne droite : Pré-requis wording */}
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>1 texte principal.</li>
-                          <li>1 CTA².</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1480,13 +1380,13 @@ export default function StudioPage() {
           <TabsContent value="spotify">
                     <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels Spotify</CardTitle>
+                <h1>Publicités sur Spotify</h1>
                       </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                           <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1590,23 +1490,25 @@ export default function StudioPage() {
                   <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
                   
-                  {/* Structure comme TikTok : encart visuel à gauche, texte à droite */}
+                  {/* 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Encart visuel vierge avec contrainte de taille */}
-                    <div className="max-w-xs">
-                      <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                      </div>
-                    </div>
-                    
-                    {/* Texte à droite */}
-                    <div className="space-y-2 text-sm">
-                      <p><strong>nom de marque :</strong><br />25 caractères maximum, espaces inclus</p>
-                      <p>photo de profil</p>
-                      <p>mention « Publicité »</p>
-                      <p><strong>accroche :</strong><br />40 caractères maximum, espaces inclus</p>
-                      <p>bloc CTA²</p>
-                    </div>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <ul className="text-sm space-y-2">
+                          <li><strong>nom de marque :</strong><br />25 caractères maximum, espaces inclus</li>
+                          <li>photo de profil</li>
+                          <li>mention « Publicité »</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <ul className="text-sm space-y-2">
+                          <li><strong>accroche :</strong><br />40 caractères maximum, espaces inclus</li>
+                          <li>bloc CTA²</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
 
@@ -1614,32 +1516,28 @@ export default function StudioPage() {
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Livrables attendus par Spotify</h2>
                   
-                  {/* 2 colonnes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Pré-requis média */}
                     <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>1 visuel image en format carré.</li>
-                          <li>1 logo en format carré.</li>
-                          <li>1 fichier audio (30 secondes maximum).</li>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image en format carré.</li>
+                            <li>1 logo en format carré.</li>
+                            <li>1 fichier audio (30 secondes maximum).</li>
                         </ul>
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Colonne droite : Pré-requis wording */}
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
-                          <li>Nom de marque.</li>
-                          <li>1 accroche.</li>
-                          <li>1 CTA².</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
                   </div>
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>Nom de marque.</li>
+                            <li>1 accroche.</li>
+                            <li>1 CTA².</li>
+                        </ul>
+                        </div>
+                      </div>
+                      </CardContent>
+                    </Card>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -1664,13 +1562,13 @@ export default function StudioPage() {
           <TabsContent value="googlesearch">
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels Google Search</CardTitle>
+                <h1>Publicités sur Google Search</h1>
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1883,13 +1781,13 @@ export default function StudioPage() {
           <TabsContent value="youtube">
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels YouTube</CardTitle>
+                <h1>Publicités sur YouTube</h1>
               </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H3 : Liste des formats */}
+                {/* H2 : Liste des formats */}
                   <div>
-                  <h3 className="text-lg font-semibold mb-6">Liste des formats</h3>
+                  <h2 className="mb-6">Liste des formats</h2>
                   
                   {/* 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -2060,171 +1958,6 @@ export default function StudioPage() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Onglet Programmatique */}
-          <TabsContent value="programmatic">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-3xl font-bold">Formats visuels Programmatiques</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-
-                {/* SECTION 1 : Publicités programmatiques / Mix IAB */}
-                <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Publicités programmatiques / Mix IAB</h2>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Liste des formats - publicités images</h3>
-                    
-                    {/* Grille des formats IAB */}
-                    <div className="space-y-4 mb-6">
-                      {/* Première ligne : Mégabannière et Bannière */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Mégabannière */}
-                        <div>
-                          <div className="aspect-[728/90] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Mégabannière</p>
-                            <p>728 × 90 px</p>
-                          </div>
-                        </div>
-                        
-                        {/* Bannière */}
-                        <div>
-                          <div className="aspect-[320/50] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Bannière</p>
-                            <p>320 × 50 px</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Deuxième ligne : Skyscraper, Grand angle, Interstitiel, Pavé parallax */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {/* Skyscraper */}
-                        <div>
-                          <div className="aspect-[160/600] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Skyscraper</p>
-                            <p>160 × 600 px</p>
-                          </div>
-                        </div>
-                        
-                        {/* Grand angle */}
-                        <div>
-                          <div className="aspect-[300/600] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Grand angle</p>
-                            <p>300 × 600 px</p>
-                          </div>
-                        </div>
-                        
-                        {/* Interstitiel */}
-                        <div>
-                          <div className="aspect-[320/480] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Interstitiel</p>
-                            <p>320 × 480 px</p>
-                          </div>
-                        </div>
-                        
-                        {/* Pavé parallax */}
-                        <div>
-                          <div className="aspect-[300/250] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                            <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">Pavé parallax</p>
-                            <p>300 × 250 px</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 2 colonnes : Fichiers acceptés + Livrables attendus */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Colonne gauche : Fichiers acceptés */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités images :</AlertTitle>
-                        <AlertDescription>
-                          .jpg, .png, .gif<br />
-                          Taille maximale : 150 ko
-                        </AlertDescription>
-                      </Alert>
-                      
-                      {/* Colonne droite : Livrables attendus */}
-                      <Card className="border-orange-500/50 bg-orange-500/10">
-                        <CardContent className="pt-4">
-                          <h3 className="text-lg font-bold text-orange-500 mb-3">Rappel des livrables attendus en programmatique</h3>
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>6 visuels fournis</li>
-                            <li>1 visuel par format IAB listé ci-dessus</li>
-                          </ul>
-                          <p className="text-sm mt-3 font-semibold text-orange-700">
-                            Aucun format ne peut être omis. L'ensemble des formats est requis pour une diffusion programmatique complète.
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECTION 2 : Landing pages */}
-                <div className="mt-8">
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Landing pages</h2>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Liste des formats - publicités images</h3>
-                    
-                    {/* Grille des formats landing pages */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      {/* Mégabannière */}
-                      <div>
-                        <div className="aspect-[728/90] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                          <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">Mégabannière</p>
-                          <p>728 × 90 px</p>
-                        </div>
-                      </div>
-                      
-                      {/* Bannière */}
-                      <div>
-                        <div className="aspect-[320/50] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2 cursor-default">
-                          <span className="text-xs text-muted-foreground text-center">Encadré vide</span>
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">Bannière</p>
-                          <p>320 × 50 px</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Note explicative */}
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm">
-                          Formats utilisés comme éléments d'habillage ou d'accroche. Visuels statiques uniquement. Cohérence graphique avec les formats programmatique recommandée.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
                 </div>
               </CardContent>
             </Card>

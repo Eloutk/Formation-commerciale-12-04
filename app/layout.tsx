@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import AuthWrapper from "@/components/auth-wrapper"
 
@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     shortcut: "/Logo Link Vertical (Orange).png",
     apple: "/Logo Link Vertical (Orange).png",
   },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
