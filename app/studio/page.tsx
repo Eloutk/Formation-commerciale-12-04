@@ -4,7 +4,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronRight, AlertTriangle, Info, X, Image, Video, Monitor, Smartphone } from "lucide-react"
+import { ChevronRight, AlertTriangle, X, Image, Video, Monitor, Smartphone, Eye } from "lucide-react"
+import NextImage from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
@@ -35,7 +36,7 @@ export default function StudioPage() {
         </div>
 
         <Tabs defaultValue="meta" className="w-full">
-          <TabsList className="flex flex-wrap gap-1 md:gap-2 mb-4 md:mb-8 overflow-x-auto pb-2 md:pb-0">
+          <TabsList className="flex justify-between w-full gap-1 md:gap-2 mb-4 md:mb-8">
             <TabsTrigger value="meta">META</TabsTrigger>
             <TabsTrigger value="google">Display</TabsTrigger>
             <TabsTrigger value="googlesearch">Search</TabsTrigger>
@@ -59,27 +60,66 @@ export default function StudioPage() {
               <CardContent className="space-y-6">
                 {/* Livrables attendus - priorité haute, mis en avant en orange */}
                 <Alert className="border-orange-500/50 bg-orange-500/10">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
                   <AlertDescription>
-                    <div className="space-y-3">
-                      <strong>Livrables attendus par META</strong>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                          <strong className="text-sm">Média minimum</strong>
-                          <ul className="text-sm ml-4 list-disc mt-1">
-                            <li>1 image/vidéo en 3 formats (carré, vertical, horizontal)</li>
-                            <li>3 groupes publicitaires recommandés</li>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d'œil</strong>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Colonne gauche : Pré-requis média minimum obligatoires */}
+                        <div>
+                          <h3 className="font-semibold mb-3">Pré-requis média minimum obligatoires :</h3>
+                          <p className="text-sm mb-2">
+                            1 visuel image et/ou vidéo, décliné aux 3 formats (carré, vertical et horizontal).
+                          </p>
+                          <p className="text-sm mb-4">
+                            3 groupes publicitaires (standard et/ou carrousel) recommandés.
+                          </p>
+                          
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm ml-4 list-disc space-y-1 mb-4">
+                            <li>1 texte principal.</li>
+                            <li>1 titre.</li>
+                            <li>1 CTA².</li>
                           </ul>
-                  </div>
-                  <div>
-                          <strong className="text-sm">Wordings minimum</strong>
-                          <ul className="text-sm ml-4 list-disc mt-1">
-                            <li>1 texte principal</li>
-                            <li>1 titre</li>
-                            <li>1 CTA</li>
+                          
+                          <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
+                          <p className="text-sm">
+                            Sous forme d'images ou de vidéos simples, sans interaction particulière.
+                          </p>
+                        </div>
+                        
+                        {/* Colonne droite : groupe publicitaire carrousel */}
+                        <div>
+                          <h3 className="font-semibold mb-3">groupe publicitaire carrousel</h3>
+                          <p className="text-sm mb-2">image ou vidéo</p>
+                          
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <p className="text-sm mb-1">
+                            2 visuels image et/ou vidéo, en format carré.
+                          </p>
+                          <p className="text-sm mb-1">
+                            2 minimum et 10 maximum.
+                          </p>
+                          <p className="text-sm mb-4">
+                            3 groupes publicitaires (standard et/ou carrousel) recommandés.
+                          </p>
+                          
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm ml-4 list-disc space-y-1 mb-4">
+                            <li>1 texte principal.</li>
+                            <li>2 titres minimum (en fonction du nombre de vignettes).</li>
+                            <li>1 CTA².</li>
                           </ul>
-                  </div>
-                </div>
+                          
+                          <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
+                          <p className="text-sm">
+                            Sous forme d'images ou de vidéos disposées sous forme de vignettes les unes à côté des autres qui peuvent être visionnées en naviguant vers la droite.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </AlertDescription>
                 </Alert>
@@ -96,8 +136,8 @@ export default function StudioPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                           {/* Encart 1: format carré */}
                           <div>
-                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                            <div className="aspect-square w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -108,8 +148,8 @@ export default function StudioPage() {
 
                           {/* Encart 2: format vertical */}
                           <div>
-                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -120,8 +160,8 @@ export default function StudioPage() {
 
                           {/* Encart 3: format horizontal */}
                           <div>
-                            <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format horizontal</p>
@@ -138,8 +178,8 @@ export default function StudioPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {/* Encart 1: format carré */}
                           <div>
-                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -150,8 +190,8 @@ export default function StudioPage() {
                           
                           {/* Encart 2: format vertical */}
                           <div>
-                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -162,8 +202,8 @@ export default function StudioPage() {
 
                           {/* Encart 3: format TV */}
                           <div>
-                            <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                              <span className="text-xs text-muted-foreground">Encadré vide</span>
+                            <div className="aspect-video w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format TV</p>
@@ -191,10 +231,10 @@ export default function StudioPage() {
                         </ul>
                       </CardContent>
                     </Card>
-                        <Alert className="py-3">
-                          <Info className="h-4 w-4" />
+                        <Alert className="py-3 border-[#E94C16]">
+                          <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4" />
                           <AlertDescription className="text-sm">
-                            <strong className="font-bold">Fichiers acceptés pour les publicités images :</strong>
+                            <strong className="font-semibold">Fichiers acceptés pour les publicités images :</strong>
                             <br />
                             .jpg, .png
                         </AlertDescription>
@@ -202,10 +242,10 @@ export default function StudioPage() {
                     </div>
                       {/* Colonne droite: Fichiers vidéos */}
                       <div>
-                        <Alert>
-                          <Info className="h-4 w-4" />
+                        <Alert className="border-[#E94C16]">
+                          <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4" />
                         <AlertDescription>
-                            <strong className="font-bold">Fichiers acceptés pour les publicités vidéos :</strong>
+                            <strong className="font-semibold">Fichiers acceptés pour les publicités vidéos :</strong>
                             <br />
                             .mov, .mp4
                             <br />
@@ -229,39 +269,56 @@ export default function StudioPage() {
 
                   {/* Bloc 4: Limites de caractères pour les wordings */}
                   <div>
-                    <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                        <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-sm text-muted-foreground">Encart visuel vide (publicité)</span>
+                    <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">Limites de caractères pour les wordings</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
+                  <div className="flex justify-center">
+                        <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px]">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm">
+                              <NextImage src="/images/META Limites de caractères@10x.png" alt="Limites de caractères pour les wordings" width={1440} height={2560} className="w-full h-full object-contain" />
+                            </div>
                         </div>
                       </div>
-                      <div>
-                        <ul className="space-y-3 text-sm">
+                      <div className="lg:pl-2">
+                        <ul className="space-y-3 text-sm md:text-base">
                           <li>
-                            <strong>photo de profil + nom de page</strong>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                1
+                              </div>
+                              <strong>photo de profil + nom de page</strong>
+                            </div>
                           </li>
                           <li>
-                            <strong>texte principal :</strong>
-                            <ul className="ml-4 mt-1 space-y-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                2
+                              </div>
+                              <strong>texte principal :</strong>
+                            </div>
+                            <ul className="ml-10 mt-1 space-y-1">
                               <li>De 50 à 150 caractères maximum (Facebook)</li>
                               <li>125 caractères maximum (Instagram)</li>
                         </ul>
                           </li>
                           <li>
-                            <strong>titre :</strong>
-                            <ul className="ml-4 mt-1 space-y-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                3
+                              </div>
+                              <strong>titre :</strong>
+                            </div>
+                            <ul className="ml-10 mt-1 space-y-1">
                               <li>27 caractères maximum (Facebook)</li>
                               <li>40 caractères maximum (Instagram)</li>
                         </ul>
                           </li>
-                          <li>
+                          <li className="ml-10">
                             <strong>description :</strong>
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>27 caractères maximum</li>
                           </ul>
                           </li>
-                          <li>
+                          <li className="ml-10">
                             <strong>bloc CTA</strong>
                           </li>
                           </ul>
@@ -271,16 +328,23 @@ export default function StudioPage() {
 
                   {/* Bloc 5: Marges de sécurité */}
                           <div>
-                    <h2 className="mb-4">Marges de sécurité pour les publicités story et reels</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="h-full">
-                        <div className="h-full w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-sm text-muted-foreground">Encart visuel vertical vide (story/reel)</span>
-                          </div>
+                    <h2 className="mb-4 md:mb-6">Marges de sécurité pour les publicités story et reels</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px]">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm">
+                              <NextImage src="/images/META Marges de sécurité@10x.png" alt="Marges de sécurité pour les publicités story et reels" width={1440} height={2560} className="w-full h-full object-contain" />
+                            </div>
+                        </div>
                 </div>
-                      <div className="space-y-4 text-sm">
+                      <div className="space-y-4 text-sm md:text-base lg:pl-2">
                           <div>
-                          <strong>Zone 1 :</strong>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg">
+                              1
+                            </div>
+                            <strong>Zone 1</strong>
+                          </div>
                           <ul className="ml-4 mt-1 space-y-1">
                             <li>bloc photo de profil + nom de page</li>
                             <li>marge de 21 %</li>
@@ -294,16 +358,16 @@ export default function StudioPage() {
                           </p>
                           </div>
                           <div>
-                          <strong>Zone 2 :</strong>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg">
+                              2
+                            </div>
+                            <strong>Zone 2</strong>
+                          </div>
                           <ul className="ml-4 mt-1 space-y-1">
                             <li>bloc CTA + interactions</li>
                             <li>marge de 15 %</li>
                             <li>285 pixels environ</li>
-                            </ul>
-                          </div>
-                          <div>
-                          <strong>Zone 3 :</strong>
-                          <ul className="ml-4 mt-1 space-y-1">
                             <li>marge de 30 %</li>
                             <li>570 pixels environ</li>
                             </ul>
@@ -458,8 +522,8 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart 1 : format carré */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -470,8 +534,8 @@ export default function StudioPage() {
 
                         {/* Encart 2 : format vertical */}
                   <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -482,8 +546,8 @@ export default function StudioPage() {
 
                         {/* Encart 3 : format horizontal */}
                         <div>
-                          <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -512,8 +576,8 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Encart 1 : format carré */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -524,8 +588,8 @@ export default function StudioPage() {
 
                         {/* Encart 2 : format vertical */}
                           <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -536,8 +600,8 @@ export default function StudioPage() {
 
                         {/* Encart 3 : format TV */}
                           <div>
-                          <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-video w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal_1@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format TV</p>
@@ -558,9 +622,9 @@ export default function StudioPage() {
                   <div className="flex gap-4 mb-5 md:mb-6 lg:mb-8">
                     {/* Encart 1 : format carré */}
                     <div className="flex-1 max-w-xs">
-                      <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                        <span className="text-xs text-muted-foreground">Encadré vide</span>
-                      </div>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                          </div>
                       <div className="text-sm text-center">
                         <p className="font-medium">format carré</p>
                         <p>1080 × 1080 px</p>
@@ -583,16 +647,18 @@ export default function StudioPage() {
 
                   {/* Partie 2 : Fichiers acceptés */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-7 md:mb-9 lg:mb-12">
-                    <Alert className="h-full flex flex-col">
-                      <AlertTitle><strong>Fichiers acceptés pour les publicités images et logos :</strong></AlertTitle>
+                    <Alert className="h-full flex flex-col border-[#E94C16]">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
                       <AlertDescription className="flex-1">
                         .jpg, .png<br />
                         Taille maximale : 5120 ko<br />
                         Le format .gif est incompatible avec la pub responsive.
                       </AlertDescription>
                     </Alert>
-                    <Alert className="h-full flex flex-col">
-                      <AlertTitle><strong>Fichiers acceptés pour les publicités vidéos :</strong></AlertTitle>
+                    <Alert className="h-full flex flex-col border-[#E94C16]">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                       <AlertDescription className="flex-1">
                         Lien YouTube au format https://…<br />
                         Durée optimale : 14 secondes maximum<br />
@@ -717,8 +783,8 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart 1 : format carré */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -729,8 +795,8 @@ export default function StudioPage() {
 
                         {/* Encart 2 : format vertical (déprécié) */}
                         <div className="relative">
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <Badge variant="destructive" className="absolute top-2 right-2">déprécié</Badge>
                           <div className="text-sm text-center">
@@ -742,8 +808,8 @@ export default function StudioPage() {
 
                         {/* Encart 3 : format horizontal */}
                   <div>
-                          <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -772,8 +838,8 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Encart 1 : format carré */}
                           <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -784,8 +850,8 @@ export default function StudioPage() {
 
                         {/* Encart 2 : format vertical (déprécié) */}
                         <div className="relative">
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <Badge variant="destructive" className="absolute top-2 right-2">déprécié</Badge>
                           <div className="text-sm text-center">
@@ -797,8 +863,8 @@ export default function StudioPage() {
 
                         {/* Encart 3 : format TV */}
                           <div>
-                          <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-video w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal_1@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format TV</p>
@@ -812,14 +878,16 @@ export default function StudioPage() {
 
                   {/* Bloc "Fichiers acceptés" */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <Alert>
-                      <AlertTitle>Fichiers acceptés pour les publicités images :</AlertTitle>
+                    <Alert className="border-[#E94C16]">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images :</AlertTitle>
                       <AlertDescription>
                         .jpg, .png
                       </AlertDescription>
                     </Alert>
-                    <Alert>
-                      <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                    <Alert className="border-[#E94C16]">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                       <AlertDescription>
                         .mp4<br />
                         Durée optimale : 14 secondes maximum<br />
@@ -1031,18 +1099,29 @@ export default function StudioPage() {
                     {/* Colonne gauche : publicités images */}
                   <div>
                       <h3 className="font-semibold mb-4">publicités images</h3>
-                      
-                      {/* Encart visuel vertical */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Encart 1: format carré - MANQUANT */}
+                        <div>
+                          {/* Espace vide - format carré non disponible */}
                         </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format vertical</p>
-                          <p>1440 × 2560 px</p>
-                          <p>ratio 9:16</p>
-                  </div>
-                </div>
+                        
+                        {/* Encart 2: format vertical */}
+                        <div>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                          </div>
+                          <div className="text-sm text-center">
+                            <p className="font-medium">format vertical</p>
+                            <p>1440 × 2560 px</p>
+                            <p>ratio 9:16</p>
+                          </div>
+                        </div>
+                        
+                        {/* Encart 3: format horizontal - MANQUANT */}
+                        <div>
+                          {/* Espace vide - format horizontal non disponible */}
+                        </div>
+                      </div>
 
                       {/* Résolution alternative acceptable */}
                       <Card className="mb-4">
@@ -1053,8 +1132,9 @@ export default function StudioPage() {
                     </Card>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités images :</AlertTitle>
+                      <Alert className="border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images :</AlertTitle>
                   <AlertDescription>
                           .jpg, .png<br />
                           Taille maximale : 5 Mo.
@@ -1064,23 +1144,35 @@ export default function StudioPage() {
 
                     {/* Colonne droite : publicités vidéos */}
                     <div>
-                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
-                      
-                      {/* Encart visuel vertical */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                      <h3 className="font-semibold mb-4">publicités vidéos</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Encart 1: format carré - MANQUANT */}
+                        <div>
+                          {/* Espace vide - format carré non disponible */}
                         </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format vertical</p>
-                          <p>1080 × 1920 px</p>
-                          <p>ratio 9:16</p>
+                        
+                        {/* Encart 2: format vertical */}
+                        <div>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                          </div>
+                          <div className="text-sm text-center">
+                            <p className="font-medium">format vertical</p>
+                            <p>1080 × 1920 px</p>
+                            <p>ratio 9:16</p>
+                          </div>
+                        </div>
+                        
+                        {/* Encart 3: format horizontal - MANQUANT */}
+                        <div>
+                          {/* Espace vide - format horizontal non disponible */}
                         </div>
                       </div>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                      <Alert className="border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                   <AlertDescription>
                           .mov, .mp4 et H.264<br />
                           Durée optimale : 14 secondes maximum<br />
@@ -1117,8 +1209,8 @@ export default function StudioPage() {
                       
                       {/* Bloc visuel : encart vertical vide */}
                       <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        <div className="aspect-[9/16] w-full mb-4 overflow-hidden">
+                          <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
                         </div>
 
                         {/* Zones de sécurité */}
@@ -1221,21 +1313,46 @@ export default function StudioPage() {
                           <div>
                   <h2 className="mb-6">Liste des formats</h2>
                   
-                  {/* Une seule colonne : publicités vidéos */}
+                  {/* Grille 3 colonnes : publicités vidéos */}
                   <div className="mb-6">
-                    <h4 className="font-semibold mb-4">publicités vidéos</h4>
-                    
-                    {/* Encart visuel vertical */}
-                    <div className="mb-4 max-w-xs">
-                      <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                        <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format vertical</p>
-                        <p>1080 × 1920 px</p>
-                        <p>ratio 9:16</p>
-                          </div>
+                    <h3 className="font-semibold mb-4">publicités vidéos</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {/* Encart 1: format carré - MANQUANT */}
+                      <div>
+                        <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
                         </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format carré</p>
+                          <p>—</p>
+                          <p>—</p>
+                        </div>
+                      </div>
+                      
+                      {/* Encart 2: format vertical */}
+                      <div>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format vertical</p>
+                          <p>1080 × 1920 px</p>
+                          <p>ratio 9:16</p>
+                        </div>
+                      </div>
+                      
+                      {/* Encart 3: format horizontal - MANQUANT */}
+                      <div>
+                        <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
+                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format horizontal</p>
+                          <p>—</p>
+                          <p>—</p>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Résolution alternative acceptable */}
                     <Card className="mb-4 max-w-xs">
@@ -1246,8 +1363,9 @@ export default function StudioPage() {
                     </Card>
 
                     {/* Encadré fichiers acceptés */}
-                    <Alert className="max-w-xs">
-                      <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                    <Alert className="max-w-xs border-[#E94C16]">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                       <AlertDescription>
                         .mov, .mp4<br />
                         Durée optimale : 14 secondes maximum<br />
@@ -1284,8 +1402,8 @@ export default function StudioPage() {
                       
                       {/* Bloc visuel : encart vertical vide */}
                       <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4 overflow-hidden">
+                          <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
                 </div>
 
                         {/* Zones de sécurité */}
@@ -1392,17 +1510,18 @@ export default function StudioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images et logos */}
                     <div>
-                      <h4 className="font-semibold mb-4">publicités images (hors fichier audio)</h4>
-                      
-                      {/* Encart visuel carré */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                      <h3 className="font-semibold mb-4">publicités images (hors fichier audio)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Encart 1: format carré */}
+                        <div>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format Direct IO et Ad Studio" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format Direct IO et Ad Studio</p>
-                          <p>1440 × 1440 px</p>
-                          <p>ratio 1:1</p>
+                          <div className="text-sm text-center">
+                            <p className="font-medium">format Direct IO et Ad Studio</p>
+                            <p>1440 × 1440 px</p>
+                            <p>ratio 1:1</p>
+                          </div>
                         </div>
                       </div>
 
@@ -1419,21 +1538,26 @@ export default function StudioPage() {
                         <h4 className="font-semibold mb-4">logos obligatoires</h4>
                         
                         {/* Encart visuel carré */}
-                        <div className="mb-4 max-w-xs">
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
-                          </div>
-                          <div className="text-sm text-center">
-                            <p className="font-medium">format carré</p>
-                            <p>1080 × 1080 px</p>
-                            <p>ratio 1:1</p>
+                        <div className="mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-1">
+                              <div className="aspect-square w-full mb-2 overflow-hidden">
+                                <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                              </div>
+                              <div className="text-sm text-center">
+                                <p className="font-medium">format carré</p>
+                                <p>1440 × 1440 px</p>
+                                <p>ratio 1:1</p>
+                              </div>
+                            </div>
                           </div>
                   </div>
                 </div>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités images et logos :</AlertTitle>
+                      <Alert className="border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
                       <AlertDescription>
                           .jpg, .png
                       </AlertDescription>
@@ -1445,20 +1569,25 @@ export default function StudioPage() {
                       <h4 className="font-semibold mb-4">canvas associés à la publicité (hors fichier audio)</h4>
                       
                       {/* Encart visuel vertical */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format vertical</p>
-                          <p>1080 × 1920 px</p>
-                          <p>ratio 9:16</p>
+                      <div className="mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="md:col-span-1">
+                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            </div>
+                            <div className="text-sm text-center">
+                              <p className="font-medium">format vertical</p>
+                              <p>1440 × 2560 px</p>
+                              <p>ratio 9:16</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       {/* Encadré fichiers acceptés pour les canvas */}
-                      <Alert className="mb-4">
-                        <AlertTitle>Fichiers acceptés pour les canvas :</AlertTitle>
+                      <Alert className="mb-4 border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les canvas :</AlertTitle>
                       <AlertDescription>
                           .jpg, .png, .mov, .mp4 sans audio<br />
                           Durée de la boucle : entre 3 à 8 secondes sans audio
@@ -1467,11 +1596,12 @@ export default function StudioPage() {
 
                       {/* Sous-bloc : publicités audios */}
                       <div>
-                        <h4 className="font-semibold mb-4">publicités audios</h4>
+                        <h3 className="font-semibold mb-4">publicités audios</h3>
                         
                         {/* Encadré fichiers acceptés pour les publicités audios */}
-                        <Alert>
-                          <AlertTitle>Fichiers acceptés pour les publicités audios :</AlertTitle>
+                        <Alert className="border-[#E94C16]">
+                          <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                          <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités audios :</AlertTitle>
                       <AlertDescription>
                             .mp3, .ogg, .wav, jusqu'à 500 Mo<br />
                             <strong>caractéristiques audio requises :</strong><br />
@@ -1574,24 +1704,29 @@ export default function StudioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités images */}
                     <div>
-                      <h4 className="font-semibold mb-4">publicités images</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart visuel carré */}
+                      <h3 className="font-semibold mb-4">publicités images</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Encart 1: format carré */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
                             <p>1440 × 1440 px</p>
                             <p>ratio 1:1</p>
                           </div>
-                  </div>
-
-                        {/* Encart visuel horizontal */}
-                  <div>
-                          <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        </div>
+                        
+                        {/* Encart 2: format vertical - MANQUANT */}
+                        <div>
+                          {/* Espace vide - format vertical non disponible */}
+                        </div>
+                        
+                        {/* Encart 3: format horizontal */}
+                        <div>
+                          <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -1621,8 +1756,8 @@ export default function StudioPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         {/* Encart visuel carré (même taille que l'image carrée de gauche) */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1635,7 +1770,8 @@ export default function StudioPage() {
                 </div>
 
                       {/* Encadré fichiers acceptés (aligné avec "Résolutions alternatives acceptables") */}
-                      <Alert className="mt-4">
+                      <Alert className="mt-4 border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
                         <div className="mb-2">
                           <p className="text-sm font-semibold"><strong>Fichiers acceptés pour les logos :</strong></p>
                         </div>
@@ -1793,12 +1929,12 @@ export default function StudioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : publicités vidéos */}
                     <div>
-                      <h4 className="font-semibold mb-4">publicités vidéos</h4>
+                      <h3 className="font-semibold mb-4">publicités vidéos</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         {/* Encart visuel carré */}
                         <div>
-                          <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-square w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format carré_infeed@10x.png" alt="Format InFeed" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format InFeed</p>
@@ -1809,8 +1945,8 @@ export default function StudioPage() {
 
                         {/* Encart visuel vertical */}
                   <div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format Shorts" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format Shorts</p>
@@ -1821,8 +1957,8 @@ export default function StudioPage() {
 
                         {/* Encart visuel horizontal */}
                         <div>
-                          <div className="aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                            <span className="text-xs text-muted-foreground">Encadré vide</span>
+                          <div className="aspect-video w-full mb-2 overflow-hidden">
+                            <NextImage src="/images/format horizontal_tv_instream@10x.png" alt="Format InStream, Bumper" width={2560} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format InStream, Bumper</p>
@@ -1845,8 +1981,9 @@ export default function StudioPage() {
                     </Card>
 
                       {/* Encadré fichiers acceptés pour les publicités vidéos */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                      <Alert className="border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                       <AlertDescription>
                           Lien YouTube au format https://…<br />
                           Durée optimale : entre 6 et 14 secondes maximum<br />
@@ -1875,8 +2012,9 @@ export default function StudioPage() {
                 </div>
 
                       {/* Encadré fichiers acceptés pour les bannières */}
-                      <Alert>
-                        <AlertTitle>Fichiers acceptés pour les bannières :</AlertTitle>
+                      <Alert className="border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les bannières :</AlertTitle>
                       <AlertDescription>
                           .jpg, .png, .gif<br />
                           Taille maximale : 150 ko
