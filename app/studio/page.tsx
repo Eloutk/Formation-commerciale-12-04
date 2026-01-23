@@ -9,10 +9,15 @@ import NextImage from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { useState } from "react"
 import MetaRecommendationsTabs from "@/components/meta/MetaRecommendationsTabs"
 
 export default function StudioPage() {
+  const [tooltip1Open, setTooltip1Open] = useState(false)
+  const [tooltip2Open, setTooltip2Open] = useState(false)
+  const [tooltip3Open, setTooltip3Open] = useState(false)
+
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
       <div className="max-w-5xl mx-auto">
@@ -137,7 +142,7 @@ export default function StudioPage() {
                           {/* Encart 1: format carré */}
                           <div>
                             <div className="aspect-square w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -149,7 +154,7 @@ export default function StudioPage() {
                           {/* Encart 2: format vertical */}
                           <div>
                             <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -161,7 +166,7 @@ export default function StudioPage() {
                           {/* Encart 3: format horizontal */}
                           <div>
                             <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                              <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format horizontal</p>
@@ -179,7 +184,7 @@ export default function StudioPage() {
                           {/* Encart 1: format carré */}
                           <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -191,7 +196,7 @@ export default function StudioPage() {
                           {/* Encart 2: format vertical */}
                           <div>
                             <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -270,61 +275,82 @@ export default function StudioPage() {
                   {/* Bloc 4: Limites de caractères pour les wordings */}
                   <div>
                     <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">Limites de caractères pour les wordings</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
-                  <div className="flex justify-center">
-                        <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px]">
-                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm">
-                              <NextImage src="/images/META Limites de caractères@10x.png" alt="Limites de caractères pour les wordings" width={1440} height={2560} className="w-full h-full object-contain" />
+                <div className="flex justify-center">
+                  <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px] relative">
+                    <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                      <NextImage src="/images/META format complet vertical2@10x.png" alt="Limites de caractères pour les wordings" width={1440} height={2560} className="w-full h-full object-contain" />
+                      <TooltipProvider delayDuration={0}>
+                        {/* Zone 1 : photo de profil + nom de page (en haut, à droite de la première ligne de texte) */}
+                        <Tooltip open={tooltip1Open} onOpenChange={setTooltip1Open}>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className="absolute top-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                              style={{ zIndex: 10 }}
+                              onClick={() => setTooltip1Open(!tooltip1Open)}
+                            >
+                              1
                             </div>
-                        </div>
-                      </div>
-                      <div className="lg:pl-2">
-                        <ul className="space-y-3 text-sm md:text-base">
-                          <li>
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                                1
-                              </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-sm">
                               <strong>photo de profil + nom de page</strong>
                             </div>
-                          </li>
-                          <li>
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                                2
-                              </div>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        {/* Zone 2 : texte principal (milieu-haut, à droite de la deuxième ligne de texte) */}
+                        <Tooltip open={tooltip2Open} onOpenChange={setTooltip2Open}>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className="absolute top-[18%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                              style={{ zIndex: 10 }}
+                              onClick={() => setTooltip2Open(!tooltip2Open)}
+                            >
+                              2
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="text-sm">
                               <strong>texte principal :</strong>
+                              <ul className="list-disc ml-4 mt-1 space-y-1">
+                                <li>De 50 à 150 caractères maximum (Facebook)</li>
+                                <li>125 caractères maximum (Instagram)</li>
+                              </ul>
                             </div>
-                            <ul className="ml-10 mt-1 space-y-1">
-                              <li>De 50 à 150 caractères maximum (Facebook)</li>
-                              <li>125 caractères maximum (Instagram)</li>
-                        </ul>
-                          </li>
-                          <li>
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                                3
-                              </div>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        {/* Zone 3 : titre, description, CTA (en bas, à droite du bouton) */}
+                        <Tooltip open={tooltip3Open} onOpenChange={setTooltip3Open}>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className="absolute bottom-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                              style={{ zIndex: 10 }}
+                              onClick={() => setTooltip3Open(!tooltip3Open)}
+                            >
+                              3
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="text-sm">
                               <strong>titre :</strong>
+                              <ul className="list-disc ml-4 mt-1 space-y-1">
+                                <li>27 caractères maximum (Facebook)</li>
+                                <li>40 caractères maximum (Instagram)</li>
+                              </ul>
+                              <strong className="block mt-2">description :</strong>
+                              <ul className="list-disc ml-4 mt-1 space-y-1">
+                                <li>27 caractères maximum</li>
+                              </ul>
+                              <strong className="block mt-2">bloc CTA</strong>
                             </div>
-                            <ul className="ml-10 mt-1 space-y-1">
-                              <li>27 caractères maximum (Facebook)</li>
-                              <li>40 caractères maximum (Instagram)</li>
-                        </ul>
-                          </li>
-                          <li className="ml-10">
-                            <strong>description :</strong>
-                            <ul className="ml-4 mt-1 space-y-1">
-                              <li>27 caractères maximum</li>
-                          </ul>
-                          </li>
-                          <li className="ml-10">
-                            <strong>bloc CTA</strong>
-                          </li>
-                          </ul>
-                      </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                 </div>
+                  </div>
 
                   {/* Bloc 5: Marges de sécurité */}
                           <div>
@@ -391,20 +417,43 @@ export default function StudioPage() {
                         <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                         
                         {/* Bloc visuel explicatif */}
-                        <div className="grid grid-cols-3 gap-2 mb-6">
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
-                            <span className="text-xs font-medium text-center">IMAGE 1</span>
-                            <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
-                    </div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
-                            <span className="text-xs font-medium text-center">IMAGE 1</span>
-                            <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
-                  </div>
-                          <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
-                            <span className="text-xs font-medium text-center">IMAGE 1</span>
-                            <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          {/* Encart 1: format carré */}
+                          <div>
+                            <div className="aspect-square w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/META format complet carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            </div>
+                            <div className="text-sm text-center">
+                              <p className="font-medium">format carré</p>
+                              <p>1440 × 1440 px</p>
+                              <p>ratio 1:1</p>
                   </div>
                 </div>
+
+                          {/* Encart 2: format vertical */}
+                          <div>
+                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/META format complet vertical@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                          </div>
+                            <div className="text-sm text-center">
+                              <p className="font-medium">format vertical</p>
+                              <p>1440 × 2560 px</p>
+                              <p>ratio 9:16</p>
+                  </div>
+                </div>
+
+                          {/* Encart 3: format horizontal */}
+                          <div>
+                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
+                              <NextImage src="/images/META format complet horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                            </div>
+                            <div className="text-sm text-center">
+                              <p className="font-medium">format horizontal</p>
+                              <p>1440 × 754 px</p>
+                              <p>ratio 1.91:1</p>
+                            </div>
+                          </div>
+                        </div>
 
                         {/* Pré-requis média minimum obligatoires */}
                         <div className="mb-4">
@@ -441,20 +490,10 @@ export default function StudioPage() {
                         <h3 className="font-semibold mb-4">groupe publicitaire carrousel</h3>
                         
                         {/* Bloc visuel explicatif */}
-                        <div className="flex gap-2 mb-6 overflow-x-auto">
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
-                            <span className="text-xs font-medium text-center">VIGNETTE 1</span>
-                            <span className="text-xs font-medium text-center mt-1">IMAGE 1</span>
-                            <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
-                  </div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center bg-muted/10 p-2">
-                            <span className="text-xs font-medium text-center">VIGNETTE 2</span>
-                            <span className="text-xs font-medium text-center mt-1">IMAGE 2</span>
-                            <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
+                        <div className="mb-6">
+                          <div className="w-full rounded-md overflow-hidden">
+                            <NextImage src="/images/META format complet caroussel@10x.png" alt="Format complet carrousel" width={1920} height={1080} className="w-full h-auto object-contain" />
                           </div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
-                          <div className="aspect-square w-32 flex-shrink-0 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10"></div>
                 </div>
 
                         {/* Pré-requis média minimum obligatoires */}
@@ -523,7 +562,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -535,7 +574,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical */}
                   <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -547,7 +586,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format horizontal */}
                         <div>
                           <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -577,7 +616,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -589,7 +628,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical */}
                           <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -601,7 +640,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format TV */}
                           <div>
                           <div className="aspect-video w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format horizontal_1@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format TV</p>
@@ -623,7 +662,7 @@ export default function StudioPage() {
                     {/* Encart 1 : format carré */}
                     <div className="flex-1 max-w-xs">
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
                           </div>
                       <div className="text-sm text-center">
                         <p className="font-medium">format carré</p>
@@ -784,7 +823,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -796,7 +835,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical (déprécié) */}
                         <div className="relative">
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <Badge variant="destructive" className="absolute top-2 right-2">déprécié</Badge>
                           <div className="text-sm text-center">
@@ -809,7 +848,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format horizontal */}
                   <div>
                           <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -839,7 +878,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                           <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -851,7 +890,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical (déprécié) */}
                         <div className="relative">
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <Badge variant="destructive" className="absolute top-2 right-2">déprécié</Badge>
                           <div className="text-sm text-center">
@@ -864,7 +903,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format TV */}
                           <div>
                           <div className="aspect-video w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format horizontal_1@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format TV</p>
@@ -1014,22 +1053,10 @@ export default function StudioPage() {
                           <div>
                       <h3 className="font-semibold mb-4">groupe publicitaire carrousel</h3>
                       
-                      {/* Bloc visuel : vignettes carrées alignées horizontalement */}
-                      <div className="flex gap-2 mb-4">
-                        {/* Vignette 1 */}
-                        <div className="aspect-square w-32 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground text-center">VIGNETTE 1<br />IMAGE 1<br />image ou vidéo</span>
-                        </div>
-                        {/* Vignette 2 */}
-                        <div className="aspect-square w-32 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground text-center">VIGNETTE 2<br />IMAGE 2<br />image ou vidéo</span>
-                        </div>
-                        {/* Vignettes suivantes (placeholders) */}
-                        <div className="aspect-square w-32 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground"></span>
-                        </div>
-                        <div className="aspect-square w-32 rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground"></span>
+                      {/* Bloc visuel : format complet carrousel */}
+                      <div className="mb-4">
+                        <div className="w-full rounded-md overflow-hidden">
+                          <NextImage src="/images/META format complet caroussel@10x.png" alt="Format complet carrousel" width={1920} height={1080} className="w-full h-auto object-contain" />
                         </div>
                       </div>
 
@@ -1108,7 +1135,7 @@ export default function StudioPage() {
                         {/* Encart 2: format vertical */}
                         <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -1154,7 +1181,7 @@ export default function StudioPage() {
                         {/* Encart 2: format vertical */}
                         <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -1210,7 +1237,7 @@ export default function StudioPage() {
                       {/* Bloc visuel : encart vertical vide */}
                       <div className="mb-4 max-w-xs">
                         <div className="aspect-[9/16] w-full mb-4 overflow-hidden">
-                          <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
+                          <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
                         </div>
 
                         {/* Zones de sécurité */}
@@ -1332,7 +1359,7 @@ export default function StudioPage() {
                       {/* Encart 2: format vertical */}
                       <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
                         </div>
                         <div className="text-sm text-center">
                           <p className="font-medium">format vertical</p>
@@ -1403,7 +1430,7 @@ export default function StudioPage() {
                       {/* Bloc visuel : encart vertical vide */}
                       <div className="mb-4 max-w-xs">
                         <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4 overflow-hidden">
-                          <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
+                          <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
                 </div>
 
                         {/* Zones de sécurité */}
@@ -1515,7 +1542,7 @@ export default function StudioPage() {
                         {/* Encart 1: format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format Direct IO et Ad Studio" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format Direct IO et Ad Studio" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format Direct IO et Ad Studio</p>
@@ -1542,7 +1569,7 @@ export default function StudioPage() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1">
                               <div className="aspect-square w-full mb-2 overflow-hidden">
-                                <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                               </div>
                               <div className="text-sm text-center">
                                 <p className="font-medium">format carré</p>
@@ -1573,7 +1600,7 @@ export default function StudioPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="md:col-span-1">
                             <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -1709,7 +1736,7 @@ export default function StudioPage() {
                         {/* Encart 1: format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1726,7 +1753,7 @@ export default function StudioPage() {
                         {/* Encart 3: format horizontal */}
                         <div>
                           <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -1757,7 +1784,7 @@ export default function StudioPage() {
                         {/* Encart visuel carré (même taille que l'image carrée de gauche) */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1946,7 +1973,7 @@ export default function StudioPage() {
                         {/* Encart visuel vertical */}
                   <div>
                           <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format vertical_shorts@10x.png" alt="Format Shorts" width={1440} height={2560} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format Shorts" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format Shorts</p>

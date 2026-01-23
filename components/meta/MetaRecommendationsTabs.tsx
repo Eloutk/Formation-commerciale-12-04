@@ -18,7 +18,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Logo et nom de marque</CardTitle>
+              <CardTitle className="text-[16px]">Logo et nom de marque</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Il n’est pas essentiel de mettre votre logo ou votre nom de marque sur le visuel.
@@ -32,7 +32,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Limites de caractères</CardTitle>
+              <CardTitle className="text-[16px]">Limites de caractères</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Ne pas dépasser les limites de caractères pour les wordings. Dépasser
@@ -44,7 +44,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Marges de sécurité (Stories/Reels)</CardTitle>
+              <CardTitle className="text-[16px]">Marges de sécurité (Stories/Reels)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Les formats story et reels sont sensibles aux marges de sécurité. Ne
@@ -55,7 +55,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">20% maximum de texte</CardTitle>
+              <CardTitle className="text-[16px]">20% maximum de texte</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Respecter la limite de 20% de texte sur les visuels. Au‑delà, la
@@ -65,7 +65,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Emojis</CardTitle>
+              <CardTitle className="text-[16px]">Emojis</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Ne pas utiliser trop d’emojis dans les wordings. L’usage de plus de 3
@@ -76,7 +76,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-yellow-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Majuscules, symboles, hashtags</CardTitle>
+              <CardTitle className="text-[16px]">Majuscules, symboles, hashtags</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Éviter l’abus de majuscules, de symboles et de caractères spéciaux.
@@ -91,7 +91,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-orange-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Gestion automatique du contenu</CardTitle>
+              <CardTitle className="text-[16px]">Gestion automatique du contenu</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Concernant les publicités responsives : il est impossible d’empêcher la
@@ -103,7 +103,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-orange-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">À propos des descriptions</CardTitle>
+              <CardTitle className="text-[16px]">À propos des descriptions</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Si aucune description n’est rédigée, une description peut être générée
@@ -114,7 +114,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-orange-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">À propos des typographies</CardTitle>
+              <CardTitle className="text-[16px]">À propos des typographies</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Il est impossible de changer la taille, la couleur, l’organisation et
@@ -124,7 +124,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-orange-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">À propos des césures</CardTitle>
+              <CardTitle className="text-[16px]">À propos des césures</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Il est impossible de décider les endroits où la césure des paragraphes
@@ -134,7 +134,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-orange-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Nom de page et photo de profil</CardTitle>
+              <CardTitle className="text-[16px]">Nom de page et photo de profil</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Impossible de modifier le nom et le logo affichés sur les publicités :
@@ -145,7 +145,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Ponctuation et style</CardTitle>
+              <CardTitle className="text-[16px]">Ponctuation et style</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Un style direct et concis est recommandé. Éviter l'abus de
@@ -160,7 +160,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-red-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">À propos des CTA</CardTitle>
+              <CardTitle className="text-[16px]">À propos des CTA</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Impossible de personnaliser le bouton CTA au‑delà des propositions
@@ -171,7 +171,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-red-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Visuels nuisant à l’expérience</CardTitle>
+              <CardTitle className="text-[16px]">Visuels nuisant à l’expérience</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Interdiction d’afficher un faux bouton CTA ou un faux pointeur/curseur
@@ -182,7 +182,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-red-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Propriété intellectuelle META</CardTitle>
+              <CardTitle className="text-[16px]">Propriété intellectuelle META</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Interdiction d’utiliser les logos des marques propriétaires META
@@ -194,7 +194,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-red-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Mentions légales (France)</CardTitle>
+              <CardTitle className="text-[16px]">Mentions légales (France)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Pour chaque publicité, fournir les mentions et conditions obligatoires.
@@ -205,7 +205,7 @@ export default function MetaRecommendationsTabs(): JSX.Element {
 
           <Card className="border-red-500/50 bg-white">
             <CardHeader>
-              <CardTitle className="text-base">Catégories spéciales META</CardTitle>
+              <CardTitle className="text-[16px]">Catégories spéciales META</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Certaines catégories sont soumises à des règles renforcées :
