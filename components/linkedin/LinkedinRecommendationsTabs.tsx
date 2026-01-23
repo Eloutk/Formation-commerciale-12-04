@@ -13,6 +13,9 @@ function ImagePlaceholder({ label = "Ajouter votre image" }: { label?: string })
 }
 
 export default function LinkedinRecommendationsTabs(): JSX.Element {
+  const cardHeaderClass = "space-y-0 pb-0"
+  const cardTitleClass = "text-sm md:text-sm font-bold leading-normal tracking-normal"
+
   return (
     <Tabs defaultValue="rappels" className="w-full">
       <TabsList className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
@@ -25,8 +28,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
       <TabsContent value="rappels">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-yellow-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Logo et nom de page</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Logo et nom de page</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Il n’est pas essentiel d’ajouter votre logo/nom de marque sur le visuel.
@@ -36,8 +39,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-yellow-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Limites de caractères (wordings)</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Limites de caractères (wordings)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Ne pas dépasser les limites, sinon le texte est tronqué et la lecture
@@ -46,8 +49,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-yellow-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Marges de sécurité (Stories/Reels)</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Marges de sécurité (Stories/Reels)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Les formats verticaux et stories sont sensibles aux marges. Éviter les
@@ -57,19 +60,19 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-yellow-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Schéma: Limites de caractères</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Schéma: Limites de caractères</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-sm">
               <ImagePlaceholder />
             </CardContent>
           </Card>
 
           <Card className="border-yellow-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Formats: images & vidéos</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Formats: images & vidéos</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-sm">
               <ImagePlaceholder />
             </CardContent>
           </Card>
@@ -80,8 +83,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
       <TabsContent value="limitations">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Groupes publicitaires</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Groupes publicitaires</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Impossible de mixer les différents groupes publicitaires dans une même
@@ -90,8 +93,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Format vertical (déprécié)</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Format vertical (déprécié)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Le format vertical est déprécié sur LinkedIn (date indiquée sur le
@@ -100,8 +103,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Limites de caractères</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Limites de caractères</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Exemples (à titre indicatif, selon placements):
@@ -114,8 +117,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Livrables — groupe standard</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Livrables — groupe standard</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <div>
@@ -137,8 +140,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Livrables — carrousel</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Livrables — carrousel</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
               <div>
@@ -160,10 +163,10 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-orange-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Encart visuel — groupements</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Encart visuel — groupements</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-sm">
               <ImagePlaceholder label="Ajouter votre image (schéma groupes publicitaires)" />
             </CardContent>
           </Card>
@@ -174,8 +177,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
       <TabsContent value="restrictions">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-red-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Mentions & conformité (FR)</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Mentions & conformité (FR)</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Fournir les mentions légales/conditions lorsque requis. Respecter les
@@ -184,8 +187,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-red-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Qualité des visuels</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Qualité des visuels</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Éviter les visuels trompeurs, éléments d’interface factices (faux CTA,
@@ -194,8 +197,8 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-red-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Propriété intellectuelle</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Propriété intellectuelle</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
               Utiliser uniquement des contenus dont vous détenez les droits/licences.
@@ -204,10 +207,10 @@ export default function LinkedinRecommendationsTabs(): JSX.Element {
           </Card>
 
           <Card className="border-red-500/50 bg-white">
-            <CardHeader>
-              <CardTitle className="text-base">Encart visuel — formats LinkedIn</CardTitle>
+            <CardHeader className={cardHeaderClass}>
+              <CardTitle className={cardTitleClass}>Encart visuel — formats LinkedIn</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-sm">
               <ImagePlaceholder label="Ajouter votre image (exemples formats LI)" />
             </CardContent>
           </Card>

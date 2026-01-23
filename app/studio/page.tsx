@@ -17,6 +17,8 @@ export default function StudioPage() {
   const [tooltip1Open, setTooltip1Open] = useState(false)
   const [tooltip2Open, setTooltip2Open] = useState(false)
   const [tooltip3Open, setTooltip3Open] = useState(false)
+  const [tooltip4Open, setTooltip4Open] = useState(false)
+  const [tooltip5Open, setTooltip5Open] = useState(false)
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
@@ -272,6 +274,8 @@ export default function StudioPage() {
                   </div>
                 </div>
 
+                {/* Desktop: 2 colonnes (>=1024px), sinon empilé */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                   {/* Bloc 4: Limites de caractères pour les wordings */}
                   <div>
                     <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">Limites de caractères pour les wordings</h2>
@@ -354,53 +358,69 @@ export default function StudioPage() {
 
                   {/* Bloc 5: Marges de sécurité */}
                           <div>
-                    <h2 className="mb-4 md:mb-6">Marges de sécurité pour les publicités story et reels</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
-                      <div className="flex justify-center">
-                        <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px]">
-                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm">
-                              <NextImage src="/images/META Marges de sécurité@10x.png" alt="Marges de sécurité pour les publicités story et reels" width={1440} height={2560} className="w-full h-full object-contain" />
-                            </div>
+                    <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">Marges de sécurité pour les publicités story et reels</h2>
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-[200px] sm:max-w-[240px] md:max-w-[280px] lg:max-w-[200px] relative">
+                        <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                          <NextImage src="/images/META Marges de sécurité 2@10x.png" alt="Marges de sécurité pour les publicités story et reels" width={1440} height={2560} className="w-full h-full object-contain" />
+                          <TooltipProvider delayDuration={0}>
+                            {/* Zone 1 : bloc photo de profil + nom de page (en haut) */}
+                            <Tooltip open={tooltip4Open} onOpenChange={setTooltip4Open}>
+                              <TooltipTrigger asChild>
+                                <div 
+                                  className="absolute top-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setTooltip4Open(!tooltip4Open)}
+                                >
+                                  1
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>bloc photo de profil + nom de page</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>marge de 21 %</li>
+                                    <li>400 pixels environ</li>
+                                  </ul>
+                                  <p className="mt-2 italic">
+                                    Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.
+                                  </p>
+                                  <p className="mt-1 italic">
+                                    La présence d'éléments dans cette zone est considérée comme tolérable.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {/* Zone 2 : bloc CTA + interactions (en bas) */}
+                            <Tooltip open={tooltip5Open} onOpenChange={setTooltip5Open}>
+                              <TooltipTrigger asChild>
+                                <div 
+                                  className="absolute bottom-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setTooltip5Open(!tooltip5Open)}
+                                >
+                                  2
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>bloc CTA + interactions</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>marge de 15 %</li>
+                                    <li>285 pixels environ</li>
+                                    <li>marge de 30 %</li>
+                                    <li>570 pixels environ</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                </div>
-                      <div className="space-y-4 text-sm md:text-base lg:pl-2">
-                          <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg">
-                              1
-                            </div>
-                            <strong>Zone 1</strong>
-                          </div>
-                          <ul className="ml-4 mt-1 space-y-1">
-                            <li>bloc photo de profil + nom de page</li>
-                            <li>marge de 21 %</li>
-                            <li>400 pixels environ</li>
-                            </ul>
-                          <p className="mt-2 ml-4 italic">
-                            Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.
-                          </p>
-                          <p className="mt-1 ml-4 italic">
-                            La présence d'éléments dans cette zone est considérée comme tolérable.
-                          </p>
-                          </div>
-                          <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-lg">
-                              2
-                            </div>
-                            <strong>Zone 2</strong>
-                          </div>
-                          <ul className="ml-4 mt-1 space-y-1">
-                            <li>bloc CTA + interactions</li>
-                            <li>marge de 15 %</li>
-                            <li>285 pixels environ</li>
-                            <li>marge de 30 %</li>
-                            <li>570 pixels environ</li>
-                            </ul>
-                          </div>
-                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
                 </div>
 
                 <div className="mt-6">
@@ -417,40 +437,43 @@ export default function StudioPage() {
                         <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                         
                         {/* Bloc visuel explicatif */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                          {/* Encart 1: format carré */}
-                          <div>
-                            <div className="aspect-square w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-start">
+                          {/* Gauche : carré (1:1) */}
+                          <div className="self-start">
+                            <div className="aspect-square w-full overflow-hidden rounded-lg">
+                              <NextImage
+                                src="/images/META format complet vertical2@10x.png"
+                                alt="Format carré"
+                                width={1440}
+                                height={1440}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
-                            <div className="text-sm text-center">
-                              <p className="font-medium">format carré</p>
-                              <p>1440 × 1440 px</p>
-                              <p>ratio 1:1</p>
-                  </div>
-                </div>
-
-                          {/* Encart 2: format vertical */}
-                          <div>
-                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet vertical@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                           </div>
-                            <div className="text-sm text-center">
-                              <p className="font-medium">format vertical</p>
-                              <p>1440 × 2560 px</p>
-                              <p>ratio 9:16</p>
-                  </div>
-                </div>
 
-                          {/* Encart 3: format horizontal */}
-                          <div>
-                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                          {/* Centre : vertical (9:16) */}
+                          <div className="self-start">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg">
+                              <NextImage
+                                src="/images/META format complet vertical@10x.png"
+                                alt="Format vertical"
+                                width={1440}
+                                height={2560}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
-                            <div className="text-sm text-center">
-                              <p className="font-medium">format horizontal</p>
-                              <p>1440 × 754 px</p>
-                              <p>ratio 1.91:1</p>
+                          </div>
+
+                          {/* Droite : horizontal (1.91:1) top-aligned */}
+                          <div className="self-start">
+                            <div className="aspect-[1.91/1] w-full overflow-hidden rounded-lg">
+                              <NextImage
+                                src="/images/META format complet horizontal@10x.png"
+                                alt="Format horizontal"
+                                width={1440}
+                                height={754}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           </div>
                         </div>
