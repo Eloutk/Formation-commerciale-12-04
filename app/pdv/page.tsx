@@ -275,6 +275,12 @@ export default function PDVPage() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [clientName, setClientName] = useState('')
   
+  // État pour la modale Validation TM
+  const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
+  const [validationMessage, setValidationMessage] = useState('')
+  const [sendingToSlack, setSendingToSlack] = useState(false)
+  const [userPseudo, setUserPseudo] = useState<string>('')
+  
   // État pour le sélecteur de graphique
   const [chartView, setChartView] = useState<ChartView>('platform')
   
@@ -300,9 +306,12 @@ export default function PDVPage() {
           
           if (name) {
             setUserName(name)
+            setUserPseudo(name)
           } else if (session.user.email) {
             // Utiliser l'email si pas de nom
-            setUserName(session.user.email.split('@')[0])
+            const fallback = session.user.email.split('@')[0]
+            setUserName(fallback)
+            setUserPseudo(fallback)
           }
         }
       } catch (error) {
@@ -485,6 +494,82 @@ export default function PDVPage() {
     URL.revokeObjectURL(url)
     setPdfDialogOpen(false)
     setClientName('')
+  }
+
+  // Fonction pour envoyer le PDF sur Slack (Validation TM)
+  const handleValidationTM = async () => {
+    if (!validationMessage.trim()) return
+    
+    setSendingToSlack(true)
+    try {
+      // Générer le PDF d'abord
+      const doc = <PDFDocument strategy={strategy} clientName={clientName || 'Client'} total={strategyTotal} kpisTotal={strategyKPIsTotal} userName={userName} />
+      const blob = await pdf(doc).toBlob()
+      
+      // Convertir le PDF en base64
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1]
+          const fileName = `strategie-pdv-${clientName || 'client'}-${new Date().toISOString().split('T')[0]}.pdf`
+          
+          // Récupérer l'ID utilisateur
+          const { data: { session } = {} } = await supabase.auth.getSession()
+          const userId = session?.user?.id || null
+          
+          // Créer le message formaté pour Slack (via le trigger Supabase)
+          // On met toutes les infos dans le champ term pour que le trigger Slack les récupère
+          const term = `📋 Validation TM - ${clientName || 'Client'}\n\nPrénom: ${userPseudo || userName}\nClient: ${clientName || 'Non spécifié'}\nMessage: ${validationMessage.trim()}\n\nPDF: ${fileName}`
+          
+          // Insérer dans glossary_suggestions comme le fait le glossaire
+          // Le trigger Supabase enverra automatiquement sur Slack
+          const payload: Record<string, any> = {
+            term: term,
+            pseudo: userPseudo || userName,
+          }
+          
+          if (userId) payload.user_id = userId
+          
+          // Envoyer via l'API pour inclure le PDF
+          const response = await fetch('/api/slack', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pdfBase64: base64,
+              fileName,
+              firstName: userPseudo || userName,
+              message: validationMessage.trim(),
+              clientName: clientName || 'Client',
+              term: term,
+              pseudo: userPseudo || userName,
+              userId: userId
+            })
+          })
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Erreur lors de l\'envoi sur Slack')
+          }
+          
+          // Succès
+          setValidationTMDialogOpen(false)
+          setValidationMessage('')
+          setSendingToSlack(false)
+          
+          // Afficher un message de succès
+          alert('Validation TM envoyée sur Slack avec succès !')
+        } catch (error: any) {
+          console.error('Error sending to Slack:', error)
+          setSendingToSlack(false)
+          alert('Erreur lors de l\'envoi sur Slack: ' + (error.message || 'Erreur inconnue'))
+        }
+      }
+      reader.readAsDataURL(blob)
+    } catch (error: any) {
+      console.error('Error generating PDF:', error)
+      setSendingToSlack(false)
+      alert('Erreur lors de la génération du PDF: ' + (error.message || 'Erreur inconnue'))
+    }
   }
 
   return (
@@ -798,11 +883,11 @@ export default function PDVPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={exportToExcel}
+                        onClick={() => setValidationTMDialogOpen(true)}
                         className="flex-1"
+                        disabled={strategy.length === 0}
                       >
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Excel
+                        Validation TM
                       </Button>
                       <Button
                         variant="outline"
@@ -866,6 +951,57 @@ export default function PDVPage() {
             >
               <Download className="h-4 w-4 mr-2" />
               Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale pour Validation TM */}
+      <Dialog open={validationTMDialogOpen} onOpenChange={setValidationTMDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Validation TM</DialogTitle>
+            <DialogDescription>
+              Envoyez la stratégie sur Slack pour validation. Le PDF sera généré et partagé.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="validation-message">Message *</Label>
+              <Input
+                id="validation-message"
+                placeholder="Votre message pour la validation..."
+                value={validationMessage}
+                onChange={(e) => setValidationMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && validationMessage.trim()) {
+                    handleValidationTM()
+                  }
+                }}
+              />
+            </div>
+            {!clientName && (
+              <div className="space-y-2">
+                <Label htmlFor="client-name-tm">Nom du client (optionnel)</Label>
+                <Input
+                  id="client-name-tm"
+                  placeholder="Ex: Entreprise ABC"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setValidationTMDialogOpen(false)} disabled={sendingToSlack}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleValidationTM}
+              disabled={!validationMessage.trim() || sendingToSlack}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {sendingToSlack ? 'Envoi...' : 'Envoyer sur Slack'}
             </Button>
           </DialogFooter>
         </DialogContent>
