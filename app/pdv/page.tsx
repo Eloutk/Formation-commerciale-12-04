@@ -1,377 +1,496 @@
 'use client'
-export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Target, Plus, Trash2, FileText, PieChart, BarChart3, Download, AlertCircle } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import { PDFGenerator } from '@/components/pdf-generator'
-import { PDFSimulation } from '@/components/pdf-simulation'
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  calculatePriceForKPIs,
-  calculateKPIsForBudget,
-  validateInputs,
-  listObjectivesForPlatform,
-  type PDVCalculation,
-  UNIT_COSTS,
-} from '@/lib/pdv-calculations'
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib/pdv-calculations'
+import * as XLSX from 'xlsx'
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import supabase from '@/utils/supabase/client'
 
-// Configuration des plateformes et leurs objectifs (depuis les coûts unitaires)
-const platforms = UNIT_COSTS
+// Liste des plateformes dans l'ordre souhaité
+const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
 
-// Données internes: CTR moyen (%) et nombre moyen de clics par couple plateforme+objectif
-// Les valeurs sont indicatives pour donner du contexte commercial.
-// Insights supprimés
+type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
+type ChartView = 'platform' | 'objective'
 
-function formatPercentFR(value: number): string {
-  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`
-}
-
-// Couleurs pour les diagrammes
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B6B']
-
-export interface PlatformCalculation {
-  id: string
+interface TableRowData {
   platform: string
   objective: string
-  aePercentage: string
-  diffusionDays: string
-  calculationType: 'price-for-kpis' | 'kpis-for-budget'
-  budget?: string
-  kpis?: string
-  price?: number
-  calculatedKpis?: number
+  budget: number
+  estimatedKPIs: number
+  dailyBudget: number
+  isAvailable: boolean
+}
+
+interface StrategyItem extends TableRowData {
+  id: string
+}
+
+// Fonction pour formater les nombres avec espaces classiques (pour PDF)
+const formatNumber = (num: number, decimals: number = 0): string => {
+  // Formater manuellement pour garantir des espaces classiques
+  const parts = num.toFixed(decimals).split('.')
+  const integerPart = parts[0]
+  const decimalPart = decimals > 0 ? parts[1] : null
+  
+  // Ajouter des espaces tous les 3 chiffres de droite à gauche
+  let formatted = ''
+  for (let i = integerPart.length - 1, count = 0; i >= 0; i--, count++) {
+    if (count > 0 && count % 3 === 0) {
+      formatted = ' ' + formatted
+    }
+    formatted = integerPart[i] + formatted
+  }
+  
+  return decimalPart ? `${formatted},${decimalPart}` : formatted
+}
+
+// Styles pour le PDF
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontSize: 12,
+    fontFamily: 'Helvetica',
+    backgroundColor: '#fafafa',
+  },
+  title: {
+    fontSize: 28,
+    marginBottom: 10,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  clientName: {
+    fontSize: 18,
+    marginBottom: 30,
+    color: '#E94C16',
+    fontWeight: 'bold',
+  },
+  summary: {
+    marginBottom: 30,
+    padding: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E94C16',
+  },
+  summaryText: {
+    fontSize: 14,
+    marginBottom: 5,
+    color: '#666666',
+  },
+  summaryTotal: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#E94C16',
+    marginTop: 5,
+  },
+  itemCard: {
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  itemPlatform: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#1a1a1a',
+  },
+  itemObjective: {
+    fontSize: 11,
+    marginBottom: 6,
+    color: '#666666',
+  },
+  itemBudget: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#1a1a1a',
+  },
+  itemKPIs: {
+    fontSize: 11,
+    color: '#666666',
+  },
+  chartSection: {
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#1a1a1a',
+  },
+  progressBarContainer: {
+    marginBottom: 10,
+  },
+  progressBar: {
+    height: 24,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBarLabel: {
+    fontSize: 11,
+    marginBottom: 4,
+    color: '#1a1a1a',
+    fontWeight: 'bold',
+  },
+  progressBarValue: {
+    fontSize: 10,
+    color: '#666666',
+    marginTop: 4,
+  },
+  total: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    textAlign: 'right',
+    color: '#E94C16',
+    paddingTop: 20,
+    borderTopWidth: 2,
+    borderTopColor: '#E94C16',
+  },
+})
+
+// Couleurs pour le graphique PDF (mêmes que dans l'interface)
+const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
+
+// Composant PDF
+const PDFDocument = ({ strategy, clientName, total, kpisTotal, userName }: { strategy: StrategyItem[], clientName: string, total: number, kpisTotal: number, userName: string }) => {
+  // Calculer la répartition par plateforme
+  const platformTotals: Record<string, number> = {}
+  strategy.forEach((item) => {
+    if (!platformTotals[item.platform]) {
+      platformTotals[item.platform] = 0
+    }
+    platformTotals[item.platform] += item.budget
+  })
+
+  const chartData = Object.entries(platformTotals).map(([name, value], index) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total * 100) : 0,
+    color: PDF_COLORS[index % PDF_COLORS.length]
+  }))
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>
+          {userName ? `Stratégie de ${userName}` : 'Ma stratégie'}
+        </Text>
+        <Text style={styles.clientName}>Client : {clientName}</Text>
+        
+        {/* Résumé */}
+        <View style={styles.summary}>
+          <Text style={styles.summaryText}>
+            {strategy.length} élément{strategy.length > 1 ? 's' : ''} sélectionné{strategy.length > 1 ? 's' : ''}
+          </Text>
+          <Text style={styles.summaryTotal}>
+            Total : {formatNumber(total, 0)} €
+          </Text>
+          <Text style={styles.summaryText}>
+            KPIs totaux : {formatNumber(kpisTotal, 0)}
+          </Text>
+        </View>
+
+        {/* Graphique de répartition */}
+        {chartData.length > 0 && (
+          <View style={styles.chartSection}>
+            <Text style={styles.chartTitle}>Répartition par plateforme</Text>
+            {chartData.map((item, index) => (
+              <View key={index} style={styles.progressBarContainer}>
+                <Text style={styles.progressBarLabel}>
+                  {item.name} ({item.percentage.toFixed(1)}%)
+                </Text>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        backgroundColor: item.color,
+                        width: `${item.percentage}%`
+                      }
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressBarValue}>
+                  {formatNumber(item.value, 0)} €
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Liste des éléments */}
+        {strategy.map((item) => (
+          <View key={item.id} style={styles.itemCard}>
+            <Text style={styles.itemPlatform}>{item.platform}</Text>
+            <Text style={styles.itemObjective}>{item.objective}</Text>
+            <Text style={styles.itemBudget}>{formatNumber(item.budget, 0)} €</Text>
+            <Text style={styles.itemKPIs}>KPIs : {item.estimatedKPIs > 0 ? formatNumber(item.estimatedKPIs, 0) : '-'}</Text>
+          </View>
+        ))}
+        
+        <Text style={styles.total}>Total : {formatNumber(total, 0)} €</Text>
+      </Page>
+    </Document>
+  )
 }
 
 export default function PDVPage() {
-  const [isMultiPlatform, setIsMultiPlatform] = useState(false)
-  const [isBudgetSimulation, setIsBudgetSimulation] = useState(false)
-  const [calculations, setCalculations] = useState<PlatformCalculation[]>([])
-  const [selectedPlatform, setSelectedPlatform] = useState('')
-  const [selectedObjective, setSelectedObjective] = useState('')
-  const [aePercentage, setAePercentage] = useState('40')
-  const [diffusionDays, setDiffusionDays] = useState('15')
-  const [calculationType, setCalculationType] = useState('')
-  const [budget, setBudget] = useState('')
-  const [kpis, setKpis] = useState('')
-  const [currentResult, setCurrentResult] = useState<PDVCalculation | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [lowBudgetWarning, setLowBudgetWarning] = useState<string | null>(null)
-  const [tempKpiById, setTempKpiById] = useState<Record<string, string>>({})
-  const [tempPriceById, setTempPriceById] = useState<Record<string, string>>({})
+  // État du formulaire
+  const [calculationMode, setCalculationMode] = useState<CalculationMode>('budget-to-kpis')
+  const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
+  const [aePercentage, setAePercentage] = useState<string>('40')
+  const [diffusionDays, setDiffusionDays] = useState<string>('15')
+  
+  // État de la stratégie
+  const [strategy, setStrategy] = useState<StrategyItem[]>([])
+  
+  // État pour la modale PDF
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [clientName, setClientName] = useState('')
+  
+  // État pour le sélecteur de graphique
+  const [chartView, setChartView] = useState<ChartView>('platform')
+  
+  // État pour le nom de l'utilisateur connecté
+  const [userName, setUserName] = useState<string>('')
 
-  // Simulation Budget states
-  const [simBudget, setSimBudget] = useState<string>("")
-  const [simAE, setSimAE] = useState<string>("40")
-  const [simSelectedPlatforms, setSimSelectedPlatforms] = useState<string[]>([])
-  const [simAllocations, setSimAllocations] = useState<Record<string, string>>({})
-  const [simObjective, setSimObjective] = useState<string>("")
-  const [simResults, setSimResults] = useState<Array<{platform: string; objective: string; kpis: number; ctrPct?: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number; budgetUsed: number; warnLow?: boolean}>>([])
+  // Récupérer le nom de l'utilisateur connecté
+  useEffect(() => {
+    const getUserName = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          // Essayer de récupérer depuis le profil
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', session.user.id)
+            .maybeSingle()
+          
+          const profileName = profile?.full_name as string | undefined
+          const metaName = (session.user.user_metadata as any)?.full_name as string | undefined
+          const name = (profileName || metaName || '').trim()
+          
+          if (name) {
+            setUserName(name)
+          } else if (session.user.email) {
+            // Utiliser l'email si pas de nom
+            setUserName(session.user.email.split('@')[0])
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération du nom utilisateur:', error)
+      }
+    }
+    getUserName()
+  }, [])
 
-  // Insights pour Simulation Budget (moyennes indicatives)
-  type SimInsight = { ctrPct: number; avgClicks?: number; avgImpressions?: number; avgClicksLink?: number }
-  const SIM_INSIGHTS: Record<string, Record<string, SimInsight>> = {
-    META: {
-      Impressions: { ctrPct: 0.9, avgClicks: 6600, avgImpressions: 120000 },
-      Clics: { ctrPct: 1.2, avgImpressions: 200000 },
-      'Clics sur lien': { ctrPct: 1.1, avgImpressions: 180000 },
-      Leads: { ctrPct: 5.5, avgClicks: 6600, avgImpressions: 120000, avgClicksLink: 5200 },
-    },
-    LinkedIn: {
-      Impressions: { ctrPct: 0.55, avgClicks: 1200, avgImpressions: 18000 },
-      Clics: { ctrPct: 0.6, avgImpressions: 18000 },
-      'Clics sur lien': { ctrPct: 0.6, avgImpressions: 18000 },
-      Leads: { ctrPct: 5.5, avgClicks: 1000, avgImpressions: 18000, avgClicksLink: 800 },
-    },
-    Display: {
-      Impressions: { ctrPct: 0.2, avgClicks: 300, avgImpressions: 100000 },
-      Clics: { ctrPct: 0.25, avgImpressions: 100000 },
-    },
+  // Générer toutes les combinaisons plateforme/objectif
+  const generateTableData = (): TableRowData[] => {
+    const rows: TableRowData[] = []
+    const mainValueNum = parseFloat(mainValue) || 0
+    const aeNum = parseFloat(aePercentage) || 40
+    const daysNum = parseFloat(diffusionDays) || 15
+
+    if (!mainValueNum || !daysNum) return rows
+
+    PLATFORMS_ORDER.forEach((platform) => {
+      const platformData = UNIT_COSTS[platform]
+      if (!platformData) return
+
+      Object.keys(platformData).forEach((objective) => {
+        try {
+          let budget = 0
+          let estimatedKPIs = 0
+
+          if (calculationMode === 'budget-to-kpis') {
+            // Budget global → répartition par plateforme/objectif
+            budget = mainValueNum // Budget total à répartir
+            const result = calculateKPIsForBudget(platform, objective, aeNum, budget)
+            estimatedKPIs = Math.ceil(result.calculatedKpis || 0)
+          } else {
+            // KPIs → Budget nécessaire
+            estimatedKPIs = mainValueNum
+            const result = calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
+            budget = result.price || 0
+          }
+
+          const dailyBudget = budget / daysNum
+
+          rows.push({
+            platform,
+            objective,
+            budget,
+            estimatedKPIs,
+            dailyBudget,
+            isAvailable: true
+          })
+        } catch (error) {
+          rows.push({
+            platform,
+            objective,
+            budget: 0,
+            estimatedKPIs: 0,
+            dailyBudget: 0,
+            isAvailable: false
+          })
+        }
+      })
+    })
+
+    return rows
   }
-  const getSimInsights = (platform: string, objective: string): SimInsight => {
-    const p = SIM_INSIGHTS[platform]?.[objective]
-    if (p) return p
-    if (/lead/i.test(objective)) return { ctrPct: 1.0, avgClicks: 400, avgImpressions: 150000, avgClicksLink: 300 }
-    if (/impr/i.test(objective)) return { ctrPct: 0.5, avgClicks: 500, avgImpressions: 120000 }
-    if (/lien/i.test(objective)) return { ctrPct: 1.0, avgImpressions: 150000 }
-    return { ctrPct: 1.0, avgImpressions: 120000 }
-  }
-  const formatPct = (n?: number) => (n === undefined ? '-' : `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`)
 
-  const handleCalculate = () => {
-    setError(null)
-    setCurrentResult(null)
-    setLowBudgetWarning(null)
+  const tableData = generateTableData()
+
+  // Grouper les données par plateforme
+  const groupedByPlatform = useMemo(() => {
+    return tableData.reduce((acc, row) => {
+      if (!acc[row.platform]) {
+        acc[row.platform] = []
+      }
+      acc[row.platform].push(row)
+      return acc
+    }, {} as Record<string, TableRowData[]>)
+  }, [tableData])
+
+  // Fonction pour ajouter à la stratégie
+  const addToStrategy = (row: TableRowData) => {
+    const newItem: StrategyItem = {
+      ...row,
+      id: `${row.platform}-${row.objective}-${Date.now()}`
+    }
+    setStrategy([...strategy, newItem])
+  }
+
+  // Fonction pour supprimer de la stratégie
+  const removeFromStrategy = (id: string) => {
+    setStrategy(strategy.filter(item => item.id !== id))
+  }
+
+  // Calculer le total de la stratégie (mise à jour automatique)
+  const strategyTotal = useMemo(() => {
+    return strategy.reduce((total, item) => total + item.budget, 0)
+  }, [strategy])
+
+  // Calculer le total des KPIs dans la stratégie
+  const strategyKPIsTotal = useMemo(() => {
+    return strategy.reduce((total, item) => total + item.estimatedKPIs, 0)
+  }, [strategy])
+
+  // Préparer les données pour le graphique (par plateforme)
+  const chartData = useMemo(() => {
+    const platformTotals: Record<string, number> = {}
     
-    try {
-      const aePercentageNum = parseFloat(aePercentage)
-      const validationError = validateInputs(
-        selectedPlatform,
-        selectedObjective,
-        aePercentageNum,
-        calculationType === 'price-for-kpis' ? parseFloat(kpis) : undefined,
-        calculationType === 'kpis-for-budget' ? parseFloat(budget) : undefined
-      )
-      if (validationError) {
-        setError(validationError)
-        return
+    strategy.forEach((item) => {
+      if (!platformTotals[item.platform]) {
+        platformTotals[item.platform] = 0
       }
-
-      let result: PDVCalculation
-      if (calculationType === 'price-for-kpis') {
-        result = calculatePriceForKPIs(
-          selectedPlatform,
-          selectedObjective,
-          aePercentageNum,
-          parseFloat(kpis)
-        )
-        if ((result.price || 0) < 500) {
-          setLowBudgetWarning('Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.')
-        }
-      } else {
-        result = calculateKPIsForBudget(
-          selectedPlatform,
-          selectedObjective,
-          aePercentageNum,
-          parseFloat(budget)
-        )
-        if (parseFloat(budget) < 500) {
-          setLowBudgetWarning('Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.')
-        }
-      }
-
-      setCurrentResult(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du calcul')
-    }
-  }
-
-  const getAvailableObjectives = () => {
-    return selectedPlatform ? Object.keys(platforms[selectedPlatform as keyof typeof platforms] || {}) : []
-  }
-
-  const resetObjectiveWhenPlatformChanges = (newPlatform: string) => {
-    setSelectedPlatform(newPlatform)
-    setSelectedObjective('')
-  }
-
-  // Inline editing handlers
-  const handleInlineObjectiveChange = (id: string, newObjective: string) => {
-    setCalculations((prev) => prev.map((c) => {
-      if (c.id !== id) return c
-      try {
-        const aeNum = parseFloat(c.aePercentage)
-        if (c.calculationType === 'price-for-kpis') {
-          const result = calculatePriceForKPIs(c.platform, newObjective, aeNum, Number(c.kpis || '0'))
-          return { ...c, objective: newObjective, price: result.price }
-        } else {
-          const result = calculateKPIsForBudget(c.platform, newObjective, aeNum, Number(c.budget || '0'))
-          return { ...c, objective: newObjective, calculatedKpis: result.calculatedKpis }
-        }
-      } catch {
-        return { ...c, objective: newObjective }
-      }
-    }))
-  }
-
-  const handleInlineResultChange = (id: string, newValue: string) => {
-    // kept for compatibility if needed in future
-  }
-
-  const handleInlineKPIsChange = (id: string, newValue: string) => {
-    setTempKpiById((prev) => ({ ...prev, [id]: newValue }))
-    setCalculations((prev) => prev.map((c) => {
-      if (c.id !== id) return c
-      const aeNum = parseFloat(c.aePercentage)
-      const k = Number(newValue)
-      try {
-        const res = calculatePriceForKPIs(c.platform, c.objective, aeNum, k)
-        const nextPrice = res.price || 0
-        setTempPriceById((prev) => ({ ...prev, [id]: String(Math.ceil(nextPrice)) }))
-        return { ...c, kpis: String(k), calculatedKpis: k, price: nextPrice }
-      } catch {
-        return { ...c, kpis: String(k) }
-      }
-    }))
-  }
-
-  const handleInlinePriceChange = (id: string, newValue: string) => {
-    setTempPriceById((prev) => ({ ...prev, [id]: newValue }))
-    setCalculations((prev) => prev.map((c) => {
-      if (c.id !== id) return c
-      const aeNum = parseFloat(c.aePercentage)
-      const budget = Number(newValue)
-      try {
-        const res = calculateKPIsForBudget(c.platform, c.objective, aeNum, budget)
-        const nextKpi = Math.ceil(res.calculatedKpis || 0)
-        setTempKpiById((prev) => ({ ...prev, [id]: String(nextKpi) }))
-        return { ...c, price: budget, budget: String(budget), calculatedKpis: res.calculatedKpis, kpis: String(nextKpi) }
-      } catch {
-        return { ...c, price: budget }
-      }
-    }))
-  }
-
-  const addPlatform = () => {
-    if (!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType) {
-      setError('Veuillez remplir tous les champs obligatoires')
-      return
-    }
-
-    try {
-      const aePercentageNum = parseFloat(aePercentage)
-      let result: PDVCalculation
-
-      if (calculationType === 'price-for-kpis') {
-        if (!kpis) {
-          setError('Veuillez saisir le nombre de KPIs')
-          return
-        }
-        result = calculatePriceForKPIs(
-          selectedPlatform,
-          selectedObjective,
-          aePercentageNum,
-          parseFloat(kpis)
-        )
-      } else {
-        if (!budget) {
-          setError('Veuillez saisir le budget')
-          return
-        }
-        result = calculateKPIsForBudget(
-          selectedPlatform,
-          selectedObjective,
-          aePercentageNum,
-          parseFloat(budget)
-        )
-      }
-
-      const newCalculation: PlatformCalculation = {
-        id: Date.now().toString(),
-        platform: selectedPlatform,
-        objective: selectedObjective,
-        aePercentage,
-        diffusionDays,
-        calculationType: calculationType as 'price-for-kpis' | 'kpis-for-budget',
-        budget: calculationType === 'kpis-for-budget' ? budget : undefined,
-        kpis: calculationType === 'price-for-kpis' ? kpis : undefined,
-        price: result.price,
-        calculatedKpis: result.calculatedKpis,
-      }
-
-      setCalculations([...calculations, newCalculation])
-      setError(null)
-
-      // Reset form
-      setSelectedPlatform('')
-      setSelectedObjective('')
-      setAePercentage('')
-      setDiffusionDays('')
-      setCalculationType('')
-      setBudget('')
-      setKpis('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du calcul')
-    }
-  }
-
-  const removePlatform = (id: string) => {
-    setCalculations(calculations.filter(calc => calc.id !== id))
-  }
-
-  const getTotalPDV = () => {
-    return calculations.reduce((total, calc) => total + (calc.price || 0), 0)
-  }
-
-  const getTotalKPIs = () => {
-    return calculations.reduce((total, calc) => total + (calc.calculatedKpis || 0), 0)
-  }
-
-  // Données pour les diagrammes
-  const getChartData = () => {
-    return calculations.map((calc, index) => ({
-      name: calc.platform,
-      value: calc.price || 0,
-      color: COLORS[index % COLORS.length]
-    }))
-  }
-
-  const getPercentageData = () => {
-    const total = getTotalPDV()
-    return calculations.map((calc, index) => ({
-      name: calc.platform,
-      value: total > 0 ? ((calc.price || 0) / total * 100) : 0,
-      color: COLORS[index % COLORS.length]
-    }))
-  }
-
-  // Alerte budget minimum (multi-plateformes)
-  const hasLowBudgetInCalculations = () => {
-    // N'affiche l'avertissement que si AU MOINS une ligne a un PRIX (< 500€).
-    return calculations.some((calc) => calc.calculationType === 'price-for-kpis' && Number(calc.price || 0) < 500)
-  }
-
-  // Opportunités par ligne (budget de la ligne)
-  const getRowSuggestions = (calc: PlatformCalculation) => {
-    const platform = calc.platform
-    const objective = calc.objective
-    const aeNum = parseFloat(calc.aePercentage)
-    let referenceBudget = 0
-    if (calc.calculationType === 'price-for-kpis') {
-      referenceBudget = Number(calc.price || 0)
-      if (!referenceBudget) {
-        const k = Number(calc.kpis || '0')
-        if (platform && objective && aeNum && k > 0) {
-          const res = calculatePriceForKPIs(platform, objective, aeNum, k)
-          referenceBudget = Number(res.price || 0)
-        }
-      }
-    } else {
-      referenceBudget = Number(calc.budget || 0)
-      if (!referenceBudget) {
-        referenceBudget = Number(calc.price || 0)
-      }
-    }
-    if (!referenceBudget || !platform) return [] as { objective: string; kpis: number }[]
-    const others = listObjectivesForPlatform(platform).filter((o) => o !== objective)
-    return others.map((obj) => {
-      const alt = calculateKPIsForBudget(platform, obj, aeNum, referenceBudget)
-      return { objective: obj, kpis: Math.ceil(alt.calculatedKpis || 0) }
+      platformTotals[item.platform] += item.budget
     })
+
+    return Object.entries(platformTotals).map(([name, value]) => ({
+      name,
+      value: Math.round(value)
+    }))
+  }, [strategy])
+
+  // Préparer les données pour le graphique (par objectif)
+  const chartDataByObjective = useMemo(() => {
+    const objectiveTotals: Record<string, number> = {}
+    
+    strategy.forEach((item) => {
+      if (!objectiveTotals[item.objective]) {
+        objectiveTotals[item.objective] = 0
+      }
+      objectiveTotals[item.objective] += item.budget
+    })
+
+    return Object.entries(objectiveTotals).map(([name, value]) => ({
+      name,
+      value: Math.round(value)
+    }))
+  }, [strategy])
+
+  // Couleurs pour le graphique
+  const COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
+
+  // Fonction pour déterminer la couleur selon le budget quotidien
+  const getDailyBudgetColorClass = (dailyBudget: number): string => {
+    if (dailyBudget === 0) return 'bg-gray-100 text-gray-400'
+    if (dailyBudget < 50) return 'bg-red-50 text-red-700'
+    if (dailyBudget < 100) return 'bg-orange-50 text-orange-700'
+    if (dailyBudget < 200) return 'bg-yellow-50 text-yellow-700'
+    return 'bg-green-50 text-green-700'
   }
 
-  // Suggestions stratégiques pour la plateforme/objectifs alternatifs
-  const getStrategicSuggestions = () => {
-    if (!selectedPlatform || !selectedObjective || !aePercentage) return [] as { objective: string; kpis: number }[]
-    const aeNum = parseFloat(aePercentage)
-    // On dérive le budget de référence en fonction du type sélectionné
-    let referenceBudget: number | null = null
-    if (calculationType === 'price-for-kpis' && kpis) {
-      // Prix pour KPIs -> calculer le budget à partir du KPI courant
-      const res = calculatePriceForKPIs(selectedPlatform, selectedObjective, aeNum, Number(kpis))
-      referenceBudget = res.price ?? null
-    } else if (calculationType === 'kpis-for-budget' && budget) {
-      referenceBudget = Number(budget)
-    }
-    if (!referenceBudget) return []
+  // Fonction pour exporter en Excel
+  const exportToExcel = () => {
+    const worksheetData = [
+      ['Plateforme', 'Objectif', 'Budget (€)', 'KPIs estimés', 'Budget quotidien (€)'],
+      ...strategy.map(item => [
+        item.platform,
+        item.objective,
+        item.budget,
+        item.estimatedKPIs,
+        item.dailyBudget
+      ]),
+      ['', '', 'TOTAL', '', strategyTotal]
+    ]
 
-    const objectives = listObjectivesForPlatform(selectedPlatform).filter((obj) => obj !== selectedObjective)
-    return objectives.map((obj) => {
-      const alt = calculateKPIsForBudget(selectedPlatform, obj, aeNum, referenceBudget as number)
-      return { objective: obj, kpis: Math.ceil(alt.calculatedKpis || 0) }
-    })
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Stratégie PDV')
+    XLSX.writeFile(wb, `strategie-pdv-${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  // Fonction pour générer et télécharger le PDF
+  const handleExportPDF = async () => {
+    if (!clientName.trim()) return
+    
+    const doc = <PDFDocument strategy={strategy} clientName={clientName} total={strategyTotal} kpisTotal={strategyKPIsTotal} userName={userName} />
+    const blob = await pdf(doc).toBlob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `strategie-pdv-${clientName}-${new Date().toISOString().split('T')[0]}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
+    setPdfDialogOpen(false)
+    setClientName('')
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-5xl mx-auto">
+    <div className="container mx-auto px-4 py-6 md:py-12">
+      <div className="max-w-[1600px] mx-auto">
+        {/* En-tête */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-3">Calculateur PDV</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
@@ -379,564 +498,378 @@ export default function PDVPage() {
           </p>
         </div>
 
-        {/* Mode de calcul */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-center">Mode de calcul</CardTitle>
-            <CardDescription>
-              Choisissez entre un calcul simple ou multi-plateformes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4 justify-center">
-              <Button
-                onClick={() => { setIsMultiPlatform(false); setIsBudgetSimulation(false) }}
-                className={!isMultiPlatform && !isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
-              >
-                Calcul simple
-              </Button>
-              <Button
-                onClick={() => { setIsMultiPlatform(true); setIsBudgetSimulation(false) }}
-                className={isMultiPlatform && !isBudgetSimulation ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}
-              >
-                Calcul multi-plateformes
-              </Button>
-              {/* Simulation Budget disabled per request */}
-            </div>
-          </CardContent>
-        </Card>
-
-        {!isMultiPlatform && !isBudgetSimulation ? (
-          // Mode calcul simple
-          <div className="grid gap-6">
-            {/* Paramètres de base */}
+        {/* Layout 2 colonnes sur desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
+          {/* Colonne gauche - Contenu principal */}
+          <div className="space-y-6">
+            {/* Formulaire de saisie */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="h-5 w-5" />
-                  Paramètres de base
+                  Paramètres de calcul
                 </CardTitle>
                 <CardDescription>
-                  Configurez les paramètres essentiels pour vos calculs
+                  Configurez vos paramètres pour générer le tableau comparatif
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Plateforme</Label>
-                    <Select value={selectedPlatform} onValueChange={resetObjectiveWhenPlatformChanges}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une plateforme" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(platforms).map((platform) => (
-                          <SelectItem key={platform} value={platform}>
-                            {platform}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Objectif</Label>
-                    <Select value={selectedObjective} onValueChange={setSelectedObjective} disabled={!selectedPlatform}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={selectedPlatform ? "Sélectionnez un objectif" : "Sélectionnez d'abord une plateforme"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getAvailableObjectives().map((objective) => (
-                          <SelectItem key={objective} value={objective}>
-                            {objective}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>% AE</Label>
-                    <Input
-                      type="number"
-                      placeholder="Ex: 15"
-                      value={aePercentage}
-                      onChange={(e) => setAePercentage(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Jours de diffusion</Label>
-                    <Input
-                      type="number"
-                      placeholder="Ex: 30"
-                      value={diffusionDays}
-                      onChange={(e) => setDiffusionDays(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-              </CardContent>
-            </Card>
-
-            {/* Type de calcul */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Type de calcul
-                </CardTitle>
-                <CardDescription>
-                  Choisissez si vous voulez calculer le prix pour x KPIs ou le nombre de KPIs pour x €
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Type de calcul</Label>
-                    <div className="inline-flex w-full rounded-md border overflow-hidden">
-                      <button
-                        type="button"
-                        className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${calculationType === 'price-for-kpis' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
-                        onClick={() => setCalculationType('price-for-kpis')}
-                      >
-                        Prix pour x KPIs
-                      </button>
-                      <button
-                        type="button"
-                        className={`flex-1 px-3 py-2 text-sm font-medium transition-colors border-l ${calculationType === 'kpis-for-budget' ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
-                        onClick={() => setCalculationType('kpis-for-budget')}
-                      >
-                        Nombre de KPIs pour x €
-                      </button>
-                    </div>
-                  </div>
-
-                  {calculationType === 'price-for-kpis' && (
-                    <div className="space-y-2">
-                      <Label>Nombre de KPIs</Label>
-                      <Input
-                        type="number"
-                        placeholder="Ex: 1000"
-                        value={kpis}
-                        onChange={(e) => setKpis(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  {calculationType === 'kpis-for-budget' && (
-                    <div className="space-y-2">
-                      <Label>Budget (€)</Label>
-                      <Input
-                        type="number"
-                        placeholder="Ex: 5000"
-                        value={budget}
-                        onChange={(e) => setBudget(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Résultats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Résultats</CardTitle>
-                <CardDescription>
-                  {calculationType === 'price-for-kpis' 
-                    ? `Prix pour ${kpis} ${selectedObjective} sur ${selectedPlatform}`
-                    : `Nombre de ${selectedObjective} possibles avec ${budget}€ sur ${selectedPlatform}`
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {error && (
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
-                {currentResult && (
-                  <div className="flex justify-center">
-                    <div className="text-center p-8 bg-muted rounded-lg w-full max-w-xl">
-                      <div className="text-3xl font-bold text-primary mb-2">
-                        {calculationType === 'price-for-kpis' 
-                          ? `${Number.isInteger(currentResult.price || 0) ? (currentResult.price || 0) : Math.ceil(currentResult.price || 0)}€`
-                          : `${Math.ceil(currentResult.calculatedKpis || 0).toLocaleString()}`
-                        }
-                      </div>
-                      <div className="text-lg text-muted-foreground">
-                        {calculationType === 'price-for-kpis' ? 'Prix FDV' : 'KPIs calculés'}
-                      </div>
-                      {lowBudgetWarning && (
-                        <div className="mt-4 text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-3 py-2">
-                          ⚠️ {lowBudgetWarning}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Insights supprimés */}
-                  </div>
-                )}
-                
-                <div className="text-center mt-6">
-                  <Button 
-                    onClick={handleCalculate}
-                    className="mt-4"
-                    disabled={!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType || 
-                             (calculationType === 'price-for-kpis' && !kpis) ||
-                             (calculationType === 'kpis-for-budget' && !budget)}
+              <CardContent className="space-y-6">
+                {/* Mode de calcul */}
+                <div className="space-y-2">
+                  <Label>Mode de calcul</Label>
+                  <Tabs
+                    value={calculationMode}
+                    onValueChange={(value) => {
+                      setCalculationMode(value as CalculationMode)
+                      setMainValue('')
+                    }}
+                    className="w-full"
                   >
-                    Calculer
-                  </Button>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="budget-to-kpis" className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white">Budget → KPIs</TabsTrigger>
+                      <TabsTrigger value="kpis-to-budget" className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white">KPIs → Budget</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          // Mode calcul multi-plateformes
-          <div className="grid gap-6">
-            {/* Ajout de plateforme */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  Ajouter une plateforme
-                </CardTitle>
-                <CardDescription>
-                  Configurez les paramètres pour cette plateforme
-                </CardDescription>
-              </CardHeader>
-                            <CardContent className="space-y-4">
-                {error && (
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+
+                {/* Valeur principale */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Plateforme</Label>
-                    <Select value={selectedPlatform} onValueChange={resetObjectiveWhenPlatformChanges}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une plateforme" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(platforms).map((platform) => (
-                          <SelectItem key={platform} value={platform}>
-                            {platform}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-
-                  <div className="space-y-2">
-                    <Label>Objectif</Label>
-                    <Select value={selectedObjective} onValueChange={setSelectedObjective} disabled={!selectedPlatform}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={selectedPlatform ? "Sélectionnez un objectif" : "Sélectionnez d'abord une plateforme"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getAvailableObjectives().map((objective) => (
-                          <SelectItem key={objective} value={objective}>
-                            {objective}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>
+                      {calculationMode === 'budget-to-kpis' ? 'Budget global (€)' : 'KPIs souhaités'}
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder={calculationMode === 'budget-to-kpis' ? 'Ex: 5000' : 'Ex: 10000'}
+                      value={mainValue}
+                      onChange={(e) => setMainValue(e.target.value)}
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>% AE</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 15"
+                      placeholder="Ex: 40"
                       value={aePercentage}
                       onChange={(e) => setAePercentage(e.target.value)}
                     />
                   </div>
-                </div>
 
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Jours de diffusion</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 30"
+                      placeholder="Ex: 15"
                       value={diffusionDays}
                       onChange={(e) => setDiffusionDays(e.target.value)}
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Type de calcul</Label>
-                    <Select value={calculationType} onValueChange={setCalculationType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choisissez le type de calcul" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="price-for-kpis">Prix pour x KPIs</SelectItem>
-                        <SelectItem value="kpis-for-budget">Nombre de KPIs pour x €</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {calculationType === 'price-for-kpis' && (
-                    <div className="space-y-2">
-                      <Label>Nombre de KPIs</Label>
-                      <Input
-                        type="number"
-                        placeholder="Ex: 1000"
-                        value={kpis}
-                        onChange={(e) => setKpis(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  {calculationType === 'kpis-for-budget' && (
-                    <div className="space-y-2">
-                      <Label>Budget (€)</Label>
-                      <Input
-                        type="number"
-                        placeholder="Ex: 5000"
-                        value={budget}
-                        onChange={(e) => setBudget(e.target.value)}
-                      />
-                    </div>
-                  )}
                 </div>
-
-                <Button 
-                  onClick={addPlatform}
-                  className="w-full"
-                  disabled={!selectedPlatform || !selectedObjective || !aePercentage || !diffusionDays || !calculationType}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Ajouter cette plateforme
-                </Button>
               </CardContent>
             </Card>
 
-            {/* Dashboard avec diagrammes */}
-            {calculations.length > 0 && (
-              <div className="grid gap-6">
-                {/* Récapitulatif avec diagrammes */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <PieChart className="h-5 w-5" />
-                      Dashboard - Répartition du budget
-                    </CardTitle>
-                    <CardDescription>
-                      Visualisez la répartition de votre budget par plateforme
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      {/* Diagramme circulaire - Répartition en euros */}
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-center">Répartition en euros</h3>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <RechartsPieChart>
-                              <Pie
-                                data={getChartData()}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, value }) => `${name}: ${(value as number).toFixed(0)}€`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                              >
-                                {getChartData().map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value) => `${value}€`} />
-                              <Legend />
-                            </RechartsPieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
+            {/* Plateformes segmentées */}
+            {tableData.length > 0 && (
+              <div className="space-y-4">
+                {PLATFORMS_ORDER.map((platform) => {
+                  const platformRows = groupedByPlatform[platform] || []
+                  if (platformRows.length === 0) return null
 
-                      {/* Diagramme circulaire - Répartition en pourcentage */}
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-center">Répartition en pourcentage</h3>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <RechartsPieChart>
-                              <Pie
-                                data={getPercentageData()}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, value }) => `${name}: ${(value as number).toFixed(1)}%`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                              >
-                                {getPercentageData().map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(value) => `${(value as number).toFixed(1)}%`} />
-                              <Legend />
-                            </RechartsPieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Total PDV et bouton PDF */}
-                    <div className="flex flex-col items-center pt-6 border-t mt-6 gap-2">
-                      {hasLowBudgetInCalculations() && (
-                        <div className="text-sm text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-3 py-2">
-                          ⚠️ Nous ne faisons pas de campagnes en dessous de 500 €. Merci de voir avec Junior pour une éventuelle dérogation.
-                        </div>
-                      )}
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          {getTotalPDV().toFixed(2)}€
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-4">Total PDV</div>
-                        
-                        {/* Bouton de téléchargement PDF */}
-                        {calculations.length > 0 && (
-                          <PDFDownloadLink
-                            document={<PDFGenerator calculations={calculations} totalPDV={getTotalPDV()} totalKPIs={getTotalKPIs()} />}
-                            fileName={`recapitulatif-pdv-${new Date().toISOString().split('T')[0]}.pdf`}
-                          >
-                            {({ blob, url, loading, error }) => (
-                              <Button disabled={loading} className="bg-green-600 hover:bg-green-700">
-                                <Download className="mr-2 h-4 w-4" />
-                                {loading ? 'Génération...' : 'Télécharger PDF'}
-                              </Button>
-                            )}
-                          </PDFDownloadLink>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Suggestions stratégiques supprimées */}
-
-                {/* Tableau détaillé */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Détail par plateforme
-                    </CardTitle>
-                    <CardDescription>
-                      Tableau récapitulatif avec tous les paramètres
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Plateforme</TableHead>
-                          <TableHead>KPI</TableHead>
-                          <TableHead>Objectif</TableHead>
-                          <TableHead>% AE</TableHead>
-                          <TableHead>Jours</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Prix</TableHead>
-                          <TableHead>Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {calculations.map((calc) => (
-                          <>
-                          <TableRow key={calc.id} className="bg-orange-50">
-                            <TableCell className="font-medium">{calc.platform}</TableCell>
-                            <TableCell>
-                              <input
-                                className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
-                                type="number"
-                                inputMode="numeric"
-                                value={
-                                  tempKpiById[calc.id] !== undefined
-                                    ? tempKpiById[calc.id]
-                                    : (calc.calculationType === 'price-for-kpis'
-                                      ? String(Number(calc.kpis || '0'))
-                                      : String(Math.ceil(Number(calc.calculatedKpis || 0))))
-                                }
-                                onChange={(e) => setTempKpiById((prev) => ({ ...prev, [calc.id]: e.target.value }))}
-                                onBlur={(e) => handleInlineKPIsChange(calc.id, e.target.value)}
-                              />
-                            </TableCell>
-                            <TableCell>{calc.objective}</TableCell>
-                            <TableCell>{calc.aePercentage}%</TableCell>
-                            <TableCell>{calc.diffusionDays}j</TableCell>
-                            <TableCell>
-                              {calc.calculationType === 'price-for-kpis' ? 'Prix pour KPIs' : 'KPIs pour budget'}
-                            </TableCell>
-                            <TableCell className="font-bold">
-                              <input
-                                className="w-28 h-8 px-2 text-center bg-background/70 font-semibold outline-none border border-muted-foreground/30 rounded-md shadow-sm hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/30 transition"
-                                type="number"
-                                inputMode="numeric"
-                                value={
-                                  tempPriceById[calc.id] !== undefined
-                                    ? tempPriceById[calc.id]
-                                    : (calc.calculationType === 'price-for-kpis'
-                                      ? String(Number.isInteger(calc.price || 0) ? (calc.price || 0) : Math.ceil(calc.price || 0))
-                                      : String(Math.ceil(Number(calc.budget || '0'))))
-                                }
-                                onChange={(e) => setTempPriceById((prev) => ({ ...prev, [calc.id]: e.target.value }))}
-                                onBlur={(e) => handleInlinePriceChange(calc.id, e.target.value)}
-                              />€
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                onClick={() => removePlatform(calc.id)}
-                                className="h-8 px-2 bg-secondary text-secondary-foreground"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                          {getRowSuggestions(calc).length > 0 && (
-                            <>
-                              <TableRow className="bg-muted/40">
-                                <TableCell colSpan={8} className="text-muted-foreground py-2">
-                                  Avec ce budget, tu peux aussi avoir :
-                                </TableCell>
+                  return (
+                    <Card key={platform}>
+                      <CardHeader>
+                        <CardTitle className="text-lg">{platform}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Objectif</TableHead>
+                                <TableHead className="text-right">Budget (€)</TableHead>
+                                <TableHead className="text-right">KPIs estimés</TableHead>
+                                <TableHead className="text-right">Budget quotidien (€)</TableHead>
+                                <TableHead className="w-12"></TableHead>
                               </TableRow>
-                              {getRowSuggestions(calc).map((s) => (
-                                <TableRow key={`${calc.id}-${s.objective}`} className="bg-muted/30">
-                                  <TableCell className="text-muted-foreground">{calc.platform}</TableCell>
-                                  <TableCell className="text-muted-foreground">{s.kpis.toLocaleString()}</TableCell>
-                                  <TableCell className="text-muted-foreground">{s.objective}</TableCell>
-                                  <TableCell className="text-muted-foreground">{calc.aePercentage}%</TableCell>
-                                  <TableCell className="text-muted-foreground">{calc.diffusionDays}j</TableCell>
-                                  <TableCell className="text-muted-foreground">Suggestion</TableCell>
-                                  <TableCell className="text-muted-foreground">{(calc.calculationType === 'price-for-kpis' ? Math.ceil(Number(calc.price || 0)) : Math.ceil(Number(calc.budget || '0'))).toLocaleString()}€</TableCell>
-                                  <TableCell></TableCell>
-                                </TableRow>
-                              ))}
-                            </>
-                          )}
-                          </>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                            </TableHeader>
+                            <TableBody>
+                              {platformRows.map((row, index) => {
+                                const colorClass = getDailyBudgetColorClass(row.dailyBudget)
+                                const isInStrategy = strategy.some(
+                                  item => item.platform === row.platform && item.objective === row.objective
+                                )
+                                return (
+                                  <TableRow
+                                    key={`${row.platform}-${row.objective}-${index}`}
+                                    className={colorClass}
+                                  >
+                                    <TableCell>{row.objective}</TableCell>
+                                    <TableCell className="text-right font-semibold">
+                                      {row.budget > 0 ? `${row.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €` : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {row.estimatedKPIs > 0 ? row.estimatedKPIs.toLocaleString('fr-FR') : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold">
+                                      {row.dailyBudget > 0
+                                        ? `${row.dailyBudget.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €`
+                                        : '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {!isInStrategy && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => addToStrategy(row)}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Plus className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </div>
-        )}
+
+          {/* Colonne droite - Stratégie (sticky) */}
+          <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <Card className="border-2 border-[#E94C16] h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Ma stratégie
+                  </CardTitle>
+                </div>
+                <CardDescription>
+                  {strategy.length > 0 ? (
+                    <>
+                      {strategy.length} élément{strategy.length > 1 ? 's' : ''} sélectionné{strategy.length > 1 ? 's' : ''}
+                      <br />
+                      <span className="font-semibold text-lg text-[#E94C16]">
+                        Total : {strategyTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
+                      </span>
+                      <br />
+                      <span className="text-sm text-muted-foreground">
+                        % AE : {aePercentage}%
+                      </span>
+                    </>
+                  ) : (
+                    'Ajoutez des éléments depuis le tableau'
+                  )}
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="flex-1 flex flex-col overflow-hidden">
+                {strategy.length > 0 ? (
+                  <>
+                    {/* Liste des éléments */}
+                    <div className="flex-1 overflow-y-auto mb-4">
+                      <div className="space-y-2">
+                        {strategy.map((item) => {
+                          const colorClass = getDailyBudgetColorClass(item.dailyBudget)
+                          return (
+                            <div
+                              key={item.id}
+                              className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{item.platform}</div>
+                                <div className="text-xs text-muted-foreground">{item.objective}</div>
+                                <div className="text-xs font-semibold mt-1">
+                                  {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  KPIs : {item.estimatedKPIs > 0 ? item.estimatedKPIs.toLocaleString('fr-FR') : '-'}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => removeFromStrategy(item.id)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Graphiques de répartition */}
+                    {(chartData.length > 0 || chartDataByObjective.length > 0) && (
+                      <div className="mb-6">
+                        {/* Sélecteur de graphique */}
+                        <div className="mb-4">
+                          <Tabs
+                            value={chartView}
+                            onValueChange={(value) => setChartView(value as ChartView)}
+                            className="w-full"
+                          >
+                            <TabsList className="grid w-full grid-cols-2">
+                              <TabsTrigger 
+                                value="platform" 
+                                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                disabled={chartData.length === 0}
+                              >
+                                Par plateforme
+                              </TabsTrigger>
+                              <TabsTrigger 
+                                value="objective" 
+                                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                disabled={chartDataByObjective.length === 0}
+                              >
+                                Par objectif
+                              </TabsTrigger>
+                            </TabsList>
+                          </Tabs>
+                        </div>
+
+                        {/* Graphique par plateforme */}
+                        {chartView === 'platform' && chartData.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-3">Répartition par plateforme</h3>
+                            <ResponsiveContainer width="100%" height={250}>
+                              <PieChart>
+                                <Pie
+                                  data={chartData}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                >
+                                  {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => `${value.toLocaleString('fr-FR')} €`} />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+
+                        {/* Graphique par objectif */}
+                        {chartView === 'objective' && chartDataByObjective.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-3">Répartition par objectif</h3>
+                            <ResponsiveContainer width="100%" height={250}>
+                              <PieChart>
+                                <Pie
+                                  data={chartDataByObjective}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                >
+                                  {chartDataByObjective.map((entry, index) => (
+                                    <Cell key={`cell-objective-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => `${value.toLocaleString('fr-FR')} €`} />
+                                <Legend />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Boutons d'export */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportToExcel}
+                        className="flex-1"
+                      >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Excel
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPdfDialogOpen(true)}
+                        className="flex-1"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
+                    <div>
+                      <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Aucun élément dans la stratégie</p>
+                      <p className="text-xs mt-1">Utilisez le bouton + pour ajouter</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
+
+      {/* Modale pour export PDF */}
+      <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le PDF</DialogTitle>
+            <DialogDescription>
+              Veuillez renseigner le nom du client pour générer le document PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="client-name">Nom du client *</Label>
+              <Input
+                id="client-name"
+                placeholder="Ex: Entreprise ABC"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && clientName.trim()) {
+                    handleExportPDF()
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPdfDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleExportPDF}
+              disabled={!clientName.trim()}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-} 
+}
