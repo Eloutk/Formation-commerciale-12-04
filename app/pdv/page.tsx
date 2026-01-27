@@ -1113,17 +1113,15 @@ export default function PDVPage() {
                 onChange={(e) => setValidationMessage(e.target.value)}
               />
             </div>
-            {!clientName && (
-              <div className="space-y-2">
-                <Label htmlFor="client-name-tm">Nom du client (optionnel)</Label>
-                <Input
-                  id="client-name-tm"
-                  placeholder="Ex: Entreprise ABC"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="client-name-tm">Nom du client (optionnel)</Label>
+              <Input
+                id="client-name-tm"
+                placeholder="Ex: Entreprise ABC"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setValidationTMDialogOpen(false)} disabled={sendingToSlack}>
