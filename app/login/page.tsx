@@ -60,8 +60,8 @@ export default function LoginPage() {
         })
       } catch {}
       const requested = search?.get('redirect') || ''
-      const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/formation' : requested
-      router.push(redirectTo)
+      const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/home' : requested
+      router.replace(redirectTo)
     } catch {
       setError("Une erreur est survenue lors de la connexion")
     } finally {

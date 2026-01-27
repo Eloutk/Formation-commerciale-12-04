@@ -1,6 +1,75 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { randomUUID } from 'crypto'
+
+interface SendValidationPayload {
+  pdfBase64: string
+  fileName: string
+  firstName: string
+  message: string
+  clientName?: string
+  userName?: string
+  userId?: string | null
+}
+
+async function sendValidation(
+  supabase: any,
+  sessionUserId: string,
+  payload: SendValidationPayload,
+): Promise<{ filePath: string; signedUrl: string | null }> {
+  const { pdfBase64, fileName, firstName, message, clientName, userName, userId } = payload
+
+  // 1) Upload du PDF dans le bucket Supabase Storage "pdv"
+  const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+  const filePath = `strategies/${randomUUID()}.pdf`
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from('pdv')
+    .upload(filePath, pdfBuffer, {
+      contentType: 'application/pdf',
+      upsert: false,
+    })
+
+  if (uploadError) {
+    throw uploadError
+  }
+
+  // 2) Générer une URL signée de 7 jours pour ce PDF (pour Make ou autre consommateur)
+  let signedUrl: string | null = null
+  const { data: signed, error: signedError } = await supabase
+    .storage
+    .from('pdv')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 7) // 7 jours
+
+  if (signedError) {
+    // On ne bloque pas l'insert si la génération de l'URL échoue, on log juste l'erreur
+    // Make pourra toujours régénérer une URL à partir de pdf_path
+    console.error('Error creating signed URL for PDV PDF:', signedError)
+  } else {
+    signedUrl = signed?.signedUrl ?? null
+  }
+
+  // 3) Insérer la ligne dans pdv_validations avec chemin + URL signée
+  const { error: insertError } = await supabase
+    .from('pdv_validations')
+    .insert({
+      user_id: userId || sessionUserId,
+      user_name: userName || firstName,
+      client_name: clientName || null,
+      message,
+      pdf_filename: fileName,
+      pdf_path: filePath,
+      pdf_url: signedUrl,
+    })
+
+  if (insertError) {
+    throw insertError
+  }
+
+  return { filePath, signedUrl }
+}
 
 export async function POST(req: Request) {
   const cookieStore = cookies()
@@ -20,112 +89,32 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { pdfBase64, fileName, firstName, message, clientName, term, pseudo, userId } = body || {}
+  const { pdfBase64, fileName, firstName, message, clientName, userName, userId } = body || {}
 
   if (!pdfBase64 || !fileName || !firstName || !message) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
   try {
-    // Insérer dans glossary_suggestions pour déclencher le trigger
-    const payload: Record<string, any> = {
-      term: term || `Validation TM - ${clientName || 'Client'}`,
-      pseudo: pseudo || firstName,
-    }
-    if (userId) payload.user_id = userId
+    // Upload + insertion en base (bucket "pdv" + table "pdv_validations")
+    const { filePath, signedUrl } = await sendValidation(supabase, session.user.id, {
+      pdfBase64,
+      fileName,
+      firstName,
+      message,
+      clientName,
+      userName,
+      userId,
+    })
 
-    const { error } = await supabase
-      .from('glossary_suggestions')
-      .insert(payload)
-
-    if (error) throw error
-
-    // Envoi direct sur Slack avec le PDF via webhook
-    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL
-    if (slackWebhookUrl) {
-      // D'abord envoyer le message avec les infos
-      const slackMessage = {
-        text: `📋 Validation TM - ${clientName || 'Client'}`,
-        blocks: [
-          {
-            type: 'header',
-            text: {
-              type: 'plain_text',
-              text: `📋 Validation TM - ${clientName || 'Client'}`
-            }
-          },
-          {
-            type: 'section',
-            fields: [
-              {
-                type: 'mrkdwn',
-                text: `*Prénom:*\n${firstName}`
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Client:*\n${clientName || 'Non spécifié'}`
-              }
-            ]
-          },
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*Message:*\n${message}`
-            }
-          }
-        ]
-      }
-
-      await fetch(slackWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slackMessage)
-      }).catch(err => console.error('Slack webhook error:', err))
-
-      // Ensuite uploader le PDF via l'API Slack files.upload
-      const slackToken = process.env.SLACK_BOT_TOKEN
-      const slackChannel = process.env.SLACK_CHANNEL_ID
-      
-      if (slackToken && slackChannel) {
-        // Convertir base64 en buffer
-        const pdfBuffer = Buffer.from(pdfBase64, 'base64')
-        
-        // Utiliser multipart/form-data pour l'upload de fichier
-        const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`
-        const formDataParts: string[] = []
-        
-        formDataParts.push(`--${boundary}`)
-        formDataParts.push(`Content-Disposition: form-data; name="file"; filename="${fileName}"`)
-        formDataParts.push(`Content-Type: application/pdf`)
-        formDataParts.push('')
-        formDataParts.push(pdfBuffer.toString('binary'))
-        formDataParts.push(`--${boundary}`)
-        formDataParts.push(`Content-Disposition: form-data; name="channels"`)
-        formDataParts.push('')
-        formDataParts.push(slackChannel)
-        formDataParts.push(`--${boundary}`)
-        formDataParts.push(`Content-Disposition: form-data; name="initial_comment"`)
-        formDataParts.push('')
-        formDataParts.push(`PDF de la stratégie PDV - ${clientName || 'Client'}`)
-        formDataParts.push(`--${boundary}--`)
-        
-        const formDataBody = Buffer.from(formDataParts.join('\r\n'), 'binary')
-
-        await fetch('https://slack.com/api/files.upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${slackToken}`,
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          },
-          body: formDataBody
-        }).catch(err => console.error('Slack file upload error:', err))
-      }
-    }
-
-    return NextResponse.json({ ok: true })
+    // On renvoie à l'appelant le chemin dans le bucket + une URL signée (facultative)
+    return NextResponse.json({
+      ok: true,
+      pdf_path: filePath,
+      pdf_url: signedUrl,
+    })
   } catch (error: any) {
-    console.error('Error sending to Slack:', error)
-    return NextResponse.json({ error: error.message || 'Failed to send to Slack' }, { status: 500 })
+    console.error('Error saving PDV validation:', error)
+    return NextResponse.json({ error: error.message || 'Failed to save validation' }, { status: 500 })
   }
 }

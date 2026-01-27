@@ -14,9 +14,45 @@ import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib
 import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
+import Image from 'next/image'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
+
+const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
+  META: '/images/Logo META.png',
+  Display: '/images/Logo Google.png',
+  Youtube: '/images/Logo YouTube.png',
+  LinkedIn: '/images/Logo LinkedIn.png',
+  Snapchat: '/images/Logo Snapchat.png',
+  Tiktok: '/images/Logo TikTok.png',
+  Spotify: '/images/Logo Spotify.png',
+  'Insta only': '/images/Logo META.png',
+}
+
+function PlatformBadge({ platform, withDownload = false }: { platform: string; withDownload?: boolean }) {
+  const src = PLATFORM_LOGOS[platform as keyof typeof PLATFORM_LOGOS]
+  if (!src) return <span>{platform}</span>
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="relative h-5 w-5 overflow-hidden rounded-sm">
+        <Image src={src} alt={platform} fill className="object-contain" />
+      </span>
+      <span>{platform}</span>
+      {withDownload && (
+        <a
+          href={src}
+          download
+          className="inline-flex items-center text-xs text-muted-foreground hover:text-[#E94C16]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Download className="h-3 w-3" aria-hidden="true" />
+          <span className="sr-only">Télécharger le logo {platform}</span>
+        </a>
+      )}
+    </span>
+  )
+}
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
 type ChartView = 'platform' | 'objective'
@@ -121,47 +157,60 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666666',
   },
-  chartSection: {
-    marginTop: 20,
+  chartsRow: {
+    marginTop: 10,
     marginBottom: 20,
-    padding: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  chartBox: {
+    flex: 1,
+    padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e5e5e5',
   },
   chartTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#1a1a1a',
-  },
-  progressBarContainer: {
     marginBottom: 10,
-  },
-  progressBar: {
-    height: 24,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    marginBottom: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressBarLabel: {
-    fontSize: 11,
-    marginBottom: 4,
     color: '#1a1a1a',
-    fontWeight: 'bold',
   },
-  progressBarValue: {
-    fontSize: 10,
-    color: '#666666',
+  pieCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 8,
+    borderColor: '#f3f4f6',
+    alignSelf: 'center',
+    marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pieCenterText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  legend: {
     marginTop: 4,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  legendColor: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
+  },
+  legendLabel: {
+    fontSize: 10,
+    color: '#374151',
   },
   total: {
     fontSize: 18,
@@ -179,7 +228,21 @@ const styles = StyleSheet.create({
 const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
 // Composant PDF
-const PDFDocument = ({ strategy, clientName, total, kpisTotal, userName }: { strategy: StrategyItem[], clientName: string, total: number, kpisTotal: number, userName: string }) => {
+const PDFDocument = ({
+  strategy,
+  clientName,
+  total,
+  kpisTotal,
+  userName,
+  aePercentage,
+}: {
+  strategy: StrategyItem[]
+  clientName: string
+  total: number
+  kpisTotal: number
+  userName: string
+  aePercentage: number
+}) => {
   // Calculer la répartition par plateforme
   const platformTotals: Record<string, number> = {}
   strategy.forEach((item) => {
@@ -189,11 +252,27 @@ const PDFDocument = ({ strategy, clientName, total, kpisTotal, userName }: { str
     platformTotals[item.platform] += item.budget
   })
 
-  const chartData = Object.entries(platformTotals).map(([name, value], index) => ({
+  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], index) => ({
     name,
     value: Math.round(value),
     percentage: total > 0 ? (value / total * 100) : 0,
     color: PDF_COLORS[index % PDF_COLORS.length]
+  }))
+
+  // Répartition par objectif
+  const objectiveTotals: Record<string, number> = {}
+  strategy.forEach((item) => {
+    if (!objectiveTotals[item.objective]) {
+      objectiveTotals[item.objective] = 0
+    }
+    objectiveTotals[item.objective] += item.budget
+  })
+
+  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], index) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total * 100) : 0,
+    color: PDF_COLORS[index % PDF_COLORS.length],
   }))
 
   return (
@@ -215,33 +294,63 @@ const PDFDocument = ({ strategy, clientName, total, kpisTotal, userName }: { str
           <Text style={styles.summaryText}>
             KPIs totaux : {formatNumber(kpisTotal, 0)}
           </Text>
+          <Text style={styles.summaryText}>
+            % AE : {formatNumber(aePercentage, 0)} %
+          </Text>
         </View>
 
-        {/* Graphique de répartition */}
-        {chartData.length > 0 && (
-          <View style={styles.chartSection}>
-            <Text style={styles.chartTitle}>Répartition par plateforme</Text>
-            {chartData.map((item, index) => (
-              <View key={index} style={styles.progressBarContainer}>
-                <Text style={styles.progressBarLabel}>
-                  {item.name} ({item.percentage.toFixed(1)}%)
-                </Text>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        backgroundColor: item.color,
-                        width: `${item.percentage}%`
-                      }
-                    ]}
-                  />
+        {/* Diagrammes circulaires (2 colonnes) */}
+        {(chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
+          <View style={styles.chartsRow}>
+            {/* Par plateforme */}
+            {chartDataPlatform.length > 0 && (
+              <View style={styles.chartBox}>
+                <Text style={styles.chartTitle}>Répartition par plateforme</Text>
+                <View style={styles.pieCircle}>
+                  <Text style={styles.pieCenterText}>100%</Text>
                 </View>
-                <Text style={styles.progressBarValue}>
-                  {formatNumber(item.value, 0)} €
-                </Text>
+                <View style={styles.legend}>
+                  {chartDataPlatform.map((item, index) => (
+                    <View key={index} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColor,
+                          { backgroundColor: item.color },
+                        ]}
+                      />
+                      <Text style={styles.legendLabel}>
+                        {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            ))}
+            )}
+
+            {/* Par objectif */}
+            {chartDataObjective.length > 0 && (
+              <View style={styles.chartBox}>
+                <Text style={styles.chartTitle}>Répartition par objectif</Text>
+                <View style={styles.pieCircle}>
+                  <Text style={styles.pieCenterText}>100%</Text>
+                </View>
+                <View style={styles.legend}>
+                  {chartDataObjective.map((item, index) => (
+                    <View key={index} style={styles.legendItem}>
+                      <View
+                        style={[
+                          styles.legendColor,
+                          { backgroundColor: item.color },
+                        ]}
+                      />
+                      <Text style={styles.legendLabel}>
+                        {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -484,7 +593,16 @@ export default function PDVPage() {
   const handleExportPDF = async () => {
     if (!clientName.trim()) return
     
-    const doc = <PDFDocument strategy={strategy} clientName={clientName} total={strategyTotal} kpisTotal={strategyKPIsTotal} userName={userName} />
+    const doc = (
+      <PDFDocument
+        strategy={strategy}
+        clientName={clientName}
+        total={strategyTotal}
+        kpisTotal={strategyKPIsTotal}
+        userName={userName}
+        aePercentage={parseFloat(aePercentage) || 0}
+      />
+    )
     const blob = await pdf(doc).toBlob()
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -503,7 +621,16 @@ export default function PDVPage() {
     setSendingToSlack(true)
     try {
       // Générer le PDF d'abord
-      const doc = <PDFDocument strategy={strategy} clientName={clientName || 'Client'} total={strategyTotal} kpisTotal={strategyKPIsTotal} userName={userName} />
+      const doc = (
+        <PDFDocument
+          strategy={strategy}
+          clientName={clientName || 'Client'}
+          total={strategyTotal}
+          kpisTotal={strategyKPIsTotal}
+          userName={userName}
+          aePercentage={parseFloat(aePercentage) || 0}
+        />
+      )
       const blob = await pdf(doc).toBlob()
       
       // Convertir le PDF en base64
@@ -540,8 +667,7 @@ export default function PDVPage() {
               firstName: userPseudo || userName,
               message: validationMessage.trim(),
               clientName: clientName || 'Client',
-              term: term,
-              pseudo: userPseudo || userName,
+              userName: userName,
               userId: userId
             })
           })
@@ -664,7 +790,9 @@ export default function PDVPage() {
                   return (
                     <Card key={platform}>
                       <CardHeader>
-                        <CardTitle className="text-lg">{platform}</CardTitle>
+                        <CardTitle className="text-lg">
+                          <PlatformBadge platform={platform} withDownload />
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="overflow-x-auto">
@@ -770,7 +898,9 @@ export default function PDVPage() {
                               className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
                             >
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm">{item.platform}</div>
+                                <div className="font-medium text-sm">
+                                  <PlatformBadge platform={item.platform} withDownload />
+                                </div>
                                 <div className="text-xs text-muted-foreground">{item.objective}</div>
                                 <div className="text-xs font-semibold mt-1">
                                   {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
@@ -973,11 +1103,6 @@ export default function PDVPage() {
                 placeholder="Votre message pour la validation..."
                 value={validationMessage}
                 onChange={(e) => setValidationMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && validationMessage.trim()) {
-                    handleValidationTM()
-                  }
-                }}
               />
             </div>
             {!clientName && (

@@ -59,7 +59,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user) {
+            // Si déjà connecté et on arrive sur une page publique, on renvoie vers /home
             await checkPseudo()
+            router.replace('/home')
           } else {
             setUser(null)
           }
@@ -67,16 +69,28 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         }
 
         const need = await checkPseudo()
-        if (!need) {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (
-            !session?.user &&
-            pathname !== '/login' &&
-            pathname !== '/register' &&
-            pathname !== '/reset-password'
-          ) {
-            router.replace('/login')
-          }
+        const { data: { session } } = await supabase.auth.getSession()
+
+        // Si pas connecté et page privée -> forcer /login
+        if (
+          !session?.user &&
+          pathname !== '/login' &&
+          pathname !== '/register' &&
+          pathname !== '/reset-password'
+        ) {
+          router.replace('/login')
+          return
+        }
+
+        // Si connecté et sur la racine / -> aller sur /home
+        if (session?.user && pathname === '/') {
+          router.replace('/home')
+          return
+        }
+
+        // Si on a besoin de compléter le pseudo, le dialog s'affiche déjà via mustCompleteName
+        if (!need && session?.user) {
+          setUser((prev) => prev || { id: session.user.id, name: '', email: session.user.email || '' })
         }
       } finally {
         setLoading(false)
