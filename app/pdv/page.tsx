@@ -972,7 +972,11 @@ export default function PDVPage() {
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                   ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `${value.toLocaleString('fr-FR')} €`} />
+                                <Tooltip
+                                  formatter={(value: number | undefined) =>
+                                    value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
+                                  }
+                                />
                                 <Legend />
                               </PieChart>
                             </ResponsiveContainer>
@@ -999,7 +1003,11 @@ export default function PDVPage() {
                                     <Cell key={`cell-objective-${index}`} fill={COLORS[index % COLORS.length]} />
                                   ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `${value.toLocaleString('fr-FR')} €`} />
+                                <Tooltip
+                                  formatter={(value: number | undefined) =>
+                                    value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
+                                  }
+                                />
                                 <Legend />
                               </PieChart>
                             </ResponsiveContainer>
