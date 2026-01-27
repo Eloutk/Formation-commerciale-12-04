@@ -620,7 +620,7 @@ export default function PDVPage() {
     
     setSendingToSlack(true)
     try {
-      // Générer le PDF d'abord
+      // 1) Générer le PDF
       const doc = (
         <PDFDocument
           strategy={strategy}
@@ -632,69 +632,57 @@ export default function PDVPage() {
         />
       )
       const blob = await pdf(doc).toBlob()
-      
-      // Convertir le PDF en base64
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        try {
-          const base64 = (reader.result as string).split(',')[1]
-          const fileName = `strategie-pdv-${clientName || 'client'}-${new Date().toISOString().split('T')[0]}.pdf`
-          
-          // Récupérer l'ID utilisateur
-          const { data: { session } = {} } = await supabase.auth.getSession()
-          const userId = session?.user?.id || null
-          
-          // Créer le message formaté pour Slack (via le trigger Supabase)
-          // On met toutes les infos dans le champ term pour que le trigger Slack les récupère
-          const term = `📋 Validation TM - ${clientName || 'Client'}\n\nPrénom: ${userPseudo || userName}\nClient: ${clientName || 'Non spécifié'}\nMessage: ${validationMessage.trim()}\n\nPDF: ${fileName}`
-          
-          // Insérer dans glossary_suggestions comme le fait le glossaire
-          // Le trigger Supabase enverra automatiquement sur Slack
-          const payload: Record<string, any> = {
-            term: term,
-            pseudo: userPseudo || userName,
-          }
-          
-          if (userId) payload.user_id = userId
-          
-          // Envoyer via l'API pour inclure le PDF
-          const response = await fetch('/api/slack', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              pdfBase64: base64,
-              fileName,
-              firstName: userPseudo || userName,
-              message: validationMessage.trim(),
-              clientName: clientName || 'Client',
-              userName: userName,
-              userId: userId
-            })
-          })
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(errorData.error || 'Erreur lors de l\'envoi sur Slack')
-          }
-          
-          // Succès
-          setValidationTMDialogOpen(false)
-          setValidationMessage('')
-          setSendingToSlack(false)
-          
-          // Afficher un message de succès
-          alert('Validation TM envoyée sur Slack avec succès !')
-        } catch (error: any) {
-          console.error('Error sending to Slack:', error)
-          setSendingToSlack(false)
-          alert('Erreur lors de l\'envoi sur Slack: ' + (error.message || 'Erreur inconnue'))
+
+      // 2) Convertir le blob en base64 (sans FileReader imbriqué)
+      const arrayBuffer = await blob.arrayBuffer()
+      let base64: string
+      if (typeof window !== 'undefined') {
+        const bytes = new Uint8Array(arrayBuffer)
+        let binary = ''
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i])
         }
+        base64 = window.btoa(binary)
+      } else {
+        // Sécurité côté serveur si jamais appelé là (normalement non)
+        base64 = Buffer.from(arrayBuffer).toString('base64')
       }
-      reader.readAsDataURL(blob)
+
+      const fileName = `strategie-pdv-${clientName || 'client'}-${new Date().toISOString().split('T')[0]}.pdf`
+
+      // 3) Récupérer l'utilisateur
+      const { data: { session } = {} } = await supabase.auth.getSession()
+      const userId = session?.user?.id || null
+
+      // 4) Appeler l'API pour stocker dans Supabase (Storage + table)
+      const response = await fetch('/api/slack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pdfBase64: base64,
+          fileName,
+          firstName: userPseudo || userName,
+          message: validationMessage.trim(),
+          clientName: clientName || 'Client',
+          userName,
+          userId,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erreur lors de la sauvegarde de la validation')
+      }
+
+      // Succès
+      setValidationTMDialogOpen(false)
+      setValidationMessage('')
+      alert('Validation TM enregistrée avec succès !')
     } catch (error: any) {
-      console.error('Error generating PDF:', error)
+      console.error('Error handling Validation TM:', error)
+      alert('Erreur lors de la validation TM: ' + (error.message || 'Erreur inconnue'))
+    } finally {
       setSendingToSlack(false)
-      alert('Erreur lors de la génération du PDF: ' + (error.message || 'Erreur inconnue'))
     }
   }
 
