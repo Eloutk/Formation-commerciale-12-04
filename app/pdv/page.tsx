@@ -28,7 +28,7 @@ const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> 
   Snapchat: '/images/Logo Snapchat.png',
   Tiktok: '/images/Logo TikTok.png',
   Spotify: '/images/Logo Spotify.png',
-  'Insta only': '/images/Logo META.png',
+  'Insta only': '/images/Instagram_logo.svg',
 }
 
 const META_CUSTOM_OBJECTIVES = [
