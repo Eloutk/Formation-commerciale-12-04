@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,6 +29,37 @@ const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> 
   Tiktok: '/images/Logo TikTok.png',
   Spotify: '/images/Logo Spotify.png',
   'Insta only': '/images/Logo META.png',
+}
+
+const META_CUSTOM_OBJECTIVES = [
+  'Impressions',
+  'Clics',
+  'Clics sur lien',
+  'Intéractions',
+  'Visites de profil',
+  "J'aime la page",
+  'Réponses évènement',
+] as const
+
+const INSTA_CUSTOM_OBJECTIVES = [
+  'Impressions',
+  'Clics',
+  'Clics sur lien',
+  'Intéractions',
+  'Visites de profil',
+] as const
+
+const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
+
+const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
+  META: META_CUSTOM_OBJECTIVES,
+  Display: DEFAULT_CUSTOM_OBJECTIVES,
+  'Insta only': INSTA_CUSTOM_OBJECTIVES,
+  Youtube: ['Impressions'],
+  LinkedIn: DEFAULT_CUSTOM_OBJECTIVES,
+  Snapchat: DEFAULT_CUSTOM_OBJECTIVES,
+  Tiktok: DEFAULT_CUSTOM_OBJECTIVES,
+  Spotify: ['Impressions'],
 }
 
 function PlatformBadge({ platform, withDownload = false }: { platform: string; withDownload?: boolean }) {
@@ -63,11 +95,29 @@ interface TableRowData {
   budget: number
   estimatedKPIs: number
   dailyBudget: number
+  // Valeur utilisée pour vérifier le minimum d'AE
+  // (AE par jour pour la plupart des plateformes, AE total pour Spotify)
+  aeCheckValue: number
   isAvailable: boolean
 }
 
 interface StrategyItem extends TableRowData {
   id: string
+}
+
+interface CustomRowState {
+  objective: string
+  budget: string
+}
+
+const getMaxKpiLabel = (objective: string): string => {
+  const trimmed = objective.trim()
+  if (!trimmed) return ''
+  const first = trimmed[0]?.toLowerCase()
+  const vowels = 'aeiouyhâàäéèêëîïôöùüÿ'
+  const useElision = first && vowels.includes(first)
+  const prep = useElision ? "d'" : 'de '
+  return `Max ${prep}${trimmed.toLowerCase()}`
 }
 
 // Fonction pour formater les nombres avec espaces classiques (pour PDF)
@@ -295,7 +345,7 @@ const PDFDocument = ({
             KPIs totaux : {formatNumber(kpisTotal, 0)}
           </Text>
           <Text style={styles.summaryText}>
-            % AE : {formatNumber(aePercentage, 0)} %
+            AE : {formatNumber(aePercentage * 100, 0)} %
           </Text>
         </View>
 
@@ -379,6 +429,19 @@ export default function PDVPage() {
   
   // État de la stratégie
   const [strategy, setStrategy] = useState<StrategyItem[]>([])
+
+  // Ligne personnalisable par plateforme
+  const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
+    const initial: Record<string, CustomRowState> = {}
+    PLATFORMS_ORDER.forEach((platform) => {
+      const objectives = CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
+      initial[platform] = {
+        objective: objectives[0] ?? 'Impressions',
+        budget: '',
+      }
+    })
+    return initial
+  })
   
   // État pour la modale PDF
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
@@ -448,35 +511,55 @@ export default function PDVPage() {
           let budget = 0
           let estimatedKPIs = 0
 
-          if (calculationMode === 'budget-to-kpis') {
-            // Budget global → répartition par plateforme/objectif
-            budget = mainValueNum // Budget total à répartir
-            const result = calculateKPIsForBudget(platform, objective, aeNum, budget)
-            estimatedKPIs = Math.ceil(result.calculatedKpis || 0)
-          } else {
-            // KPIs → Budget nécessaire
-            estimatedKPIs = mainValueNum
-            const result = calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
-            budget = result.price || 0
-          }
+              if (calculationMode === 'budget-to-kpis') {
+                // Budget global → répartition par plateforme/objectif
+                budget = mainValueNum // Budget total à répartir
+                const result = calculateKPIsForBudget(platform, objective, aeNum, budget)
+                estimatedKPIs = Math.ceil(result.calculatedKpis || 0)
+              } else {
+                // KPIs → Budget nécessaire
+                estimatedKPIs = mainValueNum
+                const result = calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
+                // Budget total arrondi (pas de décimales)
+                budget = Math.round(result.price || 0)
+              }
 
-          const dailyBudget = budget / daysNum
+              // Calcul de l'AE à partir du budget total
+              let aeCheckValue = 0
+              if (budget > 0) {
+                const aeFactor = aeNum / 100
+                // Pour Spotify : seuils sur AE total (budget AE)
+                if (platform === 'Spotify') {
+                  aeCheckValue = budget * aeFactor
+                } else {
+                  // Pour les autres plateformes : AE par jour (même base que la colonne "Budget quotidien (€)")
+                  aeCheckValue = (budget * aeFactor) / daysNum
+                }
+              }
 
-          rows.push({
-            platform,
-            objective,
-            budget,
-            estimatedKPIs,
-            dailyBudget,
-            isAvailable: true
-          })
+              // Budget quotidien AE : (Budget total × %AE) / nombre de jours
+              const dailyBudget =
+                budget > 0
+                  ? (budget * (aeNum / 100)) / daysNum
+                  : 0
+
+              rows.push({
+                platform,
+                objective,
+                budget,
+                estimatedKPIs,
+                dailyBudget,
+                aeCheckValue,
+                isAvailable: true
+              })
         } catch (error) {
           rows.push({
             platform,
             objective,
             budget: 0,
             estimatedKPIs: 0,
-            dailyBudget: 0,
+              dailyBudget: 0,
+              aeCheckValue: 0,
             isAvailable: false
           })
         }
@@ -560,13 +643,60 @@ export default function PDVPage() {
   // Couleurs pour le graphique
   const COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
-  // Fonction pour déterminer la couleur selon le budget quotidien
-  const getDailyBudgetColorClass = (dailyBudget: number): string => {
-    if (dailyBudget === 0) return 'bg-gray-100 text-gray-400'
-    if (dailyBudget < 50) return 'bg-red-50 text-red-700'
-    if (dailyBudget < 100) return 'bg-orange-50 text-orange-700'
-    if (dailyBudget < 200) return 'bg-yellow-50 text-yellow-700'
-    return 'bg-green-50 text-green-700'
+  // Fonction pour déterminer la couleur selon le niveau d'AE (par jour ou total Spotify)
+  const getAeColorClass = (platform: string, aeCheckValue: number): string => {
+    if (aeCheckValue === 0) return 'bg-gray-100 text-gray-400'
+
+    const isMetaLike =
+      platform === 'META' ||
+      platform === 'Insta only' ||
+      platform === 'Display' ||
+      platform === 'Youtube'
+
+    if (platform === 'Spotify') {
+      // Spotify : seuils sur AE total
+      if (aeCheckValue < 250) return 'bg-red-50 text-red-700'
+      if (aeCheckValue <= 350) return 'bg-orange-50 text-orange-700'
+      return 'bg-green-50 text-green-700'
+    }
+
+    if (isMetaLike) {
+      // META / Insta only / Display / Youtube : AE / jours
+      if (aeCheckValue < 5) return 'bg-red-50 text-red-700'
+      if (aeCheckValue <= 10) return 'bg-orange-50 text-orange-700'
+      return 'bg-green-50 text-green-700'
+    }
+
+    if (platform === 'LinkedIn' || platform === 'Tiktok') {
+      // LinkedIn / Tiktok : AE / jours
+      if (aeCheckValue < 10) return 'bg-red-50 text-red-700'
+      if (aeCheckValue <= 20) return 'bg-orange-50 text-orange-700'
+      return 'bg-green-50 text-green-700'
+    }
+
+    if (platform === 'Snapchat') {
+      // Snapchat : AE / jours (seuils spécifiques 10 / 15)
+      if (aeCheckValue < 10) return 'bg-red-50 text-red-700'
+      if (aeCheckValue <= 15) return 'bg-orange-50 text-orange-700'
+      return 'bg-green-50 text-green-700'
+    }
+
+    // Par défaut, neutre
+    return 'bg-gray-50 text-gray-700'
+  }
+
+  const handleCustomRowChange = (
+    platform: string,
+    field: keyof CustomRowState,
+    value: string,
+  ) => {
+    setCustomRows((prev) => ({
+      ...prev,
+      [platform]: {
+        ...(prev[platform] ?? { objective: '', budget: '' }),
+        [field]: value,
+      },
+    }))
   }
 
   // Fonction pour exporter en Excel
@@ -749,7 +879,7 @@ export default function PDVPage() {
                     <Label>% AE</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 40"
+                      placeholder="Ex: 40 pour 40 %"
                       value={aePercentage}
                       onChange={(e) => setAePercentage(e.target.value)}
                     />
@@ -775,6 +905,20 @@ export default function PDVPage() {
                   const platformRows = groupedByPlatform[platform] || []
                   if (platformRows.length === 0) return null
 
+                  const custom = customRows[platform] ?? { objective: '', budget: '' }
+                  const referenceRowForObjective = platformRows.find(
+                    (r) => r.objective === custom.objective,
+                  )
+                  const referenceRow = referenceRowForObjective ?? platformRows[0]
+                  const customBudgetNum = referenceRow?.budget ?? 0
+                  const customDailyBudget = referenceRow?.dailyBudget ?? 0
+                  const customAeCheckValue = referenceRow?.aeCheckValue ?? 0
+                  const customRowColor = getAeColorClass(platform, customAeCheckValue)
+                  const objectivesForPlatform = CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
+                  const isCustomInStrategy = strategy.some(
+                    (item) => item.platform === platform && item.objective === custom.objective,
+                  )
+
                   return (
                     <Card key={platform}>
                       <CardHeader>
@@ -796,7 +940,7 @@ export default function PDVPage() {
                             </TableHeader>
                             <TableBody>
                               {platformRows.map((row, index) => {
-                                const colorClass = getDailyBudgetColorClass(row.dailyBudget)
+                                const colorClass = getAeColorClass(row.platform, row.aeCheckValue)
                                 const isInStrategy = strategy.some(
                                   item => item.platform === row.platform && item.objective === row.objective
                                 )
@@ -814,7 +958,7 @@ export default function PDVPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-bold">
                                       {row.dailyBudget > 0
-                                        ? `${row.dailyBudget.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €`
+                                        ? `${row.dailyBudget.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} €`
                                         : '-'}
                                     </TableCell>
                                     <TableCell>
@@ -832,6 +976,78 @@ export default function PDVPage() {
                                   </TableRow>
                                 )
                               })}
+
+                              {/* Ligne personnalisable */}
+                              <TableRow className={customRowColor}>
+                                <TableCell>
+                                  <Select
+                                    value={custom.objective}
+                                    onValueChange={(value: string) =>
+                                      handleCustomRowChange(platform, 'objective', value)
+                                    }
+                                  >
+                                    <SelectTrigger className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0">
+                                      <SelectValue placeholder="Objectif" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {objectivesForPlatform.map((obj) => (
+                                        <SelectItem
+                                          key={obj}
+                                          value={obj}
+                                          className="text-[11px] py-1"
+                                        >
+                                          {obj}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell className="text-right font-semibold text-xs">
+                                  {customBudgetNum > 0
+                                    ? `${customBudgetNum.toLocaleString('fr-FR', {
+                                        maximumFractionDigits: 0,
+                                      })} €`
+                                    : '—'}
+                                </TableCell>
+                                <TableCell className="text-right text-xs">
+                                  {custom.objective
+                                    ? getMaxKpiLabel(custom.objective)
+                                    : '—'}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-xs">
+                                  {customDailyBudget > 0
+                                    ? `${customDailyBudget.toLocaleString('fr-FR', {
+                                        minimumFractionDigits: 1,
+                                        maximumFractionDigits: 1,
+                                      })} €`
+                                    : '—'}
+                                </TableCell>
+                                <TableCell>
+                                  {!isCustomInStrategy && customBudgetNum > 0 && custom.objective && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        addToStrategy({
+                                          platform,
+                                          objective: custom.objective,
+                                          budget: customBudgetNum,
+                                          // Pour les objectifs \"max\" (non présents dans les lignes standard),
+                                          // on ne stocke pas de KPIs chiffrés : on met 0 pour afficher \"-\".
+                                          estimatedKPIs:
+                                            referenceRowForObjective?.estimatedKPIs ?? 0,
+                                              dailyBudget: customDailyBudget,
+                                              aeCheckValue: customAeCheckValue,
+                                          isAvailable: true,
+                                        })
+                                      }
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
                             </TableBody>
                           </Table>
                         </div>
@@ -863,7 +1079,7 @@ export default function PDVPage() {
                       </span>
                       <br />
                       <span className="text-sm text-muted-foreground">
-                        % AE : {aePercentage}%
+                        AE : {parseFloat(aePercentage) || 0}%
                       </span>
                     </>
                   ) : (
@@ -879,7 +1095,7 @@ export default function PDVPage() {
                     <div className="flex-1 overflow-y-auto mb-4">
                       <div className="space-y-2">
                         {strategy.map((item) => {
-                          const colorClass = getDailyBudgetColorClass(item.dailyBudget)
+                          const colorClass = getAeColorClass(item.platform, item.aeCheckValue)
                           return (
                             <div
                               key={item.id}
@@ -887,14 +1103,16 @@ export default function PDVPage() {
                             >
                               <div className="flex-1 min-w-0">
                                 <div className="font-medium text-sm">
-                                  <PlatformBadge platform={item.platform} withDownload />
+                                  <PlatformBadge platform={item.platform} />
                                 </div>
                                 <div className="text-xs text-muted-foreground">{item.objective}</div>
                                 <div className="text-xs font-semibold mt-1">
                                   {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1">
-                                  KPIs : {item.estimatedKPIs > 0 ? item.estimatedKPIs.toLocaleString('fr-FR') : '-'}
+                                  {item.estimatedKPIs > 0
+                                    ? `KPIs : ${item.estimatedKPIs.toLocaleString('fr-FR')}`
+                                    : `KPIs : ${getMaxKpiLabel(item.objective)}`}
                                 </div>
                               </div>
                               <Button
