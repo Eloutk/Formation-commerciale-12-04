@@ -90,6 +90,35 @@ function PlatformBadge({ platform, withDownload = false }: { platform: string; w
 }
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
+type PdvSection = 'social' | 'sms'
+type SmsType = 'sms' | 'rcs'
+
+interface SmsOptionsState {
+  ciblage: boolean
+  richSms: boolean
+  agent: boolean
+  creaByLink: boolean
+  tarifIntermarche: boolean
+}
+
+const SMS_SALES_CONDITIONS = [
+  'Offre disponible en France métropolitaine (dont Corse).',
+  '160 caractères MAXIMUM (dont mentions légales).',
+  'Si 2ème campagne dans les 2 semaines (retargeting), -30 % sur la base de données.',
+  '4 jours de mise en place minimum.',
+  'Statistiques et résultats de campagne sous 48h.',
+  'Rich SMS = Jeux concours (= notoriété + ventes + leads) // Store locator.',
+  'Pour jeux concours : cadeaux INTÉRESSANTS obligatoires.',
+] as const
+
+const RCS_SALES_CONDITIONS = [
+  "Création et vérification d'agent OBLIGATOIRE si inexistant.",
+  'Délai de création : 7 jours à partir de la réception du formulaire complété par le client.',
+  'La créa visuelle est à fournir par le client ou par Link (1000x720px, peu de texte pour une bonne lisibilité sur mobile).',
+  "Si besoin d’un agent « conversationnel », devis spécifique à prévoir : à privilégier le RCS classique pour éviter une hausse importante des coûts.",
+  'Si le volume RCS est < 10 000 contacts, bascule possible sur une campagne SMS classique.',
+  "ATTENTION : les frais de set up correspondent aux frais de paramétrage de la campagne (routage, agrégation, etc.) et ne doivent pas être confondus avec la créa, facturée en sus.",
+] as const
 type ChartView = 'platform' | 'objective'
 
 interface TableRowData {
@@ -502,6 +531,16 @@ export default function PDVPage() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('15')
+  const [pdvSection, setPdvSection] = useState<PdvSection>('social')
+  const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
+  const [smsType, setSmsType] = useState<SmsType>('sms')
+  const [smsOptions, setSmsOptions] = useState<SmsOptionsState>({
+    ciblage: false,
+    richSms: false,
+    agent: false,
+    creaByLink: false,
+    tarifIntermarche: false,
+  })
   
   // État des stratégies (jusqu'à 3)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
@@ -544,6 +583,56 @@ export default function PDVPage() {
   
   // État pour le nom de l'utilisateur connecté
   const [userName, setUserName] = useState<string>('')
+
+  // --- Logique de calcul SMS (indépendante du Social Media) ---
+  const smsVolumeNumber = Math.max(0, Math.floor(Number(smsVolume) || 0))
+
+  const smsBasePU = useMemo(() => {
+    const n = smsVolumeNumber
+    if (n <= 0) return 0
+    if (n <= 10_000) return 0.1764
+    if (n <= 25_000) return 0.1666
+    if (n <= 50_000) return 0.1568
+    if (n <= 100_000) return 0.147
+    if (n <= 500_000) return 0.131
+    // Hors barème : on garde la dernière tranche, mais on pourrait aussi bloquer
+    return 0.131
+  }, [smsVolumeNumber])
+
+  const smsOptionPU = useMemo(() => {
+    if (smsType !== 'sms') return 0
+    let opt = 0
+    if (smsOptions.ciblage) opt += 0.028
+    if (smsOptions.richSms) opt += 0.021
+    return opt
+  }, [smsType, smsOptions.ciblage, smsOptions.richSms])
+
+  // Si Tarif Intermarché est coché, le PU est figé à 0,12 € quel que soit le volume.
+  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.12 : smsBasePU + smsOptionPU
+  const smsTotalPrice =
+    smsVolumeNumber > 0 && smsBasePU > 0 ? smsUnitPrice * smsVolumeNumber + 190 : 0
+
+  // --- Logique de calcul RCS (indépendante du SMS) ---
+  const rcsBasePU = useMemo(() => {
+    const n = smsVolumeNumber
+    if (n <= 0) return 0
+    if (n < 10_001) return -1 // Interdit (on retourne -1 pour gérer l'affichage)
+    if (n <= 50_000) return 0.19
+    return 0.15 // 50_001+
+  }, [smsVolumeNumber])
+
+  const rcsOptionFee = useMemo(() => {
+    if (smsType !== 'rcs') return 0
+    let fee = 0
+    if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
+    if (smsOptions.creaByLink) fee += 80 // CREA BY LINK
+    return fee
+  }, [smsType, smsOptions.agent, smsOptions.creaByLink])
+
+  const rcsTotalPrice = useMemo(() => {
+    if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
+    return rcsBasePU * smsVolumeNumber + 250 + rcsOptionFee // 250€ frais fixes obligatoires
+  }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee])
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -939,7 +1028,32 @@ export default function PDVPage() {
             Calculez vos prix de vente selon la plateforme, l'objectif et votre budget. Unifiez vos simulations en un seul endroit.
           </p>
         </div>
+        {/* Sous-onglets PDV */}
+        <div className="mb-6">
+          <Tabs
+            value={pdvSection}
+            onValueChange={(value) => setPdvSection(value as PdvSection)}
+            className="w-full"
+          >
+            <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2">
+              <TabsTrigger
+                value="social"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                Social media
+              </TabsTrigger>
+              <TabsTrigger
+                value="sms"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                SMS
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
+        {pdvSection === 'social' && (
+        <>
         {/* Layout 2 colonnes sur desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
           {/* Colonne gauche - Contenu principal */}
@@ -1612,6 +1726,346 @@ export default function PDVPage() {
             })}
           </div>
         </div>
+        </>
+        )}
+
+        {pdvSection === 'sms' && (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)] gap-6">
+            {/* Bloc unique : configuration & simulation SMS */}
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Paramètres SMS
+                </CardTitle>
+                <CardDescription>
+                  Configurez vos campagnes SMS ou RCS. Ce module est totalement indépendant du calculateur Social media.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Bloc configuration (gauche) + simulation (droite), même esprit que Social media */}
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-6">
+                  {/* Colonne gauche : configuration de la campagne */}
+                  <div className="space-y-5">
+                    {/* Type de campagne SMS / RCS */}
+                    <div className="space-y-2">
+                      <Label>Type de campagne</Label>
+                      <Tabs
+                        value={smsType}
+                        onValueChange={(value) => {
+                          const next = value as SmsType
+                          setSmsType(next)
+                          // Réinitialiser les options à chaque changement de type pour éviter tout héritage implicite
+                          setSmsOptions(
+                            next === 'sms'
+                              ? {
+                                  ciblage: false,
+                                  richSms: false,
+                                  agent: false,
+                                  creaByLink: false,
+                                  tarifIntermarche: false,
+                                }
+                              : {
+                                  ciblage: false,
+                                  richSms: false,
+                                  agent: false,
+                                  creaByLink: false,
+                                  tarifIntermarche: false,
+                                },
+                          )
+                        }}
+                        className="w-full max-w-xs"
+                      >
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger
+                            value="sms"
+                            className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                          >
+                            SMS
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="rcs"
+                            className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                          >
+                            RCS
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      {smsType === 'sms' && (
+                        <p className="text-xs text-muted-foreground">
+                          Le tarif unitaire dépend uniquement du volume total de SMS envoyé
+                          (tranche unique, non cumulative).
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Options selon le type */}
+                    <div className="space-y-3">
+                      <Label>Options disponibles</Label>
+                      {smsType === 'sms' && (
+                        <div className="space-y-2 text-sm">
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.ciblage}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, ciblage: e.target.checked }))
+                                }
+                              />
+                              <span>Ciblage</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">+ 0,028 € / SMS</span>
+                          </label>
+
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.richSms}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, richSms: e.target.checked }))
+                                }
+                              />
+                              <span>Rich SMS</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">+ 0,021 € / SMS</span>
+                          </label>
+
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.tarifIntermarche}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, tarifIntermarche: e.target.checked }))
+                                }
+                              />
+                              <span>Tarif Intermarché</span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+
+                      {smsType === 'rcs' && (
+                        <div className="space-y-2 text-sm">
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.agent}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, agent: e.target.checked }))
+                                }
+                              />
+                              <span>Création d&apos;agent (si nécessaire)</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">+ 550 €</span>
+                          </label>
+
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.creaByLink}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, creaByLink: e.target.checked }))
+                                }
+                              />
+                              <span>CREA BY LINK (+80 €)</span>
+                            </div>
+                          </label>
+
+                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.tarifIntermarche}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, tarifIntermarche: e.target.checked }))
+                                }
+                              />
+                              <span>Tarif Intermarché</span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Colonne droite : volume & prix */}
+                  {(smsType === 'sms' || smsType === 'rcs') && (
+                    <div className="space-y-4 rounded-lg border bg-muted/40 p-4">
+                      <div className="space-y-2">
+                        <Label>Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder={`Ex: ${smsType === 'sms' ? '20000' : '15000'}`}
+                          value={smsVolume}
+                          onChange={(e) => setSmsVolume(e.target.value)}
+                        />
+                        {smsType === 'rcs' && smsVolumeNumber > 0 && smsVolumeNumber < 10_001 && (
+                          <p className="text-xs text-red-600 font-medium">
+                            Volume minimum requis : 10 001 RCS
+                          </p>
+                        )}
+                      </div>
+
+                      {smsType === 'sms' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Prix unitaire HT
+                            </div>
+                            <div className="text-lg font-semibold">
+                              {smsVolumeNumber > 0 && smsUnitPrice > 0
+                                ? `${smsUnitPrice.toFixed(4).replace('.', ',')} €`
+                                : '--'}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-snug">
+                              {smsOptions.tarifIntermarche ? (
+                                <>Tarif Intermarché : 0,12 € / SMS (PU fixe, quel que soit le volume).</>
+                              ) : (
+                                <>
+                                  Base :{' '}
+                                  {smsBasePU > 0
+                                    ? `${smsBasePU.toFixed(4).replace('.', ',')} €`
+                                    : '--'}{' '}
+                                  {smsOptionPU > 0 && (
+                                    <>
+                                      <br />
+                                      Options : +{smsOptionPU.toFixed(3).replace('.', ',')} € / SMS
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Prix total HT
+                            </div>
+                            <div className="text-lg font-semibold text-[#E94C16]">
+                              {smsTotalPrice > 0
+                                ? `${smsTotalPrice
+                                    .toFixed(2)
+                                    .toString()
+                                    .replace('.', ',')
+                                    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €`
+                                : '--'}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-snug">
+                              Inclut les frais fixes de mise en place : 190 €.
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {smsType === 'rcs' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Prix unitaire HT
+                            </div>
+                            <div className="text-lg font-semibold">
+                              {smsVolumeNumber >= 10_001 && rcsBasePU > 0
+                                ? `${rcsBasePU.toFixed(2).replace('.', ',')} €`
+                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_001
+                                  ? 'Interdit'
+                                  : '--'}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-snug">
+                              {smsVolumeNumber >= 10_001 && (
+                                <>
+                                  {smsVolumeNumber <= 50_000
+                                    ? 'Tranche : 10 001 - 50 000 RCS'
+                                    : 'Tranche : 50 001+ RCS'}
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                              Prix total HT
+                            </div>
+                            <div className="text-lg font-semibold text-[#E94C16]">
+                              {rcsTotalPrice > 0
+                                ? `${rcsTotalPrice
+                                    .toFixed(2)
+                                    .toString()
+                                    .replace('.', ',')
+                                    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €`
+                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_001
+                                  ? 'Interdit'
+                                  : '--'}
+                            </div>
+                            <div className="text-xs text-muted-foreground leading-snug space-y-1">
+                              <p>
+                                Frais fixes (set up obligatoire) : 250 €
+                                {smsOptions.agent && (
+                                  <>
+                                    <br />
+                                    Création d&apos;agent : +550 €
+                                  </>
+                                )}
+                                {smsOptions.creaByLink && (
+                                  <>
+                                    <br />
+                                    CREA BY LINK : +80 €
+                                  </>
+                                )}
+                              </p>
+
+                              {smsOptions.tarifIntermarche && (
+                                <div className="mt-1 space-y-0.5 text-xs">
+                                  <p className="font-semibold text-[#E94C16]">
+                                    POSSIBILITÉ D&apos;OFFRIR LES FRAIS DE SET UP SI BESOIN.
+                                  </p>
+                                  <p className="font-semibold text-[#E94C16]">
+                                    NÉGO CRÉA AGENT POSSIBLE.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Conditions de vente selon le type de campagne */}
+                <div className="rounded-lg border bg-muted/30 px-4 py-3 text-xs text-muted-foreground space-y-1">
+                  <p className="font-semibold text-[11px] tracking-wide uppercase text-[#E94C16]">
+                    Conditions ventes {smsType === 'sms' ? 'SMS' : 'RCS'}
+                  </p>
+                  {smsType === 'sms' ? (
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      {SMS_SALES_CONDITIONS.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      {RCS_SALES_CONDITIONS.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Modale pour export PDF */}
