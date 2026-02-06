@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -39,6 +39,7 @@ const META_CUSTOM_OBJECTIVES = [
   'Visites de profil',
   "J'aime la page",
   'Réponses évènement',
+  'Leads',
 ] as const
 
 const INSTA_CUSTOM_OBJECTIVES = [
@@ -51,12 +52,14 @@ const INSTA_CUSTOM_OBJECTIVES = [
 
 const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
 
+const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads'] as const
+
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
   'Insta only': INSTA_CUSTOM_OBJECTIVES,
   Youtube: ['Impressions'],
-  LinkedIn: DEFAULT_CUSTOM_OBJECTIVES,
+  LinkedIn: LINKEDIN_CUSTOM_OBJECTIVES,
   Snapchat: DEFAULT_CUSTOM_OBJECTIVES,
   Tiktok: DEFAULT_CUSTOM_OBJECTIVES,
   Spotify: ['Impressions'],
@@ -103,6 +106,16 @@ interface TableRowData {
 
 interface StrategyItem extends TableRowData {
   id: string
+  // Nombre de jours de diffusion saisi au moment de l'ajout
+  days: number
+  // % AE utilisé au moment de l'ajout (ex: 40 pour 40 %)
+  aePercentage: number
+}
+
+interface StrategyBlock {
+  id: string
+  name: string
+  items: StrategyItem[]
 }
 
 interface CustomRowState {
@@ -118,6 +131,15 @@ const getMaxKpiLabel = (objective: string): string => {
   const useElision = first && vowels.includes(first)
   const prep = useElision ? "d'" : 'de '
   return `Max ${prep}${trimmed.toLowerCase()}`
+}
+
+// Libellé d'un KPI en fonction de l'objectif (pour l'affichage dans la stratégie)
+const getKpiUnitLabel = (objective: string): string => {
+  const o = objective.toLowerCase()
+  if (o.includes('impression')) return 'impressions'
+  if (o.includes('lead')) return 'leads'
+  if (o.includes('clic')) return 'clics'
+  return 'KPIs'
 }
 
 // Fonction pour formater les nombres avec espaces classiques (pour PDF)
@@ -197,15 +219,19 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     color: '#666666',
   },
-  itemBudget: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#1a1a1a',
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
-  itemKPIs: {
+  itemLabel: {
     fontSize: 11,
     color: '#666666',
+  },
+  itemValue: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
   },
   chartsRow: {
     marginTop: 10,
@@ -277,144 +303,194 @@ const styles = StyleSheet.create({
 // Couleurs pour le graphique PDF (mêmes que dans l'interface)
 const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
-// Composant PDF
+// Composant PDF multi-stratégies
 const PDFDocument = ({
-  strategy,
+  strategies,
   clientName,
-  total,
-  kpisTotal,
   userName,
   aePercentage,
 }: {
-  strategy: StrategyItem[]
+  strategies: StrategyBlock[]
   clientName: string
-  total: number
-  kpisTotal: number
   userName: string
   aePercentage: number
 }) => {
-  // Calculer la répartition par plateforme
-  const platformTotals: Record<string, number> = {}
-  strategy.forEach((item) => {
-    if (!platformTotals[item.platform]) {
-      platformTotals[item.platform] = 0
-    }
-    platformTotals[item.platform] += item.budget
-  })
-
-  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], index) => ({
-    name,
-    value: Math.round(value),
-    percentage: total > 0 ? (value / total * 100) : 0,
-    color: PDF_COLORS[index % PDF_COLORS.length]
-  }))
-
-  // Répartition par objectif
-  const objectiveTotals: Record<string, number> = {}
-  strategy.forEach((item) => {
-    if (!objectiveTotals[item.objective]) {
-      objectiveTotals[item.objective] = 0
-    }
-    objectiveTotals[item.objective] += item.budget
-  })
-
-  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], index) => ({
-    name,
-    value: Math.round(value),
-    percentage: total > 0 ? (value / total * 100) : 0,
-    color: PDF_COLORS[index % PDF_COLORS.length],
-  }))
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>
-          {userName ? `Stratégie de ${userName}` : 'Ma stratégie'}
+          {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
         </Text>
         <Text style={styles.clientName}>Client : {clientName}</Text>
-        
-        {/* Résumé */}
-        <View style={styles.summary}>
-          <Text style={styles.summaryText}>
-            {strategy.length} élément{strategy.length > 1 ? 's' : ''} sélectionné{strategy.length > 1 ? 's' : ''}
-          </Text>
-          <Text style={styles.summaryTotal}>
-            Total : {formatNumber(total, 0)} €
-          </Text>
-          <Text style={styles.summaryText}>
-            KPIs totaux : {formatNumber(kpisTotal, 0)}
-          </Text>
-          <Text style={styles.summaryText}>
-            AE : {formatNumber(aePercentage * 100, 0)} %
-          </Text>
-        </View>
 
-        {/* Diagrammes circulaires (2 colonnes) */}
-        {(chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
-          <View style={styles.chartsRow}>
-            {/* Par plateforme */}
-            {chartDataPlatform.length > 0 && (
-              <View style={styles.chartBox}>
-                <Text style={styles.chartTitle}>Répartition par plateforme</Text>
-                <View style={styles.pieCircle}>
-                  <Text style={styles.pieCenterText}>100%</Text>
+        {strategies.map((block, index) => {
+          if (!block.items.length) return null
+
+          const total = block.items.reduce((sum, item) => sum + item.budget, 0)
+          const kpisTotal = block.items.reduce((sum, item) => sum + item.estimatedKPIs, 0)
+
+          const platformTotals: Record<string, number> = {}
+          block.items.forEach((item) => {
+            if (!platformTotals[item.platform]) {
+              platformTotals[item.platform] = 0
+            }
+            platformTotals[item.platform] += item.budget
+          })
+
+          const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
+            name,
+            value: Math.round(value),
+            percentage: total > 0 ? (value / total * 100) : 0,
+            color: PDF_COLORS[idx % PDF_COLORS.length],
+          }))
+
+          const objectiveTotals: Record<string, number> = {}
+          block.items.forEach((item) => {
+            if (!objectiveTotals[item.objective]) {
+              objectiveTotals[item.objective] = 0
+            }
+            objectiveTotals[item.objective] += item.budget
+          })
+
+          const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
+            name,
+            value: Math.round(value),
+            percentage: total > 0 ? (value / total * 100) : 0,
+            color: PDF_COLORS[idx % PDF_COLORS.length],
+          }))
+
+          return (
+            <View key={block.id} wrap={false}>
+              {/* Résumé par stratégie */}
+              <View style={[styles.summary, { marginTop: index === 0 ? 10 : 20 }]}>
+                {(() => {
+                  const strategyAe =
+                    block.items.length > 0 ? block.items[0].aePercentage : 0
+                  return (
+                    <>
+                      <Text style={styles.summaryText}>
+                        Stratégie {index + 1} : {block.name}
+                      </Text>
+                      <Text style={styles.summaryText}>
+                        {block.items.length} élément
+                        {block.items.length > 1 ? 's' : ''} sélectionné
+                        {block.items.length > 1 ? 's' : ''}
+                      </Text>
+                      <Text style={styles.summaryTotal}>
+                        Total : {formatNumber(total, 0)} €
+                      </Text>
+                      <Text style={styles.summaryText}>
+                        KPIs totaux : {formatNumber(kpisTotal, 0)}
+                      </Text>
+                      <Text style={styles.summaryText}>
+                        AE :{' '}
+                        {strategyAe > 0
+                          ? `${formatNumber(strategyAe, 0)} %`
+                          : '-'}
+                      </Text>
+                    </>
+                  )
+                })()}
+              </View>
+
+              {/* Diagrammes circulaires (2 colonnes) */}
+              {(chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
+                <View style={styles.chartsRow}>
+                  {/* Par plateforme */}
+                  {chartDataPlatform.length > 0 && (
+                    <View style={styles.chartBox}>
+                      <Text style={styles.chartTitle}>Répartition par plateforme</Text>
+                      <View style={styles.pieCircle}>
+                        <Text style={styles.pieCenterText}>100%</Text>
+                      </View>
+                      <View style={styles.legend}>
+                        {chartDataPlatform.map((item, idx) => (
+                          <View key={idx} style={styles.legendItem}>
+                            <View
+                              style={[
+                                styles.legendColor,
+                                { backgroundColor: item.color },
+                              ]}
+                            />
+                            <Text style={styles.legendLabel}>
+                              {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Par objectif */}
+                  {chartDataObjective.length > 0 && (
+                    <View style={styles.chartBox}>
+                      <Text style={styles.chartTitle}>Répartition par objectif</Text>
+                      <View style={styles.pieCircle}>
+                        <Text style={styles.pieCenterText}>100%</Text>
+                      </View>
+                      <View style={styles.legend}>
+                        {chartDataObjective.map((item, idx) => (
+                          <View key={idx} style={styles.legendItem}>
+                            <View
+                              style={[
+                                styles.legendColor,
+                                { backgroundColor: item.color },
+                              ]}
+                            />
+                            <Text style={styles.legendLabel}>
+                              {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.legend}>
-                  {chartDataPlatform.map((item, index) => (
-                    <View key={index} style={styles.legendItem}>
-                      <View
-                        style={[
-                          styles.legendColor,
-                          { backgroundColor: item.color },
-                        ]}
-                      />
-                      <Text style={styles.legendLabel}>
-                        {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
+              )}
+
+              {/* Détail de la stratégie */}
+              <View>
+                <Text style={[styles.chartTitle, { marginTop: 20, marginBottom: 10 }]}>
+                  Détail de la stratégie {index + 1}
+                </Text>
+                {block.items.map((item) => (
+                  <View key={item.id} style={styles.itemCard}>
+                    <Text style={styles.itemPlatform}>{item.platform}</Text>
+                    <Text style={styles.itemObjective}>{item.objective}</Text>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>Budget :</Text>
+                      <Text style={styles.itemValue}>{formatNumber(item.budget, 0)} €</Text>
+                    </View>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>KPIs estimés :</Text>
+                      <Text style={styles.itemValue}>
+                        {item.estimatedKPIs > 0
+                          ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+                              item.objective === 'Leads' ? ' (estimation)' : ''
+                            }`
+                          : `${getMaxKpiLabel(item.objective)}${
+                              item.objective === 'Leads' ? ' (estimation)' : ''
+                            }`}
                       </Text>
                     </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Par objectif */}
-            {chartDataObjective.length > 0 && (
-              <View style={styles.chartBox}>
-                <Text style={styles.chartTitle}>Répartition par objectif</Text>
-                <View style={styles.pieCircle}>
-                  <Text style={styles.pieCenterText}>100%</Text>
-                </View>
-                <View style={styles.legend}>
-                  {chartDataObjective.map((item, index) => (
-                    <View key={index} style={styles.legendItem}>
-                      <View
-                        style={[
-                          styles.legendColor,
-                          { backgroundColor: item.color },
-                        ]}
-                      />
-                      <Text style={styles.legendLabel}>
-                        {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
-                      </Text>
+                    <View style={styles.itemRow}>
+                      <Text style={styles.itemLabel}>Budget quotidien :</Text>
+                      <Text style={styles.itemValue}>{formatNumber(item.dailyBudget, 1)} €</Text>
                     </View>
-                  ))}
-                </View>
+                    {item.days > 0 && (
+                      <View style={styles.itemRow}>
+                        <Text style={styles.itemLabel}>Diffusion :</Text>
+                        <Text style={styles.itemValue}>
+                          {item.days} jour{item.days > 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
               </View>
-            )}
-          </View>
-        )}
-
-        {/* Liste des éléments */}
-        {strategy.map((item) => (
-          <View key={item.id} style={styles.itemCard}>
-            <Text style={styles.itemPlatform}>{item.platform}</Text>
-            <Text style={styles.itemObjective}>{item.objective}</Text>
-            <Text style={styles.itemBudget}>{formatNumber(item.budget, 0)} €</Text>
-            <Text style={styles.itemKPIs}>KPIs : {item.estimatedKPIs > 0 ? formatNumber(item.estimatedKPIs, 0) : '-'}</Text>
-          </View>
-        ))}
-        
-        <Text style={styles.total}>Total : {formatNumber(total, 0)} €</Text>
+            </View>
+          )
+        })}
       </Page>
     </Document>
   )
@@ -427,8 +503,18 @@ export default function PDVPage() {
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('15')
   
-  // État de la stratégie
-  const [strategy, setStrategy] = useState<StrategyItem[]>([])
+  // État des stratégies (jusqu'à 3)
+  const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
+    { id: 'strategy-1', name: 'Stratégie 1', items: [] },
+  ])
+  const [activeStrategyId, setActiveStrategyId] = useState<string>('strategy-1')
+  const [expandedStrategies, setExpandedStrategies] = useState<Record<string, boolean>>({
+    'strategy-1': true,
+  })
+  const [isAddingStrategy, setIsAddingStrategy] = useState(false)
+  const [newStrategyName, setNewStrategyName] = useState('')
+  const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
+  const [renamingStrategyName, setRenamingStrategyName] = useState('')
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -582,31 +668,61 @@ export default function PDVPage() {
     }, {} as Record<string, TableRowData[]>)
   }, [tableData])
 
-  // Fonction pour ajouter à la stratégie
+  // Fonction pour ajouter à la stratégie active
   const addToStrategy = (row: TableRowData) => {
+    const daysNum = parseFloat(diffusionDays) || 0
+    const aeNum = parseFloat(aePercentage) || 0
+
+    // Vérifier cohérence du % AE dans la stratégie cible
+    const targetId = activeStrategyId || strategies[0]?.id
+    const targetStrategy = strategies.find((s) => s.id === targetId)
+    if (targetStrategy && targetStrategy.items.length > 0) {
+      const existingAe = targetStrategy.items[0].aePercentage
+      if (existingAe !== aeNum) {
+        alert(
+          `Le % AE de cette stratégie est ${existingAe} %. Pour ajouter une ligne, utilisez le même % AE ou créez une nouvelle stratégie.`,
+        )
+        return
+      }
+    }
+
     const newItem: StrategyItem = {
       ...row,
-      id: `${row.platform}-${row.objective}-${Date.now()}`
+      id: `${row.platform}-${row.objective}-${Date.now()}`,
+      days: daysNum,
+      aePercentage: aeNum,
     }
-    setStrategy([...strategy, newItem])
+    setStrategies((prev) => {
+      return prev.map((s) =>
+        s.id === targetId ? { ...s, items: [...s.items, newItem] } : s,
+      )
+    })
   }
 
-  // Fonction pour supprimer de la stratégie
-  const removeFromStrategy = (id: string) => {
-    setStrategy(strategy.filter(item => item.id !== id))
+  // Fonction pour supprimer de la stratégie (par bloc)
+  const removeFromStrategy = (strategyId: string, id: string) => {
+    setStrategies((prev) =>
+      prev.map((s) =>
+        s.id === strategyId ? { ...s, items: s.items.filter((item) => item.id !== id) } : s,
+      ),
+    )
   }
 
-  // Calculer le total de la stratégie (mise à jour automatique)
+  // Stratégie active (pour les interactions / +)
+  const activeStrategy = strategies.find((s) => s.id === activeStrategyId) ?? strategies[0]
+  const strategy = activeStrategy?.items ?? []
+
+  // Calculer le total de la stratégie active (mise à jour automatique)
   const strategyTotal = useMemo(() => {
     return strategy.reduce((total, item) => total + item.budget, 0)
   }, [strategy])
 
-  // Calculer le total des KPIs dans la stratégie
+  // Calculer le total des KPIs dans la stratégie active
   const strategyKPIsTotal = useMemo(() => {
     return strategy.reduce((total, item) => total + item.estimatedKPIs, 0)
   }, [strategy])
 
-  // Préparer les données pour le graphique (par plateforme)
+  // Préparer les données pour le graphique (par plateforme) pour la stratégie active
   const chartData = useMemo(() => {
     const platformTotals: Record<string, number> = {}
     
@@ -616,14 +732,14 @@ export default function PDVPage() {
       }
       platformTotals[item.platform] += item.budget
     })
-
+  
     return Object.entries(platformTotals).map(([name, value]) => ({
       name,
       value: Math.round(value)
     }))
   }, [strategy])
 
-  // Préparer les données pour le graphique (par objectif)
+  // Préparer les données pour le graphique (par objectif) pour la stratégie active
   const chartDataByObjective = useMemo(() => {
     const objectiveTotals: Record<string, number> = {}
     
@@ -633,7 +749,7 @@ export default function PDVPage() {
       }
       objectiveTotals[item.objective] += item.budget
     })
-
+  
     return Object.entries(objectiveTotals).map(([name, value]) => ({
       name,
       value: Math.round(value)
@@ -699,36 +815,35 @@ export default function PDVPage() {
     }))
   }
 
-  // Fonction pour exporter en Excel
+  // Fonction pour exporter en Excel (stratégie active uniquement)
   const exportToExcel = () => {
     const worksheetData = [
-      ['Plateforme', 'Objectif', 'Budget (€)', 'KPIs estimés', 'Budget quotidien (€)'],
-      ...strategy.map(item => [
+      ['Stratégie', 'Plateforme', 'Objectif', 'Budget (€)', 'KPIs estimés', 'Budget quotidien (€)'],
+      ...(activeStrategy?.items ?? []).map(item => [
+        activeStrategy?.name ?? '',
         item.platform,
         item.objective,
         item.budget,
         item.estimatedKPIs,
         item.dailyBudget
       ]),
-      ['', '', 'TOTAL', '', strategyTotal]
+      ['', '', 'TOTAL', '', '', strategyTotal]
     ]
 
     const ws = XLSX.utils.aoa_to_sheet(worksheetData)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Stratégie PDV')
+    XLSX.utils.book_append_sheet(wb, ws, 'Stratégies PDV')
     XLSX.writeFile(wb, `strategie-pdv-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
-  // Fonction pour générer et télécharger le PDF
+  // Fonction pour générer et télécharger le PDF (toutes les stratégies)
   const handleExportPDF = async () => {
     if (!clientName.trim()) return
     
     const doc = (
       <PDFDocument
-        strategy={strategy}
+        strategies={strategies}
         clientName={clientName}
-        total={strategyTotal}
-        kpisTotal={strategyKPIsTotal}
         userName={userName}
         aePercentage={parseFloat(aePercentage) || 0}
       />
@@ -750,13 +865,11 @@ export default function PDVPage() {
     
     setSendingToSlack(true)
     try {
-      // 1) Générer le PDF
+      // 1) Générer le PDF (toutes les stratégies)
       const doc = (
         <PDFDocument
-          strategy={strategy}
+          strategies={strategies}
           clientName={clientName || 'Client'}
-          total={strategyTotal}
-          kpisTotal={strategyKPIsTotal}
           userName={userName}
           aePercentage={parseFloat(aePercentage) || 0}
         />
@@ -865,7 +978,7 @@ export default function PDVPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>
-                      {calculationMode === 'budget-to-kpis' ? 'Budget global (€)' : 'KPIs souhaités'}
+                      {calculationMode === 'budget-to-kpis' ? 'Budget (€)' : 'KPIs souhaités'}
                     </Label>
                     <Input
                       type="number"
@@ -897,6 +1010,25 @@ export default function PDVPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Légende des couleurs */}
+            <div className="mt-3 rounded-lg border bg-white p-3 text-xs text-muted-foreground">
+              <div className="font-medium text-foreground mb-2">Légende</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span>Rouge : Pas possible</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                  <span>Orange : À valider par TM</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-600" />
+                  <span>Vert : OK</span>
+                </div>
+              </div>
+            </div>
 
             {/* Plateformes segmentées */}
             {tableData.length > 0 && (
@@ -954,7 +1086,11 @@ export default function PDVPage() {
                                       {row.budget > 0 ? `${row.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €` : '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      {row.estimatedKPIs > 0 ? row.estimatedKPIs.toLocaleString('fr-FR') : '-'}
+                                      {row.estimatedKPIs > 0
+                                        ? `${row.estimatedKPIs.toLocaleString('fr-FR')}${
+                                            row.objective === 'Leads' ? ' (estimation)' : ''
+                                          }`
+                                        : '-'}
                                     </TableCell>
                                     <TableCell className="text-right font-bold">
                                       {row.dailyBudget > 0
@@ -1011,7 +1147,9 @@ export default function PDVPage() {
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
                                   {custom.objective
-                                    ? getMaxKpiLabel(custom.objective)
+                                    ? `${getMaxKpiLabel(custom.objective)}${
+                                        custom.objective === 'Leads' ? ' (estimation)' : ''
+                                      }`
                                     : '—'}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs">
@@ -1036,8 +1174,8 @@ export default function PDVPage() {
                                           // on ne stocke pas de KPIs chiffrés : on met 0 pour afficher \"-\".
                                           estimatedKPIs:
                                             referenceRowForObjective?.estimatedKPIs ?? 0,
-                                              dailyBudget: customDailyBudget,
-                                              aeCheckValue: customAeCheckValue,
+                                          dailyBudget: customDailyBudget,
+                                          aeCheckValue: customAeCheckValue,
                                           isAvailable: true,
                                         })
                                       }
@@ -1059,202 +1197,419 @@ export default function PDVPage() {
             )}
           </div>
 
-          {/* Colonne droite - Stratégie (sticky) */}
-          <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto">
-            <Card className="border-2 border-[#E94C16] h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Ma stratégie
-                  </CardTitle>
-                </div>
-                <CardDescription>
-                  {strategy.length > 0 ? (
-                    <>
-                      {strategy.length} élément{strategy.length > 1 ? 's' : ''} sélectionné{strategy.length > 1 ? 's' : ''}
-                      <br />
-                      <span className="font-semibold text-lg text-[#E94C16]">
-                        Total : {strategyTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
-                      </span>
-                      <br />
-                      <span className="text-sm text-muted-foreground">
-                        AE : {parseFloat(aePercentage) || 0}%
-                      </span>
-                    </>
-                  ) : (
-                    'Ajoutez des éléments depuis le tableau'
-                  )}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="flex-1 flex flex-col overflow-hidden">
-                {strategy.length > 0 ? (
-                  <>
-                    {/* Liste des éléments */}
-                    <div className="flex-1 overflow-y-auto mb-4">
-                      <div className="space-y-2">
-                        {strategy.map((item) => {
-                          const colorClass = getAeColorClass(item.platform, item.aeCheckValue)
-                          return (
-                            <div
-                              key={item.id}
-                              className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm">
-                                  <PlatformBadge platform={item.platform} />
-                                </div>
-                                <div className="text-xs text-muted-foreground">{item.objective}</div>
-                                <div className="text-xs font-semibold mt-1">
-                                  {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {item.estimatedKPIs > 0
-                                    ? `KPIs : ${item.estimatedKPIs.toLocaleString('fr-FR')}`
-                                    : `KPIs : ${getMaxKpiLabel(item.objective)}`}
-                                </div>
+          {/* Colonne droite - Stratégies (sticky, accordéon) */}
+          <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)] lg:overflow-y-auto space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-sm font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-[#E94C16]" />
+                Mes stratégies (max 3)
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsAddingStrategy(true)}
+                disabled={strategies.length >= 3}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Nouvelle stratégie
+              </Button>
+            </div>
+
+            {isAddingStrategy && (
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder={`Nom de la stratégie (ex: Strat agressive)`}
+                  value={newStrategyName}
+                  onChange={(e) => setNewStrategyName(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Button
+                  size="sm"
+                  className="h-8 bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                  onClick={() => {
+                    if (strategies.length >= 3) return
+                    const name = newStrategyName.trim() || `Stratégie ${strategies.length + 1}`
+                    const id = `strategy-${Date.now()}`
+                    setStrategies((prev) => [...prev, { id, name, items: [] }])
+                    setActiveStrategyId(id)
+                    setExpandedStrategies((prev) => ({ ...prev, [id]: true }))
+                    setNewStrategyName('')
+                    setIsAddingStrategy(false)
+                  }}
+                >
+                  Créer
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8"
+                  onClick={() => {
+                    setIsAddingStrategy(false)
+                    setNewStrategyName('')
+                  }}
+                >
+                  Annuler
+                </Button>
+              </div>
+            )}
+
+            {strategies.map((block, index) => {
+              const isActive = block.id === activeStrategyId
+              const isExpanded = expandedStrategies[block.id] ?? index === 0
+              const items = block.items
+              const blockAe = items.length > 0 ? items[0].aePercentage : 0
+              const total = items.reduce((sum, it) => sum + it.budget, 0)
+              const hasSummary = items.length > 0
+              const budgetLabel = total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+
+              return (
+                <Card
+                  key={block.id}
+                  className={`border-2 flex flex-col mb-2 ${
+                    isActive ? 'border-[#E94C16]' : 'border-muted'
+                  }`}
+                >
+                  <CardHeader
+                    className="flex-shrink-0 cursor-pointer"
+                    onClick={() =>
+                      setExpandedStrategies((prev) => ({
+                        ...prev,
+                        [block.id]: !isExpanded,
+                      }))
+                    }
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-2">
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            isExpanded ? 'rotate-180' : ''
+                          }`}
+                        />
+                        <div className="flex flex-col gap-0.5">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            {renamingStrategyId === block.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  autoFocus
+                                  className="h-7 text-xs px-2 py-1"
+                                  value={renamingStrategyName}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) => setRenamingStrategyName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const name =
+                                        renamingStrategyName.trim() || `Stratégie ${index + 1}`
+                                      setStrategies((prev) =>
+                                        prev.map((s) =>
+                                          s.id === block.id ? { ...s, name } : s,
+                                        ),
+                                      )
+                                      setRenamingStrategyId(null)
+                                      setRenamingStrategyName('')
+                                    }
+                                    if (e.key === 'Escape') {
+                                      setRenamingStrategyId(null)
+                                      setRenamingStrategyName('')
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const name =
+                                      renamingStrategyName.trim() || `Stratégie ${index + 1}`
+                                    setStrategies((prev) =>
+                                      prev.map((s) =>
+                                        s.id === block.id ? { ...s, name } : s,
+                                      ),
+                                    )
+                                    setRenamingStrategyId(null)
+                                    setRenamingStrategyName('')
+                                  }}
+                                >
+                                  OK
+                                </Button>
                               </div>
+                            ) : (
+                              <>
+                                <span>{block.name}</span>
+                                {isActive && (
+                                  <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#E94C16]/10 text-[#E94C16]">
+                                    Active
+                                  </span>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setRenamingStrategyId(block.id)
+                                    setRenamingStrategyName(block.name)
+                                  }}
+                                >
+                                  Renommer
+                                </Button>
+                              </>
+                            )}
+                          </CardTitle>
+
+                          {hasSummary && (
+                            <div className="text-[11px] text-muted-foreground">
+                              {isExpanded ? (
+                                <div className="flex flex-col">
+                                  <span>
+                                    Budget total :{' '}
+                                    <span className="font-semibold text-[#E94C16]">
+                                      {budgetLabel} €
+                                    </span>
+                                  </span>
+                                  <span>AE : {blockAe > 0 ? `${blockAe} %` : '-'}</span>
+                                </div>
+                              ) : (
+                                <>
+                                  Budget total :{' '}
+                                  <span className="font-semibold text-[#E94C16]">
+                                    {budgetLabel} €
+                                  </span>{' '}
+                                  - AE : {blockAe > 0 ? `${blockAe} %` : '-'}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {!isActive && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[11px]"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveStrategyId(block.id)
+                            }}
+                          >
+                            Activer
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  {isExpanded && (
+                    <CardContent className="flex-1 flex flex-col overflow-hidden pt-0">
+                      {items.length > 0 ? (
+                        <>
+                          {/* Liste des éléments */}
+                          <div className="flex-1 overflow-y-auto mb-4 mt-2">
+                            <div className="space-y-2">
+                              {items.map((item) => {
+                                const colorClass = getAeColorClass(item.platform, item.aeCheckValue)
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-sm">
+                                        <PlatformBadge platform={item.platform} />
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {item.objective}
+                                      </div>
+                                      <div className="text-xs font-semibold mt-1">
+                                        {item.budget.toLocaleString('fr-FR', {
+                                          maximumFractionDigits: 0,
+                                        })}{' '}
+                                        €
+                                      </div>
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {item.estimatedKPIs > 0 ? (
+                                          <>
+                                            {`${item.estimatedKPIs.toLocaleString(
+                                              'fr-FR',
+                                            )} ${getKpiUnitLabel(item.objective)}${
+                                              item.objective === 'Leads' ? ' (estimation)' : ''
+                                            }`}
+                                          </>
+                                        ) : (
+                                          `${getMaxKpiLabel(item.objective)}${
+                                            item.objective === 'Leads' ? ' (estimation)' : ''
+                                          }`
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {item.days > 0 &&
+                                          `Diffusion : ${item.days} jour${
+                                            item.days > 1 ? 's' : ''
+                                          }`}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeFromStrategy(block.id, item.id)}
+                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Graphiques et exports uniquement pour la stratégie active */}
+                          {isActive && (chartData.length > 0 || chartDataByObjective.length > 0) && (
+                            <div className="mb-6">
+                              {/* Sélecteur de graphique */}
+                              <div className="mb-4">
+                                <Tabs
+                                  value={chartView}
+                                  onValueChange={(value) => setChartView(value as ChartView)}
+                                  className="w-full"
+                                >
+                                  <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger
+                                      value="platform"
+                                      className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                      disabled={chartData.length === 0}
+                                    >
+                                      Par plateforme
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                      value="objective"
+                                      className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                      disabled={chartDataByObjective.length === 0}
+                                    >
+                                      Par objectif
+                                    </TabsTrigger>
+                                  </TabsList>
+                                </Tabs>
+                              </div>
+
+                              {/* Graphique par plateforme */}
+                              {chartView === 'platform' && chartData.length > 0 && (
+                                <div>
+                                  <h3 className="text-sm font-semibold mb-3">
+                                    Répartition par plateforme
+                                  </h3>
+                                  <ResponsiveContainer width="100%" height={250}>
+                                    <PieChart>
+                                      <Pie
+                                        data={chartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent = 0 }) =>
+                                          `${name}: ${(percent * 100).toFixed(0)}%`
+                                        }
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                      >
+                                        {chartData.map((entry, idx) => (
+                                          <Cell
+                                            key={`cell-${idx}`}
+                                            fill={COLORS[idx % COLORS.length]}
+                                          />
+                                        ))}
+                                      </Pie>
+                                      <Tooltip
+                                        formatter={(value: number | undefined) =>
+                                          value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
+                                        }
+                                      />
+                                      <Legend />
+                                    </PieChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+
+                              {/* Graphique par objectif */}
+                              {chartView === 'objective' && chartDataByObjective.length > 0 && (
+                                <div>
+                                  <h3 className="text-sm font-semibold mb-3">
+                                    Répartition par objectif
+                                  </h3>
+                                  <ResponsiveContainer width="100%" height={250}>
+                                    <PieChart>
+                                      <Pie
+                                        data={chartDataByObjective}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent = 0 }) =>
+                                          `${name}: ${(percent * 100).toFixed(0)}%`
+                                        }
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                      >
+                                        {chartDataByObjective.map((entry, idx) => (
+                                          <Cell
+                                            key={`cell-objective-${idx}`}
+                                            fill={COLORS[idx % COLORS.length]}
+                                          />
+                                        ))}
+                                      </Pie>
+                                      <Tooltip
+                                        formatter={(value: number | undefined) =>
+                                          value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
+                                        }
+                                      />
+                                      <Legend />
+                                    </PieChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Boutons d'export pour la stratégie active */}
+                          {isActive && (
+                            <div className="flex gap-2 flex-shrink-0">
                               <Button
+                                variant="outline"
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => removeFromStrategy(item.id)}
-                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                                onClick={() => setValidationTMDialogOpen(true)}
+                                className="flex-1"
+                                disabled={strategy.length === 0}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                Validation TM
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPdfDialogOpen(true)}
+                                className="flex-1"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                PDF
                               </Button>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Graphiques de répartition */}
-                    {(chartData.length > 0 || chartDataByObjective.length > 0) && (
-                      <div className="mb-6">
-                        {/* Sélecteur de graphique */}
-                        <div className="mb-4">
-                          <Tabs
-                            value={chartView}
-                            onValueChange={(value) => setChartView(value as ChartView)}
-                            className="w-full"
-                          >
-                            <TabsList className="grid w-full grid-cols-2">
-                              <TabsTrigger 
-                                value="platform" 
-                                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-                                disabled={chartData.length === 0}
-                              >
-                                Par plateforme
-                              </TabsTrigger>
-                              <TabsTrigger 
-                                value="objective" 
-                                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-                                disabled={chartDataByObjective.length === 0}
-                              >
-                                Par objectif
-                              </TabsTrigger>
-                            </TabsList>
-                          </Tabs>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-center text-muted-foreground py-4">
+                          <div>
+                            <TrendingUp className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Aucun élément dans cette stratégie</p>
+                            <p className="text-xs mt-1">
+                              Sélectionnez cette stratégie puis utilisez le bouton + du tableau
+                            </p>
+                          </div>
                         </div>
-
-                        {/* Graphique par plateforme */}
-                        {chartView === 'platform' && chartData.length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-semibold mb-3">Répartition par plateforme</h3>
-                            <ResponsiveContainer width="100%" height={250}>
-                              <PieChart>
-                                <Pie
-                                  data={chartData}
-                                  cx="50%"
-                                  cy="50%"
-                                  labelLine={false}
-                                  label={({ name, percent = 0 }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                  outerRadius={80}
-                                  fill="#8884d8"
-                                  dataKey="value"
-                                >
-                                  {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <Tooltip
-                                  formatter={(value: number | undefined) =>
-                                    value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
-                                  }
-                                />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
-
-                        {/* Graphique par objectif */}
-                        {chartView === 'objective' && chartDataByObjective.length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-semibold mb-3">Répartition par objectif</h3>
-                            <ResponsiveContainer width="100%" height={250}>
-                              <PieChart>
-                                <Pie
-                                  data={chartDataByObjective}
-                                  cx="50%"
-                                  cy="50%"
-                                  labelLine={false}
-                                  label={({ name, percent = 0 }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                  outerRadius={80}
-                                  fill="#8884d8"
-                                  dataKey="value"
-                                >
-                                  {chartDataByObjective.map((entry, index) => (
-                                    <Cell key={`cell-objective-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <Tooltip
-                                  formatter={(value: number | undefined) =>
-                                    value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
-                                  }
-                                />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Boutons d'export */}
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setValidationTMDialogOpen(true)}
-                        className="flex-1"
-                        disabled={strategy.length === 0}
-                      >
-                        Validation TM
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPdfDialogOpen(true)}
-                        className="flex-1"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        PDF
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center text-center text-muted-foreground">
-                    <div>
-                      <TrendingUp className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Aucun élément dans la stratégie</p>
-                      <p className="text-xs mt-1">Utilisez le bouton + pour ajouter</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      )}
+                    </CardContent>
+                  )}
+                </Card>
+              )
+            })}
           </div>
         </div>
       </div>
