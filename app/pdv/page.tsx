@@ -99,6 +99,7 @@ interface SmsOptionsState {
   agent: boolean
   creaByLink: boolean
   tarifIntermarche: boolean
+  duplicateCampaign: boolean
 }
 
 const SMS_SALES_CONDITIONS = [
@@ -540,7 +541,9 @@ export default function PDVPage() {
     agent: false,
     creaByLink: false,
     tarifIntermarche: false,
+    duplicateCampaign: false,
   })
+  const [campaignMonths, setCampaignMonths] = useState<string>('1') // nombre de mois pour duplication campagne RCS
   
   // État des stratégies (jusqu'à 3)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
@@ -629,10 +632,17 @@ export default function PDVPage() {
     return fee
   }, [smsType, smsOptions.agent, smsOptions.creaByLink])
 
+  const campaignMonthsNumber = useMemo(() => {
+    const parsed = parseInt(campaignMonths, 10)
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed
+  }, [campaignMonths])
+
   const rcsTotalPrice = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
-    return rcsBasePU * smsVolumeNumber + 250 + rcsOptionFee // 250€ frais fixes obligatoires
-  }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee])
+    const basePrice = rcsBasePU * smsVolumeNumber + 250 + rcsOptionFee // 250€ frais fixes obligatoires
+    // Si duplication campagne activée, multiplier par le nombre de mois
+    return smsOptions.duplicateCampaign ? basePrice * campaignMonthsNumber : basePrice
+  }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -1779,6 +1789,7 @@ export default function PDVPage() {
                                   agent: false,
                                   creaByLink: false,
                                   tarifIntermarche: false,
+                                  duplicateCampaign: false,
                                 }
                               : {
                                   ciblage: false,
@@ -1786,8 +1797,10 @@ export default function PDVPage() {
                                   agent: false,
                                   creaByLink: false,
                                   tarifIntermarche: false,
+                                  duplicateCampaign: false,
                                 },
                           )
+                          setCampaignMonths('1') // Reset nombre de mois
                         }}
                         className="w-full max-w-xs"
                       >
@@ -1910,6 +1923,36 @@ export default function PDVPage() {
                               <span>Tarif Intermarché</span>
                             </div>
                           </label>
+
+                          <div className="space-y-2">
+                            <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded border-gray-300"
+                                  checked={smsOptions.duplicateCampaign}
+                                  onChange={(e) =>
+                                    setSmsOptions((prev) => ({ ...prev, duplicateCampaign: e.target.checked }))
+                                  }
+                                />
+                                <span>Dupliquer la campagne</span>
+                              </div>
+                            </label>
+
+                            {smsOptions.duplicateCampaign && (
+                              <div className="ml-6 space-y-1">
+                                <Label className="text-xs">Nombre de mois</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={campaignMonths}
+                                  onChange={(e) => setCampaignMonths(e.target.value)}
+                                  className="h-8 w-24"
+                                  placeholder="1"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2050,6 +2093,12 @@ export default function PDVPage() {
                                     NÉGO CRÉA AGENT POSSIBLE.
                                   </p>
                                 </div>
+                              )}
+
+                              {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && (
+                                <p className="mt-2 font-semibold text-[#E94C16]">
+                                  × {campaignMonthsNumber} mois
+                                </p>
                               )}
                             </div>
                           </div>
