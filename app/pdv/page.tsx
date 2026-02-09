@@ -1877,8 +1877,9 @@ export default function PDVPage() {
                                   setSmsOptions((prev) => ({ ...prev, creaByLink: e.target.checked }))
                                 }
                               />
-                              <span>CREA BY LINK (+100 €)</span>
+                              <span>CREA BY LINK</span>
                             </div>
+                            <span className="text-xs text-muted-foreground">+ 100 €</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
@@ -1901,7 +1902,7 @@ export default function PDVPage() {
 
                   {/* Colonne droite : volume & prix */}
                   {(smsType === 'sms' || smsType === 'rcs') && (
-                    <div className="space-y-4 rounded-lg border bg-muted/40 p-4">
+                    <div className="space-y-4 rounded-lg border border-black bg-white p-4">
                       <div className="space-y-2">
                         <Label>Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}</Label>
                         <Input
@@ -2020,7 +2021,7 @@ export default function PDVPage() {
                                 {smsOptions.creaByLink && (
                                   <>
                                     <br />
-                                    CREA BY LINK : +80 €
+                                    CREA BY LINK : +100 €
                                   </>
                                 )}
                               </p>
