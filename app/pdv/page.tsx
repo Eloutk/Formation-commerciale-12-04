@@ -616,7 +616,7 @@ export default function PDVPage() {
   const rcsBasePU = useMemo(() => {
     const n = smsVolumeNumber
     if (n <= 0) return 0
-    if (n < 10_001) return -1 // Interdit (on retourne -1 pour gérer l'affichage)
+    if (n < 10_000) return -1 // Interdit (on retourne -1 pour gérer l'affichage)
     if (n <= 50_000) return 0.19
     return 0.15 // 50_001+
   }, [smsVolumeNumber])
@@ -987,23 +987,38 @@ export default function PDVPage() {
       const userId = session?.user?.id || null
 
       // 4) Appeler l'API pour stocker dans Supabase (Storage + table)
-      const response = await fetch('/api/slack', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pdfBase64: base64,
-          fileName,
-          firstName: userPseudo || userName,
-          message: validationMessage.trim(),
-          clientName: clientName || 'Client',
-          userName,
-          userId,
-        }),
-      })
+      // Ajouter un timeout de 30 secondes pour éviter de rester bloqué indéfiniment
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 secondes
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Erreur lors de la sauvegarde de la validation')
+      try {
+        const response = await fetch('/api/slack', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pdfBase64: base64,
+            fileName,
+            firstName: userPseudo || userName,
+            message: validationMessage.trim(),
+            clientName: clientName || 'Client',
+            userName,
+            userId,
+          }),
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Erreur lors de la sauvegarde de la validation')
+        }
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        if (fetchError.name === 'AbortError') {
+          throw new Error('La requête a expiré après 30 secondes. Veuillez réessayer.')
+        }
+        throw fetchError
       }
 
       // Succès
@@ -1912,9 +1927,9 @@ export default function PDVPage() {
                           value={smsVolume}
                           onChange={(e) => setSmsVolume(e.target.value)}
                         />
-                        {smsType === 'rcs' && smsVolumeNumber > 0 && smsVolumeNumber < 10_001 && (
+                        {smsType === 'rcs' && smsVolumeNumber > 0 && smsVolumeNumber < 10_000 && (
                           <p className="text-xs text-red-600 font-medium">
-                            Volume minimum requis : 10 001 RCS
+                            Volume minimum requis : 10 000 RCS
                           </p>
                         )}
                       </div>
@@ -1977,17 +1992,17 @@ export default function PDVPage() {
                               Prix unitaire HT
                             </div>
                             <div className="text-lg font-semibold">
-                              {smsVolumeNumber >= 10_001 && rcsBasePU > 0
+                              {smsVolumeNumber >= 10_000 && rcsBasePU > 0
                                 ? `${rcsBasePU.toFixed(2).replace('.', ',')} €`
-                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_001
+                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_000
                                   ? 'Interdit'
                                   : '--'}
                             </div>
                             <div className="text-xs text-muted-foreground leading-snug">
-                              {smsVolumeNumber >= 10_001 && (
+                              {smsVolumeNumber >= 10_000 && (
                                 <>
                                   {smsVolumeNumber <= 50_000
-                                    ? 'Tranche : 10 001 - 50 000 RCS'
+                                    ? 'Tranche : 10 000 - 50 000 RCS'
                                     : 'Tranche : 50 001+ RCS'}
                                 </>
                               )}
@@ -2005,7 +2020,7 @@ export default function PDVPage() {
                                     .toString()
                                     .replace('.', ',')
                                     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €`
-                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_001
+                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_000
                                   ? 'Interdit'
                                   : '--'}
                             </div>
