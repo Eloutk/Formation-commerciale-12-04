@@ -1060,7 +1060,7 @@ export default function PDVPage() {
             onValueChange={(value) => setPdvSection(value as PdvSection)}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2">
+            <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2 border-2 border-gray-300">
               <TabsTrigger
                 value="social"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -1106,7 +1106,7 @@ export default function PDVPage() {
                     }}
                     className="w-full"
                   >
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300">
                       <TabsTrigger value="budget-to-kpis" className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white">Budget → KPIs</TabsTrigger>
                       <TabsTrigger value="kpis-to-budget" className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white">KPIs → Budget</TabsTrigger>
                     </TabsList>
@@ -1612,7 +1612,7 @@ export default function PDVPage() {
                                   onValueChange={(value) => setChartView(value as ChartView)}
                                   className="w-full"
                                 >
-                                  <TabsList className="grid w-full grid-cols-2">
+                                  <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300">
                                     <TabsTrigger
                                       value="platform"
                                       className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -1804,7 +1804,7 @@ export default function PDVPage() {
                         }}
                         className="w-full max-w-xs"
                       >
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300">
                           <TabsTrigger
                             value="sms"
                             className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
