@@ -1924,35 +1924,34 @@ export default function PDVPage() {
                             </div>
                           </label>
 
-                          <div className="space-y-2">
-                            <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4 rounded border-gray-300"
-                                  checked={smsOptions.duplicateCampaign}
-                                  onChange={(e) =>
-                                    setSmsOptions((prev) => ({ ...prev, duplicateCampaign: e.target.checked }))
-                                  }
-                                />
-                                <span>Dupliquer la campagne</span>
-                              </div>
-                            </label>
-
+                          <label className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                                checked={smsOptions.duplicateCampaign}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, duplicateCampaign: e.target.checked }))
+                                }
+                              />
+                              <span className="cursor-pointer">Dupliquer la campagne</span>
+                            </div>
+                            
                             {smsOptions.duplicateCampaign && (
-                              <div className="ml-6 space-y-1">
-                                <Label className="text-xs">Nombre de mois</Label>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
                                 <Input
                                   type="number"
                                   min="1"
                                   value={campaignMonths}
                                   onChange={(e) => setCampaignMonths(e.target.value)}
-                                  className="h-8 w-24"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 w-16 text-center"
                                   placeholder="1"
                                 />
                               </div>
                             )}
-                          </div>
+                          </label>
                         </div>
                       )}
                     </div>
