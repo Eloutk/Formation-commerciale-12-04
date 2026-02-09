@@ -1959,7 +1959,7 @@ export default function PDVPage() {
 
                   {/* Colonne droite : volume & prix */}
                   {(smsType === 'sms' || smsType === 'rcs') && (
-                    <div className="space-y-4 rounded-lg border border-black bg-white p-4">
+                    <div className="space-y-3 rounded-lg border border-black bg-white p-3">
                       <div className="space-y-2">
                         <Label>Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}</Label>
                         <Input
@@ -1977,7 +1977,7 @@ export default function PDVPage() {
                       </div>
 
                       {smsType === 'sms' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                           <div className="space-y-1">
                             <div className="text-xs text-muted-foreground uppercase tracking-wide">
                               Prix unitaire HT
@@ -2028,7 +2028,7 @@ export default function PDVPage() {
                       )}
 
                       {smsType === 'rcs' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                           <div className="space-y-1">
                             <div className="text-xs text-muted-foreground uppercase tracking-wide">
                               Prix unitaire HT
