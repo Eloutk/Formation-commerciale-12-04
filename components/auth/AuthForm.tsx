@@ -30,14 +30,34 @@ export default function AuthForm() {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         toast({ title: "Connexion réussie", description: "Vous êtes maintenant connecté." })
+        router.push("/")
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
+        // Inscription avec URL de redirection pour confirmation email
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              full_name: name,
+            }
+          }
+        })
+        
         if (error) throw error
-        // Mise à jour du nom (non bloquant)
-        await supabase.auth.updateUser({ data: { full_name: name } })
-        toast({ title: "Inscription réussie", description: "Votre compte a été créé avec succès." })
+        
+        // Vérifier si l'email doit être confirmé
+        if (data.user && !data.session) {
+          toast({
+            title: "Vérifiez votre email",
+            description: "Un email de confirmation a été envoyé à votre adresse. Cliquez sur le lien pour activer votre compte.",
+            duration: 10000,
+          })
+        } else {
+          toast({ title: "Inscription réussie", description: "Votre compte a été créé avec succès." })
+          router.push("/")
+        }
       }
-      router.push("/")
     } catch (error: any) {
       toast({ title: "Erreur", description: error?.message || "Une erreur est survenue. Veuillez réessayer.", variant: "destructive" })
     } finally {
