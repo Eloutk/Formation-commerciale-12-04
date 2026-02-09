@@ -625,7 +625,7 @@ export default function PDVPage() {
     if (smsType !== 'rcs') return 0
     let fee = 0
     if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
-    if (smsOptions.creaByLink) fee += 80 // CREA BY LINK
+    if (smsOptions.creaByLink) fee += 100 // CREA BY LINK
     return fee
   }, [smsType, smsOptions.agent, smsOptions.creaByLink])
 
@@ -1877,7 +1877,7 @@ export default function PDVPage() {
                                   setSmsOptions((prev) => ({ ...prev, creaByLink: e.target.checked }))
                                 }
                               />
-                              <span>CREA BY LINK (+80 €)</span>
+                              <span>CREA BY LINK (+100 €)</span>
                             </div>
                           </label>
 
