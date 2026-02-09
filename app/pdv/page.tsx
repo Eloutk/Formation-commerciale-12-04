@@ -531,7 +531,7 @@ export default function PDVPage() {
   const [calculationMode, setCalculationMode] = useState<CalculationMode>('budget-to-kpis')
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
-  const [diffusionDays, setDiffusionDays] = useState<string>('15')
+  const [diffusionDays, setDiffusionDays] = useState<string>('14')
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
   const [smsType, setSmsType] = useState<SmsType>('sms')
@@ -683,7 +683,7 @@ export default function PDVPage() {
     const rows: TableRowData[] = []
     const mainValueNum = parseFloat(mainValue) || 0
     const aeNum = parseFloat(aePercentage) || 40
-    const daysNum = parseFloat(diffusionDays) || 15
+    const daysNum = parseFloat(diffusionDays) || 14
 
     if (!mainValueNum || !daysNum) return rows
 
@@ -1141,7 +1141,7 @@ export default function PDVPage() {
                     <Label>Jours de diffusion</Label>
                     <Input
                       type="number"
-                      placeholder="Ex: 15"
+                      placeholder="Ex: 14"
                       value={diffusionDays}
                       onChange={(e) => setDiffusionDays(e.target.value)}
                     />
