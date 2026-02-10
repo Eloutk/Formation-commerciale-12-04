@@ -139,11 +139,13 @@ export default function StudioPage() {
                       {/* Colonne gauche: publicités images */}
                       <div>
                         <h3 className="font-semibold mb-4">publicités images</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-start">
                           {/* Encart 1: format carré */}
-                          <div>
-                            <div className="aspect-square w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -153,9 +155,11 @@ export default function StudioPage() {
                           </div>
 
                           {/* Encart 2: format vertical */}
-                          <div>
-                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[112px] mb-2">
+                              <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -165,9 +169,11 @@ export default function StudioPage() {
                           </div>
 
                           {/* Encart 3: format horizontal */}
-                          <div>
-                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-[1.91/1] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format horizontal</p>
@@ -181,11 +187,13 @@ export default function StudioPage() {
                       {/* Colonne droite: publicités vidéos */}
                       <div>
                         <h3 className="font-semibold mb-4">publicités vidéos</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                           {/* Encart 1: format carré */}
-                          <div>
-                            <div className="aspect-square w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
@@ -195,9 +203,11 @@ export default function StudioPage() {
                           </div>
 
                           {/* Encart 2: format vertical */}
-                          <div>
-                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[112px] mb-2">
+                              <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
@@ -207,15 +217,17 @@ export default function StudioPage() {
                           </div>
 
                           {/* Encart 3: format TV */}
-                          <div>
-                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                              <NextImage
-                                src="/images/format%20horizontal_tv_instream@10x.png"
-                                alt="Format TV"
-                                width={1920}
-                                height={1080}
-                                className="w-full h-full object-contain"
-                              />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-[1.91/1] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage
+                                  src="/images/format%20horizontal_tv_instream@10x.png"
+                                  alt="Format TV"
+                                  width={1920}
+                                  height={1080}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format TV</p>
@@ -477,35 +489,41 @@ export default function StudioPage() {
                         <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                         
                         {/* Bloc visuel explicatif */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-start">
                           {/* Encart 1: format carré */}
-                          <div>
-                            <div className="aspect-square w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/META format complet carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format carré</p>
                               <p>1440 × 1440 px</p>
                               <p>ratio 1:1</p>
-                  </div>
-                </div>
+                            </div>
+                          </div>
 
                           {/* Encart 2: format vertical */}
-                          <div>
-                            <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet vertical@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
-                          </div>
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[112px] mb-2">
+                              <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/META format complet vertical@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-cover" />
+                              </div>
+                            </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format vertical</p>
                               <p>1440 × 2560 px</p>
                               <p>ratio 9:16</p>
-                  </div>
-                </div>
+                            </div>
+                          </div>
 
                           {/* Encart 3: format horizontal */}
-                          <div>
-                            <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                              <NextImage src="/images/META format complet horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[200px] mb-2">
+                              <div className="aspect-[1.91/1] w-full overflow-hidden rounded-lg border border-gray-200">
+                                <NextImage src="/images/META format complet horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-cover" />
+                              </div>
                             </div>
                             <div className="text-sm text-center">
                               <p className="font-medium">format horizontal</p>
@@ -618,35 +636,41 @@ export default function StudioPage() {
                     {/* Colonne gauche : publicités images */}
                   <div>
                       <h3 className="font-semibold mb-4">publicités images</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-start">
                         {/* Encart 1 : format carré */}
-                        <div>
-                          <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[200px] mb-2">
+                            <div className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
                             <p>1440 × 1440 px</p>
                             <p>ratio 1:1</p>
+                          </div>
                         </div>
-                  </div>
 
                         {/* Encart 2 : format vertical */}
-                  <div>
-                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[112px] mb-2">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
                             <p>1440 × 2560 px</p>
                             <p>ratio 9:16</p>
-                  </div>
-                </div>
+                          </div>
+                        </div>
 
                         {/* Encart 3 : format horizontal */}
-                        <div>
-                          <div className="aspect-[1.91/1] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[200px] mb-2">
+                            <div className="aspect-[1.91/1] w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format horizontal</p>
@@ -672,23 +696,27 @@ export default function StudioPage() {
                     {/* Colonne droite : publicités vidéos */}
                     <div>
                       <h3 className="font-semibold mb-4">publicités vidéos</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                         {/* Encart 1 : format carré */}
-                        <div>
-                          <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[200px] mb-2">
+                            <div className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
                             <p>1080 × 1080 px</p>
                             <p>ratio 1:1</p>
-                  </div>
-                </div>
+                          </div>
+                        </div>
 
                         {/* Encart 2 : format vertical */}
-                          <div>
-                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[112px] mb-2">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format vertical</p>
@@ -698,15 +726,17 @@ export default function StudioPage() {
                         </div>
 
                         {/* Encart 3 : format TV */}
-                          <div>
-                          <div className="aspect-video w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-contain" />
+                        <div className="flex flex-col items-center">
+                          <div className="w-full max-w-[200px] mb-2">
+                            <div className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200">
+                              <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-full object-cover" />
+                            </div>
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format TV</p>
                             <p>1920 × 1080 px</p>
                             <p>ratio 16:9</p>
-                        </div>
+                          </div>
                         </div>
                       </div>
                     </div>
