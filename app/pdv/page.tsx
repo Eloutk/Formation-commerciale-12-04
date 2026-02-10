@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import Image from 'next/image'
 
@@ -537,6 +537,8 @@ const SMSRCSPDFDocument = ({
   userName,
   tarifIntermarche,
   campaignMonths,
+  comment,
+  imageBase64,
 }: {
   type: 'sms' | 'rcs'
   volume: number
@@ -554,6 +556,8 @@ const SMSRCSPDFDocument = ({
   userName: string
   tarifIntermarche?: boolean
   campaignMonths?: number
+  comment?: string
+  imageBase64?: string | null
 }) => {
   const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
   const setupFee = type === 'sms' ? 190 : 250
@@ -570,9 +574,14 @@ const SMSRCSPDFDocument = ({
         <Text style={styles.title}>
           Devis {typeLabel} - {userName}
         </Text>
-        <Text style={[styles.summaryText, { marginBottom: 20 }]}>
+        <Text style={[styles.summaryText, { marginBottom: 10 }]}>
           {new Date().toLocaleDateString('fr-FR')}
         </Text>
+        {comment && (
+          <Text style={[styles.summaryText, { marginBottom: 20, fontStyle: 'italic', color: '#666' }]}>
+            {comment}
+          </Text>
+        )}
 
         {/* Récapitulatif avec options intégrées */}
         <View style={styles.summary}>
@@ -651,6 +660,23 @@ const SMSRCSPDFDocument = ({
           </View>
         </View>
 
+        {/* Image jointe (potentiels calculés) */}
+        {imageBase64 && (
+          <View style={{ marginTop: 20, marginBottom: 20 }}>
+            <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+              Potentiels calculés
+            </Text>
+            <Image
+              src={imageBase64}
+              style={{
+                maxWidth: '100%',
+                maxHeight: 300,
+                objectFit: 'contain',
+              }}
+            />
+          </View>
+        )}
+
         {/* Conditions de vente */}
         <View style={{ marginTop: 'auto' }}>
           <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
@@ -717,6 +743,13 @@ export default function PDVPage() {
   // État pour la modale PDF
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [clientName, setClientName] = useState('')
+  
+  // État pour la modale PDF SMS/RCS
+  const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
+  const [smsPdfFileName, setSmsPdfFileName] = useState('')
+  const [smsPdfComment, setSmsPdfComment] = useState('')
+  const [smsPdfImage, setSmsPdfImage] = useState<string | null>(null)
+  const [currentSmsType, setCurrentSmsType] = useState<'sms' | 'rcs'>('sms')
   
   // État pour la modale Validation TM
   const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
@@ -1186,40 +1219,18 @@ export default function PDVPage() {
     }
   }
 
-  // Fonction pour télécharger le PDF SMS
-  const handleExportSMSPDF = async () => {
+  // Fonction pour ouvrir la modal SMS
+  const handleOpenSMSPDFDialog = () => {
     if (smsVolumeNumber <= 0 || smsUnitPrice <= 0 || smsTotalPrice <= 0) {
       alert('Veuillez configurer une campagne SMS valide avant de télécharger le PDF.')
       return
     }
-
-    const doc = (
-      <SMSRCSPDFDocument
-        type="sms"
-        volume={smsVolumeNumber}
-        unitPrice={smsUnitPrice}
-        totalPrice={smsTotalPrice}
-        options={{
-          ciblage: smsOptions.ciblage,
-          richSms: smsOptions.richSms,
-          tarifIntermarche: smsOptions.tarifIntermarche,
-        }}
-        salesConditions={SMS_SALES_CONDITIONS}
-        userName={userPseudo || userName}
-        tarifIntermarche={smsOptions.tarifIntermarche}
-      />
-    )
-    const blob = await pdf(doc).toBlob()
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `devis-sms-${new Date().toISOString().split('T')[0]}.pdf`
-    link.click()
-    URL.revokeObjectURL(url)
+    setCurrentSmsType('sms')
+    setSmsPdfDialogOpen(true)
   }
 
-  // Fonction pour télécharger le PDF RCS
-  const handleExportRCSPDF = async () => {
+  // Fonction pour ouvrir la modal RCS
+  const handleOpenRCSPDFDialog = () => {
     if (smsVolumeNumber <= 0 || rcsBasePU <= 0 || rcsTotalPrice <= 0) {
       alert('Veuillez configurer une campagne RCS valide avant de télécharger le PDF.')
       return
@@ -1229,32 +1240,69 @@ export default function PDVPage() {
       alert('Volume minimum requis : 10 000 RCS')
       return
     }
+    setCurrentSmsType('rcs')
+    setSmsPdfDialogOpen(true)
+  }
+
+  // Fonction pour gérer l'upload d'image
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setSmsPdfImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Fonction pour générer et télécharger le PDF SMS/RCS
+  const handleConfirmSMSRCSPDF = async () => {
+    if (!smsPdfFileName.trim()) {
+      alert('Veuillez renseigner un nom de fichier.')
+      return
+    }
 
     const doc = (
       <SMSRCSPDFDocument
-        type="rcs"
+        type={currentSmsType}
         volume={smsVolumeNumber}
-        unitPrice={rcsBasePU}
-        totalPrice={rcsTotalPrice}
-        options={{
-          agent: smsOptions.agent,
-          creaByLink: smsOptions.creaByLink,
-          tarifIntermarche: smsOptions.tarifIntermarche,
-          duplicateCampaign: smsOptions.duplicateCampaign,
-        }}
-        salesConditions={RCS_SALES_CONDITIONS}
+        unitPrice={currentSmsType === 'sms' ? smsUnitPrice : rcsBasePU}
+        totalPrice={currentSmsType === 'sms' ? smsTotalPrice : rcsTotalPrice}
+        options={currentSmsType === 'sms' 
+          ? {
+              ciblage: smsOptions.ciblage,
+              richSms: smsOptions.richSms,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+            }
+          : {
+              agent: smsOptions.agent,
+              creaByLink: smsOptions.creaByLink,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
+            }
+        }
+        salesConditions={currentSmsType === 'sms' ? SMS_SALES_CONDITIONS : RCS_SALES_CONDITIONS}
         userName={userPseudo || userName}
         tarifIntermarche={smsOptions.tarifIntermarche}
-        campaignMonths={campaignMonthsNumber}
+        campaignMonths={currentSmsType === 'rcs' ? campaignMonthsNumber : undefined}
+        comment={smsPdfComment || undefined}
+        imageBase64={smsPdfImage}
       />
     )
     const blob = await pdf(doc).toBlob()
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `devis-rcs-${new Date().toISOString().split('T')[0]}.pdf`
+    link.download = `${smsPdfFileName}.pdf`
     link.click()
     URL.revokeObjectURL(url)
+    
+    // Reset et fermer
+    setSmsPdfDialogOpen(false)
+    setSmsPdfFileName('')
+    setSmsPdfComment('')
+    setSmsPdfImage(null)
   }
 
   return (
@@ -2345,7 +2393,7 @@ export default function PDVPage() {
                 <div className="mt-6 flex justify-center">
                   {smsType === 'sms' ? (
                     <Button
-                      onClick={handleExportSMSPDF}
+                      onClick={handleOpenSMSPDFDialog}
                       disabled={smsVolumeNumber <= 0 || smsUnitPrice <= 0 || smsTotalPrice <= 0}
                       className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
                     >
@@ -2354,7 +2402,7 @@ export default function PDVPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={handleExportRCSPDF}
+                      onClick={handleOpenRCSPDFDialog}
                       disabled={smsVolumeNumber < 10_000 || rcsBasePU <= 0 || rcsTotalPrice <= 0}
                       className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
                     >
@@ -2449,6 +2497,84 @@ export default function PDVPage() {
               className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
             >
               {sendingToSlack ? 'Envoi...' : 'Envoyer sur Slack'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale pour export PDF SMS/RCS */}
+      <Dialog open={smsPdfDialogOpen} onOpenChange={setSmsPdfDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le devis {currentSmsType === 'sms' ? 'SMS' : 'RCS'}</DialogTitle>
+            <DialogDescription>
+              Personnalisez votre devis avant de le télécharger.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Nom du fichier */}
+            <div className="space-y-2">
+              <Label htmlFor="pdf-filename">Nom du fichier *</Label>
+              <Input
+                id="pdf-filename"
+                placeholder={`Ex: devis-${currentSmsType}-client`}
+                value={smsPdfFileName}
+                onChange={(e) => setSmsPdfFileName(e.target.value)}
+              />
+            </div>
+
+            {/* Commentaire */}
+            <div className="space-y-2">
+              <Label htmlFor="pdf-comment">Commentaire (optionnel)</Label>
+              <Input
+                id="pdf-comment"
+                placeholder="Ex: Campagne janvier 2026"
+                value={smsPdfComment}
+                onChange={(e) => setSmsPdfComment(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ce commentaire apparaîtra en sous-titre du document
+              </p>
+            </div>
+
+            {/* Upload image */}
+            <div className="space-y-2">
+              <Label htmlFor="pdf-image">Joindre une image (optionnel)</Label>
+              <Input
+                id="pdf-image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+              <p className="text-xs text-muted-foreground">
+                Joignez les potentiels calculés dans vos outils (capture d'écran, graphique, etc.)
+              </p>
+              {smsPdfImage && (
+                <div className="mt-2">
+                  <p className="text-xs text-green-600 font-medium">✓ Image chargée</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSmsPdfDialogOpen(false)
+                setSmsPdfFileName('')
+                setSmsPdfComment('')
+                setSmsPdfImage(null)
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleConfirmSMSRCSPDF}
+              disabled={!smsPdfFileName.trim()}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger le PDF
             </Button>
           </DialogFooter>
         </DialogContent>
