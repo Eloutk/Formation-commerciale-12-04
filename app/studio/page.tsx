@@ -492,7 +492,7 @@ export default function StudioPage() {
                         <div className="grid grid-cols-3 gap-4 mb-6">
                           {/* Encart 1: format carré */}
                           <div className="flex flex-col items-center">
-                            <div className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center p-4 mb-3">
+                            <div className="w-full aspect-square flex items-center justify-center mb-3">
                               <NextImage src="/images/META format complet carré@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                             </div>
                             <p className="text-sm font-medium text-center">format carré</p>
@@ -502,7 +502,7 @@ export default function StudioPage() {
 
                           {/* Encart 2: format vertical */}
                           <div className="flex flex-col items-center">
-                            <div className="w-full aspect-[9/16] border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center p-4 mb-3">
+                            <div className="w-full aspect-[9/16] flex items-center justify-center mb-3">
                               <NextImage src="/images/META format complet vertical@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-full object-contain" />
                             </div>
                             <p className="text-sm font-medium text-center">format vertical</p>
@@ -512,7 +512,7 @@ export default function StudioPage() {
 
                           {/* Encart 3: format horizontal */}
                           <div className="flex flex-col items-center">
-                            <div className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg bg-white flex items-center justify-center p-4 mb-3">
+                            <div className="w-full aspect-square flex items-center justify-center mb-3">
                               <NextImage src="/images/META format complet horizontal@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-full object-contain" />
                             </div>
                             <p className="text-sm font-medium text-center">format horizontal</p>
