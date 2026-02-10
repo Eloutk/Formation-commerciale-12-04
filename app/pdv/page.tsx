@@ -568,13 +568,13 @@ const SMSRCSPDFDocument = ({
       <Page size="A4" style={styles.page}>
         {/* En-tête */}
         <Text style={styles.title}>
-          Devis {typeLabel} - {userName || 'Link Agency'}
+          Devis {typeLabel} - {userName}
         </Text>
         <Text style={[styles.summaryText, { marginBottom: 20 }]}>
           {new Date().toLocaleDateString('fr-FR')}
         </Text>
 
-        {/* Récapitulatif */}
+        {/* Récapitulatif avec options intégrées */}
         <View style={styles.summary}>
           <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
             Récapitulatif de la demande
@@ -593,62 +593,61 @@ const SMSRCSPDFDocument = ({
               {unitPrice > 0 ? `${unitPrice.toFixed(type === 'sms' ? 4 : 2).replace('.', ',')} €` : '--'}
             </Text>
           </View>
-          {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
-            <>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>Prix avant duplication :</Text>
-                <Text style={styles.itemValue}>
-                  {formatNumber(basePriceBeforeDuplication, 2)} €
-                </Text>
-              </View>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>Nombre de mois :</Text>
-                <Text style={styles.itemValue}>× {campaignMonths}</Text>
-              </View>
-            </>
+
+          {/* Séparateur pour les options */}
+          <View style={[styles.itemRow, { marginTop: 10, paddingTop: 10, borderTop: '1 solid #e5e5e5' }]}>
+            <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
+              Frais de mise en place :
+            </Text>
+            <Text style={styles.itemValue}>{setupFee} €</Text>
+          </View>
+
+          {/* Options - affichées seulement si cochées */}
+          {type === 'sms' && options.ciblage && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Ciblage :</Text>
+              <Text style={styles.itemValue}>+0,028 € / SMS</Text>
+            </View>
           )}
-          <View style={[styles.itemRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #e5e5e5' }]}>
+          {type === 'sms' && options.richSms && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Rich SMS :</Text>
+              <Text style={styles.itemValue}>+0,021 € / SMS</Text>
+            </View>
+          )}
+          {type === 'rcs' && options.agent && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Création d'agent :</Text>
+              <Text style={styles.itemValue}>+550 €</Text>
+            </View>
+          )}
+          {type === 'rcs' && options.creaByLink && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>CREA BY LINK :</Text>
+              <Text style={styles.itemValue}>+100 €</Text>
+            </View>
+          )}
+          {options.tarifIntermarche && (
+            <View style={styles.itemRow}>
+              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
+                Tarif Intermarché :
+              </Text>
+              <Text style={[styles.itemValue, { color: '#E94C16', fontWeight: 'bold' }]}>Activé</Text>
+            </View>
+          )}
+          {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
+            <View style={styles.itemRow}>
+              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de mois :</Text>
+              <Text style={[styles.itemValue, { fontWeight: 'bold' }]}>× {campaignMonths}</Text>
+            </View>
+          )}
+
+          {/* Prix total */}
+          <View style={[styles.itemRow, { marginTop: 10, paddingTop: 10, borderTop: '1 solid #e5e5e5' }]}>
             <Text style={[styles.itemLabel, { fontSize: 12, fontWeight: 'bold' }]}>Prix total HT :</Text>
             <Text style={[styles.itemValue, { fontSize: 14, fontWeight: 'bold', color: '#E94C16' }]}>
               {formatNumber(totalPrice, 2)} €
             </Text>
-          </View>
-        </View>
-
-        {/* Options sélectionnées */}
-        <View style={{ marginTop: 20, marginBottom: 20 }}>
-          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
-            Options sélectionnées
-          </Text>
-          <View style={styles.itemCard}>
-            <Text style={styles.itemLabel}>
-              Frais de mise en place : {setupFee} € (inclus)
-            </Text>
-            {type === 'sms' && options.ciblage && (
-              <Text style={styles.itemLabel}>✓ Ciblage (+0,028 € / SMS)</Text>
-            )}
-            {type === 'sms' && options.richSms && (
-              <Text style={styles.itemLabel}>✓ Rich SMS (+0,021 € / SMS)</Text>
-            )}
-            {type === 'rcs' && options.agent && (
-              <Text style={styles.itemLabel}>✓ Création d'agent (+550 €)</Text>
-            )}
-            {type === 'rcs' && options.creaByLink && (
-              <Text style={styles.itemLabel}>✓ CREA BY LINK (+100 €)</Text>
-            )}
-            {options.tarifIntermarche && (
-              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
-                ✓ Tarif Intermarché
-              </Text>
-            )}
-            {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
-              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
-                ✓ Campagne dupliquée sur {campaignMonths} mois
-              </Text>
-            )}
-            {!options.ciblage && !options.richSms && !options.agent && !options.creaByLink && !options.tarifIntermarche && !options.duplicateCampaign && (
-              <Text style={styles.itemLabel}>Aucune option supplémentaire</Text>
-            )}
           </View>
         </View>
 
