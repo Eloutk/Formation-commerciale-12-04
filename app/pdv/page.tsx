@@ -15,7 +15,7 @@ import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib
 import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
-import Image from 'next/image'
+import NextImage from 'next/image'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
@@ -71,7 +71,7 @@ function PlatformBadge({ platform, withDownload = false }: { platform: string; w
   return (
     <span className="inline-flex items-center gap-2">
       <span className="relative h-5 w-5 overflow-hidden rounded-sm">
-        <Image src={src} alt={platform} fill className="object-contain" />
+        <NextImage src={src} alt={platform} fill className="object-contain" />
       </span>
       <span>{platform}</span>
       {withDownload && (
