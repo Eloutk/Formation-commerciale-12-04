@@ -283,11 +283,11 @@ export default function StudioPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                       {/* Bloc 4: Limites de caractères pour les wordings */}
                       <div>
-                        <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">
+                        <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
                           Limites de caractères pour les wordings
                         </h2>
                         <div className="flex justify-center">
-                          <div className="w-full max-w-[280px] relative">
+                          <div className="w-full max-w-[300px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                               <NextImage
                                 src="/images/META format complet vertical2@10x.png"
@@ -371,11 +371,11 @@ export default function StudioPage() {
 
                       {/* Bloc 5: Marges de sécurité */}
                       <div>
-                        <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-6">
+                        <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
                           Marges de sécurité pour les publicités story et reels
                         </h2>
                         <div className="flex justify-center">
-                          <div className="w-full max-w-[280px] relative">
+                          <div className="w-full max-w-[300px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <NextImage
                               src="/images/META Marges de sécurité 2@10x.png"
