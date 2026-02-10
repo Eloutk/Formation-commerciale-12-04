@@ -194,14 +194,14 @@ const formatNumber = (num: number, decimals: number = 0): string => {
 // Styles pour le PDF
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontSize: 12,
     fontFamily: 'Helvetica',
     backgroundColor: '#fafafa',
   },
   title: {
-    fontSize: 28,
-    marginBottom: 10,
+    fontSize: 22,
+    marginBottom: 8,
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   summary: {
-    marginBottom: 30,
-    padding: 15,
+    marginBottom: 15,
+    padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 2,
@@ -255,11 +255,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   itemLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666666',
   },
   itemValue: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
@@ -574,18 +574,18 @@ const SMSRCSPDFDocument = ({
         <Text style={styles.title}>
           Devis {typeLabel} - {userName}
         </Text>
-        <Text style={[styles.summaryText, { marginBottom: 10 }]}>
+        <Text style={[styles.summaryText, { marginBottom: 6, fontSize: 12 }]}>
           {new Date().toLocaleDateString('fr-FR')}
         </Text>
         {comment && (
-          <Text style={[styles.summaryText, { marginBottom: 20, fontStyle: 'italic', color: '#666' }]}>
+          <Text style={[styles.summaryText, { marginBottom: 12, fontStyle: 'italic', color: '#666', fontSize: 11 }]}>
             {comment}
           </Text>
         )}
 
         {/* Récapitulatif avec options intégrées */}
         <View style={styles.summary}>
-          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+          <Text style={[styles.chartTitle, { marginBottom: 8, fontSize: 12 }]}>
             Récapitulatif de la demande
           </Text>
           <View style={styles.itemRow}>
@@ -604,7 +604,7 @@ const SMSRCSPDFDocument = ({
           </View>
 
           {/* Séparateur pour les options */}
-          <View style={[styles.itemRow, { marginTop: 10, paddingTop: 10, borderTop: '1 solid #e5e5e5' }]}>
+          <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
             <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
               Frais de mise en place :
             </Text>
@@ -652,9 +652,9 @@ const SMSRCSPDFDocument = ({
           )}
 
           {/* Prix total */}
-          <View style={[styles.itemRow, { marginTop: 10, paddingTop: 10, borderTop: '1 solid #e5e5e5' }]}>
-            <Text style={[styles.itemLabel, { fontSize: 12, fontWeight: 'bold' }]}>Prix total HT :</Text>
-            <Text style={[styles.itemValue, { fontSize: 14, fontWeight: 'bold', color: '#E94C16' }]}>
+          <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
+            <Text style={[styles.itemLabel, { fontSize: 11, fontWeight: 'bold' }]}>Prix total HT :</Text>
+            <Text style={[styles.itemValue, { fontSize: 13, fontWeight: 'bold', color: '#E94C16' }]}>
               {formatNumber(totalPrice, 2)} €
             </Text>
           </View>
@@ -662,15 +662,15 @@ const SMSRCSPDFDocument = ({
 
         {/* Image jointe (potentiels calculés) */}
         {imageBase64 && (
-          <View style={{ marginTop: 20, marginBottom: 20 }}>
-            <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+          <View style={{ marginTop: 12, marginBottom: 12 }}>
+            <Text style={[styles.chartTitle, { marginBottom: 8, fontSize: 12 }]}>
               Potentiels calculés
             </Text>
             <Image
               src={imageBase64}
               style={{
                 maxWidth: '100%',
-                maxHeight: 300,
+                maxHeight: 180,
                 objectFit: 'contain',
               }}
             />
@@ -679,12 +679,12 @@ const SMSRCSPDFDocument = ({
 
         {/* Conditions de vente */}
         <View style={{ marginTop: 'auto' }}>
-          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+          <Text style={[styles.chartTitle, { marginBottom: 6, fontSize: 12 }]}>
             Conditions de vente {typeLabel}
           </Text>
-          <View style={[styles.itemCard, { backgroundColor: '#f9f9f9' }]}>
+          <View style={[styles.itemCard, { backgroundColor: '#f9f9f9', padding: 8, marginBottom: 0 }]}>
             {salesConditions.map((condition, idx) => (
-              <Text key={idx} style={[styles.itemLabel, { fontSize: 8, marginBottom: 4 }]}>
+              <Text key={idx} style={[styles.itemLabel, { fontSize: 7, marginBottom: 2 }]}>
                 • {condition}
               </Text>
             ))}
