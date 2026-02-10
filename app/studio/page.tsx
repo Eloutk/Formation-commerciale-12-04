@@ -143,7 +143,7 @@ export default function StudioPage() {
                           {/* Encart 1: format carré */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                               </div>
                             </div>
@@ -157,7 +157,7 @@ export default function StudioPage() {
                           {/* Encart 2: format vertical */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[135px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                               </div>
                             </div>
@@ -171,7 +171,7 @@ export default function StudioPage() {
                           {/* Encart 3: format horizontal */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-auto object-contain" />
                               </div>
                             </div>
@@ -191,7 +191,7 @@ export default function StudioPage() {
                           {/* Encart 1: format carré */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-auto object-contain" />
                               </div>
                             </div>
@@ -205,7 +205,7 @@ export default function StudioPage() {
                           {/* Encart 2: format vertical */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[135px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                               </div>
                             </div>
@@ -219,7 +219,7 @@ export default function StudioPage() {
                           {/* Encart 3: format TV */}
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
-                              <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                              <div className="w-full">
                                 <NextImage
                                   src="/images/format%20horizontal_tv_instream@10x.png"
                                   alt="Format TV"
@@ -628,7 +628,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                             </div>
                           </div>
@@ -642,7 +642,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[135px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                             </div>
                           </div>
@@ -656,7 +656,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format horizontal */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format horizontal" width={1440} height={754} className="w-full h-auto object-contain" />
                             </div>
                           </div>
@@ -688,7 +688,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                             </div>
                           </div>
@@ -702,7 +702,7 @@ export default function StudioPage() {
                         {/* Encart 2 : format vertical */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[135px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                             </div>
                           </div>
@@ -716,7 +716,7 @@ export default function StudioPage() {
                         {/* Encart 3 : format TV */}
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
-                            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2">
+                            <div className="w-full">
                               <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format TV" width={1920} height={1080} className="w-full h-auto object-contain" />
                             </div>
                           </div>
