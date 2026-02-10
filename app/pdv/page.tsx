@@ -526,6 +526,150 @@ const PDFDocument = ({
   )
 }
 
+// Composant PDF pour SMS/RCS
+const SMSRCSPDFDocument = ({
+  type,
+  volume,
+  unitPrice,
+  totalPrice,
+  options,
+  salesConditions,
+  userName,
+  tarifIntermarche,
+  campaignMonths,
+}: {
+  type: 'sms' | 'rcs'
+  volume: number
+  unitPrice: number
+  totalPrice: number
+  options: {
+    ciblage?: boolean
+    richSms?: boolean
+    agent?: boolean
+    creaByLink?: boolean
+    tarifIntermarche?: boolean
+    duplicateCampaign?: boolean
+  }
+  salesConditions: readonly string[]
+  userName: string
+  tarifIntermarche?: boolean
+  campaignMonths?: number
+}) => {
+  const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
+  const setupFee = type === 'sms' ? 190 : 250
+  
+  // Calculer le prix de base avant duplication
+  const basePriceBeforeDuplication = options.duplicateCampaign && campaignMonths && campaignMonths > 1
+    ? totalPrice / campaignMonths
+    : totalPrice
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* En-tête */}
+        <Text style={styles.title}>
+          Devis {typeLabel} - {userName || 'Link Agency'}
+        </Text>
+        <Text style={[styles.summaryText, { marginBottom: 20 }]}>
+          {new Date().toLocaleDateString('fr-FR')}
+        </Text>
+
+        {/* Récapitulatif */}
+        <View style={styles.summary}>
+          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+            Récapitulatif de la demande
+          </Text>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Type de campagne :</Text>
+            <Text style={styles.itemValue}>{typeLabel}</Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Volume :</Text>
+            <Text style={styles.itemValue}>{formatNumber(volume, 0)} {typeLabel}</Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Prix unitaire HT :</Text>
+            <Text style={styles.itemValue}>
+              {unitPrice > 0 ? `${unitPrice.toFixed(type === 'sms' ? 4 : 2).replace('.', ',')} €` : '--'}
+            </Text>
+          </View>
+          {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
+            <>
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>Prix avant duplication :</Text>
+                <Text style={styles.itemValue}>
+                  {formatNumber(basePriceBeforeDuplication, 2)} €
+                </Text>
+              </View>
+              <View style={styles.itemRow}>
+                <Text style={styles.itemLabel}>Nombre de mois :</Text>
+                <Text style={styles.itemValue}>× {campaignMonths}</Text>
+              </View>
+            </>
+          )}
+          <View style={[styles.itemRow, { marginTop: 8, paddingTop: 8, borderTop: '1 solid #e5e5e5' }]}>
+            <Text style={[styles.itemLabel, { fontSize: 12, fontWeight: 'bold' }]}>Prix total HT :</Text>
+            <Text style={[styles.itemValue, { fontSize: 14, fontWeight: 'bold', color: '#E94C16' }]}>
+              {formatNumber(totalPrice, 2)} €
+            </Text>
+          </View>
+        </View>
+
+        {/* Options sélectionnées */}
+        <View style={{ marginTop: 20, marginBottom: 20 }}>
+          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+            Options sélectionnées
+          </Text>
+          <View style={styles.itemCard}>
+            <Text style={styles.itemLabel}>
+              Frais de mise en place : {setupFee} € (inclus)
+            </Text>
+            {type === 'sms' && options.ciblage && (
+              <Text style={styles.itemLabel}>✓ Ciblage (+0,028 € / SMS)</Text>
+            )}
+            {type === 'sms' && options.richSms && (
+              <Text style={styles.itemLabel}>✓ Rich SMS (+0,021 € / SMS)</Text>
+            )}
+            {type === 'rcs' && options.agent && (
+              <Text style={styles.itemLabel}>✓ Création d'agent (+550 €)</Text>
+            )}
+            {type === 'rcs' && options.creaByLink && (
+              <Text style={styles.itemLabel}>✓ CREA BY LINK (+100 €)</Text>
+            )}
+            {options.tarifIntermarche && (
+              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
+                ✓ Tarif Intermarché
+              </Text>
+            )}
+            {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
+              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
+                ✓ Campagne dupliquée sur {campaignMonths} mois
+              </Text>
+            )}
+            {!options.ciblage && !options.richSms && !options.agent && !options.creaByLink && !options.tarifIntermarche && !options.duplicateCampaign && (
+              <Text style={styles.itemLabel}>Aucune option supplémentaire</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Conditions de vente */}
+        <View style={{ marginTop: 'auto' }}>
+          <Text style={[styles.chartTitle, { marginBottom: 10 }]}>
+            Conditions de vente {typeLabel}
+          </Text>
+          <View style={[styles.itemCard, { backgroundColor: '#f9f9f9' }]}>
+            {salesConditions.map((condition, idx) => (
+              <Text key={idx} style={[styles.itemLabel, { fontSize: 8, marginBottom: 4 }]}>
+                • {condition}
+              </Text>
+            ))}
+          </View>
+        </View>
+      </Page>
+    </Document>
+  )
+}
+
 export default function PDVPage() {
   // État du formulaire
   const [calculationMode, setCalculationMode] = useState<CalculationMode>('budget-to-kpis')
@@ -1041,6 +1185,77 @@ export default function PDVPage() {
     } finally {
       setSendingToSlack(false)
     }
+  }
+
+  // Fonction pour télécharger le PDF SMS
+  const handleExportSMSPDF = async () => {
+    if (smsVolumeNumber <= 0 || smsUnitPrice <= 0 || smsTotalPrice <= 0) {
+      alert('Veuillez configurer une campagne SMS valide avant de télécharger le PDF.')
+      return
+    }
+
+    const doc = (
+      <SMSRCSPDFDocument
+        type="sms"
+        volume={smsVolumeNumber}
+        unitPrice={smsUnitPrice}
+        totalPrice={smsTotalPrice}
+        options={{
+          ciblage: smsOptions.ciblage,
+          richSms: smsOptions.richSms,
+          tarifIntermarche: smsOptions.tarifIntermarche,
+        }}
+        salesConditions={SMS_SALES_CONDITIONS}
+        userName={userPseudo || userName}
+        tarifIntermarche={smsOptions.tarifIntermarche}
+      />
+    )
+    const blob = await pdf(doc).toBlob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `devis-sms-${new Date().toISOString().split('T')[0]}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Fonction pour télécharger le PDF RCS
+  const handleExportRCSPDF = async () => {
+    if (smsVolumeNumber <= 0 || rcsBasePU <= 0 || rcsTotalPrice <= 0) {
+      alert('Veuillez configurer une campagne RCS valide avant de télécharger le PDF.')
+      return
+    }
+
+    if (smsVolumeNumber < 10_000) {
+      alert('Volume minimum requis : 10 000 RCS')
+      return
+    }
+
+    const doc = (
+      <SMSRCSPDFDocument
+        type="rcs"
+        volume={smsVolumeNumber}
+        unitPrice={rcsBasePU}
+        totalPrice={rcsTotalPrice}
+        options={{
+          agent: smsOptions.agent,
+          creaByLink: smsOptions.creaByLink,
+          tarifIntermarche: smsOptions.tarifIntermarche,
+          duplicateCampaign: smsOptions.duplicateCampaign,
+        }}
+        salesConditions={RCS_SALES_CONDITIONS}
+        userName={userPseudo || userName}
+        tarifIntermarche={smsOptions.tarifIntermarche}
+        campaignMonths={campaignMonthsNumber}
+      />
+    )
+    const blob = await pdf(doc).toBlob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `devis-rcs-${new Date().toISOString().split('T')[0]}.pdf`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -2124,6 +2339,29 @@ export default function PDVPage() {
                         <li key={line}>{line}</li>
                       ))}
                     </ul>
+                  )}
+                </div>
+
+                {/* Bouton de téléchargement PDF */}
+                <div className="mt-6 flex justify-center">
+                  {smsType === 'sms' ? (
+                    <Button
+                      onClick={handleExportSMSPDF}
+                      disabled={smsVolumeNumber <= 0 || smsUnitPrice <= 0 || smsTotalPrice <= 0}
+                      className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Télécharger le devis SMS en PDF
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleExportRCSPDF}
+                      disabled={smsVolumeNumber < 10_000 || rcsBasePU <= 0 || rcsTotalPrice <= 0}
+                      className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Télécharger le devis RCS en PDF
+                    </Button>
                   )}
                 </div>
               </CardContent>
