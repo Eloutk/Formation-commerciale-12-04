@@ -492,29 +492,17 @@ export default function StudioPage() {
                         <div className="grid grid-cols-3 gap-4 mb-6">
                           {/* Encart 1: format carré */}
                           <div className="flex flex-col items-center">
-                            <div className="aspect-square w-full rounded-md border-2 border-dashed border-gray-300 bg-white flex items-center justify-center mb-3">
-                            </div>
-                            <p className="text-sm font-medium text-center">format carré</p>
-                            <p className="text-sm text-center">1440 × 1440 px</p>
-                            <p className="text-sm text-center">ratio 1:1</p>
+                            <NextImage src="/images/META format carré.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                           </div>
 
                           {/* Encart 2: format vertical */}
                           <div className="flex flex-col items-center">
-                            <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-gray-300 bg-white flex items-center justify-center mb-3">
-                            </div>
-                            <p className="text-sm font-medium text-center">format vertical</p>
-                            <p className="text-sm text-center">1440 × 2560 px</p>
-                            <p className="text-sm text-center">ratio 9:16</p>
+                            <NextImage src="/images/META format vertical.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                           </div>
 
                           {/* Encart 3: format horizontal */}
                           <div className="flex flex-col items-center">
-                            <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-gray-300 bg-white flex items-center justify-center mb-3">
-                            </div>
-                            <p className="text-sm font-medium text-center">format horizontal</p>
-                            <p className="text-sm text-center">1440 × 754 px</p>
-                            <p className="text-sm text-center">ratio 1.91:1</p>
+                            <NextImage src="/images/META format horizontal.png" alt="Format horizontal" width={1440} height={754} className="w-full h-auto object-contain" />
                           </div>
                         </div>
 
