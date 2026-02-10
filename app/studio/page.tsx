@@ -372,14 +372,14 @@ export default function StudioPage() {
                       {/* Bloc 5: Marges de sécurité */}
                       <div>
                         <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
-                          Marges de sécurité pour les publicités story et reels
+                          Marges de sécurité pour les story et reels
                         </h2>
                         <div className="flex justify-center">
                           <div className="w-full max-w-[300px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <NextImage
                               src="/images/META Marges de sécurité 2@10x.png"
-                              alt="Marges de sécurité pour les publicités story et reels"
+                              alt="Marges de sécurité pour les story et reels"
                               width={1440}
                               height={2560}
                               className="w-full h-full object-contain"
