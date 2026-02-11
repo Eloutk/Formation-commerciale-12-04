@@ -115,11 +115,7 @@ CREATE TRIGGER on_auth_user_created
 ## 5. Système de rôles admin
 
 ```sql
--- Ajouter une colonne role à la table profiles
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
-
--- Créer un type enum pour les rôles (optionnel mais recommandé)
+-- Créer un type enum pour les rôles AVANT d'ajouter la colonne
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -127,9 +123,18 @@ BEGIN
     END IF;
 END $$;
 
--- Modifier la colonne pour utiliser le type enum
-ALTER TABLE public.profiles 
-ALTER COLUMN role TYPE user_role USING role::user_role;
+-- Ajouter une colonne role à la table profiles avec le type enum directement
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'profiles' 
+        AND column_name = 'role'
+    ) THEN
+        ALTER TABLE public.profiles 
+        ADD COLUMN role user_role DEFAULT 'user'::user_role;
+    END IF;
+END $$;
 
 -- Fonction pour vérifier si un utilisateur est admin
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
@@ -144,6 +149,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Politique pour voir tous les profils (seulement pour les admins)
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles" ON public.profiles
     FOR SELECT USING (public.is_admin(auth.uid()));
 ```
