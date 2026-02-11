@@ -609,7 +609,8 @@ export default function StudioPage() {
                         <strong className="text-xl">En un clin d'œil</strong>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Colonne gauche : Pré-requis média */}
                         <div>
                           <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
                           <ul className="text-sm space-y-1 ml-4 list-disc">
@@ -619,6 +620,8 @@ export default function StudioPage() {
                             <li>5 maximum.</li>
                           </ul>
                         </div>
+                        
+                        {/* Colonne droite : Pré-requis wording */}
                         <div>
                           <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
                           <ul className="text-sm space-y-1 ml-4 list-disc">
