@@ -174,12 +174,18 @@ CREATE POLICY "Users can update own profile" ON public.profiles
     USING (auth.uid() = id)
     WITH CHECK (
         auth.uid() = id 
-        AND role = (SELECT role FROM public.profiles WHERE id = auth.uid())
+        AND (role = (SELECT role FROM public.profiles WHERE id = auth.uid()) OR public.is_admin(auth.uid()))
     );
 
--- Politique pour voir tous les profils (seulement pour les admins)
+-- Note: La policy "Users can view own profile" du bloc #1 permet déjà à chaque utilisateur de voir son profil
+-- La policy "Admins can view all profiles" permet aux admins de voir TOUS les profils en plus du leur
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles" ON public.profiles
-    FOR SELECT USING (public.is_admin(auth.uid()));
+    FOR SELECT 
+    USING (
+        public.is_admin(auth.uid()) 
+        AND auth.uid() != id  -- Seulement les profils des AUTRES utilisateurs
+    );
 ```
 
 ## 6. Table pour contenu mensuel de la homepage
@@ -256,11 +262,52 @@ JOIN auth.users u ON u.id = p.id
 WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```
 
+## 8. 🚨 Script de déblocage d'urgence (si bloqué après avoir mis un compte admin)
+
+```sql
+-- Ce script nettoie toutes les policies et les recrée proprement
+-- À utiliser UNIQUEMENT si tu es bloqué à la connexion
+
+-- Désactiver temporairement RLS pour débloquer
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+
+-- Supprimer TOUTES les policies existantes sur profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
+
+-- Réactiver RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Recréer les policies de base (simples et fonctionnelles)
+CREATE POLICY "Users can view own profile" ON public.profiles
+    FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON public.profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Policy pour les admins (voir tous les profils)
+CREATE POLICY "Admins can view all profiles" ON public.profiles
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.profiles 
+            WHERE id = auth.uid() 
+            AND role IN ('admin'::user_role, 'super_admin'::user_role)
+        )
+    );
+```
+
 ## Instructions d'exécution
 
 1. Aller dans le dashboard Supabase de votre projet
 2. Aller dans l'onglet "SQL Editor"
-3. Exécuter chaque bloc SQL dans l'ordre (1 → 7)
-4. Vérifier que les tables et politiques sont créées dans l'onglet "Table Editor"
-5. Utiliser le bloc 7 pour définir les administrateurs
+3. **Si tu es bloqué** : Exécuter d'abord le bloc #8 (script de déblocage)
+4. Sinon : Exécuter chaque bloc SQL dans l'ordre (1 → 7)
+5. Vérifier que les tables et politiques sont créées dans l'onglet "Table Editor"
+6. Utiliser le bloc 7 pour définir les administrateurs
 
