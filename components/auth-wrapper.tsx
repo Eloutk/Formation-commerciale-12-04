@@ -28,9 +28,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms)),
+    ])
+  }
+
   const hydrateClientSessionFromServer = async () => {
     try {
-      const res = await fetch('/api/auth/session-info', { credentials: 'include' })
+      const res = await withTimeout(fetch('/api/auth/session-info', { credentials: 'include' }), 2500, 'session-info')
       const json = await res.json().catch(() => null)
       const s = json?.session
       if (!s?.access_token || !s?.refresh_token) return false
@@ -59,24 +66,37 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   const checkPseudo = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession')
     const u = session?.user
     if (!u) {
       setUser(null)
       setIsAdmin(false)
       return false
     }
+
+    // Set a stable fallback user immediately (avoid header flicker)
     const metaName = (u.user_metadata as any)?.full_name as string | undefined
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, role')
-      .eq('id', u.id)
-      .maybeSingle()
-    const profileName = profile?.full_name as string | undefined
-    const currentName = (metaName || profileName || '').trim()
+    const fallbackName = (metaName || (u.email || '').split('@')[0] || '').trim()
+    let currentName = fallbackName
     setUser({ id: u.id, name: currentName, email: u.email || '' })
-    const role = (profile as any)?.role as string | undefined
-    setIsAdmin(role === 'admin' || role === 'super_admin')
+
+    // Then enrich with profile data (but never block the UI)
+    try {
+      const { data: profile } = await withTimeout(
+        supabase.from('profiles').select('full_name, role').eq('id', u.id).maybeSingle(),
+        2500,
+        'profiles'
+      )
+      const profileName = profile?.full_name as string | undefined
+      currentName = (metaName || profileName || fallbackName).trim()
+      setUser({ id: u.id, name: currentName, email: u.email || '' })
+      const role = (profile as any)?.role as string | undefined
+      setIsAdmin(role === 'admin' || role === 'super_admin')
+    } catch {
+      // keep fallback values
+      setIsAdmin(false)
+    }
+
     if (!currentName) {
       setNickname((u.email || '').split('@')[0] || '')
       setMustCompleteName(true)
@@ -91,7 +111,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       try {
         // Si le serveur te considère connecté (cookies) mais que le navigateur a perdu la session,
         // on réhydrate localStorage pour stabiliser pseudo + bouton déconnexion.
-        const { data: { session: clientSession } } = await supabase.auth.getSession()
+        const { data: { session: clientSession } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession-init')
         if (!clientSession?.user) {
           await hydrateClientSessionFromServer()
         }
@@ -111,7 +131,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         }
 
         const need = await checkPseudo()
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession-after-checkPseudo')
 
         // Si pas connecté et page privée -> forcer /login
         if (
@@ -139,7 +159,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       }
     }
 
-    init()
+    // Safety: never block the whole app for minutes
+    withTimeout(init(), 6000, 'init').catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_IN') {
