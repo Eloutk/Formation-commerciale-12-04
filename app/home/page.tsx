@@ -1,9 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import supabase from '@/utils/supabase/client'
 import { 
   Calculator, 
   Palette, 
@@ -19,7 +21,71 @@ import {
   ChefHat
 } from "lucide-react"
 
+interface MonthlyContent {
+  actu_flash_title: string
+  actu_flash_description: string
+  success_items: string[]
+  digital_info_title: string
+  digital_info_description: string
+  digital_info_tags: string[]
+  new_clients: Array<{ name: string; date: string; type: string }>
+}
+
 export default function HomePage() {
+  const [monthlyContent, setMonthlyContent] = useState<MonthlyContent | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Charger le contenu du mois actuel depuis Supabase
+  useEffect(() => {
+    async function loadMonthlyContent() {
+      const currentMonth = new Date().getMonth() + 1
+      const currentYear = new Date().getFullYear()
+
+      try {
+        const { data, error } = await supabase
+          .from('monthly_content')
+          .select('*')
+          .eq('month', currentMonth)
+          .eq('year', currentYear)
+          .single()
+
+        if (data && !error) {
+          setMonthlyContent(data)
+        }
+      } catch (error) {
+        console.error('Error loading monthly content:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadMonthlyContent()
+  }, [])
+
+  // Vérifier si l'utilisateur est admin
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (data && (data.role === 'admin' || data.role === 'super_admin')) {
+          setIsAdmin(true)
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error)
+      }
+    }
+
+    checkAdmin()
+  }, [])
   // Données complètes des anniversaires Link Agency
   const allBirthdays = {
     1: [ // Janvier
@@ -71,23 +137,18 @@ export default function HomePage() {
 
   // Récupérer le mois actuel et les anniversaires correspondants
   const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
   const monthNames = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
   const currentMonthName = monthNames[currentMonth]
   const birthdays = allBirthdays[currentMonth as keyof typeof allBirthdays] || []
 
-  // Données mockées pour les nouveaux clients
-  const newClients = [
-    { name: "Carrefour Market", date: "5 février 2026", type: "Retail" },
-    { name: "Intermarché Express", date: "12 février 2026", type: "Retail" },
-    { name: "Super U", date: "18 février 2026", type: "Retail" },
-  ]
-
-  // Info digitale du mois
+  // Données depuis Supabase (ou fallback)
+  const newClients = monthlyContent?.new_clients || []
   const monthlyInfo = {
-    title: "Les nouveautés META pour 2026",
-    description: "Découvrez les dernières mises à jour de l'algorithme META et comment optimiser vos campagnes publicitaires pour maximiser votre ROI.",
-    date: "Février 2026",
-    tags: ["META", "Algorithme", "Publicité"]
+    title: monthlyContent?.digital_info_title || "Aucune info digitale ce mois-ci",
+    description: monthlyContent?.digital_info_description || "",
+    date: `${currentMonthName} ${currentYear}`,
+    tags: monthlyContent?.digital_info_tags || []
   }
 
   // Sections principales du site
@@ -162,12 +223,24 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-3 lg:py-4 max-w-7xl">
       {/* Header Section */}
       <div className="mb-4 lg:mb-5">
-        <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
-          Bienvenue sur Link Agency
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Votre plateforme complète pour gérer et optimiser vos campagnes digitales
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
+              Bienvenue sur Link Agency
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Votre plateforme complète pour gérer et optimiser vos campagnes digitales
+            </p>
+          </div>
+          {isAdmin && (
+            <Link href="/admin/newsletter">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ChefHat className="w-4 h-4" />
+                Admin Newsletter
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Main Sections Grid */}
@@ -198,6 +271,52 @@ export default function HomePage() {
           })}
         </div>
       </div>
+
+      {/* Actu Flash & Succès (si admin a rempli) */}
+      {monthlyContent && (monthlyContent.actu_flash_title || monthlyContent.success_items.length > 0) && (
+        <div className="mb-4 lg:mb-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* Actu Flash */}
+          {monthlyContent.actu_flash_title && (
+            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  📰 L'actu flash
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <h3 className="font-semibold text-sm mb-1">{monthlyContent.actu_flash_title}</h3>
+                <p className="text-xs text-muted-foreground">{monthlyContent.actu_flash_description}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Les succès du mois */}
+          {monthlyContent.success_items.length > 0 && (
+            <Card className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-white">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  🏆 Les succès du mois
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <ul className="space-y-1 text-xs">
+                  {monthlyContent.success_items.slice(0, 3).map((item, index) => (
+                    <li key={index} className="flex items-start gap-1.5">
+                      <span className="text-yellow-600 mt-0.5">•</span>
+                      <span className="flex-1 text-muted-foreground leading-snug">{item}</span>
+                    </li>
+                  ))}
+                  {monthlyContent.success_items.length > 3 && (
+                    <li className="text-muted-foreground text-center pt-1">
+                      +{monthlyContent.success_items.length - 3} autre{monthlyContent.success_items.length - 3 > 1 ? 's' : ''}
+                    </li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Three Column Section: Birthdays, New Clients, Monthly Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -249,24 +368,32 @@ export default function HomePage() {
             <CardDescription className="text-xs">Ce mois-ci</CardDescription>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-1.5">
-              {newClients.slice(0, 3).map((client, index) => (
-                <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="font-medium text-xs">{client.name}</p>
-                    <Badge variant="outline" className="text-xs bg-white h-5">
-                      {client.type}
-                    </Badge>
+            {newClients.length > 0 ? (
+              <div className="space-y-1.5">
+                {newClients.slice(0, 3).map((client, index) => (
+                  <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="font-medium text-xs">{client.name}</p>
+                      <Badge variant="outline" className="text-xs bg-white h-5">
+                        {client.type}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(client.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{client.date}</p>
-                </div>
-              ))}
-              {newClients.length > 3 && (
-                <p className="text-xs text-muted-foreground text-center pt-1">
-                  +{newClients.length - 3} autre{newClients.length - 3 > 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
+                ))}
+                {newClients.length > 3 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    +{newClients.length - 3} autre{newClients.length - 3 > 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                Aucun nouveau client ce mois-ci
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -280,25 +407,33 @@ export default function HomePage() {
             <CardDescription className="text-xs">{monthlyInfo.date}</CardDescription>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-xs leading-tight">
-                {monthlyInfo.title}
-              </h3>
-              <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
-                {monthlyInfo.description}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {monthlyInfo.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs h-5">
-                    {tag}
-                  </Badge>
-                ))}
+            {monthlyContent?.digital_info_title ? (
+              <div className="space-y-1.5">
+                <h3 className="font-semibold text-xs leading-tight">
+                  {monthlyInfo.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                  {monthlyInfo.description}
+                </p>
+                {monthlyInfo.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {monthlyInfo.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs h-5">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <Button className="w-full mt-1.5 bg-[#E94C16] hover:bg-[#E94C16]/90 h-7 text-xs">
+                  En savoir plus
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
               </div>
-              <Button className="w-full mt-1.5 bg-[#E94C16] hover:bg-[#E94C16]/90 h-7 text-xs">
-                En savoir plus
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2">
+                Aucune info digitale ce mois-ci
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

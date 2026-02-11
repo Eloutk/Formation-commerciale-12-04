@@ -112,10 +112,113 @@ CREATE TRIGGER on_auth_user_created
     EXECUTE FUNCTION public.handle_new_user();
 ```
 
+## 5. Système de rôles admin
+
+```sql
+-- Ajouter une colonne role à la table profiles
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+
+-- Créer un type enum pour les rôles (optionnel mais recommandé)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('user', 'admin', 'super_admin');
+    END IF;
+END $$;
+
+-- Modifier la colonne pour utiliser le type enum
+ALTER TABLE public.profiles 
+ALTER COLUMN role TYPE user_role USING role::user_role;
+
+-- Fonction pour vérifier si un utilisateur est admin
+CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = user_id 
+        AND role IN ('admin', 'super_admin')
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Politique pour voir tous les profils (seulement pour les admins)
+CREATE POLICY "Admins can view all profiles" ON public.profiles
+    FOR SELECT USING (public.is_admin(auth.uid()));
+```
+
+## 6. Table pour contenu mensuel de la homepage
+
+```sql
+-- Créer la table monthly_content
+CREATE TABLE IF NOT EXISTS public.monthly_content (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
+    year INTEGER NOT NULL CHECK (year >= 2026),
+    actu_flash_title TEXT,
+    actu_flash_description TEXT,
+    success_items JSONB DEFAULT '[]'::jsonb,
+    digital_info_title TEXT,
+    digital_info_description TEXT,
+    digital_info_tags JSONB DEFAULT '[]'::jsonb,
+    new_clients JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id),
+    UNIQUE(month, year)
+);
+
+-- Activer RLS
+ALTER TABLE public.monthly_content ENABLE ROW LEVEL SECURITY;
+
+-- Politique: Tout le monde peut lire
+CREATE POLICY "Anyone can view monthly content" ON public.monthly_content
+    FOR SELECT USING (true);
+
+-- Politique: Seuls les admins peuvent insérer
+CREATE POLICY "Admins can insert monthly content" ON public.monthly_content
+    FOR INSERT WITH CHECK (public.is_admin(auth.uid()));
+
+-- Politique: Seuls les admins peuvent mettre à jour
+CREATE POLICY "Admins can update monthly content" ON public.monthly_content
+    FOR UPDATE USING (public.is_admin(auth.uid()));
+
+-- Politique: Seuls les admins peuvent supprimer
+CREATE POLICY "Admins can delete monthly content" ON public.monthly_content
+    FOR DELETE USING (public.is_admin(auth.uid()));
+
+-- Trigger pour updated_at
+CREATE TRIGGER set_monthly_content_updated_at
+    BEFORE UPDATE ON public.monthly_content
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at();
+```
+
+## 7. Donner le rôle admin à un utilisateur
+
+```sql
+-- Pour donner le rôle admin à un utilisateur spécifique
+-- Remplacer 'email@example.com' par l'email de l'utilisateur
+UPDATE public.profiles 
+SET role = 'admin'
+WHERE id = (
+    SELECT id FROM auth.users 
+    WHERE email = 'email@example.com'
+);
+
+-- Pour voir tous les admins actuels
+SELECT p.id, u.email, p.full_name, p.role 
+FROM public.profiles p
+JOIN auth.users u ON u.id = p.id
+WHERE p.role IN ('admin', 'super_admin');
+```
+
 ## Instructions d'exécution
 
 1. Aller dans le dashboard Supabase de votre projet
 2. Aller dans l'onglet "SQL Editor"
-3. Exécuter chaque bloc SQL dans l'ordre
+3. Exécuter chaque bloc SQL dans l'ordre (1 → 7)
 4. Vérifier que les tables et politiques sont créées dans l'onglet "Table Editor"
+5. Utiliser le bloc 7 pour définir les administrateurs
 
