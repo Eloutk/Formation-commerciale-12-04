@@ -163,6 +163,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Link href="/documents" className="hover:underline">Document</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>
               <Link href="/faq" className="hover:underline">FAQ</Link>
+              <Link href="/admin/newsletter" className="hover:underline text-orange-600">Admin</Link>
             </nav>
 
             <div className="flex items-center gap-4">

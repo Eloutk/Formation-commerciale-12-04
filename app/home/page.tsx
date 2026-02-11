@@ -34,7 +34,6 @@ interface MonthlyContent {
 export default function HomePage() {
   const [monthlyContent, setMonthlyContent] = useState<MonthlyContent | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
 
   // Charger le contenu du mois actuel depuis Supabase
   useEffect(() => {
@@ -61,30 +60,6 @@ export default function HomePage() {
     }
 
     loadMonthlyContent()
-  }, [])
-
-  // Vérifier si l'utilisateur est admin
-  useEffect(() => {
-    async function checkAdmin() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-
-        if (data && (data.role === 'admin' || data.role === 'super_admin')) {
-          setIsAdmin(true)
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error)
-      }
-    }
-
-    checkAdmin()
   }, [])
   // Données complètes des anniversaires Link Agency
   const allBirthdays = {
@@ -223,24 +198,12 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-3 lg:py-4 max-w-7xl">
       {/* Header Section */}
       <div className="mb-4 lg:mb-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
-              Bienvenue sur Link Agency
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Votre plateforme complète pour gérer et optimiser vos campagnes digitales
-            </p>
-          </div>
-          {isAdmin && (
-            <Link href="/admin/newsletter">
-              <Button variant="outline" size="sm" className="gap-2">
-                <ChefHat className="w-4 h-4" />
-                Admin Newsletter
-              </Button>
-            </Link>
-          )}
-        </div>
+        <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
+          Bienvenue sur Link Agency
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Votre plateforme complète pour gérer et optimiser vos campagnes digitales
+        </p>
       </div>
 
       {/* Main Sections Grid */}
