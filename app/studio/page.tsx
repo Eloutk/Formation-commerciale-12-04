@@ -600,6 +600,43 @@ export default function StudioPage() {
               </CardHeader>
               <CardContent className="space-y-6">
 
+                {/* En un clin d'œil - Rappel des livrables */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d'œil</strong>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Colonne gauche : Pré-requis média */}
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image décliné aux 3 formats (carré, vertical, horizontal).</li>
+                            <li>5 maximum. (Même pour une vidéo)</li>
+                            <li>2 visuels logo (format carré et bannière).</li>
+                            <li>5 maximum.</li>
+                          </ul>
+                        </div>
+                        
+                        {/* Colonne droite : Pré-requis wording */}
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 titre long.</li>
+                            <li>1 titre court. 5 maximum.</li>
+                            <li>1 description. 5 maximum.</li>
+                            <li>Nom d'entreprise.</li>
+                            <li>1 CTA².</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
                 {/* H2 : Liste des formats */}
                   <div>
                   <h2 className="mb-6">Liste des formats</h2>
@@ -720,59 +757,63 @@ export default function StudioPage() {
                 <div>
                   <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
                   
-                  {/* Partie 1 : Bloc visuel logos */}
-                  <div className="flex gap-4 mb-5 md:mb-6 lg:mb-8">
-                    {/* Encart 1 : format carré */}
-                    <div className="flex-1 max-w-xs">
-                          <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
-                          </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format carré</p>
-                        <p>1080 × 1080 px</p>
-                        <p>ratio 1:1</p>
+                  {/* Grid 2 colonnes : logos à gauche, encadrés à droite */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7 md:mb-9 lg:mb-12">
+                    {/* Colonne gauche : Logos */}
+                    <div className="space-y-6 flex flex-col items-center">
+                      {/* Format carré */}
+                      <div className="max-w-[200px]">
+                        <div className="aspect-square w-full mb-2 overflow-hidden">
+                          <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                        </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format carré</p>
+                          <p>1080 × 1080 px</p>
+                          <p>ratio 1:1</p>
+                        </div>
+                      </div>
+
+                      {/* Format bannière */}
+                      <div className="max-w-[320px]">
+                        <div className="w-full mb-2">
+                          <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format bannière" width={1440} height={754} className="w-full h-auto object-contain" />
+                        </div>
+                        <div className="text-sm text-center">
+                          <p className="font-medium">format bannière</p>
+                          <p>800 × 200 px</p>
+                          <p>ratio 4:1</p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Encart 2 : format bannière */}
-                    <div className="flex-1 max-w-xs">
-                      <div className="aspect-[4/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                        <span className="text-xs text-muted-foreground">Encadré vide</span>
-                      </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format bannière</p>
-                        <p>800 × 200 px</p>
-                        <p>ratio 4:1</p>
-                      </div>
+                    {/* Colonne droite : Fichiers acceptés */}
+                    <div className="space-y-4">
+                      <Alert className="h-auto flex flex-col border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
+                        <AlertDescription className="flex-1">
+                          .jpg, .png<br />
+                          Taille maximale : 5120 ko<br />
+                          Le format .gif est incompatible avec la pub responsive.
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <Alert className="h-auto flex flex-col border-[#E94C16]">
+                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                        <AlertDescription className="flex-1">
+                          Lien YouTube au format https://…<br />
+                          Durée optimale : 14 secondes maximum<br />
+                          Durée maximum : 30 secondes<br />
+                          5 liens vidéos maximum<br /><br />
+                          Pour être utilisées, les vidéos doivent être déjà hébergées sur votre chaîne YouTube.<br />
+                          L'importation se fait uniquement grâce au lien YouTube correspondant aux vidéos.<br />
+                          Les vidéos peuvent être en non référencées mais doivent être impérativement publiques.<br /><br />
+                          La diffusion exclusive de vidéo n'est pas possible dans Google Display.<br />
+                          Des visuels au format publicités images sont obligatoires pour configurer la campagne.
+                        </AlertDescription>
+                      </Alert>
                     </div>
-                  </div>
-
-                  {/* Partie 2 : Fichiers acceptés */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch mb-7 md:mb-9 lg:mb-12">
-                    <Alert className="h-full flex flex-col border-[#E94C16]">
-                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
-                      <AlertDescription className="flex-1">
-                        .jpg, .png<br />
-                        Taille maximale : 5120 ko<br />
-                        Le format .gif est incompatible avec la pub responsive.
-                      </AlertDescription>
-                    </Alert>
-                    <Alert className="h-full flex flex-col border-[#E94C16]">
-                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                      <AlertDescription className="flex-1">
-                        Lien YouTube au format https://…<br />
-                        Durée optimale : 14 secondes maximum<br />
-                        Durée maximum : 30 secondes<br />
-                        5 liens vidéos maximum<br /><br />
-                        Pour être utilisées, les vidéos doivent être déjà hébergées sur votre chaîne YouTube.<br />
-                        L'importation se fait uniquement grâce au lien YouTube correspondant aux vidéos.<br />
-                        Les vidéos peuvent être en non référencées mais doivent être impérativement publiques.<br /><br />
-                        La diffusion exclusive de vidéo n'est pas possible dans Google Display.<br />
-                        Des visuels au format publicités images sont obligatoires pour configurer la campagne.
-                      </AlertDescription>
-                    </Alert>
                   </div>
                 </div>
 
@@ -782,22 +823,22 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères */}
                     <div>
                       <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Limites de caractères pour les wordings</h2>
-                    <Card>
+                      <Card>
                         <CardContent className="pt-4">
                           <ul className="text-sm space-y-2">
                             <li><strong>1 titre long (obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
                             <li><strong>5 titres courts (1 obligatoire)</strong><br />30 caractères maximum, espaces inclus</li>
                             <li><strong>5 descriptions (1 obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
                             <li><strong>Nom d'entreprise (obligatoire)</strong><br />25 caractères maximum, espaces inclus</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
+                          </ul>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     {/* Colonne droite : Rappel des livrables */}
                     <div>
-                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Google Display</h2>
-                    <Card>
+                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Display</h2>
+                      <Card>
                         <CardContent className="pt-4">
                           <div className="space-y-4">
                             <div>
@@ -807,7 +848,7 @@ export default function StudioPage() {
                                 <li>5 maximum. (Même pour une vidéo)</li>
                                 <li>2 visuels logo (format carré et bannière).</li>
                                 <li>5 maximum.</li>
-                        </ul>
+                              </ul>
                             </div>
                             <div>
                               <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
@@ -820,8 +861,8 @@ export default function StudioPage() {
                               </ul>
                             </div>
                           </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 </div>

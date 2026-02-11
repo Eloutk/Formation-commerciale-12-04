@@ -537,6 +537,7 @@ const SMSRCSPDFDocument = ({
   userName,
   tarifIntermarche,
   campaignMonths,
+  creaByLinkCount,
   comment,
   imageBase64,
 }: {
@@ -556,6 +557,7 @@ const SMSRCSPDFDocument = ({
   userName: string
   tarifIntermarche?: boolean
   campaignMonths?: number
+  creaByLinkCount?: number
   comment?: string
   imageBase64?: string | null
 }) => {
@@ -633,7 +635,7 @@ const SMSRCSPDFDocument = ({
           {type === 'rcs' && options.creaByLink && (
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>CREA BY LINK :</Text>
-              <Text style={styles.itemValue}>+100 €</Text>
+              <Text style={styles.itemValue}>+{100 * (creaByLinkCount || 1)} € {(creaByLinkCount || 1) > 1 ? `(${creaByLinkCount} × 100 €)` : ''}</Text>
             </View>
           )}
           {options.tarifIntermarche && (
@@ -713,6 +715,7 @@ export default function PDVPage() {
     duplicateCampaign: false,
   })
   const [campaignMonths, setCampaignMonths] = useState<string>('1') // nombre de mois pour duplication campagne RCS
+  const [creaByLinkCount, setCreaByLinkCount] = useState<string>('1') // nombre de CREA BY LINK
   
   // État des stratégies (jusqu'à 3)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
@@ -800,18 +803,23 @@ export default function PDVPage() {
     return 0.15 // 50_001+
   }, [smsVolumeNumber])
 
-  const rcsOptionFee = useMemo(() => {
-    if (smsType !== 'rcs') return 0
-    let fee = 0
-    if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
-    if (smsOptions.creaByLink) fee += 100 // CREA BY LINK
-    return fee
-  }, [smsType, smsOptions.agent, smsOptions.creaByLink])
-
   const campaignMonthsNumber = useMemo(() => {
     const parsed = parseInt(campaignMonths, 10)
     return isNaN(parsed) || parsed < 1 ? 1 : parsed
   }, [campaignMonths])
+
+  const creaByLinkCountNumber = useMemo(() => {
+    const parsed = parseInt(creaByLinkCount, 10)
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed
+  }, [creaByLinkCount])
+
+  const rcsOptionFee = useMemo(() => {
+    if (smsType !== 'rcs') return 0
+    let fee = 0
+    if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
+    if (smsOptions.creaByLink) fee += 100 * creaByLinkCountNumber // CREA BY LINK
+    return fee
+  }, [smsType, smsOptions.agent, smsOptions.creaByLink, creaByLinkCountNumber])
 
   const rcsTotalPrice = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
@@ -1286,6 +1294,7 @@ export default function PDVPage() {
         userName={userPseudo || userName}
         tarifIntermarche={smsOptions.tarifIntermarche}
         campaignMonths={currentSmsType === 'rcs' ? campaignMonthsNumber : undefined}
+        creaByLinkCount={currentSmsType === 'rcs' ? creaByLinkCountNumber : undefined}
         comment={smsPdfComment || undefined}
         imageBase64={smsPdfImage}
       />
@@ -2063,6 +2072,7 @@ export default function PDVPage() {
                                 },
                           )
                           setCampaignMonths('1') // Reset nombre de mois
+                          setCreaByLinkCount('1') // Reset nombre de CREA BY LINK
                         }}
                         className="w-full max-w-xs"
                       >
@@ -2167,9 +2177,24 @@ export default function PDVPage() {
                                   setSmsOptions((prev) => ({ ...prev, creaByLink: e.target.checked }))
                                 }
                               />
-                              <span>CREA BY LINK</span>
+                              <span className="cursor-pointer">CREA BY LINK</span>
                             </div>
-                            <span className="text-xs text-muted-foreground">+ 100 €</span>
+                            
+                            {smsOptions.creaByLink && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre :</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={creaByLinkCount}
+                                  onChange={(e) => setCreaByLinkCount(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 w-16 text-center"
+                                  placeholder="1"
+                                />
+                                <span className="text-xs text-muted-foreground">× 100 €</span>
+                              </div>
+                            )}
                           </label>
 
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
@@ -2340,7 +2365,7 @@ export default function PDVPage() {
                                 {smsOptions.creaByLink && (
                                   <>
                                     <br />
-                                    CREA BY LINK : +100 €
+                                    CREA BY LINK : +{100 * creaByLinkCountNumber} € {creaByLinkCountNumber > 1 && `(${creaByLinkCountNumber} × 100 €)`}
                                   </>
                                 )}
                               </p>
