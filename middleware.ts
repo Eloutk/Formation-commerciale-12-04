@@ -59,6 +59,25 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Admin-only routes
+  if (user && pathname.startsWith('/admin')) {
+    // Check user's role from profiles (RLS: user can read own profile)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const role = (profile?.role as string | undefined) || 'user'
+    const isAdmin = role === 'admin' || role === 'super_admin'
+    if (!isAdmin) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/home'
+      redirectUrl.search = ''
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
   // Si connecté et on tente d'aller sur une page publique -> renvoyer vers /home
   if (user && (pathname === '/login' || pathname === '/register')) {
     const redirectUrl = req.nextUrl.clone()

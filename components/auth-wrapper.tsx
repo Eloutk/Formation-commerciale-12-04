@@ -21,6 +21,7 @@ interface User {
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [mustCompleteName, setMustCompleteName] = useState(false)
   const [nickname, setNickname] = useState("")
   const [savingName, setSavingName] = useState(false)
@@ -32,17 +33,20 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     const u = session?.user
     if (!u) {
       setUser(null)
+      setIsAdmin(false)
       return false
     }
     const metaName = (u.user_metadata as any)?.full_name as string | undefined
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
+      .select('full_name, role')
       .eq('id', u.id)
       .maybeSingle()
     const profileName = profile?.full_name as string | undefined
     const currentName = (metaName || profileName || '').trim()
     setUser({ id: u.id, name: currentName, email: u.email || '' })
+    const role = (profile as any)?.role as string | undefined
+    setIsAdmin(role === 'admin' || role === 'super_admin')
     if (!currentName) {
       setNickname((u.email || '').split('@')[0] || '')
       setMustCompleteName(true)
@@ -190,7 +194,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Link href="/documents" className="hover:underline">Document</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>
               <Link href="/faq" className="hover:underline">FAQ</Link>
-              <Link href="/admin/newsletter" className="hover:underline text-orange-600">Admin</Link>
+              {isAdmin && (
+                <Link href="/admin" className="hover:underline text-orange-600">Admin</Link>
+              )}
             </nav>
 
             <div className="flex items-center gap-4">

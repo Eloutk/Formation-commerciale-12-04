@@ -295,7 +295,7 @@ export default function HomePage() {
                 {birthdays.slice(0, 3).map((person, index) => (
                   <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
-                      {person.name.split('.')[0].substring(0, 2).toUpperCase()}
+                      {person.name.split('.')[0].trim().charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-xs">{person.name}</p>
