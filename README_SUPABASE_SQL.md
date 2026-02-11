@@ -115,7 +115,31 @@ CREATE TRIGGER on_auth_user_created
 ## 5. Système de rôles admin
 
 ```sql
--- Créer un type enum pour les rôles AVANT d'ajouter la colonne
+-- Supprimer l'ancienne contrainte si elle existe
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'profiles_role_check' 
+        AND table_name = 'profiles'
+    ) THEN
+        ALTER TABLE public.profiles DROP CONSTRAINT profiles_role_check;
+    END IF;
+END $$;
+
+-- Supprimer l'ancienne colonne role si elle existe (pour repartir à zéro)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'profiles' 
+        AND column_name = 'role'
+    ) THEN
+        ALTER TABLE public.profiles DROP COLUMN role;
+    END IF;
+END $$;
+
+-- Créer un type enum pour les rôles
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
@@ -123,18 +147,9 @@ BEGIN
     END IF;
 END $$;
 
--- Ajouter une colonne role à la table profiles avec le type enum directement
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'profiles' 
-        AND column_name = 'role'
-    ) THEN
-        ALTER TABLE public.profiles 
-        ADD COLUMN role user_role DEFAULT 'user'::user_role;
-    END IF;
-END $$;
+-- Ajouter la colonne role avec le type enum
+ALTER TABLE public.profiles 
+ADD COLUMN role user_role DEFAULT 'user'::user_role NOT NULL;
 
 -- Fonction pour vérifier si un utilisateur est admin
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
@@ -207,17 +222,25 @@ CREATE TRIGGER set_monthly_content_updated_at
 -- Pour donner le rôle admin à un utilisateur spécifique
 -- Remplacer 'email@example.com' par l'email de l'utilisateur
 UPDATE public.profiles 
-SET role = 'admin'
+SET role = 'admin'::user_role
 WHERE id = (
     SELECT id FROM auth.users 
     WHERE email = 'email@example.com'
+);
+
+-- Exemple pour plusieurs utilisateurs à la fois
+UPDATE public.profiles 
+SET role = 'admin'::user_role
+WHERE id IN (
+    SELECT id FROM auth.users 
+    WHERE email IN ('admin1@example.com', 'admin2@example.com')
 );
 
 -- Pour voir tous les admins actuels
 SELECT p.id, u.email, p.full_name, p.role 
 FROM public.profiles p
 JOIN auth.users u ON u.id = p.id
-WHERE p.role IN ('admin', 'super_admin');
+WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```
 
 ## Instructions d'exécution
