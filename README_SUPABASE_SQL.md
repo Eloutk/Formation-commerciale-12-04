@@ -249,16 +249,33 @@ JOIN auth.users u ON u.id = p.id
 WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```
 
-## 8. 🚨 Script de déblocage d'urgence (si bloqué à la connexion)
+## 8. 🚨 DÉBLOCAGE COMPLET - Retour à l'état stable
 
 ```sql
--- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT SI TU ES BLOQUÉ SUR "Connexion..."
+-- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT POUR DÉBLOQUER LA CONNEXION
+-- On supprime temporairement tout ce qui touche au système de rôles
 
--- DÉSACTIVER TEMPORAIREMENT RLS (pour débloquer immédiatement)
+-- 1. Supprimer la fonction is_admin qui peut causer des boucles
+DROP FUNCTION IF EXISTS public.is_admin(UUID);
+
+-- 2. Supprimer TOUTES les policies
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
+
+-- 3. Supprimer la colonne role (temporairement)
+ALTER TABLE public.profiles DROP COLUMN IF EXISTS role CASCADE;
+
+-- 4. Supprimer le type enum
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- 5. Désactiver RLS temporairement
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
--- Note: Cela désactive la sécurité, mais permet de se connecter
--- On réactivera RLS après avoir vérifié que tout fonctionne
+-- ✅ Maintenant tu devrais pouvoir te connecter normalement
+-- Une fois connecté, on réactivera RLS avec les policies de base
 ```
 
 ## 9. Script de réactivation RLS (une fois la connexion OK)
