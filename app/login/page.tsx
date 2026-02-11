@@ -45,7 +45,17 @@ export default function LoginPage() {
 
     try {
       console.log('🔐 Tentative de connexion...')
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      console.log('📧 Email:', email)
+      console.log('🔗 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      
+      // Timeout de 10 secondes
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout après 10 secondes')), 10000)
+      )
+      
+      const loginPromise = supabase.auth.signInWithPassword({ email, password })
+      
+      const { data, error } = await Promise.race([loginPromise, timeoutPromise]) as any
       
       if (error) {
         console.error('❌ Erreur de connexion:', error)
