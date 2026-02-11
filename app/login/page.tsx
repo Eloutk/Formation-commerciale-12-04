@@ -64,21 +64,58 @@ export default function LoginPage() {
 
       const access_token = authJson?.session?.access_token as string | undefined
       const refresh_token = authJson?.session?.refresh_token as string | undefined
+      const expires_in = authJson?.session?.expires_in as number | undefined
+      const token_type = authJson?.session?.token_type as string | undefined
+      const user = authJson?.session?.user
       if (!access_token || !refresh_token) {
         console.error('❌ Session incomplète:', authJson)
         setError("Erreur de session (tokens manquants)")
         return
       }
 
-      // Créer la session côté client Supabase
-      const { data: sessionData, error: setSessionError } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      })
-      if (setSessionError) {
-        console.error('❌ setSession error:', setSessionError)
-        setError("Impossible d'initialiser la session")
-        return
+      console.log('🧩 Tokens reçus, init session...')
+
+      // Créer la session côté client Supabase (avec timeout) + fallback manuel
+      const setSessionWithTimeout = async () => {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout setSession après 5 secondes')), 5000)
+        )
+        const p = supabase.auth.setSession({ access_token, refresh_token })
+        return (await Promise.race([p, timeoutPromise])) as Awaited<typeof p>
+      }
+
+      let sessionData: any = null
+      try {
+        const { data, error: setSessionError } = await setSessionWithTimeout()
+        if (setSessionError) throw setSessionError
+        sessionData = data
+        console.log('✅ Session initialisée via setSession')
+      } catch (e) {
+        console.warn('⚠️ setSession a bloqué/échoué, fallback manuel:', e)
+        try {
+          // Fallback: écrire la session dans le storage attendu par supabase-js
+          const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
+          const storageKey = `sb-${ref}-auth-token`
+          const now = Math.floor(Date.now() / 1000)
+          const expires_at = expires_in ? now + expires_in : now + 3600
+          const payload = {
+            access_token,
+            refresh_token,
+            token_type: token_type || 'bearer',
+            expires_in: expires_in || 3600,
+            expires_at,
+            user: user || null,
+          }
+          window.sessionStorage.setItem(storageKey, JSON.stringify(payload))
+
+          const { data: getSessionData } = await supabase.auth.getSession()
+          sessionData = { session: getSessionData.session, user: getSessionData.session?.user }
+          console.log('✅ Session initialisée via storage fallback')
+        } catch (e2) {
+          console.error('❌ Fallback storage a échoué:', e2)
+          setError("Impossible d'initialiser la session (fallback)")
+          return
+        }
       }
 
       console.log('✅ Connexion réussie!', sessionData.user?.email)
