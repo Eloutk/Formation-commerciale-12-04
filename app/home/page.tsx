@@ -213,7 +213,7 @@ export default function HomePage() {
           <CardContent className="p-3 pt-0">
             {birthdays.length > 0 ? (
               <div className="space-y-1.5">
-                {birthdays.slice(0, 2).map((person, index) => (
+                {birthdays.slice(0, 3).map((person, index) => (
                   <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
                       {person.name.split('.')[0].substring(0, 2).toUpperCase()}
@@ -225,9 +225,9 @@ export default function HomePage() {
                     <div className="text-lg">🎂</div>
                   </div>
                 ))}
-                {birthdays.length > 2 && (
+                {birthdays.length > 3 && (
                   <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{birthdays.length - 2} autre{birthdays.length - 2 > 1 ? 's' : ''}
+                    +{birthdays.length - 3} autre{birthdays.length - 3 > 1 ? 's' : ''}
                   </p>
                 )}
               </div>
@@ -250,7 +250,7 @@ export default function HomePage() {
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <div className="space-y-1.5">
-              {newClients.slice(0, 2).map((client, index) => (
+              {newClients.slice(0, 3).map((client, index) => (
                 <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="font-medium text-xs">{client.name}</p>
@@ -261,9 +261,9 @@ export default function HomePage() {
                   <p className="text-xs text-muted-foreground">{client.date}</p>
                 </div>
               ))}
-              {newClients.length > 2 && (
+              {newClients.length > 3 && (
                 <p className="text-xs text-muted-foreground text-center pt-1">
-                  +{newClients.length - 2} autre{newClients.length - 2 > 1 ? 's' : ''}
+                  +{newClients.length - 3} autre{newClients.length - 3 > 1 ? 's' : ''}
                 </p>
               )}
             </div>
