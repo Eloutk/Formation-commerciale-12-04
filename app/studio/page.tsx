@@ -775,8 +775,8 @@ export default function StudioPage() {
 
                       {/* Format bannière */}
                       <div className="max-w-[320px]">
-                        <div className="aspect-[4/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                        <div className="w-full mb-2">
+                          <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format bannière" width={1440} height={754} className="w-full h-auto object-contain" />
                         </div>
                         <div className="text-sm text-center">
                           <p className="font-medium">format bannière</p>
