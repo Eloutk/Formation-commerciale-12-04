@@ -28,6 +28,36 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
 
+  const hydrateClientSessionFromServer = async () => {
+    try {
+      const res = await fetch('/api/auth/session-info', { credentials: 'include' })
+      const json = await res.json().catch(() => null)
+      const s = json?.session
+      if (!s?.access_token || !s?.refresh_token) return false
+
+      const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
+      const storageKey = `sb-${ref}-auth-token`
+
+      const now = Math.floor(Date.now() / 1000)
+      const expires_at = typeof s.expires_at === 'number' ? s.expires_at : (now + (s.expires_in || 3600))
+
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          access_token: s.access_token,
+          refresh_token: s.refresh_token,
+          token_type: s.token_type || 'bearer',
+          expires_in: s.expires_in || 3600,
+          expires_at,
+          user: s.user || null,
+        })
+      )
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const checkPseudo = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     const u = session?.user
@@ -59,22 +89,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const init = async () => {
       try {
-        // Si le serveur (middleware) te considère connecté mais que le navigateur a perdu la session (localStorage vidé),
-        // on force une déconnexion serveur pour éviter le cas "je ne suis pas connecté mais /login redirige vers /home".
+        // Si le serveur te considère connecté (cookies) mais que le navigateur a perdu la session,
+        // on réhydrate localStorage pour stabiliser pseudo + bouton déconnexion.
         const { data: { session: clientSession } } = await supabase.auth.getSession()
         if (!clientSession?.user) {
-          try {
-            const meRes = await fetch('/api/auth/me', { credentials: 'include' })
-            const meJson = await meRes.json().catch(() => null)
-            if (meRes.ok && meJson?.user?.id) {
-              await fetch('/api/auth/session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ event: 'SIGNED_OUT' }),
-              })
-            }
-          } catch {}
+          await hydrateClientSessionFromServer()
         }
 
         // ⚡ Pages publiques : login, register, reset-password
@@ -86,6 +105,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             router.replace('/home')
           } else {
             setUser(null)
+            setIsAdmin(false)
           }
           return
         }
@@ -119,8 +139,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       }
     }
 
-    const timeout = setTimeout(() => setLoading(false), 2000)
-    init().finally(() => clearTimeout(timeout))
+    init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_IN') {
@@ -131,6 +150,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       }
       if (event === 'SIGNED_OUT') {
         setUser(null)
+        setIsAdmin(false)
         setMustCompleteName(false)
         router.replace('/login')
       }
