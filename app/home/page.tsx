@@ -159,36 +159,36 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-4 lg:py-6 max-w-7xl">
+    <div className="container mx-auto px-4 py-3 lg:py-4 max-w-7xl">
       {/* Header Section */}
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
+      <div className="mb-4 lg:mb-5">
+        <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
           Bienvenue sur Link Agency
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Votre plateforme complète pour gérer et optimiser vos campagnes digitales
         </p>
       </div>
 
       {/* Main Sections Grid */}
-      <div className="mb-6 lg:mb-8">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+      <div className="mb-4 lg:mb-5">
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <span>Accès rapide</span>
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {mainSections.map((section) => {
             const Icon = section.icon
             return (
               <Link key={section.href} href={section.href}>
                 <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-[#E94C16]/20">
-                  <CardHeader className="p-3 lg:p-4 pb-2">
-                    <div className={`w-10 h-10 rounded-lg ${section.bgColor} flex items-center justify-center mb-2`}>
-                      <Icon className={`w-5 h-5 ${section.color}`} />
+                  <CardHeader className="p-2 lg:p-3 pb-1">
+                    <div className={`w-8 h-8 rounded-lg ${section.bgColor} flex items-center justify-center mb-1`}>
+                      <Icon className={`w-4 h-4 ${section.color}`} />
                     </div>
-                    <CardTitle className="text-base lg:text-lg">{section.title}</CardTitle>
+                    <CardTitle className="text-sm lg:text-base">{section.title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="p-3 lg:p-4 pt-0">
-                    <CardDescription className="text-xs lg:text-sm leading-relaxed line-clamp-2">
+                  <CardContent className="p-2 lg:p-3 pt-0">
+                    <CardDescription className="text-xs leading-tight line-clamp-2">
                       {section.description}
                     </CardDescription>
                   </CardContent>
@@ -200,34 +200,39 @@ export default function HomePage() {
       </div>
 
       {/* Three Column Section: Birthdays, New Clients, Monthly Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Anniversaires du mois */}
         <Card className="border-2">
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Cake className="w-4 h-4 text-pink-500" />
-              Anniversaires du mois
+              Anniversaires
             </CardTitle>
             <CardDescription className="text-xs">{currentMonthName} 2026</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
+          <CardContent className="p-3 pt-0">
             {birthdays.length > 0 ? (
-              <div className="space-y-2">
-                {birthdays.map((person, index) => (
-                  <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-sm">
+              <div className="space-y-1.5">
+                {birthdays.slice(0, 2).map((person, index) => (
+                  <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
                       {person.name.split('.')[0].substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{person.name}</p>
-                      <p className="text-xs text-pink-600 font-medium">{person.date}</p>
+                      <p className="font-medium text-xs">{person.name}</p>
+                      <p className="text-xs text-pink-600">{person.date}</p>
                     </div>
-                    <div className="text-2xl">🎂</div>
+                    <div className="text-lg">🎂</div>
                   </div>
                 ))}
+                {birthdays.length > 2 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    +{birthdays.length - 2} autre{birthdays.length - 2 > 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-4">
+              <p className="text-xs text-muted-foreground text-center py-2">
                 Aucun anniversaire ce mois-ci
               </p>
             )}
@@ -236,59 +241,60 @@ export default function HomePage() {
 
         {/* Nouveaux clients */}
         <Card className="border-2">
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Users className="w-4 h-4 text-green-500" />
               Nouveaux clients
             </CardTitle>
             <CardDescription className="text-xs">Ce mois-ci</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
-              {newClients.map((client, index) => (
-                <div key={index} className="p-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                  <div className="flex items-center justify-between mb-1">
+          <CardContent className="p-3 pt-0">
+            <div className="space-y-1.5">
+              {newClients.slice(0, 2).map((client, index) => (
+                <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                  <div className="flex items-center justify-between mb-0.5">
                     <p className="font-medium text-xs">{client.name}</p>
-                    <Badge variant="outline" className="text-xs bg-white">
+                    <Badge variant="outline" className="text-xs bg-white h-5">
                       {client.type}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">{client.date}</p>
                 </div>
               ))}
-              <Button variant="outline" className="w-full text-xs mt-2" size="sm">
-                Voir tous les clients
-                <ArrowRight className="w-3 h-3 ml-1" />
-              </Button>
+              {newClients.length > 2 && (
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  +{newClients.length - 2} autre{newClients.length - 2 > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Info digitale du mois */}
         <Card className="border-2 border-[#E94C16]/20 bg-gradient-to-br from-orange-50 to-white">
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
+          <CardHeader className="p-3 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Lightbulb className="w-4 h-4 text-[#E94C16]" />
               Info digitale
             </CardTitle>
             <CardDescription className="text-xs">{monthlyInfo.date}</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm leading-tight">
+          <CardContent className="p-3 pt-0">
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-xs leading-tight">
                 {monthlyInfo.title}
               </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+              <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
                 {monthlyInfo.description}
               </p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {monthlyInfo.tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                  <Badge key={index} variant="secondary" className="text-xs h-5">
                     {tag}
                   </Badge>
                 ))}
               </div>
-              <Button className="w-full mt-2 bg-[#E94C16] hover:bg-[#E94C16]/90" size="sm">
+              <Button className="w-full mt-1.5 bg-[#E94C16] hover:bg-[#E94C16]/90 h-7 text-xs">
                 En savoir plus
                 <ArrowRight className="w-3 h-3 ml-1" />
               </Button>
