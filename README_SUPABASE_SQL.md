@@ -167,25 +167,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Recréer la politique pour permettre aux utilisateurs de mettre à jour leur profil (sauf le rôle)
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-CREATE POLICY "Users can update own profile" ON public.profiles
-    FOR UPDATE 
-    USING (auth.uid() = id)
-    WITH CHECK (
-        auth.uid() = id 
-        AND (role = (SELECT role FROM public.profiles WHERE id = auth.uid()) OR public.is_admin(auth.uid()))
-    );
-
--- Note: La policy "Users can view own profile" du bloc #1 permet déjà à chaque utilisateur de voir son profil
--- La policy "Admins can view all profiles" permet aux admins de voir TOUS les profils en plus du leur
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
-CREATE POLICY "Admins can view all profiles" ON public.profiles
-    FOR SELECT 
-    USING (
-        public.is_admin(auth.uid()) 
-        AND auth.uid() != id  -- Seulement les profils des AUTRES utilisateurs
-    );
+-- Note: Les policies de base (voir/insérer/modifier son propre profil) 
+-- ont déjà été créées dans le bloc #1
+-- On ne les recrée pas ici pour éviter les conflits
 ```
 
 ## 6. Table pour contenu mensuel de la homepage
@@ -267,9 +251,7 @@ WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```sql
 -- Ce script nettoie toutes les policies et les recrée proprement
 -- À utiliser UNIQUEMENT si tu es bloqué à la connexion
-
--- Désactiver temporairement RLS pour débloquer
-ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+-- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT POUR TE DÉBLOQUER
 
 -- Supprimer TOUTES les policies existantes sur profiles
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
@@ -277,9 +259,6 @@ DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
-
--- Réactiver RLS
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Recréer les policies de base (simples et fonctionnelles)
 CREATE POLICY "Users can view own profile" ON public.profiles
@@ -291,15 +270,9 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
 CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
--- Policy pour les admins (voir tous les profils)
-CREATE POLICY "Admins can view all profiles" ON public.profiles
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.profiles 
-            WHERE id = auth.uid() 
-            AND role IN ('admin'::user_role, 'super_admin'::user_role)
-        )
-    );
+-- ✅ PAS de policy pour que les admins voient tous les profils
+-- (cela évite les boucles infinies avec RLS)
+-- Si nécessaire plus tard, on créera une fonction RPC dédiée
 ```
 
 ## Instructions d'exécution
