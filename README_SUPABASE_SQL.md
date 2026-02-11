@@ -246,21 +246,34 @@ JOIN auth.users u ON u.id = p.id
 WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```
 
-## 8. 🚨 Script de déblocage d'urgence (si bloqué après avoir mis un compte admin)
+## 8. 🚨 Script de déblocage d'urgence (si bloqué à la connexion)
 
 ```sql
--- Ce script nettoie toutes les policies et les recrée proprement
--- À utiliser UNIQUEMENT si tu es bloqué à la connexion
--- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT POUR TE DÉBLOQUER
+-- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT SI TU ES BLOQUÉ SUR "Connexion..."
 
--- Supprimer TOUTES les policies existantes sur profiles
+-- DÉSACTIVER TEMPORAIREMENT RLS (pour débloquer immédiatement)
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+
+-- Note: Cela désactive la sécurité, mais permet de se connecter
+-- On réactivera RLS après avoir vérifié que tout fonctionne
+```
+
+## 9. Script de réactivation RLS (une fois la connexion OK)
+
+```sql
+-- Une fois que tu arrives à te connecter, exécute ce script pour réactiver la sécurité
+
+-- Supprimer TOUTES les anciennes policies
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
 
--- Recréer les policies de base (simples et fonctionnelles)
+-- Réactiver RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Recréer les policies de base (simples et sûres)
 CREATE POLICY "Users can view own profile" ON public.profiles
     FOR SELECT USING (auth.uid() = id);
 
@@ -269,10 +282,6 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
 
 CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
-
--- ✅ PAS de policy pour que les admins voient tous les profils
--- (cela évite les boucles infinies avec RLS)
--- Si nécessaire plus tard, on créera une fonction RPC dédiée
 ```
 
 ## Instructions d'exécution
