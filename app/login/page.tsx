@@ -48,23 +48,40 @@ export default function LoginPage() {
       console.log('📧 Email:', email)
       console.log('🔗 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
       
-      // Timeout de 10 secondes
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout après 10 secondes')), 10000)
-      )
-      
-      const loginPromise = supabase.auth.signInWithPassword({ email, password })
-      
-      const { data, error } = await Promise.race([loginPromise, timeoutPromise]) as any
-      
-      if (error) {
-        console.error('❌ Erreur de connexion:', error)
-        setError("Email ou mot de passe incorrect")
-        setLoading(false)
+      // Auth via endpoint serveur (contourne les blocages navigateur/extensions)
+      const authRes = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const authJson = await authRes.json().catch(() => null)
+      if (!authRes.ok) {
+        console.error('❌ Erreur auth API:', authJson)
+        setError(authJson?.error || "Email ou mot de passe incorrect")
         return
       }
-      
-      console.log('✅ Connexion réussie!', data.user?.email)
+
+      const access_token = authJson?.session?.access_token as string | undefined
+      const refresh_token = authJson?.session?.refresh_token as string | undefined
+      if (!access_token || !refresh_token) {
+        console.error('❌ Session incomplète:', authJson)
+        setError("Erreur de session (tokens manquants)")
+        return
+      }
+
+      // Créer la session côté client Supabase
+      const { data: sessionData, error: setSessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      })
+      if (setSessionError) {
+        console.error('❌ setSession error:', setSessionError)
+        setError("Impossible d'initialiser la session")
+        return
+      }
+
+      console.log('✅ Connexion réussie!', sessionData.user?.email)
       
       // Synchroniser la session côté serveur
       try {
@@ -72,7 +89,7 @@ export default function LoginPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
+          body: JSON.stringify({ event: 'SIGNED_IN', session: sessionData.session }),
         })
         console.log('✅ Session synchronisée')
       } catch (syncError) {
@@ -88,7 +105,6 @@ export default function LoginPage() {
     } catch (err) {
       console.error('💥 Erreur globale:', err)
       setError("Une erreur est survenue lors de la connexion")
-      setLoading(false)
     } finally {
       console.log('🏁 Finally appelé, setLoading(false)')
       setLoading(false)
