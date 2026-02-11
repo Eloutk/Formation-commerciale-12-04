@@ -111,36 +111,36 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-4 lg:py-6 max-w-7xl">
       {/* Header Section */}
-      <div className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
           Bienvenue sur Link Agency
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Votre plateforme complète pour gérer et optimiser vos campagnes digitales
         </p>
       </div>
 
       {/* Main Sections Grid */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+      <div className="mb-6 lg:mb-8">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <span>Accès rapide</span>
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {mainSections.map((section) => {
             const Icon = section.icon
             return (
               <Link key={section.href} href={section.href}>
                 <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-[#E94C16]/20">
-                  <CardHeader className="pb-3">
-                    <div className={`w-12 h-12 rounded-lg ${section.bgColor} flex items-center justify-center mb-3`}>
-                      <Icon className={`w-6 h-6 ${section.color}`} />
+                  <CardHeader className="p-3 lg:p-4 pb-2">
+                    <div className={`w-10 h-10 rounded-lg ${section.bgColor} flex items-center justify-center mb-2`}>
+                      <Icon className={`w-5 h-5 ${section.color}`} />
                     </div>
-                    <CardTitle className="text-lg">{section.title}</CardTitle>
+                    <CardTitle className="text-base lg:text-lg">{section.title}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-sm leading-relaxed">
+                  <CardContent className="p-3 lg:p-4 pt-0">
+                    <CardDescription className="text-xs lg:text-sm leading-relaxed line-clamp-2">
                       {section.description}
                     </CardDescription>
                   </CardContent>
@@ -152,27 +152,27 @@ export default function HomePage() {
       </div>
 
       {/* Three Column Section: Birthdays, New Clients, Monthly Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Anniversaires du mois */}
         <Card className="border-2">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Cake className="w-5 h-5 text-pink-500" />
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Cake className="w-4 h-4 text-pink-500" />
               Anniversaires du mois
             </CardTitle>
-            <CardDescription>Février 2026</CardDescription>
+            <CardDescription className="text-xs">Février 2026</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
               {birthdays.map((person, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold">
+                <div key={index} className="flex items-start gap-2 p-2 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
                     {person.name.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{person.name}</p>
+                    <p className="font-medium text-xs truncate">{person.name}</p>
                     <p className="text-xs text-muted-foreground">{person.role}</p>
-                    <p className="text-xs text-pink-600 font-medium mt-1">{person.date}</p>
+                    <p className="text-xs text-pink-600 font-medium">{person.date}</p>
                   </div>
                 </div>
               ))}
@@ -182,19 +182,19 @@ export default function HomePage() {
 
         {/* Nouveaux clients */}
         <Card className="border-2">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Users className="w-5 h-5 text-green-500" />
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="w-4 h-4 text-green-500" />
               Nouveaux clients
             </CardTitle>
-            <CardDescription>Ce mois-ci</CardDescription>
+            <CardDescription className="text-xs">Ce mois-ci</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
               {newClients.map((client, index) => (
-                <div key={index} className="p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                <div key={index} className="p-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-medium text-sm">{client.name}</p>
+                    <p className="font-medium text-xs">{client.name}</p>
                     <Badge variant="outline" className="text-xs bg-white">
                       {client.type}
                     </Badge>
@@ -202,7 +202,7 @@ export default function HomePage() {
                   <p className="text-xs text-muted-foreground">{client.date}</p>
                 </div>
               ))}
-              <Button variant="outline" className="w-full text-sm" size="sm">
+              <Button variant="outline" className="w-full text-xs mt-2" size="sm">
                 Voir tous les clients
                 <ArrowRight className="w-3 h-3 ml-1" />
               </Button>
@@ -212,29 +212,29 @@ export default function HomePage() {
 
         {/* Info digitale du mois */}
         <Card className="border-2 border-[#E94C16]/20 bg-gradient-to-br from-orange-50 to-white">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Lightbulb className="w-5 h-5 text-[#E94C16]" />
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Lightbulb className="w-4 h-4 text-[#E94C16]" />
               Info digitale
             </CardTitle>
-            <CardDescription>{monthlyInfo.date}</CardDescription>
+            <CardDescription className="text-xs">{monthlyInfo.date}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <h3 className="font-semibold text-base leading-tight">
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm leading-tight">
                 {monthlyInfo.title}
               </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                 {monthlyInfo.description}
               </p>
-              <div className="flex flex-wrap gap-2 pt-2">
+              <div className="flex flex-wrap gap-1.5">
                 {monthlyInfo.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
                 ))}
               </div>
-              <Button className="w-full mt-4 bg-[#E94C16] hover:bg-[#E94C16]/90" size="sm">
+              <Button className="w-full mt-2 bg-[#E94C16] hover:bg-[#E94C16]/90" size="sm">
                 En savoir plus
                 <ArrowRight className="w-3 h-3 ml-1" />
               </Button>
