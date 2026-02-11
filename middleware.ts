@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
@@ -16,17 +17,57 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // ✅ Pages publiques : login, register, reset-password
-  if (
+  // ✅ Pages publiques (accessibles sans être connecté)
+  const isPublicPage =
     pathname === '/login' ||
     pathname === '/register' ||
-    pathname.startsWith('/reset-password')
-  ) {
-    return NextResponse.next()
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/auth/callback') ||
+    pathname.startsWith('/test-supabase-connection')
+
+  // Préparer une réponse "next" pour pouvoir écrire des cookies si besoin
+  let res = NextResponse.next()
+
+  // Client Supabase côté middleware (lecture session via cookies)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    {
+      cookies: {
+        get: (name: string) => req.cookies.get(name)?.value,
+        set: (name: string, value: string, options: any) => {
+          res.cookies.set({ name, value, ...options })
+        },
+        remove: (name: string, options: any) => {
+          res.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  // ⚠️ IMPORTANT: getUser() lit/valide la session correctement
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Si pas connecté et page privée -> forcer /login
+  if (!user && !isPublicPage) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/login'
+    const original = `${req.nextUrl.pathname}${req.nextUrl.search}`
+    redirectUrl.searchParams.set('redirect', original)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Tous les autres chemins passent par la logique côté client (AuthWrapper)
-  return NextResponse.next()
+  // Si connecté et on tente d'aller sur une page publique -> renvoyer vers /home
+  if (user && (pathname === '/login' || pathname === '/register')) {
+    const redirectUrl = req.nextUrl.clone()
+    redirectUrl.pathname = '/home'
+    redirectUrl.search = ''
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  return res
 }
 
 export const config = {

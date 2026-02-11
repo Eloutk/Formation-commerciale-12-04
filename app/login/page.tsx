@@ -73,72 +73,69 @@ export default function LoginPage() {
         return
       }
 
-      console.log('🧩 Tokens reçus, init session...')
+      console.log('🧩 Tokens reçus, écriture sessionStorage...')
 
-      // Créer la session côté client Supabase (avec timeout) + fallback manuel
-      const setSessionWithTimeout = async () => {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout setSession après 5 secondes')), 5000)
-        )
-        const p = supabase.auth.setSession({ access_token, refresh_token })
-        return (await Promise.race([p, timeoutPromise])) as Awaited<typeof p>
-      }
-
-      let sessionData: any = null
+      // ✅ Chemin le plus robuste: écrire directement la session dans le storage attendu par supabase-js
+      // (et éviter supabase.auth.setSession qui bloque chez toi)
       try {
-        const { data, error: setSessionError } = await setSessionWithTimeout()
-        if (setSessionError) throw setSessionError
-        sessionData = data
-        console.log('✅ Session initialisée via setSession')
-      } catch (e) {
-        console.warn('⚠️ setSession a bloqué/échoué, fallback manuel:', e)
-        try {
-          // Fallback: écrire la session dans le storage attendu par supabase-js
-          const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
-          const storageKey = `sb-${ref}-auth-token`
-          const now = Math.floor(Date.now() / 1000)
-          const expires_at = expires_in ? now + expires_in : now + 3600
-          const payload = {
-            access_token,
-            refresh_token,
-            token_type: token_type || 'bearer',
-            expires_in: expires_in || 3600,
-            expires_at,
-            user: user || null,
-          }
-          window.sessionStorage.setItem(storageKey, JSON.stringify(payload))
-
-          const { data: getSessionData } = await supabase.auth.getSession()
-          sessionData = { session: getSessionData.session, user: getSessionData.session?.user }
-          console.log('✅ Session initialisée via storage fallback')
-        } catch (e2) {
-          console.error('❌ Fallback storage a échoué:', e2)
-          setError("Impossible d'initialiser la session (fallback)")
-          return
+        const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
+        const storageKey = `sb-${ref}-auth-token`
+        const now = Math.floor(Date.now() / 1000)
+        const expires_at = expires_in ? now + expires_in : now + 3600
+        const payload = {
+          access_token,
+          refresh_token,
+          token_type: token_type || 'bearer',
+          expires_in: expires_in || 3600,
+          expires_at,
+          user: user || null,
         }
+        window.sessionStorage.setItem(storageKey, JSON.stringify(payload))
+        console.log('✅ sessionStorage écrit:', storageKey)
+      } catch (e) {
+        console.error('❌ Impossible d’écrire sessionStorage:', e)
+        setError("Impossible d'initialiser la session (storage)")
+        return
       }
 
-      console.log('✅ Connexion réussie!', sessionData.user?.email)
+      console.log('✅ Connexion réussie! (storage)')
       
       // Synchroniser la session côté serveur
       try {
-        await fetch('/api/auth/session', {
+        const syncRes = await Promise.race([
+          fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ event: 'SIGNED_IN', session: sessionData.session }),
-        })
-        console.log('✅ Session synchronisée')
+            credentials: 'include',
+          body: JSON.stringify({
+            event: 'SIGNED_IN',
+            session: { access_token, refresh_token },
+          }),
+          }),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout sync cookies (8s)')), 8000)),
+        ])
+
+        const syncJson = await syncRes.json().catch(() => null)
+        if (!syncRes.ok || !syncJson?.ok) {
+          console.error('❌ Sync cookies échouée:', syncJson)
+          setError("Connexion OK mais cookies non synchronisés (accès sécurisé impossible). Réessaie.")
+          return
+        }
+
+        console.log('✅ Cookies session synchronisés')
       } catch (syncError) {
-        console.warn('⚠️ Erreur sync session (non bloquant):', syncError)
+        console.error('❌ Erreur sync cookies:', syncError)
+        setError("Connexion OK mais cookies non synchronisés (accès sécurisé impossible). Réessaie.")
+        return
       }
       
       const requested = search?.get('redirect') || ''
       const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/home' : requested
       console.log('🔄 Redirection vers:', redirectTo)
       
-      router.replace(redirectTo)
-      console.log('✅ Redirect appelé')
+      // Forcer un reload complet pour que le middleware (cookies) s'applique bien
+      window.location.assign(redirectTo)
+      console.log('✅ Redirect assign appelé')
     } catch (err) {
       console.error('💥 Erreur globale:', err)
       setError("Une erreur est survenue lors de la connexion")
