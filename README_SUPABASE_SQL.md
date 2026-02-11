@@ -115,6 +115,10 @@ CREATE TRIGGER on_auth_user_created
 ## 5. Système de rôles admin
 
 ```sql
+-- Supprimer les policies qui dépendent de la colonne role
+DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+
 -- Supprimer l'ancienne contrainte si elle existe
 DO $$
 BEGIN
@@ -135,7 +139,7 @@ BEGIN
         WHERE table_name = 'profiles' 
         AND column_name = 'role'
     ) THEN
-        ALTER TABLE public.profiles DROP COLUMN role;
+        ALTER TABLE public.profiles DROP COLUMN role CASCADE;
     END IF;
 END $$;
 
@@ -163,8 +167,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Recréer la politique pour permettre aux utilisateurs de mettre à jour leur profil (sauf le rôle)
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile" ON public.profiles
+    FOR UPDATE 
+    USING (auth.uid() = id)
+    WITH CHECK (
+        auth.uid() = id 
+        AND role = (SELECT role FROM public.profiles WHERE id = auth.uid())
+    );
+
 -- Politique pour voir tous les profils (seulement pour les admins)
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles" ON public.profiles
     FOR SELECT USING (public.is_admin(auth.uid()));
 ```
