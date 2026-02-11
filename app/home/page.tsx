@@ -172,8 +172,8 @@ export default function HomePage() {
 
       {/* Main Sections Grid */}
       <div className="mb-4 lg:mb-5">
-        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <span>Accès rapide</span>
+        <h2 className="text-lg font-semibold mb-3">
+          Accès rapide
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {mainSections.map((section) => {
