@@ -45,7 +45,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
   auth: {
-    storage: typeof window !== "undefined" ? window.sessionStorage : undefined,
+    // Session "classique": persiste entre onglets + refresh
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,

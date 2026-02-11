@@ -55,6 +55,24 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const init = async () => {
       try {
+        // Si le serveur (middleware) te considère connecté mais que le navigateur a perdu la session (localStorage vidé),
+        // on force une déconnexion serveur pour éviter le cas "je ne suis pas connecté mais /login redirige vers /home".
+        const { data: { session: clientSession } } = await supabase.auth.getSession()
+        if (!clientSession?.user) {
+          try {
+            const meRes = await fetch('/api/auth/me', { credentials: 'include' })
+            const meJson = await meRes.json().catch(() => null)
+            if (meRes.ok && meJson?.user?.id) {
+              await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ event: 'SIGNED_OUT' }),
+              })
+            }
+          } catch {}
+        }
+
         // ⚡ Pages publiques : login, register, reset-password
         if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
           const { data: { session } } = await supabase.auth.getSession()
@@ -118,6 +136,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   const handleLogout = async () => {
     try {
+      // Déconnexion serveur (cookies middleware)
+      try {
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ event: 'SIGNED_OUT' }),
+        })
+      } catch {}
       await supabase.auth.signOut()
     } catch {}
   }
@@ -172,8 +199,17 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               </div>
               {user ? (
                 <>
-                  <span className="hidden sm:inline text-sm text-gray-600">Bonjour, {user.name || user.email}</span>
-                  <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800">Se déconnecter</button>
+                  <span className="text-sm text-gray-600 max-w-[180px] truncate">
+                    {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                  >
+                    Se déconnecter
+                  </Button>
                 </>
               ) : (
                 <Link href="/login" className="text-sm text-orange-600 hover:underline">Se connecter</Link>

@@ -73,7 +73,7 @@ export default function LoginPage() {
         return
       }
 
-      console.log('🧩 Tokens reçus, écriture sessionStorage...')
+      console.log('🧩 Tokens reçus, écriture localStorage...')
 
       // ✅ Chemin le plus robuste: écrire directement la session dans le storage attendu par supabase-js
       // (et éviter supabase.auth.setSession qui bloque chez toi)
@@ -90,10 +90,10 @@ export default function LoginPage() {
           expires_at,
           user: user || null,
         }
-        window.sessionStorage.setItem(storageKey, JSON.stringify(payload))
-        console.log('✅ sessionStorage écrit:', storageKey)
+        window.localStorage.setItem(storageKey, JSON.stringify(payload))
+        console.log('✅ localStorage écrit:', storageKey)
       } catch (e) {
-        console.error('❌ Impossible d’écrire sessionStorage:', e)
+        console.error('❌ Impossible d’écrire localStorage:', e)
         setError("Impossible d'initialiser la session (storage)")
         return
       }
@@ -169,7 +169,7 @@ export default function LoginPage() {
     <div className="max-w-md mx-auto px-4 py-12">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold">Connexion</h1>
-        <p className="text-muted-foreground mt-2">Connectez-vous pour accéder à votre formation</p>
+        <p className="text-muted-foreground mt-2">Exclusivement réservé aux membres de l'agence Link</p>
       </div>
 
       {error && (

@@ -201,9 +201,6 @@ export default function HomePage() {
         <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
           Bienvenue sur Link Agency
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Votre plateforme complète pour gérer et optimiser vos campagnes digitales
-        </p>
       </div>
 
       {/* Main Sections Grid */}
