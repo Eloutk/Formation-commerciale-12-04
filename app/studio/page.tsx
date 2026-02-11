@@ -817,19 +817,54 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Limites de caractères pour les wordings */}
+                {/* H2 : Limites de caractères pour les wordings et Rappel des livrables */}
                 <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Limites de caractères pour les wordings</h2>
-                  <Card className="max-w-2xl">
-                    <CardContent className="pt-4">
-                      <ul className="text-sm space-y-2">
-                        <li><strong>1 titre long (obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
-                        <li><strong>5 titres courts (1 obligatoire)</strong><br />30 caractères maximum, espaces inclus</li>
-                        <li><strong>5 descriptions (1 obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
-                        <li><strong>Nom d'entreprise (obligatoire)</strong><br />25 caractères maximum, espaces inclus</li>
-                      </ul>
-                    </CardContent>
-                  </Card>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    {/* Colonne gauche : Limites de caractères */}
+                    <div>
+                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Limites de caractères pour les wordings</h2>
+                      <Card>
+                        <CardContent className="pt-4">
+                          <ul className="text-sm space-y-2">
+                            <li><strong>1 titre long (obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
+                            <li><strong>5 titres courts (1 obligatoire)</strong><br />30 caractères maximum, espaces inclus</li>
+                            <li><strong>5 descriptions (1 obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
+                            <li><strong>Nom d'entreprise (obligatoire)</strong><br />25 caractères maximum, espaces inclus</li>
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Colonne droite : Rappel des livrables */}
+                    <div>
+                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Google Display</h2>
+                      <Card>
+                        <CardContent className="pt-4">
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                              <ul className="text-sm space-y-1 ml-4 list-disc">
+                                <li>1 visuel image décliné aux 3 formats (carré, vertical, horizontal).</li>
+                                <li>5 maximum. (Même pour une vidéo)</li>
+                                <li>2 visuels logo (format carré et bannière).</li>
+                                <li>5 maximum.</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                              <ul className="text-sm space-y-1 ml-4 list-disc">
+                                <li>1 titre long.</li>
+                                <li>1 titre court. 5 maximum.</li>
+                                <li>1 description. 5 maximum.</li>
+                                <li>Nom d'entreprise.</li>
+                                <li>1 CTA².</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
