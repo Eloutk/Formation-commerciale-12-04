@@ -803,14 +803,6 @@ export default function PDVPage() {
     return 0.15 // 50_001+
   }, [smsVolumeNumber])
 
-  const rcsOptionFee = useMemo(() => {
-    if (smsType !== 'rcs') return 0
-    let fee = 0
-    if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
-    if (smsOptions.creaByLink) fee += 100 * creaByLinkCountNumber // CREA BY LINK
-    return fee
-  }, [smsType, smsOptions.agent, smsOptions.creaByLink, creaByLinkCountNumber])
-
   const campaignMonthsNumber = useMemo(() => {
     const parsed = parseInt(campaignMonths, 10)
     return isNaN(parsed) || parsed < 1 ? 1 : parsed
@@ -820,6 +812,14 @@ export default function PDVPage() {
     const parsed = parseInt(creaByLinkCount, 10)
     return isNaN(parsed) || parsed < 1 ? 1 : parsed
   }, [creaByLinkCount])
+
+  const rcsOptionFee = useMemo(() => {
+    if (smsType !== 'rcs') return 0
+    let fee = 0
+    if (smsOptions.agent) fee += 550 // Création d'agent (si nécessaire)
+    if (smsOptions.creaByLink) fee += 100 * creaByLinkCountNumber // CREA BY LINK
+    return fee
+  }, [smsType, smsOptions.agent, smsOptions.creaByLink, creaByLinkCountNumber])
 
   const rcsTotalPrice = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
