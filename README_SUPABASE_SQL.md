@@ -255,23 +255,32 @@ WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 -- ⚠️ EXÉCUTE CE SCRIPT MAINTENANT POUR DÉBLOQUER LA CONNEXION
 -- On supprime temporairement tout ce qui touche au système de rôles
 
--- 1. Supprimer la fonction is_admin qui peut causer des boucles
-DROP FUNCTION IF EXISTS public.is_admin(UUID);
+-- 1. Supprimer les policies de monthly_content (qui dépendent de is_admin)
+DROP POLICY IF EXISTS "Anyone can view monthly content" ON public.monthly_content;
+DROP POLICY IF EXISTS "Admins can insert monthly content" ON public.monthly_content;
+DROP POLICY IF EXISTS "Admins can update monthly content" ON public.monthly_content;
+DROP POLICY IF EXISTS "Admins can delete monthly content" ON public.monthly_content;
 
--- 2. Supprimer TOUTES les policies
+-- 2. Désactiver RLS sur monthly_content (pour permettre les modifications temporaires)
+ALTER TABLE public.monthly_content DISABLE ROW LEVEL SECURITY;
+
+-- 3. Supprimer la fonction is_admin (maintenant qu'elle n'a plus de dépendances)
+DROP FUNCTION IF EXISTS public.is_admin(UUID) CASCADE;
+
+-- 4. Supprimer TOUTES les policies de profiles
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 DROP POLICY IF EXISTS "users_update_own_profile_except_role" ON public.profiles;
 
--- 3. Supprimer la colonne role (temporairement)
+-- 5. Supprimer la colonne role (temporairement)
 ALTER TABLE public.profiles DROP COLUMN IF EXISTS role CASCADE;
 
--- 4. Supprimer le type enum
+-- 6. Supprimer le type enum
 DROP TYPE IF EXISTS user_role CASCADE;
 
--- 5. Désactiver RLS temporairement
+-- 7. Désactiver RLS sur profiles temporairement
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
 -- ✅ Maintenant tu devrais pouvoir te connecter normalement
