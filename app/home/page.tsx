@@ -20,12 +20,60 @@ import {
 } from "lucide-react"
 
 export default function HomePage() {
-  // Données mockées pour les anniversaires (à remplacer par des vraies données)
-  const birthdays = [
-    { name: "Marie Dubois", date: "15 février", role: "Chef de Projet" },
-    { name: "Jean Martin", date: "22 février", role: "Consultant Digital" },
-    { name: "Sophie Laurent", date: "28 février", role: "Account Manager" },
-  ]
+  // Données complètes des anniversaires Link Agency
+  const allBirthdays = {
+    1: [ // Janvier
+      { name: "Morvan", date: "21 janvier", fullDate: "2026-01-21" },
+    ],
+    2: [ // Février
+      { name: "Gautier", date: "6 février", fullDate: "2026-02-06" },
+      { name: "Morgan", date: "16 février", fullDate: "2026-02-16" },
+      { name: "François", date: "20 février", fullDate: "2026-02-20" },
+    ],
+    3: [ // Mars
+      { name: "Carole", date: "9 mars", fullDate: "2026-03-09" },
+      { name: "Camille", date: "30 mars", fullDate: "2026-03-30" },
+    ],
+    4: [ // Avril
+      { name: "Juliette", date: "11 avril", fullDate: "2026-04-11" },
+    ],
+    6: [ // Juin
+      { name: "Nicolas.M", date: "10 juin", fullDate: "2026-06-10" },
+    ],
+    7: [ // Juillet
+      { name: "Jujule", date: "3 juillet", fullDate: "2026-07-03" },
+    ],
+    8: [ // Août
+      { name: "Victor", date: "6 août", fullDate: "2026-08-06" },
+      { name: "Maxime", date: "11 août", fullDate: "2026-08-11" },
+      { name: "Gary", date: "25 août", fullDate: "2026-08-25" },
+    ],
+    9: [ // Septembre
+      { name: "Junior", date: "14 septembre", fullDate: "2026-09-14" },
+      { name: "Bricky", date: "17 septembre", fullDate: "2026-09-17" },
+      { name: "Clément", date: "29 septembre", fullDate: "2026-09-29" },
+    ],
+    10: [ // Octobre
+      { name: "Nicolas.D", date: "3 octobre", fullDate: "2026-10-03" },
+      { name: "Enzo", date: "25 octobre", fullDate: "2026-10-25" },
+      { name: "Seb", date: "30 octobre", fullDate: "2026-10-30" },
+    ],
+    11: [ // Novembre
+      { name: "Sabine", date: "3 novembre", fullDate: "2026-11-03" },
+      { name: "Pauline.B", date: "9 novembre", fullDate: "2026-11-09" },
+      { name: "Catheline", date: "21 novembre", fullDate: "2026-11-21" },
+    ],
+    12: [ // Décembre
+      { name: "Diane", date: "2 décembre", fullDate: "2026-12-02" },
+      { name: "Emilie", date: "20 décembre", fullDate: "2026-12-20" },
+    ],
+  }
+
+  // Récupérer le mois actuel et les anniversaires correspondants
+  const currentMonth = new Date().getMonth() + 1
+  const monthNames = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+  const currentMonthName = monthNames[currentMonth]
+  const birthdays = allBirthdays[currentMonth as keyof typeof allBirthdays] || []
 
   // Données mockées pour les nouveaux clients
   const newClients = [
@@ -160,23 +208,29 @@ export default function HomePage() {
               <Cake className="w-4 h-4 text-pink-500" />
               Anniversaires du mois
             </CardTitle>
-            <CardDescription className="text-xs">Février 2026</CardDescription>
+            <CardDescription className="text-xs">{currentMonthName} 2026</CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
-              {birthdays.map((person, index) => (
-                <div key={index} className="flex items-start gap-2 p-2 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
-                    {person.name.split(' ').map(n => n[0]).join('')}
+            {birthdays.length > 0 ? (
+              <div className="space-y-2">
+                {birthdays.map((person, index) => (
+                  <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-sm">
+                      {person.name.split('.')[0].substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{person.name}</p>
+                      <p className="text-xs text-pink-600 font-medium">{person.date}</p>
+                    </div>
+                    <div className="text-2xl">🎂</div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-xs truncate">{person.name}</p>
-                    <p className="text-xs text-muted-foreground">{person.role}</p>
-                    <p className="text-xs text-pink-600 font-medium">{person.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-4">
+                Aucun anniversaire ce mois-ci
+              </p>
+            )}
           </CardContent>
         </Card>
 
