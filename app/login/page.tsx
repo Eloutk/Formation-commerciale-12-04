@@ -44,12 +44,18 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      console.log('🔐 Tentative de connexion...')
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      
       if (error) {
+        console.error('❌ Erreur de connexion:', error)
         setError("Email ou mot de passe incorrect")
         setLoading(false)
         return
       }
+      
+      console.log('✅ Connexion réussie!', data.user?.email)
+      
       // Synchroniser la session côté serveur
       try {
         await fetch('/api/auth/session', {
@@ -58,13 +64,23 @@ export default function LoginPage() {
           credentials: 'same-origin',
           body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
         })
-      } catch {}
+        console.log('✅ Session synchronisée')
+      } catch (syncError) {
+        console.warn('⚠️ Erreur sync session (non bloquant):', syncError)
+      }
+      
       const requested = search?.get('redirect') || ''
       const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/home' : requested
+      console.log('🔄 Redirection vers:', redirectTo)
+      
       router.replace(redirectTo)
-    } catch {
+      console.log('✅ Redirect appelé')
+    } catch (err) {
+      console.error('💥 Erreur globale:', err)
       setError("Une erreur est survenue lors de la connexion")
+      setLoading(false)
     } finally {
+      console.log('🏁 Finally appelé, setLoading(false)')
       setLoading(false)
     }
   }
