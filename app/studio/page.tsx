@@ -837,7 +837,7 @@ export default function StudioPage() {
 
                     {/* Colonne droite : Rappel des livrables */}
                     <div>
-                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Google Display</h2>
+                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Display</h2>
                       <Card>
                         <CardContent className="pt-4">
                           <div className="space-y-4">
