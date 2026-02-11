@@ -760,7 +760,7 @@ export default function StudioPage() {
                   {/* Grid 2 colonnes : logos à gauche, encadrés à droite */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7 md:mb-9 lg:mb-12">
                     {/* Colonne gauche : Logos */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 flex flex-col items-center">
                       {/* Format carré */}
                       <div className="max-w-[200px]">
                         <div className="aspect-square w-full mb-2 overflow-hidden">
