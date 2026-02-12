@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -27,145 +27,246 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const [savingName, setSavingName] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const pathnameRef = useRef(pathname)
+  const hydrateInFlightRef = useRef<Promise<boolean> | null>(null)
+  const lastHydrateAtRef = useRef(0)
+  const checkPseudoInFlightRef = useRef<Promise<boolean> | null>(null)
 
+  // Avoid Promise.race() "dangling timeout" rejections that can crash the app (white screen).
   const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
-    return await Promise.race([
-      Promise.resolve(promise),
-      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms)),
-    ])
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(`Timeout: ${label}`)), ms)
+    })
+
+    try {
+      return await Promise.race([Promise.resolve(promise), timeoutPromise])
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }
+
+  const getStorageKey = () => {
+    const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
+    return `sb-${ref}-auth-token`
+  }
+
+  const getStoredSession = () => {
+    try {
+      const raw = window.localStorage.getItem(getStorageKey())
+      if (!raw) return null
+      return JSON.parse(raw) as any
+    } catch {
+      return null
+    }
+  }
+
+  const decodeJwtClaims = (jwt: string | undefined) => {
+    if (!jwt) return null
+    const parts = jwt.split('.')
+    if (parts.length < 2) return null
+    try {
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const json = decodeURIComponent(
+        atob(b64)
+          .split('')
+          .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+          .join('')
+      )
+      return JSON.parse(json) as Record<string, any>
+    } catch {
+      return null
+    }
+  }
+
+  const getSessionFast = async () => {
+    // Prefer supabase-js session, but do not block the UI if it stalls.
+    try {
+      const { data: { session } } = await withTimeout(supabase.auth.getSession(), 1500, 'getSession-fast')
+      if (session) return session
+    } catch {
+      // ignore
+    }
+
+    const stored = getStoredSession()
+    if (!stored?.access_token && !stored?.refresh_token) return null
+
+    const claims = decodeJwtClaims(stored.access_token)
+    const id = (claims?.sub as string | undefined) || ''
+    const email = (claims?.email as string | undefined) || (stored?.user?.email as string | undefined) || ''
+    const user_metadata = (stored?.user?.user_metadata as any) || {}
+
+    return {
+      access_token: stored.access_token,
+      refresh_token: stored.refresh_token,
+      token_type: stored.token_type,
+      expires_in: stored.expires_in,
+      expires_at: stored.expires_at,
+      user: id ? { id, email, user_metadata } : (stored.user ?? null),
+    } as any
+  }
+
+  const hasLocalSession = () => {
+    const stored = getStoredSession()
+    return !!(stored?.access_token && stored?.refresh_token)
   }
 
   const hydrateClientSessionFromServer = async () => {
-    try {
-      const res = await withTimeout(fetch('/api/auth/session-info', { credentials: 'include' }), 2500, 'session-info')
-      const json = await res.json().catch(() => null)
-      const s = json?.session
-      if (!s?.access_token || !s?.refresh_token) return false
+    // Prevent loops: only hydrate if we truly have no local session,
+    // and throttle attempts (some browsers/extensions can stall supabase-js).
+    if (hasLocalSession()) return true
 
-      const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
-      const storageKey = `sb-${ref}-auth-token`
+    const nowMs = Date.now()
+    if (nowMs - lastHydrateAtRef.current < 30_000) return false
+    lastHydrateAtRef.current = nowMs
 
-      const now = Math.floor(Date.now() / 1000)
-      const expires_at = typeof s.expires_at === 'number' ? s.expires_at : (now + (s.expires_in || 3600))
+    if (hydrateInFlightRef.current) return await hydrateInFlightRef.current
+    hydrateInFlightRef.current = (async () => {
+      try {
+        const res = await withTimeout(fetch('/api/auth/session-info', { credentials: 'include' }), 4000, 'session-info')
+        const json = await res.json().catch(() => null)
+        const s = json?.session
+        if (!s?.access_token || !s?.refresh_token) return false
 
-      window.localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          access_token: s.access_token,
-          refresh_token: s.refresh_token,
-          token_type: s.token_type || 'bearer',
-          expires_in: s.expires_in || 3600,
-          expires_at,
-          user: s.user || null,
-        })
-      )
-      return true
-    } catch {
-      return false
-    }
+        const storageKey = getStorageKey()
+        const now = Math.floor(Date.now() / 1000)
+        const expires_at = typeof s.expires_at === 'number' ? s.expires_at : (now + (s.expires_in || 3600))
+
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            access_token: s.access_token,
+            refresh_token: s.refresh_token,
+            token_type: s.token_type || 'bearer',
+            expires_in: s.expires_in || 3600,
+            expires_at,
+            user: s.user || null,
+          })
+        )
+        return true
+      } catch {
+        return false
+      } finally {
+        hydrateInFlightRef.current = null
+      }
+    })()
+
+    return await hydrateInFlightRef.current
   }
 
   const checkPseudo = async () => {
-    const { data: { session } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession')
-    const u = session?.user
-    if (!u) {
-      setUser(null)
-      setIsAdmin(false)
+    if (checkPseudoInFlightRef.current) return await checkPseudoInFlightRef.current
+    checkPseudoInFlightRef.current = (async () => {
+      // Important: this must never throw, otherwise the header can get stuck on "Se connecter".
+      const run = async () => {
+        const session = await getSessionFast()
+        const u = session?.user
+        const hasTokens = !!(session as any)?.access_token
+
+        if (!u && !hasTokens) {
+          setUser(null)
+          setIsAdmin(false)
+          return false
+        }
+
+        // If tokens exist but user is missing, build a minimal user from JWT claims.
+        const stableUser = u
+          ? u
+          : (() => {
+              const claims = decodeJwtClaims((session as any)?.access_token)
+              return claims?.sub
+                ? { id: claims.sub, email: claims.email || '', user_metadata: {} }
+                : null
+            })()
+
+        if (!stableUser) {
+          setUser(null)
+          setIsAdmin(false)
+          return false
+        }
+
+      if (!u) {
+        // keep going with stableUser
+      }
+
+      // Set a stable fallback user immediately (avoid header flicker)
+      const metaName = ((stableUser as any).user_metadata as any)?.full_name as string | undefined
+      const fallbackName = (metaName || (((stableUser as any).email || '') as string).split('@')[0] || '').trim()
+      let currentName = fallbackName
+      setUser({ id: (stableUser as any).id, name: currentName, email: (stableUser as any).email || '' })
+
+      // Then enrich with profile data (but never block the UI)
+      try {
+        const { data: profile } = await withTimeout(
+          supabase.from('profiles').select('full_name, role').eq('id', (stableUser as any).id).maybeSingle(),
+          6000,
+          'profiles'
+        )
+        const profileName = profile?.full_name as string | undefined
+        currentName = (metaName || profileName || fallbackName).trim()
+        setUser({ id: (stableUser as any).id, name: currentName, email: (stableUser as any).email || '' })
+        const role = (profile as any)?.role as string | undefined
+        setIsAdmin(role === 'admin' || role === 'super_admin')
+      } catch {
+        // keep fallback values
+        setIsAdmin(false)
+      }
+
+      if (!currentName) {
+        setNickname((((stableUser as any).email || '') as string).split('@')[0] || '')
+        setMustCompleteName(true)
+        return true
+      }
+      setMustCompleteName(false)
       return false
-    }
+      }
 
-    // Set a stable fallback user immediately (avoid header flicker)
-    const metaName = (u.user_metadata as any)?.full_name as string | undefined
-    const fallbackName = (metaName || (u.email || '').split('@')[0] || '').trim()
-    let currentName = fallbackName
-    setUser({ id: u.id, name: currentName, email: u.email || '' })
+      try {
+        return await run()
+      } catch {
+        // One last attempt: server sees cookies but client lost localStorage session
+        try {
+          await hydrateClientSessionFromServer()
+          return await run()
+        } catch {
+          setUser(null)
+          setIsAdmin(false)
+          return false
+        }
+      }
+    })().finally(() => {
+      checkPseudoInFlightRef.current = null
+    })
 
-    // Then enrich with profile data (but never block the UI)
-    try {
-      const { data: profile } = await withTimeout(
-        supabase.from('profiles').select('full_name, role').eq('id', u.id).maybeSingle(),
-        2500,
-        'profiles'
-      )
-      const profileName = profile?.full_name as string | undefined
-      currentName = (metaName || profileName || fallbackName).trim()
-      setUser({ id: u.id, name: currentName, email: u.email || '' })
-      const role = (profile as any)?.role as string | undefined
-      setIsAdmin(role === 'admin' || role === 'super_admin')
-    } catch {
-      // keep fallback values
-      setIsAdmin(false)
-    }
-
-    if (!currentName) {
-      setNickname((u.email || '').split('@')[0] || '')
-      setMustCompleteName(true)
-      return true
-    }
-    setMustCompleteName(false)
-    return false
+    return await checkPseudoInFlightRef.current
   }
 
   useEffect(() => {
-    const init = async () => {
+    pathnameRef.current = pathname
+  }, [pathname])
+
+  useEffect(() => {
+    const initOnce = async () => {
       try {
-        // Si le serveur te considère connecté (cookies) mais que le navigateur a perdu la session,
-        // on réhydrate localStorage pour stabiliser pseudo + bouton déconnexion.
-        const { data: { session: clientSession } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession-init')
-        if (!clientSession?.user) {
+        // If server cookies say "connected" but browser lost local session, rehydrate once.
+        if (!hasLocalSession()) {
           await hydrateClientSessionFromServer()
         }
 
-        // ⚡ Pages publiques : login, register, reset-password
-        if (pathname === '/login' || pathname === '/register' || pathname === '/reset-password') {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.user) {
-            // Si déjà connecté et on arrive sur une page publique, on renvoie vers /home
-            await checkPseudo()
-            router.replace('/home')
-          } else {
-            setUser(null)
-            setIsAdmin(false)
-          }
-          return
-        }
-
-        const need = await checkPseudo()
-        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 2500, 'getSession-after-checkPseudo')
-
-        // Si pas connecté et page privée -> forcer /login
-        if (
-          !session?.user &&
-          pathname !== '/login' &&
-          pathname !== '/register' &&
-          pathname !== '/reset-password'
-        ) {
-          router.replace('/login')
-          return
-        }
-
-        // Si connecté et sur la racine / -> aller sur /home
-        if (session?.user && pathname === '/') {
-          router.replace('/home')
-          return
-        }
-
-        // Si on a besoin de compléter le pseudo, le dialog s'affiche déjà via mustCompleteName
-        if (!need && session?.user) {
-          setUser((prev) => prev || { id: session.user.id, name: '', email: session.user.email || '' })
-        }
+        await checkPseudo()
       } finally {
         setLoading(false)
       }
     }
 
     // Safety: never block the whole app for minutes
-    withTimeout(init(), 6000, 'init').catch(() => setLoading(false))
+    withTimeout(initOnce(), 15000, 'init-once').catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         await checkPseudo()
-        if (pathname === '/login' || pathname === '/register') {
+        const p = pathnameRef.current
+        if ((p === '/login' || p === '/register') && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
           router.replace('/home')
         }
       }
@@ -175,23 +276,59 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         setMustCompleteName(false)
         router.replace('/login')
       }
+      // Note: do NOT call checkPseudo on TOKEN_REFRESHED to avoid loops when refresh stalls.
     })
     return () => subscription.unsubscribe()
-  }, [pathname, router])
+  }, [router])
+
+  useEffect(() => {
+    if (loading) return
+    const isPublic = pathname === '/login' || pathname === '/register' || pathname === '/reset-password'
+    if (isPublic) {
+      if (user) router.replace('/home')
+      return
+    }
+    if (!user) {
+      router.replace('/login')
+      return
+    }
+    if (pathname === '/') {
+      router.replace('/home')
+    }
+  }, [pathname, user, loading, router])
 
   const handleLogout = async () => {
+    // Make logout immediate in the UI, then best-effort clear cookies + local session.
+    setUser(null)
+    setIsAdmin(false)
+    setMustCompleteName(false)
+
+    // Clear local storage immediately (prevents re-hydration loops)
     try {
-      // Déconnexion serveur (cookies middleware)
-      try {
-        await fetch('/api/auth/session', {
+      window.localStorage.removeItem(getStorageKey())
+    } catch {}
+
+    // Best-effort: clear server cookies (middleware) with timeout
+    try {
+      await withTimeout(
+        fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({ event: 'SIGNED_OUT' }),
-        })
-      } catch {}
-      await supabase.auth.signOut()
+        }),
+        2500,
+        'logout-session'
+      )
     } catch {}
+
+    // Best-effort: clear supabase-js local state without blocking navigation
+    try {
+      await withTimeout(supabase.auth.signOut(), 1500, 'signOut')
+    } catch {}
+
+    // Force navigation after cookie clear attempt
+    window.location.assign('/login')
   }
 
   const saveNickname = async (e: React.FormEvent) => {
@@ -242,7 +379,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
             <div className="flex items-center gap-4">
               <div className="md:hidden">
-                <MobileNav />
+                <MobileNav user={user} isAdmin={isAdmin} onLogout={handleLogout} />
               </div>
               {user ? (
                 <>

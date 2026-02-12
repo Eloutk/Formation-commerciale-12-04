@@ -6,7 +6,20 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 
-export function MobileNav() {
+type MobileNavUser = {
+  name?: string
+  email?: string
+} | null
+
+export function MobileNav({
+  user,
+  isAdmin,
+  onLogout,
+}: {
+  user?: MobileNavUser
+  isAdmin?: boolean
+  onLogout?: () => void | Promise<void>
+}) {
   const [open, setOpen] = React.useState(false)
   const handleNav = () => setOpen(false)
 
@@ -53,10 +66,33 @@ export function MobileNav() {
               <Link href="/faq" className="text-sm hover:underline" onClick={handleNav}>
                 FAQ
               </Link>
+              {isAdmin && (
+                <Link href="/admin" className="text-sm hover:underline text-orange-600" onClick={handleNav}>
+                  Admin
+                </Link>
+              )}
               <div className="pt-4 mt-4 border-t">
-                <Button asChild className="w-full" onClick={handleNav}>
-                  <Link href="/login">Connexion</Link>
-                </Button>
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground truncate">
+                      {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                      onClick={async () => {
+                        handleNav()
+                        await onLogout?.()
+                      }}
+                    >
+                      Se déconnecter
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild className="w-full" onClick={handleNav}>
+                    <Link href="/login">Connexion</Link>
+                  </Button>
+                )}
               </div>
             </nav>
           </div>

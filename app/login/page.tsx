@@ -5,6 +5,40 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
 import supabase from '@/utils/supabase/client'
 
+function authErrorToFrench(raw: unknown, status?: number) {
+  const msg = (typeof raw === 'string' ? raw : '') || ''
+  const normalized = msg.toLowerCase()
+
+  if (status === 400 && normalized.includes('missing')) {
+    return "Merci de renseigner votre email et votre mot de passe."
+  }
+  if (status === 429 || normalized.includes('too many requests')) {
+    return "Trop de tentatives. Réessayez dans quelques minutes."
+  }
+  if (
+    normalized.includes('invalid login credentials') ||
+    normalized.includes('invalid credentials') ||
+    normalized.includes('invalid email or password') ||
+    normalized.includes('wrong password') ||
+    normalized.includes('invalid password')
+  ) {
+    return "Email ou mot de passe incorrect."
+  }
+  if (normalized.includes('email not confirmed') || normalized.includes('confirm your email')) {
+    return "Votre email n’est pas encore confirmé. Vérifiez votre boîte mail (et vos spams) puis réessayez."
+  }
+  if (normalized.includes('user is disabled') || normalized.includes('user disabled')) {
+    return "Ce compte est désactivé. Veuillez contacter Emilie."
+  }
+
+  // Fallback: keep some info but in French
+  return msg ? `Connexion impossible : ${msg}` : "Connexion impossible."
+}
+
+function withEmilieHelp(message: string) {
+  return `${message}\n\nEn cas de souci, contactez Emilie.`
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -58,7 +92,8 @@ export default function LoginPage() {
       const authJson = await authRes.json().catch(() => null)
       if (!authRes.ok) {
         console.error('❌ Erreur auth API:', authJson)
-        setError(authJson?.error || "Email ou mot de passe incorrect")
+        const fr = authErrorToFrench(authJson?.error, authRes.status)
+        setError(withEmilieHelp(fr))
         return
       }
 
@@ -102,18 +137,25 @@ export default function LoginPage() {
       
       // Synchroniser la session côté serveur
       try {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Timeout sync cookies (8s)')), 8000)
+        })
+
         const syncRes = await Promise.race([
           fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-          body: JSON.stringify({
-            event: 'SIGNED_IN',
-            session: { access_token, refresh_token },
+            body: JSON.stringify({
+              event: 'SIGNED_IN',
+              session: { access_token, refresh_token },
+            }),
           }),
-          }),
-          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout sync cookies (8s)')), 8000)),
-        ])
+          timeoutPromise,
+        ]).finally(() => {
+          if (timeoutId) clearTimeout(timeoutId)
+        })
 
         const syncJson = await syncRes.json().catch(() => null)
         if (!syncRes.ok || !syncJson?.ok) {

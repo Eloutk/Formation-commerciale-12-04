@@ -31,91 +31,77 @@ interface MonthlyContent {
   new_clients: Array<{ name: string; date: string; type: string }>
 }
 
+interface BirthdayRow {
+  id: string
+  name: string
+  month: number
+  day: number
+}
+
 export default function HomePage() {
   const [monthlyContent, setMonthlyContent] = useState<MonthlyContent | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [birthdays, setBirthdays] = useState<BirthdayRow[]>([])
 
-  // Charger le contenu du mois actuel depuis Supabase
+  // Charger le contenu du mois actuel + anniversaires depuis Supabase
   useEffect(() => {
-    async function loadMonthlyContent() {
+    let cancelled = false
+
+    async function loadHomeData() {
       const currentMonth = new Date().getMonth() + 1
       const currentYear = new Date().getFullYear()
 
       try {
-        const { data, error } = await supabase
-          .from('monthly_content')
-          .select('*')
-          .eq('month', currentMonth)
-          .eq('year', currentYear)
-          .single()
+        const [monthlyRes, birthdaysRes] = await Promise.all([
+          supabase
+            .from('monthly_content')
+            .select('*')
+            .eq('month', currentMonth)
+            .eq('year', currentYear)
+            .single(),
+          supabase
+            .from('birthdays')
+            .select('id, name, month, day')
+            .eq('month', currentMonth)
+            .order('day', { ascending: true }),
+        ])
 
-        if (data && !error) {
-          setMonthlyContent(data)
+        if (!cancelled) {
+          if (monthlyRes.data && !monthlyRes.error) {
+            setMonthlyContent(monthlyRes.data as any)
+          } else {
+            setMonthlyContent(null)
+          }
+
+          if (birthdaysRes.data && !birthdaysRes.error) {
+            setBirthdays(birthdaysRes.data as BirthdayRow[])
+          } else {
+            setBirthdays([])
+          }
         }
       } catch (error) {
-        console.error('Error loading monthly content:', error)
-      } finally {
-        setLoading(false)
+        console.error('Error loading home data:', error)
+        if (!cancelled) {
+          setMonthlyContent(null)
+          setBirthdays([])
+        }
       }
     }
 
-    loadMonthlyContent()
+    loadHomeData()
+    return () => {
+      cancelled = true
+    }
   }, [])
-  // Données complètes des anniversaires Link Agency
-  const allBirthdays = {
-    1: [ // Janvier
-      { name: "Morvan", date: "21 janvier", fullDate: "2026-01-21" },
-    ],
-    2: [ // Février
-      { name: "Gautier", date: "6 février", fullDate: "2026-02-06" },
-      { name: "Morgan", date: "16 février", fullDate: "2026-02-16" },
-      { name: "François", date: "20 février", fullDate: "2026-02-20" },
-    ],
-    3: [ // Mars
-      { name: "Carole", date: "9 mars", fullDate: "2026-03-09" },
-      { name: "Camille", date: "30 mars", fullDate: "2026-03-30" },
-    ],
-    4: [ // Avril
-      { name: "Juliette", date: "11 avril", fullDate: "2026-04-11" },
-    ],
-    6: [ // Juin
-      { name: "Nicolas.M", date: "10 juin", fullDate: "2026-06-10" },
-    ],
-    7: [ // Juillet
-      { name: "Jujule", date: "3 juillet", fullDate: "2026-07-03" },
-    ],
-    8: [ // Août
-      { name: "Victor", date: "6 août", fullDate: "2026-08-06" },
-      { name: "Maxime", date: "11 août", fullDate: "2026-08-11" },
-      { name: "Gary", date: "25 août", fullDate: "2026-08-25" },
-    ],
-    9: [ // Septembre
-      { name: "Junior", date: "14 septembre", fullDate: "2026-09-14" },
-      { name: "Bricky", date: "17 septembre", fullDate: "2026-09-17" },
-      { name: "Clément", date: "29 septembre", fullDate: "2026-09-29" },
-    ],
-    10: [ // Octobre
-      { name: "Nicolas.D", date: "3 octobre", fullDate: "2026-10-03" },
-      { name: "Enzo", date: "25 octobre", fullDate: "2026-10-25" },
-      { name: "Seb", date: "30 octobre", fullDate: "2026-10-30" },
-    ],
-    11: [ // Novembre
-      { name: "Sabine", date: "3 novembre", fullDate: "2026-11-03" },
-      { name: "Pauline.B", date: "9 novembre", fullDate: "2026-11-09" },
-      { name: "Catheline", date: "21 novembre", fullDate: "2026-11-21" },
-    ],
-    12: [ // Décembre
-      { name: "Diane", date: "2 décembre", fullDate: "2026-12-02" },
-      { name: "Emilie", date: "20 décembre", fullDate: "2026-12-20" },
-    ],
-  }
 
   // Récupérer le mois actuel et les anniversaires correspondants
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
   const monthNames = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
   const currentMonthName = monthNames[currentMonth]
-  const birthdays = allBirthdays[currentMonth as keyof typeof allBirthdays] || []
+  const birthdayCards = birthdays.map((b) => ({
+    name: b.name,
+    date: `${b.day} ${monthNames[b.month]?.toLowerCase?.() || ''}`.trim(),
+  }))
 
   // Données depuis Supabase (ou fallback)
   const newClients = monthlyContent?.new_clients || []
@@ -290,9 +276,9 @@ export default function HomePage() {
             <CardDescription className="text-xs">{currentMonthName} 2026</CardDescription>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            {birthdays.length > 0 ? (
+            {birthdayCards.length > 0 ? (
               <div className="space-y-1.5">
-                {birthdays.slice(0, 3).map((person, index) => (
+                {birthdayCards.slice(0, 3).map((person, index) => (
                   <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
                       {person.name.split('.')[0].trim().charAt(0).toUpperCase()}
@@ -304,9 +290,9 @@ export default function HomePage() {
                     <div className="text-lg">🎂</div>
                   </div>
                 ))}
-                {birthdays.length > 3 && (
+                {birthdayCards.length > 3 && (
                   <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{birthdays.length - 3} autre{birthdays.length - 3 > 1 ? 's' : ''}
+                    +{birthdayCards.length - 3} autre{birthdayCards.length - 3 > 1 ? 's' : ''}
                   </p>
                 )}
               </div>

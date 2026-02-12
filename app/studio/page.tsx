@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { useState } from "react"
 import MetaRecommendationsTabs from "@/components/meta/MetaRecommendationsTabs"
+import SafeImage from "@/components/safe-image"
 
 export default function StudioPage() {
   const [tooltip1Open, setTooltip1Open] = useState(false)
@@ -301,8 +302,13 @@ export default function StudioPage() {
                         <div className="flex justify-center">
                           <div className="w-full max-w-[300px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
-                              <NextImage
+                              <SafeImage
                                 src="/images/META format complet vertical2@10x.png"
+                                extraSrcCandidates={[
+                                  // Common filename variations (spacing/encoding)
+                                  "/images/META format complet vertical 2@10x.png",
+                                  "/images/META%20format%20complet%20vertical%202@10x.png",
+                                ]}
                                 alt="Limites de caractères pour les wordings"
                                 width={1440}
                                 height={2560}
@@ -389,8 +395,14 @@ export default function StudioPage() {
                         <div className="flex justify-center">
                           <div className="w-full max-w-[300px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
-                            <NextImage
+                            <SafeImage
                               src="/images/META Marges de sécurité 2@10x.png"
+                              extraSrcCandidates={[
+                                // NFC variant (single-codepoint accents) often differs from NFD (combining accents)
+                                "/images/META Marges de sécurité 2@10x.png",
+                                "/images/META%20Marges%20de%20sécurité%202@10x.png",
+                                "/images/META%20Marges%20de%20se%CC%81curite%CC%81%202@10x.png",
+                              ]}
                               alt="Marges de sécurité pour les story et reels"
                               width={1440}
                               height={2560}
