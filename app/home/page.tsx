@@ -131,14 +131,6 @@ export default function HomePage() {
       bgColor: "bg-purple-50",
     },
     {
-      title: "Formation",
-      description: "Modules de formation complète sur le marketing digital",
-      icon: GraduationCap,
-      href: "/formation",
-      color: "text-green-500",
-      bgColor: "bg-green-50",
-    },
-    {
       title: "Diffusion",
       description: "Gestion et suivi de vos campagnes de diffusion",
       icon: Radio,
@@ -182,13 +174,6 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-3 lg:py-4 max-w-7xl">
-      {/* Header Section */}
-      <div className="mb-4 lg:mb-5">
-        <h1 className="text-2xl md:text-3xl font-bold mb-1 bg-gradient-to-r from-[#E94C16] to-orange-600 bg-clip-text text-transparent">
-          Bienvenue sur Link Agency
-        </h1>
-      </div>
-
       {/* Main Sections Grid */}
       <div className="mb-4 lg:mb-5">
         <h2 className="text-lg font-semibold mb-3">
