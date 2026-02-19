@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
-import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 
@@ -199,6 +199,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     backgroundColor: '#fafafa',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  logo: {
+    width: 34,
+    height: 34,
+    objectFit: 'contain',
+  },
   title: {
     fontSize: 22,
     marginBottom: 8,
@@ -207,9 +226,16 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 18,
-    marginBottom: 30,
+    marginTop: 4,
+    marginBottom: 18,
     color: '#E94C16',
     fontWeight: 'bold',
+  },
+  clientComment: {
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 20,
+    color: '#666666',
   },
   summary: {
     marginBottom: 15,
@@ -287,9 +313,6 @@ const styles = StyleSheet.create({
   pieCircle: {
     width: 90,
     height: 90,
-    borderRadius: 45,
-    borderWidth: 8,
-    borderColor: '#f3f4f6',
     alignSelf: 'center',
     marginBottom: 10,
     justifyContent: 'center',
@@ -333,31 +356,139 @@ const styles = StyleSheet.create({
 // Couleurs pour le graphique PDF (mêmes que dans l'interface)
 const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
+type PdfChartDatum = {
+  name: string
+  value: number
+  percentage: number
+  color: string
+}
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+
+const toRadians = (deg: number) => (deg * Math.PI) / 180
+
+const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
+  const a = toRadians(angleDeg)
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
+}
+
+const donutSlicePath = (
+  cx: number,
+  cy: number,
+  rOuter: number,
+  rInner: number,
+  startAngle: number,
+  endAngle: number,
+) => {
+  // SVG arc flags
+  const sweep = 1
+  const delta = ((endAngle - startAngle) % 360 + 360) % 360
+  const largeArc = delta > 180 ? 1 : 0
+
+  const p1 = polarToCartesian(cx, cy, rOuter, startAngle)
+  const p2 = polarToCartesian(cx, cy, rOuter, endAngle)
+  const p3 = polarToCartesian(cx, cy, rInner, endAngle)
+  const p4 = polarToCartesian(cx, cy, rInner, startAngle)
+
+  return [
+    `M ${p1.x} ${p1.y}`,
+    `A ${rOuter} ${rOuter} 0 ${largeArc} ${sweep} ${p2.x} ${p2.y}`,
+    `L ${p3.x} ${p3.y}`,
+    `A ${rInner} ${rInner} 0 ${largeArc} ${sweep ? 0 : 1} ${p4.x} ${p4.y}`,
+    'Z',
+  ].join(' ')
+}
+
+function PdfDonutChart({
+  data,
+  size = 90,
+}: {
+  data: Array<Pick<PdfChartDatum, 'value' | 'color'>>
+  size?: number
+}) {
+  const total = data.reduce((s, d) => s + (Number.isFinite(d.value) ? d.value : 0), 0)
+  const safeTotal = total > 0 ? total : 1
+  const slices = data
+    .map((d) => ({ value: Math.max(0, d.value || 0), color: d.color }))
+    .filter((d) => d.value > 0)
+
+  const rOuter = size / 2
+  const rInner = rOuter - 8
+  const cx = rOuter
+  const cy = rOuter
+
+  // Starting at top
+  let angle = -90
+
+  // Special cases: no data or single slice => draw a clean ring
+  if (slices.length === 0) {
+    return (
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle cx={cx} cy={cy} r={rInner + 4} stroke="#f3f4f6" strokeWidth={8} fill="none" />
+      </Svg>
+    )
+  }
+
+  if (slices.length === 1) {
+    return (
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle cx={cx} cy={cy} r={rInner + 4} stroke={slices[0].color} strokeWidth={8} fill="none" />
+      </Svg>
+    )
+  }
+
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* background ring */}
+      <Circle cx={cx} cy={cy} r={rInner + 4} stroke="#f3f4f6" strokeWidth={8} fill="none" />
+      {slices.map((s, idx) => {
+        const frac = clamp01(s.value / safeTotal)
+        const start = angle
+        const end = angle + frac * 360
+        angle = end
+        const d = donutSlicePath(cx, cy, rOuter - 4, rInner, start, end)
+        return <Path key={idx} d={d} fill={s.color} />
+      })}
+    </Svg>
+  )
+}
+
 // Composant PDF multi-stratégies
 const PDFDocument = ({
   strategies,
   clientName,
   userName,
   aePercentage,
+  comment,
+  logoDataUrl,
 }: {
   strategies: StrategyBlock[]
   clientName: string
   userName: string
   aePercentage: number
+  comment?: string
+  logoDataUrl?: string | null
 }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>
-          {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            {!!logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
+            <Text style={styles.title}>
+              {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
+            </Text>
+          </View>
+        </View>
         <Text style={styles.clientName}>Client : {clientName}</Text>
+        {!!comment?.trim() && (
+          <Text style={styles.clientComment}>{comment.trim()}</Text>
+        )}
 
         {strategies.map((block, index) => {
           if (!block.items.length) return null
 
           const total = block.items.reduce((sum, item) => sum + item.budget, 0)
-          const kpisTotal = block.items.reduce((sum, item) => sum + item.estimatedKPIs, 0)
 
           const platformTotals: Record<string, number> = {}
           block.items.forEach((item) => {
@@ -401,18 +532,10 @@ const PDFDocument = ({
                       <Text style={styles.summaryText}>
                         Stratégie {index + 1} : {block.name}
                       </Text>
-                      <Text style={styles.summaryText}>
-                        {block.items.length} élément
-                        {block.items.length > 1 ? 's' : ''} sélectionné
-                        {block.items.length > 1 ? 's' : ''}
-                      </Text>
                       <Text style={styles.summaryTotal}>
                         Total : {formatNumber(total, 0)} €
                       </Text>
-                      <Text style={styles.summaryText}>
-                        KPIs totaux : {formatNumber(kpisTotal, 0)}
-                      </Text>
-                      <Text style={styles.summaryText}>
+                      <Text style={[styles.summaryText, { marginTop: 4 }]}>
                         AE :{' '}
                         {strategyAe > 0
                           ? `${formatNumber(strategyAe, 0)} %`
@@ -431,7 +554,7 @@ const PDFDocument = ({
                     <View style={styles.chartBox}>
                       <Text style={styles.chartTitle}>Répartition par plateforme</Text>
                       <View style={styles.pieCircle}>
-                        <Text style={styles.pieCenterText}>100%</Text>
+                        <PdfDonutChart data={chartDataPlatform} />
                       </View>
                       <View style={styles.legend}>
                         {chartDataPlatform.map((item, idx) => (
@@ -456,7 +579,7 @@ const PDFDocument = ({
                     <View style={styles.chartBox}>
                       <Text style={styles.chartTitle}>Répartition par objectif</Text>
                       <View style={styles.pieCircle}>
-                        <Text style={styles.pieCenterText}>100%</Text>
+                        <PdfDonutChart data={chartDataObjective} />
                       </View>
                       <View style={styles.legend}>
                         {chartDataObjective.map((item, idx) => (
@@ -746,6 +869,7 @@ export default function PDVPage() {
   // État pour la modale PDF
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [clientName, setClientName] = useState('')
+  const [pdfClientComment, setPdfClientComment] = useState('')
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -1122,13 +1246,36 @@ export default function PDVPage() {
   // Fonction pour générer et télécharger le PDF (toutes les stratégies)
   const handleExportPDF = async () => {
     if (!clientName.trim()) return
-    
+
+    const fetchAsDataUrl = async (url: string, timeoutMs: number): Promise<string | null> => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        if (!res.ok) return null
+        const blob = await res.blob()
+        return await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return null
+      }
+    }
+
+    const logoDataUrl = await fetchAsDataUrl('/Logo Link Vertical (Orange).png', 2000)
+
     const doc = (
       <PDFDocument
         strategies={strategies}
         clientName={clientName}
         userName={userName}
         aePercentage={parseFloat(aePercentage) || 0}
+        comment={pdfClientComment}
+        logoDataUrl={logoDataUrl}
       />
     )
     const blob = await pdf(doc).toBlob()
@@ -1140,6 +1287,7 @@ export default function PDVPage() {
     URL.revokeObjectURL(url)
     setPdfDialogOpen(false)
     setClientName('')
+    setPdfClientComment('')
   }
 
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
@@ -2464,6 +2612,15 @@ export default function PDVPage() {
                     handleExportPDF()
                   }
                 }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client-comment">Commentaire (optionnel)</Label>
+              <Input
+                id="client-comment"
+                placeholder="Ex: Campagne janvier 2026"
+                value={pdfClientComment}
+                onChange={(e) => setPdfClientComment(e.target.value)}
               />
             </div>
           </div>

@@ -230,18 +230,13 @@ export default function HomePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <ul className="space-y-1 text-xs">
-                  {monthlyContent.success_items.slice(0, 3).map((item, index) => (
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
+                  {monthlyContent.success_items.map((item, index) => (
                     <li key={index} className="flex items-start gap-1.5">
                       <span className="text-yellow-600 mt-0.5">•</span>
                       <span className="flex-1 text-muted-foreground leading-snug">{item}</span>
                     </li>
                   ))}
-                  {monthlyContent.success_items.length > 3 && (
-                    <li className="text-muted-foreground text-center pt-1">
-                      +{monthlyContent.success_items.length - 3} autre{monthlyContent.success_items.length - 3 > 1 ? 's' : ''}
-                    </li>
-                  )}
                 </ul>
               </CardContent>
             </Card>

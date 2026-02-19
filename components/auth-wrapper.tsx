@@ -208,8 +208,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         const role = (profile as any)?.role as string | undefined
         setIsAdmin(role === 'admin' || role === 'super_admin')
       } catch {
-        // keep fallback values
-        setIsAdmin(false)
+        // Garder l'état admin précédent en cas de timeout / erreur réseau
       }
 
       if (!currentName) {
