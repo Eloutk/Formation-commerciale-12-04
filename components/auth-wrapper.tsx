@@ -284,7 +284,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     if (loading) return
     const isPublic = pathname === '/login' || pathname === '/register' || pathname === '/reset-password'
     if (isPublic) {
-      if (user) router.replace('/home')
+      // Ne pas rediriger depuis /reset-password : l'utilisateur doit d'abord changer son mot de passe
+      if (user && pathname !== '/reset-password') router.replace('/home')
       return
     }
     if (!user) {
