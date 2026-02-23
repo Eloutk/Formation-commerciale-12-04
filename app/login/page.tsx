@@ -208,49 +208,58 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold">Connexion</h1>
-        <p className="text-muted-foreground mt-2">Exclusivement réservé aux membres de l'agence Link</p>
-      </div>
+    <div
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat px-4 py-12"
+      style={{ backgroundImage: "url('/images/base-presentation.jpg')" }}
+    >
+      {/* Overlay sombre pour contraste */}
+      <div className="absolute inset-0 bg-black/50" aria-hidden />
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-white/20 p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">Connexion</h1>
+            <p className="text-gray-600 mt-2">Exclusivement réservé aux membres de l'agence Link</p>
+          </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>
-      )}
-      {resetMsg && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">{resetMsg}</div>
-      )}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>
+          )}
+          {resetMsg && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">{resetMsg}</div>
+          )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900" required disabled={loading} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-800 mb-2">Mot de passe</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900" required disabled={loading} />
+            </div>
+            <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 font-medium">{loading ? "Connexion..." : "Se connecter"}</button>
+          </form>
+
+          {/* 👇 Lien mot de passe oublié */}
+          <div className="text-center mt-4">
+            <button
+              onClick={handlePasswordReset}
+              className="text-sm text-orange-600 hover:underline font-medium"
+              disabled={loading || resetLoading}
+            >
+              {resetLoading ? "Envoi..." : "Mot de passe oublié ?"}
+            </button>
+          </div>
+
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-600">
+              Pas encore de compte ?{" "}
+              <Link href="/register" className="text-orange-600 hover:underline font-medium">
+                Créer un compte
+              </Link>
+            </p>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Mot de passe</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" required disabled={loading} />
-        </div>
-        <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50">{loading ? "Connexion..." : "Se connecter"}</button>
-      </form>
-
-      {/* 👇 Lien mot de passe oublié */}
-      <div className="text-center mt-4">
-        <button
-          onClick={handlePasswordReset}
-          className="text-sm text-orange-600 hover:underline"
-          disabled={loading || resetLoading}
-        >
-          {resetLoading ? "Envoi..." : "Mot de passe oublié ?"}
-        </button>
-      </div>
-
-      <div className="text-center mt-6">
-        <p className="text-sm text-muted-foreground">
-          Pas encore de compte ?{" "}
-          <Link href="/register" className="text-orange-600 hover:underline">
-            Créer un compte
-          </Link>
-        </p>
       </div>
     </div>
   )
