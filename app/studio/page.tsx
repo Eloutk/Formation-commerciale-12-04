@@ -46,6 +46,8 @@ export default function StudioPage() {
   const [snapLimites3Open, setSnapLimites3Open] = useState(false);
   const [snapMarges1Open, setSnapMarges1Open] = useState(false);
   const [snapMarges2Open, setSnapMarges2Open] = useState(false);
+  const [spotifyLimites1Open, setSpotifyLimites1Open] = useState(false);
+  const [spotifyLimites2Open, setSpotifyLimites2Open] = useState(false);
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
@@ -1315,6 +1317,35 @@ export default function StudioPage() {
               </CardHeader>
               <CardContent className="space-y-6">
 
+                {/* En un clin d'œil - Rappel des livrables attendus par Snapchat (compact, 2 colonnes) */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">Pré-requis média minimum obligatoires :</h3>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
+                            <li>2 maximum.</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">Pré-requis wording¹ minimum obligatoires :</h3>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>Nom de marque.</li>
+                            <li>1 titre.</li>
+                            <li>1 CTA².</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
                 {/* H2 : Liste des formats */}
                   <div>
                   <h2 className="mb-6">Liste des formats</h2>
@@ -1544,33 +1575,6 @@ export default function StudioPage() {
                       </CardContent>
                     </Card>
                   </div>
-                </div>
-
-                {/* H2 : Rappel des livrables attendus par Snapchat */}
-                <div className="mt-6">
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des livrables attendus par Snapchat</h2>
-                  
-                    <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                          <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
-                            <li>2 maximum.</li>
-                            </ul>
-                          </div>
-                          <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>Nom de marque.</li>
-                            <li>1 titre.</li>
-                            <li>1 CTA².</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
                 </div>
 
                 {/* Légende en bas de page Snapchat */}
@@ -1855,6 +1859,36 @@ export default function StudioPage() {
                       </CardHeader>
               <CardContent className="space-y-6">
 
+                {/* En un clin d'œil - Livrables attendus par Spotify (2 colonnes) */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">Pré-requis média minimum obligatoires :</h3>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image en format carré.</li>
+                            <li>1 logo en format carré.</li>
+                            <li>1 fichier audio (30 secondes maximum).</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">Pré-requis wording¹ minimum obligatoires :</h3>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>Nom de marque.</li>
+                            <li>1 accroche.</li>
+                            <li>1 CTA².</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
                 {/* H2 : Liste des formats */}
                           <div>
                   <h2 className="mb-6">Liste des formats</h2>
@@ -1969,58 +2003,77 @@ export default function StudioPage() {
                   </div>
                   </div>
 
-                {/* H2 : Limites de caractères pour les wordings¹ */}
-                  <div>
+                {/* 1. Limites de caractères pour les wordings¹ */}
+                <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
-                  
-                  {/* 2 colonnes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="pt-4">
-                        <ul className="text-sm space-y-2">
-                          <li><strong>nom de marque :</strong><br />25 caractères maximum, espaces inclus</li>
-                          <li>photo de profil</li>
-                          <li>mention « Publicité »</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-4">
-                        <ul className="text-sm space-y-2">
-                          <li><strong>accroche :</strong><br />40 caractères maximum, espaces inclus</li>
-                          <li>bloc CTA²</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
+                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
+                  <div className="flex justify-center">
+                    <div className="w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                            <SafeImage
+                              src="/images/Spotify Limites de caractères@10x.png"
+                              extraSrcCandidates={[
+                                "/images/Spotify%20Limites%20de%20caractères@10x.png",
+                                "/images/Spotify%20Limites%20de%20caracte%CC%80res@10x.png",
+                              ]}
+                              alt="Limites de caractères pour les wordings Spotify"
+                              width={1080}
+                              height={1920}
+                              className="w-full h-full object-contain"
+                            />
+                            <TooltipProvider delayDuration={0}>
+                              {/* 1 : nom de marque + photo de profil + mention Publicité */}
+                              <Tooltip open={spotifyLimites1Open} onOpenChange={setSpotifyLimites1Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[38%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSpotifyLimites1Open(!spotifyLimites1Open)}>1</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>nom de marque :</strong> 25 caractères maximum, espaces inclus<br />
+                                    + photo de profil · + mention « Publicité »
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              {/* 2 : accroche + bloc CTA² */}
+                              <Tooltip open={spotifyLimites2Open} onOpenChange={setSpotifyLimites2Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[18%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSpotifyLimites2Open(!spotifyLimites2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>accroche :</strong> 40 caractères maximum, espaces inclus<br />
+                                    + bloc CTA²
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
                   </div>
+                  <p className="mt-4 text-xs text-center text-muted-foreground italic">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
                 </div>
 
-                {/* H2 : Livrables attendus par Spotify */}
+                {/* 2. Livrables attendus par Spotify (en dessous des Limites) */}
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Livrables attendus par Spotify</h2>
-                  
-                    <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 visuel image en format carré.</li>
-                            <li>1 logo en format carré.</li>
-                            <li>1 fichier audio (30 secondes maximum).</li>
-                        </ul>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-orange-500 mb-2">Pré-requis média minimum obligatoires :</h3>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>1 visuel image en format carré.</li>
+                        <li>1 logo en format carré.</li>
+                        <li>1 fichier audio (30 secondes maximum).</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-orange-500 mb-2">Pré-requis wording¹ minimum obligatoires :</h3>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>Nom de marque.</li>
+                        <li>1 accroche.</li>
+                        <li>1 CTA².</li>
+                      </ul>
+                    </div>
                   </div>
-                        <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>Nom de marque.</li>
-                            <li>1 accroche.</li>
-                            <li>1 CTA².</li>
-                        </ul>
-                        </div>
-                      </div>
-                      </CardContent>
-                    </Card>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -2037,6 +2090,11 @@ export default function StudioPage() {
                       </CardContent>
                     </Card>
                 </div>
+
+                {/* Légende tout en bas de la section Spotify */}
+                <p className="mt-6 pt-4 border-t border-muted text-sm text-muted-foreground">
+                  <sup>1</sup> wording = texte &nbsp;&nbsp; <sup>2</sup> bloc CTA = bloc Call To Action (Bouton d&apos;appel à l&apos;action)
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -2623,6 +2681,99 @@ export default function StudioPage() {
                         </ul>
                       </CardContent>
                     </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Onglet Programmatique - Publicités programmatique / Mix IAB + Landing pages */}
+          <TabsContent value="programmatic">
+            <Card>
+              <CardContent className="space-y-10 pt-6">
+                {/* Section 1 : Publicités programmatique / Mix IAB */}
+                <div>
+                  <h1 className="text-2xl font-bold text-orange-500 mb-6">Publicités programmatique / Mix IAB</h1>
+                  <h2 className="text-lg font-bold mb-4">Liste des formats</h2>
+                  <h3 className="font-semibold mb-4 pb-2 border-b border-foreground">publicités images</h3>
+
+                  {/* Ligne 1 : Mégabannière, Bannière */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[280px] aspect-[728/90] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">mégabannière</p>
+                      <p className="text-sm text-muted-foreground">728 x 90 px</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[160px] aspect-[320/50] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">bannière</p>
+                      <p className="text-sm text-muted-foreground">320 x 50 px</p>
+                    </div>
+                  </div>
+                  {/* Ligne 2 : Skyscraper, Grand angle, Interstitiel, Pavé parallax */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[80px] aspect-[160/600] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">skyscraper</p>
+                      <p className="text-sm text-muted-foreground">160 x 600 px</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[150px] aspect-[300/600] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">grand angle</p>
+                      <p className="text-sm text-muted-foreground">300 x 600 px</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[160px] aspect-[320/480] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">interstitiel</p>
+                      <p className="text-sm text-muted-foreground">320 x 480 px</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[150px] aspect-[300/250] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">pavé parallax</p>
+                      <p className="text-sm text-muted-foreground">300 x 250 px</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row md:items-start gap-6">
+                    {/* Encadré Fichiers acceptés */}
+                    <Alert className="border-[#E94C16] bg-orange-500/5 max-w-md">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images :</AlertTitle>
+                      <AlertDescription>
+                        .jpg, .png, .gif<br />
+                        Taille maximale : <strong className="text-orange-500">150 ko.</strong>
+                      </AlertDescription>
+                    </Alert>
+
+                    {/* Rappel des livrables */}
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des livrables attendus en programmatique</h2>
+                      <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>6 visuels à tous les formats</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2 : Landing pages */}
+                <div className="pt-8 border-t border-muted">
+                  <h1 className="text-2xl font-bold text-orange-500 mb-6">Landing pages</h1>
+                  <h2 className="text-lg font-bold mb-4">Liste des formats</h2>
+                  <h3 className="font-semibold mb-4 pb-2 border-b border-foreground">publicités images</h3>
+
+                  {/* 2 formats : Mégabannière, Bannière */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[280px] aspect-[728/90] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">mégabannière</p>
+                      <p className="text-sm text-muted-foreground">728 x 90 px</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[160px] aspect-[320/50] rounded-md border-2 border-dashed border-muted-foreground/40 bg-muted/20" />
+                      <p className="text-sm font-medium mt-2">bannière</p>
+                      <p className="text-sm text-muted-foreground">320 x 50 px</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
