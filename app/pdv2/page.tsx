@@ -978,11 +978,12 @@ export default function PDV2Page() {
 
   useEffect(() => {
     let cancelled = false
-    checkIsAdmin().then((isAdmin) => {
+    ;(async () => {
+      const ok = await checkIsAdmin()
       if (cancelled) return
       setAdminChecked(true)
-      if (!isAdmin) router.replace('/pdv')
-    })
+      if (!ok) router.replace('/home')
+    })()
     return () => { cancelled = true }
   }, [router])
 
@@ -1652,8 +1653,8 @@ export default function PDV2Page() {
 
   if (!adminChecked) {
     return (
-      <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[200px]">
-        <p className="text-muted-foreground">Vérification des droits...</p>
+      <div className="container mx-auto px-4 py-24 flex items-center justify-center">
+        Chargement...
       </div>
     )
   }
