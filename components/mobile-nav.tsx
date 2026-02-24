@@ -57,6 +57,11 @@ export function MobileNav({
               <Link href="/pdv" className="text-sm hover:underline" onClick={handleNav}>
                 PDV
               </Link>
+              {isAdmin && (
+                <Link href="/pdv2" className="text-sm hover:underline text-orange-600" onClick={handleNav}>
+                  PDV 2
+                </Link>
+              )}
               <Link href="/documents" className="text-sm hover:underline" onClick={handleNav}>
                 Document
               </Link>

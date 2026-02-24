@@ -369,6 +369,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Link href="/chefferie" className="hover:underline">Chefferie de projet</Link>
               <Link href="/studio" className="hover:underline">Studio</Link>
               <Link href="/pdv" className="hover:underline">PDV</Link>
+              {isAdmin && (
+                <Link href="/pdv2" className="hover:underline text-orange-600">PDV 2</Link>
+              )}
               <Link href="/documents" className="hover:underline">Document</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>
               <Link href="/faq" className="hover:underline">FAQ</Link>

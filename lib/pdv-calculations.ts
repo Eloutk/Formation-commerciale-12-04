@@ -9,6 +9,7 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Clics: { cost: 0.52, perThousand: false },
     'Clics sur lien': { cost: 0.736, perThousand: false },
     Leads: { cost: 70.4, perThousand: false },
+    'Max conversion': { cost: 70.4, perThousand: false },
   },
   'Insta only': {
     Impressions: { cost: 2.94, perThousand: true },
@@ -26,6 +27,7 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Impressions: { cost: 19.8, perThousand: true },
     Clics: { cost: 7.25, perThousand: false },
     Leads: { cost: 560, perThousand: false },
+    'Max conversion': { cost: 560, perThousand: false },
   },
   Snapchat: {
     Impressions: { cost: 1.44, perThousand: true },
@@ -110,6 +112,9 @@ export function calculatePriceForKPIs(
           // ((KPIS souhaités x 70,4) / %AE) x 1,3
           price = ((kpis * 70.4) / aeFactor) * 1.3
           break
+        case 'Max conversion':
+          price = ((kpis * 70.4) / aeFactor) * 1.3
+          break
         default:
           throw new Error('Objectif non supporté pour META')
       }
@@ -172,6 +177,9 @@ export function calculatePriceForKPIs(
           break
         case 'Leads':
           // ((KPIS souhaités x 560) / %AE) x 1,3
+          price = ((kpis * 560) / aeFactor) * 1.3
+          break
+        case 'Max conversion':
           price = ((kpis * 560) / aeFactor) * 1.3
           break
         default:
@@ -265,6 +273,9 @@ export function calculateKPIsForBudget(
           // ((Prix souhaité / 1,3) x %AE) / 70,4
           calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
           break
+        case 'Max conversion':
+          calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
+          break
         default:
           throw new Error('Objectif non supporté pour META')
       }
@@ -327,6 +338,9 @@ export function calculateKPIsForBudget(
           break
         case 'Leads':
           // ((Prix souhaité / 1,3) x %AE) / 560
+          calculatedKpis = ((budget / 1.3) * aeFactor) / 560
+          break
+        case 'Max conversion':
           calculatedKpis = ((budget / 1.3) * aeFactor) / 560
           break
         default:
