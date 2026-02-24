@@ -20,6 +20,32 @@ export default function StudioPage() {
   const [tooltip3Open, setTooltip3Open] = useState(false)
   const [marginsTooltip1Open, setMarginsTooltip1Open] = useState(false)
   const [marginsTooltip2Open, setMarginsTooltip2Open] = useState(false)
+  const [searchLimites1Open, setSearchLimites1Open] = useState(false)
+  const [searchLimites2Open, setSearchLimites2Open] = useState(false)
+  const [searchLimites3Open, setSearchLimites3Open] = useState(false)
+  const [searchLimites4Open, setSearchLimites4Open] = useState(false)
+  const [searchLimites5Open, setSearchLimites5Open] = useState(false)
+  const [searchLimites6Open, setSearchLimites6Open] = useState(false);
+  const [linkedinLimites1Open, setLinkedinLimites1Open] = useState(false);
+  const [linkedinLimites2Open, setLinkedinLimites2Open] = useState(false);
+  const [linkedinLimites3Open, setLinkedinLimites3Open] = useState(false);
+  const [linkedinLimites4Open, setLinkedinLimites4Open] = useState(false);
+  const [linkedinLimites5Open, setLinkedinLimites5Open] = useState(false);
+  const [linkedinLimites6Open, setLinkedinLimites6Open] = useState(false);
+  const [tiktokLimites1Open, setTiktokLimites1Open] = useState(false);
+  const [tiktokLimites2Open, setTiktokLimites2Open] = useState(false);
+  const [tiktokLimites3Open, setTiktokLimites3Open] = useState(false);
+  const [tiktokLimites4Open, setTiktokLimites4Open] = useState(false);
+  const [tiktokLimites5Open, setTiktokLimites5Open] = useState(false);
+  const [tiktokLimites6Open, setTiktokLimites6Open] = useState(false);
+  const [tiktokMarges1Open, setTiktokMarges1Open] = useState(false);
+  const [tiktokMarges2Open, setTiktokMarges2Open] = useState(false);
+  const [tiktokMarges3Open, setTiktokMarges3Open] = useState(false);
+  const [snapLimites1Open, setSnapLimites1Open] = useState(false);
+  const [snapLimites2Open, setSnapLimites2Open] = useState(false);
+  const [snapLimites3Open, setSnapLimites3Open] = useState(false);
+  const [snapMarges1Open, setSnapMarges1Open] = useState(false);
+  const [snapMarges2Open, setSnapMarges2Open] = useState(false);
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
@@ -303,15 +329,15 @@ export default function StudioPage() {
                           <div className="w-full max-w-[300px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                               <SafeImage
-                                src="/images/META format complet vertical2@10x.png"
+                                src="/images/META format complet carré@10x.png"
                                 extraSrcCandidates={[
-                                  // Common filename variations (spacing/encoding)
-                                  "/images/META format complet vertical 2@10x.png",
-                                  "/images/META%20format%20complet%20vertical%202@10x.png",
+                                  "/images/META format complet carré@10x.png",
+                                  "/images/META%20format%20complet%20carré@10x.png",
+                                  "/images/META%20format%20complet%20carre%CC%81@10x.png",
                                 ]}
                                 alt="Limites de caractères pour les wordings"
                                 width={1440}
-                                height={2560}
+                                height={1440}
                                 className="w-full h-full object-contain"
                               />
                               <TooltipProvider delayDuration={0}>
@@ -1054,21 +1080,74 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Limites de caractères pour les wordings */}
+                {/* H2 : Limites de caractères pour les wordings - image + bulles numérotées (comme META/Search) */}
                   <div>
-                  <h2 className="mb-4">Limites de caractères pour les wordings</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Encart visuel à gauche */}
-                    <div className="aspect-[4/5] w-full rounded-md border border-dashed bg-muted/50 flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">Ajouter votre image</span>
-                  </div>
-                    {/* Texte à droite */}
-                    <div className="space-y-2 text-sm">
-                      <p><strong>photo de profil + nom de page</strong></p>
-                      <p><strong>texte principal :</strong><br />150 caractères maximum</p>
-                      <p><strong>titre :</strong><br />70 caractères maximum<br />45 caractères pour un groupe publicitaire carrousel</p>
-                      <p><strong>description :</strong><br />70 caractères maximum</p>
-                      <p><strong>bloc CTA²</strong></p>
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings</h2>
+                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
+                  <div className="flex justify-center">
+                    <div className="w-full max-w-[400px] relative">
+                      <div className="aspect-square w-full overflow-hidden rounded-lg shadow-sm relative">
+                        <SafeImage
+                          src="/images/META format complet carré@10x.png"
+                          extraSrcCandidates={[
+                            "/images/META format complet carré@10x.png",
+                            "/images/META%20format%20complet%20carré@10x.png",
+                            "/images/META%20format%20complet%20carre%CC%81@10x.png",
+                          ]}
+                          alt="Limites de caractères pour les wordings LinkedIn"
+                          width={1440}
+                          height={1440}
+                          className="w-full h-full object-contain"
+                        />
+                        <TooltipProvider delayDuration={0}>
+                          {/* 1 : photo de profil + nom de page */}
+                          <Tooltip open={linkedinLimites1Open} onOpenChange={setLinkedinLimites1Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute top-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites1Open(!linkedinLimites1Open)}>1</div>
+                            </TooltipTrigger>
+                            <TooltipContent><div className="text-sm"><strong>photo de profil + nom de page</strong></div></TooltipContent>
+                          </Tooltip>
+                          {/* 2 : texte principal */}
+                          <Tooltip open={linkedinLimites2Open} onOpenChange={setLinkedinLimites2Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute top-[18%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites2Open(!linkedinLimites2Open)}>2</div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="text-sm"><strong>texte principal :</strong><br />150 caractères maximum, espaces inclus</div>
+                            </TooltipContent>
+                          </Tooltip>
+                          {/* 3 : image ou vidéo */}
+                          <Tooltip open={linkedinLimites3Open} onOpenChange={setLinkedinLimites3Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites3Open(!linkedinLimites3Open)}>3</div>
+                            </TooltipTrigger>
+                            <TooltipContent><div className="text-sm"><strong>image ou vidéo</strong></div></TooltipContent>
+                          </Tooltip>
+                          {/* 4 : titre */}
+                          <Tooltip open={linkedinLimites4Open} onOpenChange={setLinkedinLimites4Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute bottom-[22%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites4Open(!linkedinLimites4Open)}>4</div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="text-sm"><strong>titre :</strong><br />70 caractères maximum, espaces inclus<br /><span className="text-xs">(45 pour un groupe publicitaire carrousel)</span></div>
+                            </TooltipContent>
+                          </Tooltip>
+                          {/* 5 : description */}
+                          <Tooltip open={linkedinLimites5Open} onOpenChange={setLinkedinLimites5Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute bottom-[12%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites5Open(!linkedinLimites5Open)}>5</div>
+                            </TooltipTrigger>
+                            <TooltipContent><div className="text-sm"><strong>description :</strong><br />70 caractères maximum, espaces inclus</div></TooltipContent>
+                          </Tooltip>
+                          {/* 6 : bloc CTA */}
+                          <Tooltip open={linkedinLimites6Open} onOpenChange={setLinkedinLimites6Open}>
+                            <TooltipTrigger asChild>
+                              <div className="absolute bottom-[4%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites6Open(!linkedinLimites6Open)}>6</div>
+                            </TooltipTrigger>
+                            <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1082,8 +1161,8 @@ export default function StudioPage() {
                     <Card>
                       <CardContent className="pt-4">
                         <p className="text-sm">
-                          Il n'est pas essentiel de mettre votre logo ou votre nom de marque sur le visuel.<br /><br />
-                          Votre logo et votre nom de marque sont déjà présents dans l'environnement LinkedIn sous deux formes :<br /><br />
+                          Il n&apos;est pas essentiel de mettre votre logo ou votre nom de marque sur le visuel.<br /><br />
+                          Votre logo et votre nom de marque sont déjà présents dans l&apos;environnement LinkedIn sous deux formes :<br /><br />
                           • votre photo de profil<br />
                           • votre nom de page de diffusion
                         </p>
@@ -1110,116 +1189,119 @@ export default function StudioPage() {
                       </AlertDescription>
                     </Alert>
 
-                {/* H2 : Rappel des livrables attendus par LinkedIn en fonction du type de publicité */}
+                {/* Section: Rappel des livrables attendus par LinkedIn (même bloc que META, texte adapté) */}
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-6">Rappel des livrables attendus par LinkedIn en fonction du type de publicité</h2>
-                  
-                  {/* 2 colonnes : standard et carrousel */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Colonne gauche : groupe publicitaire standard */}
-                          <div>
+                    <div>
                       <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
-                      
-                      {/* Bloc visuel : plusieurs encarts avec un vertical déprécié */}
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        {/* Encart carré */}
-                        <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground text-center">IMAGE 1<br />image ou vidéo</span>
-                  </div>
-                        {/* Encart vertical déprécié */}
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 relative">
-                          <Badge variant="destructive" className="absolute top-1 right-1 text-xs">déprécié</Badge>
-                          <span className="text-xs text-muted-foreground text-center">IMAGE 2<br />image ou vidéo</span>
-                </div>
-                        {/* Encart horizontal */}
-                        <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10">
-                          <span className="text-xs text-muted-foreground text-center">IMAGE 3<br />image ou vidéo</span>
+                      {/* Bloc visuel : 3 formats (horizontal, vertical déprécié, carré) comme sur le screen */}
+                      <div className="grid grid-cols-3 gap-4 mb-6">
+                        {/* Encart 1 : format horizontal (IMAGE 1) */}
+                        <div className="flex flex-col items-center">
+                          <NextImage src="/images/META format horizontal.png" alt="Format horizontal" width={1440} height={754} className="w-full h-auto object-contain" />
+                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 1<br />image ou vidéo</span>
+                        </div>
+                        {/* Encart 2 : format vertical déprécié (IMAGE 2) */}
+                        <div className="flex flex-col items-center relative">
+                          <div className="relative w-full">
+                            <NextImage src="/images/META format vertical.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
+                            <Badge variant="destructive" className="absolute top-1 right-1 text-xs">déprécié</Badge>
+                          </div>
+                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 2<br />image ou vidéo</span>
+                        </div>
+                        {/* Encart 3 : format carré (IMAGE 3) */}
+                        <div className="flex flex-col items-center">
+                          <NextImage src="/images/META format carré.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 3<br />image ou vidéo</span>
                         </div>
                       </div>
-
                       {/* Pré-requis média minimum obligatoires */}
                       <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                        <h5 className="font-semibold mb-2 text-sm">Pré-requis média minimum obligatoires :</h5>
                         <p className="text-sm">
-                          1 visuel image et/ou vidéo, décliné aux 2 formats (carré et horizontal).<br />
+                          1 visuel image et/ou vidéo, décliné aux 2 formats (carré et horizontal).
+                        </p>
+                        <p className="text-sm mt-1">
                           2 groupes publicitaires (standard ou carrousel) recommandés.
                         </p>
                       </div>
-
-                      {/* Pré-requis wording minimum obligatoires */}
+                      {/* Pré-requis wording¹ minimum obligatoires */}
                       <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <h5 className="font-semibold mb-2 text-sm">Pré-requis wording¹ minimum obligatoires :</h5>
+                        <ul className="space-y-1 text-sm ml-4 list-disc">
                           <li>1 texte principal.</li>
                           <li>1 titre.</li>
                           <li>1 CTA².</li>
                         </ul>
-                          </div>
-
+                      </div>
                       {/* Mécanique de fonctionnement */}
-                          <div>
-                        <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
+                      <div>
+                        <h5 className="font-semibold mb-2 text-sm">Mécanique de fonctionnement :</h5>
                         <p className="text-sm">
-                          Sous forme d'images ou de vidéos simples, sans interaction particulière.
+                          Sous forme d&apos;images ou de vidéos simples, sans interaction particulière.
                         </p>
-                          </div>
-                        </div>
-
+                      </div>
+                    </div>
                     {/* Colonne droite : groupe publicitaire carrousel */}
-                          <div>
+                    <div>
                       <h3 className="font-semibold mb-4">groupe publicitaire carrousel</h3>
-                      
-                      {/* Bloc visuel : format complet carrousel */}
-                      <div className="mb-4">
+                      {/* Bloc visuel explicatif */}
+                      <div className="mb-6">
                         <div className="w-full rounded-md overflow-hidden">
-                          <NextImage src="/images/META format complet caroussel@10x.png" alt="Format complet carrousel" width={1920} height={1080} className="w-full h-auto object-contain" />
+                          <NextImage src="/images/META format complet caroussel@10x.png" alt="Format complet carrousel LinkedIn" width={1920} height={1080} className="w-full h-auto object-contain" />
                         </div>
                       </div>
-
                       {/* Pré-requis média minimum obligatoires */}
                       <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                        <h5 className="font-semibold mb-2 text-sm">Pré-requis média minimum obligatoires :</h5>
                         <p className="text-sm">
-                          2 visuels image, en format carré.<br />
-                          2 minimum et 10 maximum.<br />
+                          2 visuels image, en format carré.
+                        </p>
+                        <p className="text-sm mt-1">
+                          2 minimum et 10 maximum.
+                        </p>
+                        <p className="text-sm mt-1">
                           2 groupes publicitaires (standard ou carrousel) recommandés.
                         </p>
                       </div>
-
-                      {/* Pré-requis wording minimum obligatoires */}
+                      {/* Pré-requis wording¹ minimum obligatoires */}
                       <div className="mb-4">
-                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                        <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <h5 className="font-semibold mb-2 text-sm">Pré-requis wording¹ minimum obligatoires :</h5>
+                        <ul className="space-y-1 text-sm ml-4 list-disc">
                           <li>1 texte principal.</li>
                           <li>2 titres minimum (en fonction du nombre de vignettes).</li>
                           <li>1 CTA².</li>
                         </ul>
-                          </div>
-
+                      </div>
                       {/* Mécanique de fonctionnement */}
-                          <div>
-                        <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
+                      <div>
+                        <h5 className="font-semibold mb-2 text-sm">Mécanique de fonctionnement :</h5>
                         <p className="text-sm">
-                          Sous forme d'images ou de vidéos disposées à travers des vignettes les unes à côté des autres qui peuvent être visionnées en naviguant vers la droite.
+                          Sous forme d&apos;images ou de vidéos disposées à travers de vignettes les unes à côté des autres qui peuvent être visionnées en naviguant vers la droite.
                         </p>
-                          </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                  {/* Encadré d'alerte (pleine largeur) */}
+                  {/* Encadré d'alerte : mix des groupes impossible */}
                   <Alert className="mb-4">
                     <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
+                    <AlertDescription>
                       Il est impossible de mixer les différents groupes publicitaires sur LinkedIn pour une même campagne.
-                      </AlertDescription>
-                    </Alert>
-
-                  {/* Bandeau de rappel final (pleine largeur, fond orange) */}
-                    <Alert className="border-orange-500/50 bg-orange-500/10">
-                      <AlertDescription>
-                      <strong>2 groupes publicitaires (standard ou carrousel) maximum.</strong>
-                      </AlertDescription>
-                    </Alert>
+                    </AlertDescription>
+                  </Alert>
+                  {/* Bandeau de rappel final */}
+                  <Alert className="border-orange-500/50 bg-orange-500/10">
+                    <AlertDescription className="font-semibold">
+                      2 groupes publicitaires (standard ou carrousel) maximum.
+                    </AlertDescription>
+                  </Alert>
+                  {/* Notes de bas de page */}
+                  <p className="text-xs text-muted-foreground mt-6 pt-4 border-t">
+                    <sup>1</sup> wording = texte<br />
+                    <sup>2</sup> bloc CTA = bloc Call To Action (Bouton d&apos;appel à l&apos;action)
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -1326,54 +1408,104 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Limites de caractères pour les wordings¹ Snapchat */}
-                  <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ Snapchat</h2>
-                  
-                  {/* 2 colonnes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Limites de caractères */}
-                  <div>
-                    <Card>
-                        <CardContent className="pt-4">
-                          <ul className="text-sm space-y-2">
-                            <li><strong>nom de marque + mention « Publicité » :</strong><br />25 caractères maximum, espaces inclus</li>
-                            <li><strong>titre :</strong><br />34 caractères maximum, espaces inclus</li>
-                            <li>répétition du nom de marque + titre + lien</li>
-                            <li>bloc CTA²</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                {/* Limites de caractères + Marges de sécurité Snapchat - 2 titres orange, images + pastilles numérotées */}
+                <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <h2 className="text-2xl font-bold text-orange-500">Limites de caractères pour les wordings¹</h2>
+                    <h2 className="text-2xl font-bold text-orange-500">Marges de sécurité pour les publicités verticales</h2>
                   </div>
-
-                    {/* Colonne droite : Marges de sécurité */}
-                  <div>
-                      <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités verticales Snapchat</h3>
-                      
-                      {/* Bloc visuel : encart vertical vide */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full mb-4 overflow-hidden">
-                          <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
+                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Colonne gauche : Limites de caractères - image + 3 pastilles */}
+                    <div>
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                            <NextImage
+                              src="/images/Snapchat_Limites_caracteres_10x.png"
+                              alt="Limites de caractères pour les wordings Snapchat"
+                              width={1080}
+                              height={1920}
+                              className="w-full h-full object-contain"
+                            />
+                            <TooltipProvider delayDuration={0}>
+                              {/* 1 : nom de marque + Publicité + titre (en-tête) */}
+                              <Tooltip open={snapLimites1Open} onOpenChange={setSnapLimites1Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[5%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites1Open(!snapLimites1Open)}>1</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>nom de marque + mention « Publicité » :</strong> 25 caractères maximum, espaces inclus<br />
+                                    <strong>titre :</strong> 34 caractères maximum, espaces inclus
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              {/* 2 : répétition du nom de marque + titre + lien */}
+                              <Tooltip open={snapLimites2Open} onOpenChange={setSnapLimites2Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[22%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites2Open(!snapLimites2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm">répétition du nom de marque + titre + lien</div></TooltipContent>
+                              </Tooltip>
+                              {/* 3 : bloc CTA² */}
+                              <Tooltip open={snapLimites3Open} onOpenChange={setSnapLimites3Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[8%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites3Open(!snapLimites3Open)}>3</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
+                      </div>
+                    </div>
 
-                        {/* Zones de sécurité */}
-                    <Card>
-                          <CardContent className="pt-4">
-                            <p className="text-sm font-semibold mb-2">Zones de sécurité :</p>
-                            <ul className="text-sm space-y-2">
-                              <li><strong>bloc nom de marque + titre</strong><br />
-                                marge de 9 % environ<br />
-                                165 pixels environ<br />
-                                Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.</li>
-                              <li><strong>bloc nom de marque + titre + lien</strong><br />
-                                marge de 18,5 % environ<br />
-                                350 pixels environ</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                    {/* Colonne droite : Marges de sécurité - image + 2 pastilles */}
+                    <div>
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                            <NextImage
+                              src="/images/Snapchat_Marges_securite_10x.png"
+                              alt="Marges de sécurité publicités verticales Snapchat"
+                              width={1080}
+                              height={1920}
+                              className="w-full h-full object-contain"
+                            />
+                            <TooltipProvider delayDuration={0}>
+                              {/* 1 : bloc nom de marque + titre (haut) */}
+                              <Tooltip open={snapMarges1Open} onOpenChange={setSnapMarges1Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[10%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges1Open(!snapMarges1Open)}>1</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>bloc nom de marque + titre</strong><br />
+                                    marge de 9 % environ · 165 pixels environ<br />
+                                    <span className="italic text-xs">Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.</span>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              {/* 2 : bloc nom de marque + titre + lien (bas) */}
+                              <Tooltip open={snapMarges2Open} onOpenChange={setSnapMarges2Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges2Open(!snapMarges2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>bloc nom de marque + titre + lien</strong><br />
+                                    marge de 18,5 % environ · 350 pixels environ
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <p className="mt-4 text-xs text-center text-muted-foreground italic">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -1440,6 +1572,11 @@ export default function StudioPage() {
                       </CardContent>
                     </Card>
                 </div>
+
+                {/* Légende en bas de page Snapchat */}
+                <p className="mt-6 pt-4 border-t border-muted text-sm text-muted-foreground">
+                  <sup>1</sup> wording = texte &nbsp;&nbsp; <sup>2</sup> bloc CTA = bloc Call To Action (Bouton d&apos;appel à l&apos;action)
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1452,121 +1589,216 @@ export default function StudioPage() {
                       </CardHeader>
               <CardContent className="space-y-6">
 
-                {/* H2 : Liste des formats */}
-                          <div>
-                  <h2 className="mb-6">Liste des formats</h2>
-                  
-                  {/* Grille 3 colonnes : publicités vidéos */}
-                  <div className="mb-6">
-                    <h3 className="font-semibold mb-4">publicités vidéos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      {/* Encart 1: format carré - MANQUANT */}
-                      <div>
-                        <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                {/* En un clin d'œil - Rappel des livrables attendus par TikTok (compact) */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">groupe publicitaire standard</h3>
+                          <p className="text-sm font-semibold mb-1">Pré-requis média :</p>
+                          <p className="text-sm mb-2">1 vidéo format vertical uniquement · 2 max · 1 logo carré.</p>
+                          <p className="text-sm font-semibold mb-1">Pré-requis wording¹ :</p>
+                          <p className="text-sm mb-2">1 texte principal · 1 CTA².</p>
+                          <p className="text-sm font-semibold mb-1">Mécanique :</p>
+                          <p className="text-sm">Vidéo verticale simple, sans interaction particulière.</p>
                         </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format carré</p>
-                          <p>—</p>
-                          <p>—</p>
+                        <div>
+                          <h3 className="font-semibold mb-2 text-sm">groupe publicitaire carrousel</h3>
+                          <p className="text-sm text-muted-foreground">Non disponible sur TikTok.</p>
                         </div>
                       </div>
-                      
-                      {/* Encart 2: format vertical */}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                {/* Liste des formats - mise en forme calquée sur META ; seule "publicités vidéos" est renseignée, le reste laissé vierge */}
+                <div className="space-y-8">
+                  <div>
+                    <h2 className="mb-6">Liste des formats</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Colonne gauche : publicités images - vierge (absence sur TikTok) */}
                       <div>
-                          <div className="aspect-[9/16] w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format vertical</p>
-                          <p>1080 × 1920 px</p>
-                          <p>ratio 9:16</p>
+                        <h3 className="font-semibold mb-4">publicités images</h3>
+                      </div>
+
+                      {/* Colonne droite : publicités vidéos - seul format présent, grille comme META */}
+                      <div>
+                        <h3 className="font-semibold mb-4">publicités vidéos</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                          {/* Encart 1 : format carré - vierge */}
+                          <div className="flex flex-col items-center min-h-[140px]" />
+
+                          {/* Encart 2 : format vertical - seul format disponible */}
+                          <div className="flex flex-col items-center">
+                            <div className="w-full max-w-[135px] mb-2">
+                              <div className="w-full">
+                                <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-auto object-contain" />
+                              </div>
+                            </div>
+                            <div className="text-sm text-center">
+                              <p className="font-medium">format vertical</p>
+                              <p>1080 × 1920 px</p>
+                              <p>ratio 9:16</p>
+                            </div>
+                          </div>
+
+                          {/* Encart 3 : format horizontal / TV - vierge */}
+                          <div className="flex flex-col items-center min-h-[140px]" />
                         </div>
                       </div>
-                      
-                      {/* Encart 3: format horizontal - MANQUANT */}
+                    </div>
+                  </div>
+
+                  {/* Bloc Fichiers acceptés - même structure que META, colonne gauche vierge */}
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4" />
                       <div>
-                        <div className="aspect-[1.91/1] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format horizontal</p>
-                          <p>—</p>
-                          <p>—</p>
+                        <Alert className="border-[#E94C16] bg-white">
+                          <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong className="font-semibold">Fichiers acceptés pour les publicités vidéos :</strong>
+                            <br />
+                            .mov, .mp4
+                            <br />
+                            <br />
+                            Durée optimale : 14 secondes maximum
+                            <br />
+                            Durée maximum : 30 secondes
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Limites de caractères + Marges de sécurité - 2 titres orange sur la même ligne */}
+                <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <h2 className="text-2xl font-bold text-orange-500">Limites de caractères pour les wordings¹</h2>
+                    <h2 className="text-2xl font-bold text-orange-500">Marges de sécurité pour les publicités verticales</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Colonne gauche : Limites de caractères - image + 6 pastilles (ordre de l’image : nav haut, photo, marque, texte, CTA, nav bas) */}
+                    <div>
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                            <NextImage
+                              src="/images/TikTok_Limites_caracteres_10x.png"
+                              alt="Limites de caractères pour les wordings TikTok"
+                              width={1080}
+                              height={1920}
+                              className="w-full h-full object-contain"
+                            />
+                            <TooltipProvider delayDuration={0}>
+                              {/* 1 : bloc navigation application (haut) */}
+                              <Tooltip open={tiktokLimites1Open} onOpenChange={setTiktokLimites1Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[3%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites1Open(!tiktokLimites1Open)}>1</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>bloc navigation application</strong></div></TooltipContent>
+                              </Tooltip>
+                              {/* 2 : photo de profil */}
+                              <Tooltip open={tiktokLimites2Open} onOpenChange={setTiktokLimites2Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites2Open(!tiktokLimites2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>photo de profil</strong></div></TooltipContent>
+                              </Tooltip>
+                              {/* 3 : nom de marque */}
+                              <Tooltip open={tiktokLimites3Open} onOpenChange={setTiktokLimites3Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[18%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites3Open(!tiktokLimites3Open)}>3</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>nom de marque</strong></div></TooltipContent>
+                              </Tooltip>
+                              {/* 4 : texte principal */}
+                              <Tooltip open={tiktokLimites4Open} onOpenChange={setTiktokLimites4Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[28%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites4Open(!tiktokLimites4Open)}>4</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs"><div className="text-sm"><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</div></TooltipContent>
+                              </Tooltip>
+                              {/* 5 : bloc CTA² */}
+                              <Tooltip open={tiktokLimites5Open} onOpenChange={setTiktokLimites5Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[20%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites5Open(!tiktokLimites5Open)}>5</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
+                              </Tooltip>
+                              {/* 6 : bloc navigation application (bas) */}
+                              <Tooltip open={tiktokLimites6Open} onOpenChange={setTiktokLimites6Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[3%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites6Open(!tiktokLimites6Open)}>6</div>
+                                </TooltipTrigger>
+                                <TooltipContent><div className="text-sm"><strong>bloc navigation application</strong></div></TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Résolution alternative acceptable */}
-                    <Card className="mb-4 max-w-xs">
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Résolution alternative acceptable</p>
-                        <p className="text-sm">format vertical : 1080 × 1920 px</p>
-                      </CardContent>
-                    </Card>
-
-                    {/* Encadré fichiers acceptés */}
-                    <Alert className="max-w-xs border-[#E94C16]">
-                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                      <AlertDescription>
-                        .mov, .mp4<br />
-                        Durée optimale : 14 secondes maximum<br />
-                        Durée maximum : 30 secondes
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </div>
-
-                {/* H2 : Limites de caractères pour les wordings¹ TikTok */}
-                  <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹ TikTok</h2>
-                  
-                  {/* 2 colonnes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Colonne gauche : Limites de caractères */}
-                  <div>
-                    <Card>
-                        <CardContent className="pt-4">
-                          <ul className="text-sm space-y-2">
-                            <li>photo de profil</li>
-                            <li>nom de marque</li>
-                            <li><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</li>
-                            <li>bloc CTA²</li>
-                            <li>bloc navigation application</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                    {/* Colonne droite : Marges de sécurité */}
-                  <div>
-                      <h3 className="text-lg font-semibold mb-4">Marges de sécurité pour les publicités verticales TikTok</h3>
-                      
-                      {/* Bloc visuel : encart vertical vide */}
-                      <div className="mb-4 max-w-xs">
-                        <div className="aspect-[9/16] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-4 overflow-hidden">
-                          <NextImage src="/images/format%20vertical_shorts@10x.png" alt="Format vertical" width={1080} height={1920} className="w-full h-full object-contain" />
-                </div>
-
-                        {/* Zones de sécurité */}
-                    <Card>
-                          <CardContent className="pt-4">
-                            <p className="text-sm font-semibold mb-2">Zones de sécurité :</p>
-                            <ul className="text-sm space-y-2">
-                              <li><strong>bloc following / for you</strong><br />
-                                marge de 6 % environ<br />
-                                126 pixels environ<br />
-                                Dans cette zone, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.</li>
-                              <li><strong>bloc nom de marque + texte principal + interactions</strong><br />
-                                marge de 20 % environ<br />
-                                400 pixels environ</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
+                    {/* Colonne droite : Marges de sécurité - image + pastilles */}
+                    <div>
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                            <NextImage
+                              src="/images/TikTok_Marges_securite_10x.png"
+                              alt="Marges de sécurité publicités verticales TikTok"
+                              width={1080}
+                              height={1920}
+                              className="w-full h-full object-contain"
+                            />
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip open={tiktokMarges1Open} onOpenChange={setTiktokMarges1Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokMarges1Open(!tiktokMarges1Open)}>1</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>bloc following / for you</strong><br />
+                                    marge de 6 % environ · 126 pixels environ<br />
+                                    <span className="italic text-xs">Dans cette zone, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.</span>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip open={tiktokMarges2Open} onOpenChange={setTiktokMarges2Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute top-[50%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokMarges2Open(!tiktokMarges2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    Dans les zones oranges, il est recommandé de ne mettre aucun élément important (texte ou image) essentiel à la compréhension du message publicitaire.
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip open={tiktokMarges3Open} onOpenChange={setTiktokMarges3Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokMarges3Open(!tiktokMarges3Open)}>3</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    <strong>bloc nom de marque + texte principal + interactions</strong><br />
+                                    marge de 20 % environ · 400 pixels environ
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <p className="mt-4 text-xs text-center text-muted-foreground italic">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -1607,32 +1839,10 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Rappel des livrables attendus par TikTok */}
-                <div className="mt-6">
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Rappel des livrables attendus par TikTok</h2>
-                  
-                    <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                          <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 vidéo déclinée au format vertical.</li>
-                            <li>2 maximum.</li>
-                            <li>1 logo en format carré.</li>
-                        </ul>
-                          </div>
-                          <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 texte principal.</li>
-                            <li>1 CTA².</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                </div>
+                {/* Légende en bas de page TikTok */}
+                <p className="mt-6 pt-4 border-t border-muted text-sm text-muted-foreground">
+                  <sup>1</sup> wording = texte &nbsp;&nbsp; <sup>2</sup> bloc CTA = bloc Call To Action (Bouton d&apos;appel à l&apos;action)
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1839,6 +2049,39 @@ export default function StudioPage() {
               </CardHeader>
               <CardContent className="space-y-6">
 
+                {/* En un clin d'œil - Rappel des livrables Google Search */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image et/ou vidéo décliné aux 2 formats (carré et horizontal).</li>
+                            <li>20 maximum.</li>
+                            <li>1 logo en format carré.</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>3 titres minimum (15 maximum). Possibilité d&apos;épingler 1 titre.</li>
+                            <li>2 descriptions minimum (4 maximum).</li>
+                            <li>Nom d&apos;entreprise.</li>
+                            <li>Numéro de téléphone.</li>
+                            <li>Info-bulles : 20 maximum.</li>
+                            <li>Liens annexes : 4 maximum.</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
                 {/* H2 : Liste des formats */}
                   <div>
                   <h2 className="mb-6">Liste des formats</h2>
@@ -1895,12 +2138,12 @@ export default function StudioPage() {
                     <div>
                       <h4 className="font-semibold mb-4">logo obligatoire</h4>
                       
-                      {/* Grille 2 colonnes pour aligner avec la colonne gauche */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        {/* Encart visuel carré (même taille que l'image carrée de gauche) */}
+                      {/* Même grille 3 colonnes que "publicités images" pour aligner les dimensions */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Encart visuel carré : même largeur/hauteur que "format carré" de la colonne gauche */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Logo format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1908,9 +2151,9 @@ export default function StudioPage() {
                             <p>ratio 1:1</p>
                           </div>
                         </div>
-                        {/* Placeholder vide pour maintenir la structure de grille */}
                         <div></div>
-                </div>
+                        <div></div>
+                      </div>
 
                       {/* Encadré fichiers acceptés (aligné avec "Résolutions alternatives acceptables") */}
                       <Alert className="mt-4 border-[#E94C16]">
@@ -1930,67 +2173,162 @@ export default function StudioPage() {
                 {/* H2 : Limites de caractères pour les wordings¹ */}
                 <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
-                  
-                  {/* 2 colonnes */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Éléments visibles :</p>
-                        <ul className="text-sm space-y-1">
-                          <li>logo + nom de marque + site web</li>
-                          <li>titres</li>
-                          <li>descriptions</li>
-                          <li>info-bulles</li>
-                          <li>liens annexes</li>
-                          <li>téléphone</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-4">
-                        <p className="text-sm font-semibold mb-2">Titres (Obligatoires) :</p>
-                        <ul className="text-sm space-y-1 mb-3">
-                          <li>3 titres minimum (15 maximum)</li>
-                          <li>30 caractères maximum, espaces inclus</li>
-                          </ul>
-                        <p className="text-sm font-semibold mb-2">Descriptions (Obligatoires) :</p>
-                        <ul className="text-sm space-y-1 mb-3">
-                          <li>2 descriptions minimum (4 maximum)</li>
-                          <li>90 caractères maximum, espaces inclus</li>
-                          </ul>
-                        <p className="text-sm font-semibold mb-2">Nom d'entreprise (Obligatoire) :</p>
-                        <ul className="text-sm space-y-1 mb-3">
-                          <li>25 caractères maximum, espaces inclus</li>
-                          </ul>
-                        <p className="text-sm font-semibold mb-2">Info-bulles – phrases clés (Obligatoires) :</p>
-                        <ul className="text-sm space-y-1 mb-3">
-                          <li>20 maximum</li>
-                          <li>25 caractères maximum, espaces inclus</li>
-                          </ul>
-                        <p className="text-sm font-semibold mb-2">Liens annexes – pages/rubriques du site (Obligatoires) :</p>
-                        <ul className="text-sm space-y-1">
-                          <li>4 maximum</li>
-                          <li>1 titre : 25 caractères maximum, espaces inclus</li>
-                          <li>1 description (2 max) : 35 caractères maximum, espaces inclus</li>
-                          <li>1 URL</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
 
-                {/* H2 : Recommandations et contraintes */}
+                  {/* Image agrandie + bulles numérotées (encadré de droite supprimé, infos dans les bulles) */}
+                  <div className="flex justify-center">
+                    <div className="w-full max-w-[900px] relative">
+                      <div className="w-full overflow-hidden rounded-lg shadow-sm relative">
+                          <SafeImage
+                            src="/images/Search Limites de caractères@10x.png"
+                            extraSrcCandidates={[
+                              "/images/Search%20Limites%20de%20caractères@10x.png",
+                              "/images/Search%20Limites%20de%20caracte%CC%80res@10x.png",
+                            ]}
+                            alt="Limites de caractères pour les wordings Google Search"
+                            width={1200}
+                            height={800}
+                            className="w-full h-auto object-contain"
+                          />
+                          <TooltipProvider delayDuration={0}>
+                            {/* 1 : logo + nom de marque + site web */}
+                            <Tooltip open={searchLimites1Open} onOpenChange={setSearchLimites1Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[10%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites1Open(!searchLimites1Open)}
+                                >
+                                  1
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>logo + nom de marque + site web</strong>
+                                  <p className="mt-1">Nom d&apos;entreprise (obligatoire) : 25 caractères maximum, espaces inclus.</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 2 : titres */}
+                            <Tooltip open={searchLimites2Open} onOpenChange={setSearchLimites2Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[22%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites2Open(!searchLimites2Open)}
+                                >
+                                  2
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>titres</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>3 titres minimum (15 maximum)</li>
+                                    <li>30 caractères maximum, espaces inclus</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 3 : descriptions */}
+                            <Tooltip open={searchLimites3Open} onOpenChange={setSearchLimites3Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[38%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites3Open(!searchLimites3Open)}
+                                >
+                                  3
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>descriptions</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>2 descriptions minimum (4 maximum)</li>
+                                    <li>90 caractères maximum, espaces inclus</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 4 : info-bulles */}
+                            <Tooltip open={searchLimites4Open} onOpenChange={setSearchLimites4Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[48%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites4Open(!searchLimites4Open)}
+                                >
+                                  4
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>info-bulles – phrases clés</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>20 maximum</li>
+                                    <li>25 caractères maximum, espaces inclus</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 5 : liens annexes */}
+                            <Tooltip open={searchLimites5Open} onOpenChange={setSearchLimites5Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[62%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites5Open(!searchLimites5Open)}
+                                >
+                                  5
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>liens annexes – pages/rubriques du site</strong>
+                                  <ul className="list-disc ml-4 mt-1 space-y-1">
+                                    <li>4 maximum</li>
+                                    <li>1 titre : 25 car. max</li>
+                                    <li>1 description (2 max) : 35 car. max</li>
+                                    <li>1 URL</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 6 : téléphone */}
+                            <Tooltip open={searchLimites6Open} onOpenChange={setSearchLimites6Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute bottom-[18%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSearchLimites6Open(!searchLimites6Open)}
+                                >
+                                  6
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>téléphone</strong>
+                                  <p className="mt-1">Numéro de téléphone (obligatoire).</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                {/* H2 : Recommandations et contraintes - 3 colonnes bureau pour remplir la largeur */}
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Recommandations et contraintes</h2>
-                  
-                  {/* 3 colonnes de texte */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                     <Card>
                       <CardContent className="pt-4">
                         <p className="text-sm">
                           Ne pas dépasser les limites de caractères pour les wordings¹.<br /><br />
                           Dépasser les limites de caractères empêche la création de campagnes sur Google.<br /><br />
-                          Aucune tolérance n'est accordée.
+                          Aucune tolérance n&apos;est accordée.
                         </p>
                       </CardContent>
                     </Card>
@@ -1998,8 +2336,8 @@ export default function StudioPage() {
                       <CardContent className="pt-4">
                         <p className="text-sm">
                           Ne pas utiliser de caractères de ponctuation en fin de phrase.<br /><br />
-                          Google n'autorise pas la ponctuation en fin de phrase pour les titres et descriptions.<br /><br />
-                          Aucune tolérance n'est accordée.
+                          Google n&apos;autorise pas la ponctuation en fin de phrase pour les titres et descriptions.<br /><br />
+                          Aucune tolérance n&apos;est accordée.
                         </p>
                       </CardContent>
                     </Card>
@@ -2063,6 +2401,37 @@ export default function StudioPage() {
                 <h1>Publicités sur YouTube</h1>
               </CardHeader>
               <CardContent className="space-y-6">
+
+                {/* En un clin d'œil - Livrables YouTube */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 lien de vidéo YouTube au format InStream/Bumper obligatoire</li>
+                            <li>Déclinaison recommandée dans les 3 formats : InFeed, Shorts, InStream/Bumper</li>
+                            <li>4 maximum</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 titre long</li>
+                            <li>1 titre court</li>
+                            <li>1 description</li>
+                            <li>1 CTA²</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
 
                 {/* H2 : Liste des formats */}
                   <div>
@@ -2139,20 +2508,33 @@ export default function StudioPage() {
                     </Alert>
                     </div>
 
-                    {/* Colonne droite : bannière associée à la publicité */}
+                    {/* Colonne droite : bannière associée à la publicité (même largeur et hauteur que format InStream, Bumper) */}
                     <div>
                       <h4 className="font-semibold mb-4">bannière associée à la publicité</h4>
-                      
-                      {/* Encart visuel horizontal */}
-                      <div className="mb-4">
-                        <div className="aspect-[300/60] w-full rounded-md border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/10 mb-2">
-                          <span className="text-xs text-muted-foreground">Encadré vide</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Même cellule 1/3 de largeur que InStream → même hauteur avec aspect-video, aligné à gauche */}
+                        <div>
+                          <div className="aspect-video w-full mb-2 overflow-hidden rounded-lg shadow-sm">
+                            <SafeImage
+                              src="/images/logo bannière@10x.png"
+                              extraSrcCandidates={[
+                                "/images/logo%20bannière@10x.png",
+                                "/images/logo%20bannie%CC%80re@10x.png",
+                              ]}
+                              alt="Format bannière"
+                              width={1200}
+                              height={675}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="text-sm text-center">
+                            <p className="font-medium">format bannière</p>
+                            <p>300 × 60 px</p>
+                          </div>
                         </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format bannière</p>
-                          <p>300 × 60 px</p>
-                  </div>
-                </div>
+                        <div></div>
+                        <div></div>
+                      </div>
 
                       {/* Encadré fichiers acceptés pour les bannières */}
                       <Alert className="border-[#E94C16]">
@@ -2167,19 +2549,26 @@ export default function StudioPage() {
                 </div>
                   </div>
 
-                {/* H2 : Limites de caractères pour les wordings¹ */}
+                {/* H2 : Limites de caractères pour les wordings¹ - 3 colonnes */}
                   <div>
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
-                  
-                  <Card>
-                    <CardContent className="pt-4">
-                      <ul className="text-sm space-y-2">
-                        <li><strong>1 titre long (Obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
-                        <li><strong>1 titre court (Obligatoire)</strong><br />30 caractères maximum, espaces inclus</li>
-                        <li><strong>1 description (Obligatoire)</strong><br />70 caractères maximum, espaces inclus</li>
-                          </ul>
-                    </CardContent>
-                  </Card>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm"><strong>1 titre long (Obligatoire)</strong><br />90 caractères maximum, espaces inclus</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm"><strong>1 titre court (Obligatoire)</strong><br />30 caractères maximum, espaces inclus</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm"><strong>1 description (Obligatoire)</strong><br />70 caractères maximum, espaces inclus</p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -2209,36 +2598,32 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Livrables attendus par YouTube */}
+                {/* H2 : Livrables attendus par YouTube - 2 colonnes */}
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Livrables attendus par YouTube</h2>
-                  
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 lien de vidéo YouTube au format InStream/Bumper obligatoire</li>
-                            <li>Déclinaison recommandée dans les 3 formats :<br />
-                              format InFeed<br />
-                              format Shorts<br />
-                              format InStream/Bumper</li>
-                            <li>4 maximum</li>
-                          </ul>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
+                        <ul className="text-sm space-y-1 ml-4 list-disc">
+                          <li>1 lien de vidéo YouTube au format InStream/Bumper obligatoire</li>
+                          <li>Déclinaison recommandée dans les 3 formats : InFeed, Shorts, InStream/Bumper</li>
+                          <li>4 maximum</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
+                        <ul className="text-sm space-y-1 ml-4 list-disc">
+                          <li>1 titre long</li>
+                          <li>1 titre court</li>
+                          <li>1 description</li>
+                          <li>1 CTA²</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </div>
-                        <div>
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 titre long</li>
-                            <li>1 titre court</li>
-                            <li>1 description</li>
-                            <li>1 CTA²</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               </CardContent>
             </Card>
