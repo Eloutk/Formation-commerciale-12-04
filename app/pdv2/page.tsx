@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +39,19 @@ function getPlatformCalendarColor(platform: string): string {
   return PLATFORM_CALENDAR_COLORS[platform] ?? '#94a3b8'
 }
 
+// Afficher un libellé pour une entrée calendrier (platform ou platform::phaseName)
+function getCalendarEntryLabel(entry: string): string {
+  const i = entry.indexOf('::')
+  if (i === -1) return entry
+  return entry.slice(i + 2) || entry.slice(0, i) // phase name ou platform
+}
+
+function getCalendarEntryPlatform(entry: string): string {
+  const i = entry.indexOf('::')
+  if (i === -1) return entry
+  return entry.slice(0, i)
+}
+
 function getDatesBetween(start: string, end: string): string[] {
   if (!start || !end) return []
   const s = new Date(start)
@@ -70,6 +83,242 @@ function groupDatesByMonth(dates: string[]): { monthKey: string; label: string; 
   })
 }
 
+// Vue Mois : frise chronologique avec glisser-déposer de phases
+function CalendarMonthView({
+  dates,
+  ranges,
+  setRanges,
+  platformPhases,
+  strategyPlatforms,
+  getPlatformColor,
+  getCalendarEntryLabel,
+}: {
+  dates: string[]
+  ranges: CalendarRange[]
+  setRanges: React.Dispatch<React.SetStateAction<CalendarRange[]>>
+  platformPhases: Record<string, string[]>
+  strategyPlatforms: string[]
+  getPlatformColor: (p: string) => string
+  getCalendarEntryLabel: (entry: string) => string
+}) {
+  const timelineRef = React.useRef<HTMLDivElement>(null)
+  const [draggingRangeId, setDraggingRangeId] = React.useState<string | null>(null)
+  const [resizingRangeId, setResizingRangeId] = React.useState<'left' | 'right' | null>(null)
+  const dragLastXRef = React.useRef(0)
+  const dragLastStartRef = React.useRef('')
+  const dragLastEndRef = React.useRef('')
+
+  const phaseItems: { platform: string; phaseName: string }[] = []
+  strategyPlatforms.forEach((p) => {
+    const phases = platformPhases[p]
+    if (phases && phases.length > 0) phases.forEach((ph) => phaseItems.push({ platform: p, phaseName: ph }))
+    else phaseItems.push({ platform: p, phaseName: p })
+  })
+
+  const totalDays = dates.length
+  const dateToPercent = (d: string) => {
+    const i = dates.indexOf(d)
+    if (i === -1) return 0
+    return (i / Math.max(1, totalDays)) * 100
+  }
+  const percentToDate = (pct: number) => {
+    const i = Math.min(Math.floor((pct / 100) * totalDays), totalDays - 1)
+    return dates[i] ?? dates[0]
+  }
+
+  const addRangeFromDrop = (clientX: number, platform: string, phaseName: string) => {
+    const el = timelineRef.current
+    if (!el || dates.length === 0) return
+    const rect = el.getBoundingClientRect()
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100))
+    const startDate = percentToDate(pct)
+    const startIdx = dates.indexOf(startDate)
+    let endIdx = Math.min(startIdx + 7, dates.length - 1)
+    const endDate = dates[endIdx] ?? startDate
+    const id = `range-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    setRanges((prev) => [...prev, { id, startDate, endDate, platform, phaseName }])
+  }
+
+  const handleTimelineDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const platform = e.dataTransfer.getData('platform')
+    const phaseName = e.dataTransfer.getData('phaseName')
+    if (platform && phaseName) addRangeFromDrop(e.clientX, platform, phaseName)
+  }
+
+  const handleRangeMouseDown = (rangeId: string, side: 'left' | 'right' | null, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const r = ranges.find((x) => x.id === rangeId)
+    if (!r) return
+    setResizingRangeId(side)
+    setDraggingRangeId(rangeId)
+    dragLastXRef.current = e.clientX
+    dragLastStartRef.current = r.startDate
+    dragLastEndRef.current = r.endDate
+  }
+
+  React.useEffect(() => {
+    if (!draggingRangeId) return
+    const resizing = resizingRangeId
+    const onMove = (ev: MouseEvent) => {
+      const el = timelineRef.current
+      if (!el || dates.length === 0) return
+      const rect = el.getBoundingClientRect()
+      const deltaPct = ((ev.clientX - dragLastXRef.current) / rect.width) * 100
+      const deltaDays = Math.round((deltaPct / 100) * totalDays)
+      const lastStart = dragLastStartRef.current
+      const lastEnd = dragLastEndRef.current
+      let newStartIdx: number
+      let newEndIdx: number
+      if (resizing === 'left') {
+        newStartIdx = Math.max(0, dates.indexOf(lastStart) + deltaDays)
+        newEndIdx = dates.indexOf(lastEnd)
+        if (newStartIdx >= newEndIdx) return
+      } else if (resizing === 'right') {
+        newStartIdx = dates.indexOf(lastStart)
+        newEndIdx = Math.min(dates.length - 1, dates.indexOf(lastEnd) + deltaDays)
+        if (newStartIdx >= newEndIdx) return
+      } else {
+        newStartIdx = Math.max(0, dates.indexOf(lastStart) + deltaDays)
+        newEndIdx = Math.max(0, dates.indexOf(lastEnd) + deltaDays)
+        if (newStartIdx > newEndIdx) [newStartIdx, newEndIdx] = [newEndIdx, newStartIdx]
+        newEndIdx = Math.min(dates.length - 1, newEndIdx)
+        newStartIdx = Math.min(newStartIdx, newEndIdx)
+      }
+      const newStart = dates[newStartIdx]!
+      const newEnd = dates[newEndIdx]!
+      setRanges((prev) => prev.map((x) => (x.id === draggingRangeId ? { ...x, startDate: newStart, endDate: newEnd } : x)))
+      dragLastXRef.current = ev.clientX
+      dragLastStartRef.current = newStart
+      dragLastEndRef.current = newEnd
+    }
+    const onUp = () => {
+      setDraggingRangeId(null)
+      setResizingRangeId(null)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [draggingRangeId, resizingRangeId, dates, setRanges, totalDays])
+
+  const removeRange = (id: string) => setRanges((prev) => prev.filter((r) => r.id !== id))
+
+  // Assigner une "lane" (ligne) à chaque phase pour qu'elles ne se superposent pas visuellement
+  const rangesWithLane = React.useMemo(() => {
+    const sorted = [...ranges].sort((a, b) => a.startDate.localeCompare(b.startDate))
+    const laneEnd: number[] = [] // pour chaque lane, l'index de la dernière date occupée
+    return sorted.map((r) => {
+      const startIdx = dates.indexOf(r.startDate)
+      const endIdx = dates.indexOf(r.endDate)
+      const end = endIdx >= 0 ? endIdx : startIdx
+      let lane = 0
+      while (lane < laneEnd.length && laneEnd[lane] >= startIdx) lane++
+      laneEnd[lane] = end
+      return { ...r, lane }
+    })
+  }, [ranges, dates])
+
+  const numLanes = rangesWithLane.length > 0 ? Math.max(...rangesWithLane.map((r) => r.lane)) + 1 : 1
+  const ROW_HEIGHT = 36
+  const timelineHeight = Math.max(ROW_HEIGHT, numLanes * ROW_HEIGHT)
+
+  // Mois pour l'en-tête horizontale (groupés à partir des dates)
+  const monthsRow = React.useMemo(() => {
+    if (dates.length === 0) return []
+    const byMonth = new Map<string, { startIdx: number; endIdx: number }>()
+    dates.forEach((d, i) => {
+      const key = d.slice(0, 7)
+      if (!byMonth.has(key)) byMonth.set(key, { startIdx: i, endIdx: i })
+      else byMonth.get(key)!.endIdx = i
+    })
+    return Array.from(byMonth.entries()).sort((a, b) => a[1].startIdx - b[1].startIdx).map(([monthKey, { startIdx, endIdx }]) => {
+      const [y, m] = monthKey.split('-').map(Number)
+      const label = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+      const left = (startIdx / Math.max(1, totalDays)) * 100
+      const width = ((endIdx - startIdx + 1) / Math.max(1, totalDays)) * 100
+      return { key: monthKey, label: label.charAt(0).toUpperCase() + label.slice(1), left, width }
+    })
+  }, [dates, totalDays])
+
+  return (
+    <div className="space-y-3 w-full">
+      <Label>Frise chronologique (glissez une phase sur la frise pour l&apos;y poser, déplacez ou redimensionnez les blocs)</Label>
+      <div className="flex gap-4 w-full">
+        <div className="w-48 shrink-0 space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Phases à déposer</p>
+          {phaseItems.map(({ platform, phaseName }) => (
+            <div
+              key={`${platform}::${phaseName}`}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('platform', platform)
+                e.dataTransfer.setData('phaseName', phaseName)
+                e.dataTransfer.effectAllowed = 'copy'
+              }}
+              className="cursor-grab active:cursor-grabbing rounded px-2 py-1.5 text-xs border border-gray-200 bg-background hover:bg-muted/50"
+              style={{ borderLeftColor: getPlatformColor(platform), borderLeftWidth: 3 }}
+            >
+              {getCalendarEntryLabel(phaseName === platform ? platform : `${platform}::${phaseName}`)}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="border border-gray-200 rounded-lg p-2 bg-gray-50/50">
+            {/* Ligne des mois en en-tête */}
+            <div className="relative h-6 w-full mb-1">
+              {monthsRow.map(({ key, label, left, width }) => (
+                <div
+                  key={key}
+                  className="absolute top-0 bottom-0 flex items-center px-1 text-[10px] font-medium text-muted-foreground border-r border-gray-200 last:border-r-0"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div
+              ref={timelineRef}
+              className="relative w-full rounded bg-white border border-gray-200 overflow-hidden"
+              style={{ height: timelineHeight }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleTimelineDrop}
+            >
+              {rangesWithLane.map((r) => {
+                const left = dateToPercent(r.startDate)
+                const endIdx = dates.indexOf(r.endDate)
+                const startIdx = dates.indexOf(r.startDate)
+                const spanDays = endIdx >= 0 && startIdx >= 0 ? endIdx - startIdx + 1 : 1
+                const width = (spanDays / Math.max(1, totalDays)) * 100
+                const top = r.lane * ROW_HEIGHT
+                return (
+                  <div
+                    key={r.id}
+                    className="absolute rounded flex items-center justify-center group cursor-move"
+                    style={{
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      top: top + 2,
+                      height: ROW_HEIGHT - 4,
+                      backgroundColor: getPlatformColor(r.platform) + '40',
+                      borderLeft: `3px solid ${getPlatformColor(r.platform)}`,
+                    }}
+                    onMouseDown={(e) => { if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).classList.contains('cursor-ew-resize')) return; handleRangeMouseDown(r.id, null, e) }}
+                  >
+                    <span className="text-[10px] font-medium truncate px-1 pointer-events-none">{r.phaseName}</span>
+                    <button type="button" className="absolute right-0.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-destructive text-[10px] cursor-pointer" onClick={(e) => { e.stopPropagation(); removeRange(r.id) }} title="Supprimer">×</button>
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-primary/30 shrink-0" onMouseDown={(e) => handleRangeMouseDown(r.id, 'left', e)} title="Redimensionner" />
+                    <div className="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-transparent hover:bg-primary/30 shrink-0" onMouseDown={(e) => handleRangeMouseDown(r.id, 'right', e)} title="Redimensionner" />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
   META: '/images/Logo META.png',
   Display: '/images/Logo Google.png',
@@ -90,7 +339,7 @@ const META_CUSTOM_OBJECTIVES = [
   "J'aime la page",
   'Réponses évènement',
   'Leads',
-  'Max conversion',
+  'conversion',
 ] as const
 
 const INSTA_CUSTOM_OBJECTIVES = [
@@ -103,7 +352,7 @@ const INSTA_CUSTOM_OBJECTIVES = [
 
 const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
 
-const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Max conversion'] as const
+const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
 
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
@@ -193,11 +442,26 @@ interface StrategyItem extends TableRowData {
   aePercentage: number
 }
 
+// Phase posée sur la frise (vue mois)
+export interface CalendarRange {
+  id: string
+  startDate: string
+  endDate: string
+  platform: string
+  phaseName: string
+}
+
+// Jours par phase : platform -> phaseName -> nombre de jours (pour calendrier)
+export type CalendarPhaseDaysMap = Record<string, Record<string, number>>
+
 // Calendrier de diffusion (stocké en front, perdu au rechargement)
 export interface StrategyCalendar {
   startDate: string // YYYY-MM-DD
   endDate: string
-  days: Record<string, string[]> // date YYYY-MM-DD -> plateformes diffusées ce jour
+  days: Record<string, string[]> // date -> "platform" ou "platform::phaseName"
+  platformPhases?: Record<string, string[]> // platform -> noms de phases
+  phaseDays?: CalendarPhaseDaysMap
+  ranges?: CalendarRange[] // vue mois : phases posées sur la frise
 }
 
 interface StrategyBlock {
@@ -750,7 +1014,17 @@ const PDFDocument = ({
                   const last = weeks[weeks.length - 1]
                   while (last.length < 7) last.push('')
                 }
-                const days = block.calendar.days ?? {}
+                const daysBase = block.calendar.days ?? {}
+                const daysFromRanges: Record<string, string[]> = {}
+                ;(block.calendar.ranges ?? []).forEach((r) => {
+                  getDatesBetween(r.startDate, r.endDate).forEach((dateKey) => {
+                    if (!daysFromRanges[dateKey]) daysFromRanges[dateKey] = []
+                    daysFromRanges[dateKey].push(`${r.platform}::${r.phaseName}`)
+                  })
+                })
+                const days: Record<string, string[]> = {}
+                Object.entries(daysBase).forEach(([k, arr]) => { days[k] = [...arr] })
+                Object.entries(daysFromRanges).forEach(([k, arr]) => { days[k] = [...(days[k] ?? []), ...arr] })
                 const platformsInCal = new Set<string>()
                 Object.values(days).forEach((arr) => arr.forEach((p) => platformsInCal.add(p)))
                 return (
@@ -761,7 +1035,7 @@ const PDFDocument = ({
                         {week.map((dateKey, di) => {
                           if (!dateKey) return <View key={`e-${wi}-${di}`} style={[styles.calendarCell, { backgroundColor: '#f9fafb' }]} />
                           const platformList = days[dateKey] ?? []
-                          const bgColor = platformList.length === 0 ? '#f9fafb' : platformList.length === 1 ? getPlatformCalendarColor(platformList[0]) : '#f3f4f6'
+                          const bgColor = platformList.length === 0 ? '#f9fafb' : platformList.length === 1 ? getPlatformCalendarColor(getCalendarEntryPlatform(platformList[0])) : '#f3f4f6'
                           return (
                             <View
                               key={dateKey}
@@ -770,8 +1044,8 @@ const PDFDocument = ({
                               <Text style={styles.calendarDayNum}>{new Date(dateKey).getDate()}</Text>
                               {platformList.length > 1 && (
                                 <View style={{ flexDirection: 'row', marginTop: 2, gap: 1, justifyContent: 'center' }}>
-                                  {platformList.slice(0, 3).map((p) => (
-                                    <View key={p} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: getPlatformCalendarColor(p) }} />
+                                  {platformList.slice(0, 3).map((entry) => (
+                                    <View key={entry} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(entry)) }} />
                                   ))}
                                 </View>
                               )}
@@ -782,10 +1056,10 @@ const PDFDocument = ({
                     ))}
                     {platformsInCal.size > 0 && (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 8 }}>
-                        {Array.from(platformsInCal).map((p) => (
-                          <View key={p} style={[styles.legendItem, { marginBottom: 0 }]}>
-                            <View style={[styles.legendColor, { backgroundColor: getPlatformCalendarColor(p) }]} />
-                            <Text style={styles.legendLabel}>{p}</Text>
+                        {Array.from(platformsInCal).map((entry) => (
+                          <View key={entry} style={[styles.legendItem, { marginBottom: 0 }]}>
+                            <View style={[styles.legendColor, { backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(entry)) }]} />
+                            <Text style={styles.legendLabel}>{getCalendarEntryLabel(entry)}</Text>
                           </View>
                         ))}
                       </View>
@@ -1022,11 +1296,17 @@ export default function PDV2Page() {
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
+  const [calendarView, setCalendarView] = useState<'day' | 'month'>('day')
   const [calendarPeriodStart, setCalendarPeriodStart] = useState('')
   const [calendarPeriodEnd, setCalendarPeriodEnd] = useState('')
   const [calendarDays, setCalendarDays] = useState<Record<string, string[]>>({})
-  const [calendarSelectedPlatform, setCalendarSelectedPlatform] = useState<string | null>(null)
+  const [calendarPlatformPhases, setCalendarPlatformPhases] = useState<Record<string, string[]>>({})
+  const [calendarPhaseDays, setCalendarPhaseDays] = useState<CalendarPhaseDaysMap>({})
+  const [calendarRanges, setCalendarRanges] = useState<CalendarRange[]>([])
+  const [calendarSelectedEntry, setCalendarSelectedEntry] = useState<string | null>(null) // "platform" ou "platform::phaseName"
+  const [calendarPhasesMenuPlatform, setCalendarPhasesMenuPlatform] = useState<string | null>(null)
   const [calendarDragging, setCalendarDragging] = useState(false)
+  const [calendarNewPhaseName, setCalendarNewPhaseName] = useState('')
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -2190,17 +2470,31 @@ export default function PDV2Page() {
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     setCalendarStrategyId(block.id)
+                                    const daysNum = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                                    const today = new Date().toISOString().slice(0, 10)
                                     const cal = block.calendar
                                     if (cal) {
                                       setCalendarPeriodStart(cal.startDate)
-                                      setCalendarPeriodEnd(cal.endDate)
+                                      const periodDates = getDatesBetween(cal.startDate, cal.endDate)
+                                      const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : cal.endDate
+                                      setCalendarPeriodEnd(clampedEnd)
                                       setCalendarDays(cal.days ? { ...cal.days } : {})
+                                      setCalendarPlatformPhases(cal.platformPhases ? { ...cal.platformPhases } : {})
+                                      setCalendarPhaseDays(cal.phaseDays ? JSON.parse(JSON.stringify(cal.phaseDays)) : {})
+                                      setCalendarRanges((cal.ranges ?? []).map((r, i) => ({ ...r, id: (r as CalendarRange & { id?: string }).id || `range-${i}-${Date.now()}` })))
                                     } else {
-                                      setCalendarPeriodStart('')
-                                      setCalendarPeriodEnd('')
+                                      setCalendarPeriodStart(today)
+                                      const d = new Date(today + 'T12:00:00')
+                                      d.setDate(d.getDate() + daysNum - 1)
+                                      setCalendarPeriodEnd(d.toISOString().slice(0, 10))
                                       setCalendarDays({})
+                                      setCalendarPlatformPhases({})
+                                      setCalendarPhaseDays({})
+                                      setCalendarRanges([])
                                     }
-                                    setCalendarSelectedPlatform(null)
+                                    setCalendarSelectedEntry(null)
+                                    setCalendarPhasesMenuPlatform(null)
+                                    setCalendarView('day')
                                     setCalendarDialogOpen(true)
                                   }}
                                 >
@@ -2887,159 +3181,313 @@ export default function PDV2Page() {
       </div>
 
       {/* Modale Calendrier de diffusion */}
-      <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null) }}>
+      <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null); setCalendarPhasesMenuPlatform(null) }}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Calendrier de diffusion</DialogTitle>
             <DialogDescription>
-              Choisissez une plateforme puis glissez sur les jours pour les colorier. Plusieurs plateformes par jour possibles.
+              Vue Jour : sélectionnez une phase puis posez-la sur les jours. Vue Mois : glissez-déposez les phases sur la frise chronologique.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Début</Label>
-                <Input
-                  type="date"
-                  value={calendarPeriodStart}
-                  onChange={(e) => setCalendarPeriodStart(e.target.value)}
-                />
+            {(() => {
+              const maxCalendarDays = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+              const clampEndToMaxDays = (start: string, end: string) => {
+                if (!start || !end) return end || start
+                const dates = getDatesBetween(start, end)
+                if (dates.length === 0) {
+                  const d = new Date(start + 'T12:00:00')
+                  if (Number.isNaN(d.getTime())) return end
+                  d.setDate(d.getDate() + maxCalendarDays - 1)
+                  return d.toISOString().slice(0, 10)
+                }
+                if (dates.length <= maxCalendarDays) return end
+                return dates[maxCalendarDays - 1] ?? end
+              }
+              return (
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Début</Label>
+                  <Input
+                    type="date"
+                    value={calendarPeriodStart}
+                    onChange={(e) => {
+                      const start = e.target.value
+                      setCalendarPeriodStart(start)
+                      if (calendarPeriodEnd) setCalendarPeriodEnd(clampEndToMaxDays(start, calendarPeriodEnd))
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fin</Label>
+                  <Input
+                    type="date"
+                    value={calendarPeriodEnd}
+                    onChange={(e) => {
+                      const end = e.target.value
+                      if (calendarPeriodStart) {
+                        setCalendarPeriodEnd(clampEndToMaxDays(calendarPeriodStart, end))
+                      } else {
+                        setCalendarPeriodEnd(end)
+                      }
+                    }}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Fin</Label>
-                <Input
-                  type="date"
-                  value={calendarPeriodEnd}
-                  onChange={(e) => setCalendarPeriodEnd(e.target.value)}
-                />
-              </div>
+              <Tabs value={calendarView} onValueChange={(v) => setCalendarView(v as 'day' | 'month')} className="ml-4">
+                <TabsList>
+                  <TabsTrigger value="day">Jour</TabsTrigger>
+                  <TabsTrigger value="month">Mois</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
+            ); })()}
+
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               const platformSet = new Set<string>()
               block?.items.forEach((item) => platformSet.add(item.platform))
               const strategyPlatforms = Array.from(platformSet).filter((p) => PLATFORM_CALENDAR_COLORS[p] != null).length ? Array.from(platformSet).sort((a, b) => PLATFORMS_ORDER.indexOf(a) - PLATFORMS_ORDER.indexOf(b)) : Array.from(platformSet)
               const dates = getDatesBetween(calendarPeriodStart, calendarPeriodEnd)
-              const togglePlatformOnDay = (dateKey: string, add: boolean) => {
-                if (!calendarSelectedPlatform) return
+
+              // Entrées sélectionnables pour la grille : plateforme seule ou platform::phase
+              const getBrushEntries = (): string[] => {
+                const out: string[] = []
+                strategyPlatforms.forEach((p) => {
+                  const phases = calendarPlatformPhases[p]
+                  if (phases && phases.length > 0) phases.forEach((ph) => out.push(`${p}::${ph}`))
+                  else out.push(p)
+                })
+                return out
+              }
+              const brushEntries = getBrushEntries()
+
+              const toggleEntryOnDay = (dateKey: string, add: boolean) => {
+                if (!calendarSelectedEntry) return
                 setCalendarDays((prev) => {
                   const list = prev[dateKey] ?? []
                   if (add) {
-                    if (list.includes(calendarSelectedPlatform!)) return prev
-                    return { ...prev, [dateKey]: [...list, calendarSelectedPlatform!] }
+                    if (list.includes(calendarSelectedEntry!)) return prev
+                    return { ...prev, [dateKey]: [...list, calendarSelectedEntry!] }
                   }
-                  return { ...prev, [dateKey]: list.filter((p) => p !== calendarSelectedPlatform) }
+                  return { ...prev, [dateKey]: list.filter((e) => e !== calendarSelectedEntry) }
                 })
               }
+
               return (
                 <>
                   {strategyPlatforms.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher les plateformes du calendrier.</p>
                   ) : (
-                    <div className="space-y-2">
-                      <Label>Plateforme (sélectionnez puis glissez sur les jours)</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {strategyPlatforms.map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${calendarSelectedPlatform === p ? 'ring-2 ring-offset-2 ring-primary' : 'hover:bg-muted'}`}
-                            style={{ borderColor: getPlatformCalendarColor(p), backgroundColor: calendarSelectedPlatform === p ? getPlatformCalendarColor(p) + '20' : undefined }}
-                            onClick={() => setCalendarSelectedPlatform(calendarSelectedPlatform === p ? null : p)}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {dates.length > 0 && (
-                    <div className="space-y-2 w-full">
-                      <Label>Grille</Label>
-                      <div
-                        className="w-full border border-gray-200 rounded-lg p-4 bg-gray-50/50"
-                        onMouseLeave={() => setCalendarDragging(false)}
-                        onMouseUp={() => setCalendarDragging(false)}
-                      >
-                        <div className="grid grid-cols-3 gap-4 w-full">
-                          {groupDatesByMonth(dates).map(({ monthKey, label, dates: monthDates }) => {
-                            // Premier jour du mois : décalage pour aligner (lundi = 0), en date locale pour éviter décalage timezone
-                            const [y, m, d] = monthDates[0].split('-').map(Number)
-                            const firstDay = new Date(y, m - 1, d)
-                            const startOffset = (firstDay.getDay() - 1 + 7) % 7
-                            const padded: string[] = [...Array(startOffset).fill(''), ...monthDates]
-                            const weeks: string[][] = []
-                            for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
-                            if (weeks.length && weeks[weeks.length - 1].length < 7) {
-                              const last = weeks[weeks.length - 1]
-                              while (last.length < 7) last.push('')
-                            }
-                            const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+                    <>
+                      {/* Plateformes et phases : une carte par plateforme, phases listées dessous */}
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-base">Phase à poser sur le calendrier</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Choisissez une option ci‑dessous, puis cliquez sur les jours (vue Jour) ou glissez‑déposez sur la frise (vue Mois).
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {strategyPlatforms.map((p) => {
+                            const phases = calendarPlatformPhases[p] ?? []
+                            const isMenuOpen = calendarPhasesMenuPlatform === p
+                            const color = getPlatformCalendarColor(p)
+                            const totalAllowedDays = block?.items.filter((i) => i.platform === p).reduce((s, i) => s + (i.days || 0), 0) ?? 0
                             return (
-                              <div key={monthKey} className="min-w-0 w-full border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
-                                <div className="text-sm font-semibold text-foreground mb-2">{label}</div>
-                                <div className="grid grid-cols-7 gap-1 mb-1">
-                                  {dayLabels.map((d) => (
-                                    <div key={d} className="flex items-center justify-center text-[10px] font-medium text-muted-foreground aspect-square min-w-0">{d}</div>
-                                  ))}
+                              <div
+                                key={p}
+                                className="relative rounded-lg border bg-card p-3"
+                                style={{ borderLeftWidth: 4, borderLeftColor: color }}
+                              >
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-sm" style={{ color }}>{p}</span>
+                                    {totalAllowedDays > 0 && (
+                                      <span className="text-[11px] text-muted-foreground">{totalAllowedDays} jour{totalAllowedDays > 1 ? 's' : ''} à répartir</span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs text-muted-foreground"
+                                    onClick={() => setCalendarPhasesMenuPlatform(isMenuOpen ? null : p)}
+                                  >
+                                    {phases.length === 0 ? 'Créer des phases' : 'Gérer les phases'}
+                                  </Button>
                                 </div>
-                                <div className="grid auto-rows-fr gap-1">
-                                  {weeks.map((week, wi) => (
-                                    <div key={wi} className="grid grid-cols-7 gap-1">
-                                      {week.map((dateKey, di) => {
-                                        if (!dateKey) return <div key={`empty-${wi}-${di}`} className="aspect-square min-w-0 rounded border border-transparent bg-transparent" />
-                                        const platforms = calendarDays[dateKey] ?? []
-                                        const hasPlatform = platforms.includes(calendarSelectedPlatform ?? '')
+                                <div className="flex flex-wrap gap-1.5">
+                                  {phases.length === 0 ? (
+                                    <button
+                                      type="button"
+                                      className={`rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors ${calendarSelectedEntry === p ? 'ring-2 ring-offset-1 ring-primary' : 'hover:bg-muted/80'}`}
+                                      style={{ borderColor: color, backgroundColor: calendarSelectedEntry === p ? color + '20' : color + '08' }}
+                                      onClick={() => setCalendarSelectedEntry(calendarSelectedEntry === p ? null : p)}
+                                    >
+                                      {p}
+                                    </button>
+                                  ) : (
+                                    phases.map((ph) => (
+                                      <button
+                                        key={ph}
+                                        type="button"
+                                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors ${calendarSelectedEntry === `${p}::${ph}` ? 'ring-2 ring-offset-1 ring-primary' : 'hover:bg-muted/80'}`}
+                                        style={{ borderColor: color, backgroundColor: calendarSelectedEntry === `${p}::${ph}` ? color + '20' : color + '08' }}
+                                        onClick={() => setCalendarSelectedEntry(calendarSelectedEntry === `${p}::${ph}` ? null : `${p}::${ph}`)}
+                                      >
+                                        {ph}
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                                {isMenuOpen && (
+                                  <div className="absolute top-full left-0 right-0 z-50 mt-2 p-3 bg-background border rounded-lg shadow-lg border-gray-200">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">Phases pour {p}</p>
+                                    <p className="text-[11px] text-muted-foreground mb-2">
+                                      Jours à répartir : <span className="font-semibold text-foreground">{totalAllowedDays}</span> jour{totalAllowedDays > 1 ? 's' : ''} (total des lignes {p} dans la stratégie)
+                                    </p>
+                                    <div className="flex gap-2 mb-2">
+                                      <Input
+                                        placeholder="Nom de la phase"
+                                        value={calendarNewPhaseName}
+                                        onChange={(e) => setCalendarNewPhaseName(e.target.value)}
+                                        className="h-8 text-xs"
+                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const n = calendarNewPhaseName.trim(); if (n) { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: [...(prev[p] ?? []), n] })); setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [n]: 0 } })); setCalendarNewPhaseName('') } } }}
+                                      />
+                                      <Button type="button" size="sm" className="h-8 text-xs shrink-0" onClick={() => { const n = calendarNewPhaseName.trim(); if (n) { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: [...(prev[p] ?? []), n] })); setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [n]: 0 } })); setCalendarNewPhaseName('') } }}>Ajouter</Button>
+                                    </div>
+                                    <ul className="space-y-2 max-h-40 overflow-y-auto">
+                                      {phases.map((ph) => {
+                                        const phaseDaysVal = calendarPhaseDays[p]?.[ph] ?? 0
                                         return (
-                                          <div
-                                            key={dateKey}
-                                            className="aspect-square min-w-0 w-full rounded border border-gray-200 bg-muted/30 flex flex-col items-center justify-center cursor-pointer select-none"
-                                            onMouseDown={() => {
-                                              if (calendarSelectedPlatform) {
-                                                setCalendarDragging(true)
-                                                togglePlatformOnDay(dateKey, !hasPlatform)
-                                              }
-                                            }}
-                                            onMouseEnter={() => { if (calendarDragging && calendarSelectedPlatform) togglePlatformOnDay(dateKey, true) }}
-                                            title={dateKey + (platforms.length ? ': ' + platforms.join(', ') : '')}
-                                          >
-                                            <div className="flex-1 min-h-0 w-full flex items-center justify-center">
-                                              <span className="text-[10px] text-muted-foreground leading-none">{new Date(dateKey).getDate()}</span>
-                                            </div>
-                                            <div className="flex gap-0.5 flex-wrap justify-center items-center shrink-0">
-                                              {platforms.slice(0, 3).map((p) => (
-                                                <span key={p} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getPlatformCalendarColor(p) }} />
-                                              ))}
-                                              {platforms.length > 3 && <span className="text-[8px]">+{platforms.length - 3}</span>}
-                                            </div>
-                                          </div>
+                                          <li key={ph} className="flex items-center gap-2 text-xs">
+                                            <span className="min-w-[80px] truncate">{ph}</span>
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              max={totalAllowedDays}
+                                              className="h-7 w-16 text-xs"
+                                              value={phaseDaysVal || ''}
+                                              onChange={(e) => {
+                                                const v = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0)
+                                                setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [ph]: v } }))
+                                              }}
+                                              placeholder="0"
+                                            />
+                                            <span className="text-muted-foreground">jours</span>
+                                            <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-destructive shrink-0" onClick={() => { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: (prev[p] ?? []).filter((x) => x !== ph) })); setCalendarPhaseDays((prev) => { const next = { ...(prev[p] ?? {}) }; delete next[ph]; return { ...prev, [p]: next } }) }}>Supprimer</Button>
+                                          </li>
                                         )
                                       })}
-                                    </div>
-                                  ))}
-                                </div>
+                                    </ul>
+                                    {phases.length > 0 && (() => {
+                                      const sumDays = phases.reduce((s, ph) => s + (calendarPhaseDays[p]?.[ph] ?? 0), 0)
+                                      const ok = sumDays === totalAllowedDays
+                                      return (
+                                        <p className={`text-[11px] mt-2 ${ok ? 'text-muted-foreground' : 'text-amber-600'}`}>
+                                          Total phases : {sumDays} jour{sumDays !== 1 ? 's' : ''} {ok ? '(égal au total autorisé)' : `— doit être égal à ${totalAllowedDays} jours`}
+                                        </p>
+                                      )
+                                    })()}
+                                    <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={() => { setCalendarPhasesMenuPlatform(null); setCalendarNewPhaseName('') }}>Fermer</Button>
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
                         </div>
+                        {calendarSelectedEntry && (
+                          <p className="text-xs text-muted-foreground">
+                            Sélectionnée : <span className="font-medium text-foreground">{getCalendarEntryLabel(calendarSelectedEntry)}</span>
+                            {calendarSelectedEntry.includes('::') && ` (${getCalendarEntryPlatform(calendarSelectedEntry)})`}
+                          </p>
+                        )}
                       </div>
-                    </div>
+
+                      {calendarView === 'day' && dates.length > 0 && (
+                        <div className="space-y-2 w-full">
+                          <Label>Grille (sélectionnez une phase ci-dessus puis posez sur les jours)</Label>
+                          <div className="w-full border border-gray-200 rounded-lg p-4 bg-gray-50/50" onMouseLeave={() => setCalendarDragging(false)} onMouseUp={() => setCalendarDragging(false)}>
+                            <div className="grid grid-cols-3 gap-4 w-full">
+                              {groupDatesByMonth(dates).map(({ monthKey, label, dates: monthDates }) => {
+                                const [y, m, d] = monthDates[0].split('-').map(Number)
+                                const firstDay = new Date(y, m - 1, d)
+                                const startOffset = (firstDay.getDay() - 1 + 7) % 7
+                                const padded: string[] = [...Array(startOffset).fill(''), ...monthDates]
+                                const weeks: string[][] = []
+                                for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
+                                if (weeks.length && weeks[weeks.length - 1].length < 7) { const last = weeks[weeks.length - 1]; while (last.length < 7) last.push('') }
+                                const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+                                return (
+                                  <div key={monthKey} className="min-w-0 w-full border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
+                                    <div className="text-sm font-semibold text-foreground mb-2">{label}</div>
+                                    <div className="grid grid-cols-7 gap-1 mb-1">
+                                      {dayLabels.map((dayLabel) => <div key={dayLabel} className="flex items-center justify-center text-[10px] font-medium text-muted-foreground aspect-square min-w-0">{dayLabel}</div>)}
+                                    </div>
+                                    <div className="grid auto-rows-fr gap-1">
+                                      {weeks.map((week, wi) => (
+                                        <div key={wi} className="grid grid-cols-7 gap-1">
+                                          {week.map((dateKey, di) => {
+                                            if (!dateKey) return <div key={`empty-${wi}-${di}`} className="aspect-square min-w-0 rounded border border-transparent bg-transparent" />
+                                            const entries = calendarDays[dateKey] ?? []
+                                            const hasEntry = calendarSelectedEntry ? entries.includes(calendarSelectedEntry) : false
+                                            return (
+                                              <div
+                                                key={dateKey}
+                                                className="aspect-square min-w-0 w-full rounded border border-gray-200 bg-muted/30 flex flex-col items-center justify-center cursor-pointer select-none"
+                                                onMouseDown={() => { if (calendarSelectedEntry) { setCalendarDragging(true); toggleEntryOnDay(dateKey, !hasEntry) } }}
+                                                onMouseEnter={() => { if (calendarDragging && calendarSelectedEntry) toggleEntryOnDay(dateKey, true) }}
+                                                title={dateKey + (entries.length ? ': ' + entries.map(getCalendarEntryLabel).join(', ') : '')}
+                                              >
+                                                <span className="text-[10px] text-muted-foreground leading-none">{new Date(dateKey).getDate()}</span>
+                                                <div className="flex gap-0.5 flex-wrap justify-center items-center shrink-0 mt-0.5">
+                                                  {entries.slice(0, 3).map((e) => (
+                                                    <span key={e} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(e)) }} title={getCalendarEntryLabel(e)} />
+                                                  ))}
+                                                  {entries.length > 3 && <span className="text-[8px]">+{entries.length - 3}</span>}
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {calendarView === 'month' && dates.length > 0 && (
+                        <CalendarMonthView
+                          dates={dates}
+                          ranges={calendarRanges}
+                          setRanges={setCalendarRanges}
+                          platformPhases={calendarPlatformPhases}
+                          strategyPlatforms={strategyPlatforms}
+                          getPlatformColor={getPlatformCalendarColor}
+                          getCalendarEntryLabel={getCalendarEntryLabel}
+                        />
+                      )}
+                    </>
                   )}
                 </>
               )
             })()}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCalendarDialogOpen(false); setCalendarStrategyId(null) }}>
-              Annuler
-            </Button>
+            <Button variant="outline" onClick={() => { setCalendarDialogOpen(false); setCalendarStrategyId(null) }}>Annuler</Button>
             <Button
               onClick={() => {
                 if (!calendarStrategyId) return
                 const start = calendarPeriodStart || undefined
                 const end = calendarPeriodEnd || undefined
-                if (start && end && Object.keys(calendarDays).length >= 0) {
-                  setStrategies((prev) => prev.map((s) => (s.id === calendarStrategyId ? { ...s, calendar: { startDate: start, endDate: end, days: { ...calendarDays } } } : s)))
+                if (start && end) {
+                  setStrategies((prev) => prev.map((s) => (s.id === calendarStrategyId ? { ...s, calendar: { startDate: start, endDate: end, days: { ...calendarDays }, platformPhases: { ...calendarPlatformPhases }, phaseDays: JSON.parse(JSON.stringify(calendarPhaseDays)), ranges: [...calendarRanges] } } : s)))
                 }
                 setCalendarDialogOpen(false)
                 setCalendarStrategyId(null)

@@ -9,7 +9,7 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Clics: { cost: 0.52, perThousand: false },
     'Clics sur lien': { cost: 0.736, perThousand: false },
     Leads: { cost: 70.4, perThousand: false },
-    'Max conversion': { cost: 70.4, perThousand: false },
+    conversion: { cost: 70.4, perThousand: false },
   },
   'Insta only': {
     Impressions: { cost: 2.94, perThousand: true },
@@ -27,7 +27,7 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Impressions: { cost: 19.8, perThousand: true },
     Clics: { cost: 7.25, perThousand: false },
     Leads: { cost: 560, perThousand: false },
-    'Max conversion': { cost: 560, perThousand: false },
+    Likes: { cost: 7.25, perThousand: false },
   },
   Snapchat: {
     Impressions: { cost: 1.44, perThousand: true },
@@ -112,7 +112,7 @@ export function calculatePriceForKPIs(
           // ((KPIS souhaités x 70,4) / %AE) x 1,3
           price = ((kpis * 70.4) / aeFactor) * 1.3
           break
-        case 'Max conversion':
+        case 'conversion':
           price = ((kpis * 70.4) / aeFactor) * 1.3
           break
         default:
@@ -179,8 +179,8 @@ export function calculatePriceForKPIs(
           // ((KPIS souhaités x 560) / %AE) x 1,3
           price = ((kpis * 560) / aeFactor) * 1.3
           break
-        case 'Max conversion':
-          price = ((kpis * 560) / aeFactor) * 1.3
+        case 'Likes':
+          price = ((kpis * 7.25) / aeFactor) * 1.3
           break
         default:
           throw new Error('Objectif non supporté pour LinkedIn')
@@ -264,7 +264,7 @@ export function calculatePriceForKPIsDirection(
         case 'Clics': price = ((kpis * 0.52) / aeFactor) * mult; break
         case 'Clics sur lien': price = ((kpis * 0.736) / aeFactor) * mult; break
         case 'Leads': price = ((kpis * 70.4) / aeFactor) * mult; break
-        case 'Max conversion': price = ((kpis * 70.4) / aeFactor) * mult; break
+        case 'conversion': price = ((kpis * 70.4) / aeFactor) * mult; break
         default: throw new Error('Objectif non supporté pour META')
       }
       break
@@ -294,7 +294,7 @@ export function calculatePriceForKPIsDirection(
         case 'Impressions': price = ((kpis / 1000 * 19.8) / aeFactor) * mult; break
         case 'Clics': price = ((kpis * 7.25) / aeFactor) * mult; break
         case 'Leads': price = ((kpis * 560) / aeFactor) * mult; break
-        case 'Max conversion': price = ((kpis * 560) / aeFactor) * mult; break
+        case 'Likes': price = ((kpis * 7.25) / aeFactor) * mult; break
         default: throw new Error('Objectif non supporté pour LinkedIn')
       }
       break
@@ -360,7 +360,7 @@ export function calculateKPIsForBudget(
           // ((Prix souhaité / 1,3) x %AE) / 70,4
           calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
           break
-        case 'Max conversion':
+        case 'conversion':
           calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
           break
         default:
@@ -427,8 +427,8 @@ export function calculateKPIsForBudget(
           // ((Prix souhaité / 1,3) x %AE) / 560
           calculatedKpis = ((budget / 1.3) * aeFactor) / 560
           break
-        case 'Max conversion':
-          calculatedKpis = ((budget / 1.3) * aeFactor) / 560
+        case 'Likes':
+          calculatedKpis = ((budget / 1.3) * aeFactor) / 7.25
           break
         default:
           throw new Error('Objectif non supporté pour LinkedIn')
@@ -510,7 +510,7 @@ export function calculateKPIsForBudgetDirection(
         case 'Clics': calculatedKpis = base / 0.52; break
         case 'Clics sur lien': calculatedKpis = base / 0.736; break
         case 'Leads': calculatedKpis = base / 70.4; break
-        case 'Max conversion': calculatedKpis = base / 70.4; break
+        case 'conversion': calculatedKpis = base / 70.4; break
         default: throw new Error('Objectif non supporté pour META')
       }
       break
@@ -540,7 +540,7 @@ export function calculateKPIsForBudgetDirection(
         case 'Impressions': calculatedKpis = (base / 19.8) * 1000; break
         case 'Clics': calculatedKpis = base / 7.25; break
         case 'Leads': calculatedKpis = base / 560; break
-        case 'Max conversion': calculatedKpis = base / 560; break
+        case 'Likes': calculatedKpis = base / 7.25; break
         default: throw new Error('Objectif non supporté pour LinkedIn')
       }
       break
