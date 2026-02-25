@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib/pdv-calculations'
+import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
@@ -1064,6 +1064,8 @@ export default function PDV2Page() {
   
   // État pour le nom de l'utilisateur connecté
   const [userName, setUserName] = useState<string>('')
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [tarifsDirection, setTarifsDirection] = useState(false)
 
   // --- Logique de calcul SMS (indépendante du Social Media) ---
   const smsVolumeNumber = Math.max(0, Math.floor(Number(smsVolume) || 0))
@@ -1136,10 +1138,12 @@ export default function PDV2Page() {
           // Essayer de récupérer depuis le profil
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, role')
             .eq('id', session.user.id)
             .maybeSingle()
           
+          const role = (profile as { role?: string } | null)?.role ?? null
+          setUserRole(role)
           const profileName = profile?.full_name as string | undefined
           const metaName = (session.user.user_metadata as any)?.full_name as string | undefined
           const name = (profileName || metaName || '').trim()
@@ -1180,15 +1184,18 @@ export default function PDV2Page() {
           let estimatedKPIs = 0
 
               if (calculationMode === 'budget-to-kpis') {
-                // Budget global → répartition par plateforme/objectif
+                // Budget global → répartition par plateforme/objectif (tarifs classiques ou tarifs direction)
                 budget = mainValueNum // Budget total à répartir
-                const result = calculateKPIsForBudget(platform, objective, aeNum, budget)
+                const result = tarifsDirection
+                  ? calculateKPIsForBudgetDirection(platform, objective, aeNum, budget)
+                  : calculateKPIsForBudget(platform, objective, aeNum, budget)
                 estimatedKPIs = Math.ceil(result.calculatedKpis || 0)
               } else {
-                // KPIs → Budget nécessaire
+                // KPIs → Budget nécessaire (tarifs classiques ou tarifs direction)
                 estimatedKPIs = mainValueNum
-                const result = calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
-                // Budget total arrondi (pas de décimales)
+                const result = tarifsDirection
+                  ? calculatePriceForKPIsDirection(platform, objective, aeNum, mainValueNum)
+                  : calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
                 budget = Math.round(result.price || 0)
               }
 
@@ -1711,6 +1718,23 @@ export default function PDV2Page() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Appliquer les tarifs direction (visible uniquement pour direction / admin) */}
+                {(userRole === 'direction' || userRole === 'admin' || userRole === 'super_admin') && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tarifs-direction-pdv2"
+                      checked={tarifsDirection}
+                      onCheckedChange={(checked) => setTarifsDirection(checked === true)}
+                    />
+                    <label
+                      htmlFor="tarifs-direction-pdv2"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Appliquer les tarifs direction
+                    </label>
+                  </div>
+                )}
+
                 {/* Mode de calcul */}
                 <div className="space-y-2">
                   <Label>Mode de calcul</Label>

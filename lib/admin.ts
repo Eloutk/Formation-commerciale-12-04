@@ -17,7 +17,8 @@ export async function checkIsAdmin(): Promise<boolean> {
 
     if (error || !data) return false
 
-    return data.role === 'admin' || data.role === 'super_admin'
+    const role = typeof data.role === 'string' ? data.role.trim().toLowerCase() : ''
+    return role === 'admin' || role === 'super_admin'
   } catch (error) {
     console.error('Error checking admin status:', error)
     return false

@@ -11,6 +11,7 @@ import { MobileNav } from '@/components/mobile-nav'
 
 // ✅ On utilise uniquement le client Supabase centralisé
 import supabase from "@/utils/supabase/client"
+import { checkIsAdmin } from "@/lib/admin"
 
 interface User {
   id: string
@@ -198,19 +199,23 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       // Then enrich with profile data (but never block the UI)
       try {
         const { data: profile } = await withTimeout(
-          supabase.from('profiles').select('full_name, role').eq('id', (stableUser as any).id).maybeSingle(),
+          supabase.from('profiles').select('full_name, display_name, role').eq('id', (stableUser as any).id).maybeSingle(),
           6000,
           'profiles'
         )
+        const displayName = (profile as any)?.display_name as string | undefined
         const profileName = profile?.full_name as string | undefined
-        currentName = (metaName || profileName || fallbackName).trim()
+        currentName = (displayName || metaName || profileName || fallbackName).trim()
         setUser({ id: (stableUser as any).id, name: currentName, email: (stableUser as any).email || '' })
         const role = (profile as any)?.role as string | undefined
-        setIsAdmin(role === 'admin' || role === 'super_admin')
+        const roleNorm = typeof role === 'string' ? role.trim().toLowerCase() : ''
+        setIsAdmin(roleNorm === 'admin' || roleNorm === 'super_admin')
       } catch {
         // Garder l'état admin précédent en cas de timeout / erreur réseau
       }
 
+      // Ne demander le nom d'affichage que si l'utilisateur n'a aucun nom (ni display_name, ni full_name, ni metadata)
+      // Ainsi les utilisateurs qui ont déjà un pseudo/full_name ne sont pas redemandés
       if (!currentName) {
         setNickname((((stableUser as any).email || '') as string).split('@')[0] || '')
         setMustCompleteName(true)
@@ -280,6 +285,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe()
   }, [router])
 
+  // Re-vérifier le statut admin via l'API profiles (au cas où le chargement dans checkPseudo a échoué ou le profil était vide)
+  useEffect(() => {
+    if (!user || loading) return
+    let cancelled = false
+    checkIsAdmin().then((ok: boolean) => {
+      if (!cancelled) setIsAdmin(ok)
+    })
+    return () => { cancelled = true }
+  }, [user, loading])
+
   useEffect(() => {
     if (loading) return
     const isPublic = pathname === '/login' || pathname === '/register' || pathname === '/reset-password'
@@ -331,7 +346,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     window.location.assign('/login')
   }
 
-  const saveNickname = async (e: React.FormEvent) => {
+  const saveDisplayName = async (e: React.FormEvent) => {
     e.preventDefault()
     const name = nickname.trim()
     if (!name) return
@@ -340,7 +355,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       const { data: { session } } = await supabase.auth.getSession()
       const u = session?.user
       if (!u) return
-      await supabase.from('profiles').upsert({ id: u.id, full_name: name }, { onConflict: 'id' })
+      await supabase.from('profiles').upsert(
+        { id: u.id, display_name: name, full_name: name },
+        { onConflict: 'id' }
+      )
       await supabase.auth.updateUser({ data: { full_name: name } })
       setUser({ id: u.id, name, email: u.email || '' })
       setMustCompleteName(false)
@@ -411,14 +429,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       <Dialog open={mustCompleteName} onOpenChange={() => {}}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Choisissez votre pseudo</DialogTitle>
+            <DialogTitle>Complétez votre nom d'affichage</DialogTitle>
             <DialogDescription>
-              Nous devons te redemander ton pseudo.
-              Choisis-le bien : comme la photo de ton permis, il va te suivre toute ta vie 🙂
+              Merci de renseigner votre nom d'affichage. Il sera visible dans l'application.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={saveNickname} className="space-y-4">
-            <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Votre pseudo" />
+          <form onSubmit={saveDisplayName} className="space-y-4">
+            <Input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="Nom d'affichage" />
             <DialogFooter>
               <Button type="submit" disabled={savingName}>{savingName ? 'Enregistrement...' : 'Enregistrer'}</Button>
             </DialogFooter>

@@ -238,6 +238,93 @@ export function calculatePriceForKPIs(
   return { platform, objective, aePercentage, kpis, price: roundedPrice }
 }
 
+/**
+ * KPIs → Budget - TARIF Direction (formules dédiées, case "Appliquer les tarifs direction" cochée).
+ * Même structure que le classique mais multiplicateur final x 1,15 au lieu de x 1,3.
+ */
+export function calculatePriceForKPIsDirection(
+  platform: string,
+  objective: string,
+  aePercentage: number,
+  kpis: number
+): PDVCalculation {
+  const unit = getUnitCost(platform, objective)
+  if (!unit) throw new Error('Combinaison plateforme/objectif non supportée')
+
+  const aeFactor = aePercentage / 100
+  if (aeFactor <= 0) throw new Error('Le % AE doit être > 0')
+
+  const mult = 1.15
+  let price: number
+
+  switch (platform) {
+    case 'META':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 2.25) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 0.52) / aeFactor) * mult; break
+        case 'Clics sur lien': price = ((kpis * 0.736) / aeFactor) * mult; break
+        case 'Leads': price = ((kpis * 70.4) / aeFactor) * mult; break
+        case 'Max conversion': price = ((kpis * 70.4) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour META')
+      }
+      break
+    case 'Insta only':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 2.94) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 1.127) / aeFactor) * mult; break
+        case 'Clics sur lien': price = ((kpis * 1.239) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Insta only')
+      }
+      break
+    case 'Display':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 2.552) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 0.823) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Display')
+      }
+      break
+    case 'Youtube':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 5.28) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Youtube')
+      }
+      break
+    case 'LinkedIn':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 19.8) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 7.25) / aeFactor) * mult; break
+        case 'Leads': price = ((kpis * 560) / aeFactor) * mult; break
+        case 'Max conversion': price = ((kpis * 560) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour LinkedIn')
+      }
+      break
+    case 'Snapchat':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 1.44) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 0.693) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Snapchat')
+      }
+      break
+    case 'Tiktok':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 2.376) / aeFactor) * mult; break
+        case 'Clics': price = ((kpis * 0.552) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Tiktok')
+      }
+      break
+    case 'Spotify':
+      switch (objective) {
+        case 'Impressions': price = ((kpis / 1000 * 9.68) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Spotify')
+      }
+      break
+    default:
+      throw new Error('Plateforme non supportée')
+  }
+
+  return { platform, objective, aePercentage, kpis, price: Math.round(price) }
+}
+
 // Budget -> KPI (formules utilisateur 2026, Budget ➡️ KPIS)
 export function calculateKPIsForBudget(
   platform: string,
@@ -389,6 +476,94 @@ export function calculateKPIsForBudget(
       }
       break
 
+    default:
+      throw new Error('Plateforme non supportée')
+  }
+
+  return { platform, objective, aePercentage, budget, calculatedKpis }
+}
+
+/**
+ * Budget → KPIs - TARIF Direction (formules dédiées, case "Appliquer les tarifs direction" cochée).
+ * Formule de base : ((Prix souhaité / 1,3 x 1,15) x %AE) / divisor [x 1000 pour Impressions]
+ */
+export function calculateKPIsForBudgetDirection(
+  platform: string,
+  objective: string,
+  aePercentage: number,
+  budget: number
+): PDVCalculation {
+  const unit = getUnitCost(platform, objective)
+  if (!unit) throw new Error('Combinaison plateforme/objectif non supportée')
+
+  const aeFactor = aePercentage / 100
+  if (aeFactor <= 0) throw new Error('Le % AE doit être > 0')
+
+  // Base tarif direction : (Prix souhaité / 1,3 x 1,15) x %AE
+  const base = (budget / 1.3) * 1.15 * aeFactor
+
+  let calculatedKpis: number
+  switch (platform) {
+    case 'META':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 2.25) * 1000; break
+        case 'Clics': calculatedKpis = base / 0.52; break
+        case 'Clics sur lien': calculatedKpis = base / 0.736; break
+        case 'Leads': calculatedKpis = base / 70.4; break
+        case 'Max conversion': calculatedKpis = base / 70.4; break
+        default: throw new Error('Objectif non supporté pour META')
+      }
+      break
+    case 'Insta only':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 2.94) * 1000; break
+        case 'Clics': calculatedKpis = base / 1.127; break
+        case 'Clics sur lien': calculatedKpis = base / 1.239; break
+        default: throw new Error('Objectif non supporté pour Insta only')
+      }
+      break
+    case 'Display':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 2.552) * 1000; break
+        case 'Clics': calculatedKpis = base / 0.823; break
+        default: throw new Error('Objectif non supporté pour Display')
+      }
+      break
+    case 'Youtube':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 5.28) * 1000; break
+        default: throw new Error('Objectif non supporté pour Youtube')
+      }
+      break
+    case 'LinkedIn':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 19.8) * 1000; break
+        case 'Clics': calculatedKpis = base / 7.25; break
+        case 'Leads': calculatedKpis = base / 560; break
+        case 'Max conversion': calculatedKpis = base / 560; break
+        default: throw new Error('Objectif non supporté pour LinkedIn')
+      }
+      break
+    case 'Snapchat':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 1.44) * 1000; break
+        case 'Clics': calculatedKpis = base / 0.693; break
+        default: throw new Error('Objectif non supporté pour Snapchat')
+      }
+      break
+    case 'Tiktok':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 2.376) * 1000; break
+        case 'Clics': calculatedKpis = base / 0.552; break
+        default: throw new Error('Objectif non supporté pour Tiktok')
+      }
+      break
+    case 'Spotify':
+      switch (objective) {
+        case 'Impressions': calculatedKpis = (base / 9.68) * 1000; break
+        default: throw new Error('Objectif non supporté pour Spotify')
+      }
+      break
     default:
       throw new Error('Plateforme non supportée')
   }

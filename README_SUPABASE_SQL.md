@@ -28,6 +28,16 @@ CREATE POLICY "Users can insert own profile" ON public.profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 ```
 
+### 1.1 Colonne `display_name` (nom d'affichage)
+
+Pour demander aux utilisateurs de compléter leur nom d'affichage à la connexion :
+
+```sql
+-- Ajouter la colonne display_name si elle n'existe pas
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS display_name TEXT;
+```
+
 ## 2. Créer la table `page_views`
 
 ```sql
@@ -114,6 +124,23 @@ CREATE TRIGGER on_auth_user_created
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_new_user();
 ```
+
+### 4.1 Rattrapage : créer les profils manquants
+
+Le trigger ci-dessus ne s’exécute que lors d’une **nouvelle** inscription. Les utilisateurs déjà présents dans **Authentication** avant la mise en place du trigger (ou créés autrement) n’ont pas de ligne dans `profiles`. Pour créer les profils manquants, exécuter une fois dans l’éditeur SQL Supabase :
+
+```sql
+-- Insérer un profil pour chaque utilisateur auth qui n'en a pas encore
+INSERT INTO public.profiles (id, full_name, role)
+SELECT 
+    u.id,
+    COALESCE(u.raw_user_meta_data->>'full_name', ''),
+    'user'::user_role
+FROM auth.users u
+WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
+```
+
+Si la table `profiles` a une colonne `display_name`, elle restera à NULL pour ces lignes ; l’utilisateur sera invité à la compléter à sa prochaine connexion.
 
 ## 5. Système de rôles admin
 
