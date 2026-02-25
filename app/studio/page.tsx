@@ -331,12 +331,7 @@ export default function StudioPage() {
                           <div className="w-full max-w-[300px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                               <SafeImage
-                                src="/images/META format complet carré@10x.png"
-                                extraSrcCandidates={[
-                                  "/images/META format complet carré@10x.png",
-                                  "/images/META%20format%20complet%20carré@10x.png",
-                                  "/images/META%20format%20complet%20carre%CC%81@10x.png",
-                                ]}
+                                src="/images/META-format-complet-carre-10x.png"
                                 alt="Limites de caractères pour les wordings"
                                 width={1440}
                                 height={1440}
@@ -1090,12 +1085,7 @@ export default function StudioPage() {
                     <div className="w-full max-w-[400px] relative">
                       <div className="aspect-square w-full overflow-hidden rounded-lg shadow-sm relative">
                         <SafeImage
-                          src="/images/META format complet carré@10x.png"
-                          extraSrcCandidates={[
-                            "/images/META format complet carré@10x.png",
-                            "/images/META%20format%20complet%20carré@10x.png",
-                            "/images/META%20format%20complet%20carre%CC%81@10x.png",
-                          ]}
+                          src="/images/META-format-complet-carre-10x.png"
                           alt="Limites de caractères pour les wordings LinkedIn"
                           width={1440}
                           height={1440}
