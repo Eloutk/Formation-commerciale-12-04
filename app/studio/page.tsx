@@ -949,6 +949,31 @@ export default function StudioPage() {
               </CardHeader>
               <CardContent className="space-y-6">
 
+                {/* En 1 clin d'œil - Rappel des livrables LinkedIn (compact) */}
+                <Alert className="border-orange-500/50 bg-orange-500/10">
+                  <AlertDescription>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-orange-500" />
+                        <strong className="text-xl">En 1 clin d&apos;œil</strong>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-semibold mb-1">Groupe publicitaire standard</p>
+                          <p className="mb-1">Média : 1 visuel (image/vidéo) décliné carré + horizontal. 2 groupes (standard ou carrousel) recommandés.</p>
+                          <p>Wording : 1 texte principal, 1 titre, 1 CTA. Images ou vidéos simples.</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold mb-1">Groupe publicitaire carrousel</p>
+                          <p className="mb-1">Média : 2 visuels image format carré min., 2 à 10 vignettes. 2 groupes (standard ou carrousel) recommandés.</p>
+                          <p>Wording : 1 texte principal, 2 titres min., 1 CTA. Vignettes côte à côte, navigation à droite.</p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold pt-1 border-t border-orange-500/30">2 groupes max. (standard ou carrousel). Pas de mix des groupes pour une même campagne.</p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
                 {/* H2 : Liste des formats */}
                   <div>
                   <h2 className="mb-6">Liste des formats</h2>
@@ -2001,11 +2026,7 @@ export default function StudioPage() {
                     <div className="w-full max-w-[300px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <SafeImage
-                              src="/images/Spotify Limites de caractères@10x.png"
-                              extraSrcCandidates={[
-                                "/images/Spotify%20Limites%20de%20caractères@10x.png",
-                                "/images/Spotify%20Limites%20de%20caracte%CC%80res@10x.png",
-                              ]}
+                              src="/images/Spotify-Limites-caracteres-10x.png"
                               alt="Limites de caractères pour les wordings Spotify"
                               width={1080}
                               height={1920}
