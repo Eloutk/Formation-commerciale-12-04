@@ -94,66 +94,24 @@ export default function StudioPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Livrables attendus - priorité haute, mis en avant en orange */}
+                {/* En un clin d'œil - META (compact) */}
                 <Alert className="border-orange-500/50 bg-orange-500/10">
                   <AlertDescription>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Eye className="h-4 w-4 text-orange-500" />
-                        <strong className="text-xl">En un clin d'œil</strong>
+                        <strong className="text-xl">En un clin d&apos;œil</strong>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Colonne gauche : Pré-requis média minimum obligatoires */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <h3 className="font-semibold mb-3">Pré-requis média minimum obligatoires :</h3>
-                          <p className="text-sm mb-2">
-                            1 visuel image et/ou vidéo, décliné aux 3 formats (carré, vertical et horizontal).
-                          </p>
-                          <p className="text-sm mb-4">
-                            3 groupes publicitaires (standard et/ou carrousel) recommandés.
-                          </p>
-                          
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm ml-4 list-disc space-y-1 mb-4">
-                            <li>1 texte principal.</li>
-                            <li>1 titre.</li>
-                            <li>1 CTA².</li>
-                          </ul>
-                          
-                          <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
-                          <p className="text-sm">
-                            Sous forme d'images ou de vidéos simples, sans interaction particulière.
-                          </p>
+                          <p className="font-semibold mb-1">Groupe publicitaire standard</p>
+                          <p className="mb-1">Média : 1 visuel image et/ou vidéo, décliné aux 3 formats (carré, vertical, horizontal). 3 groupes (standard et/ou carrousel) recommandés.</p>
+                          <p>Wording¹ : 1 texte principal, 1 titre, 1 CTA². Images ou vidéos simples, sans interaction particulière.</p>
                         </div>
-                        
-                        {/* Colonne droite : groupe publicitaire carrousel */}
                         <div>
-                          <h3 className="font-semibold mb-3">groupe publicitaire carrousel</h3>
-                          <p className="text-sm mb-2">image ou vidéo</p>
-                          
-                          <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                          <p className="text-sm mb-1">
-                            2 visuels image et/ou vidéo, en format carré.
-                          </p>
-                          <p className="text-sm mb-1">
-                            2 minimum et 10 maximum.
-                          </p>
-                          <p className="text-sm mb-4">
-                            3 groupes publicitaires (standard et/ou carrousel) recommandés.
-                          </p>
-                          
-                          <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                          <ul className="text-sm ml-4 list-disc space-y-1 mb-4">
-                            <li>1 texte principal.</li>
-                            <li>2 titres minimum (en fonction du nombre de vignettes).</li>
-                            <li>1 CTA².</li>
-                          </ul>
-                          
-                          <p className="text-sm font-semibold mb-2">Mécanique de fonctionnement :</p>
-                          <p className="text-sm">
-                            Sous forme d'images ou de vidéos disposées sous forme de vignettes les unes à côté des autres qui peuvent être visionnées en naviguant vers la droite.
-                          </p>
+                          <p className="font-semibold mb-1">Groupe publicitaire carrousel</p>
+                          <p className="mb-1">Média : 2 visuels image et/ou vidéo en format carré (2 à 10 vignettes). 3 groupes (standard et/ou carrousel) recommandés.</p>
+                          <p>Wording¹ : 1 texte principal, 2 titres minimum, 1 CTA². Vignettes côte à côte, navigation vers la droite.</p>
                         </div>
                       </div>
                     </div>
@@ -274,7 +232,7 @@ export default function StudioPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Colonne gauche: Résolutions alternatives + Fichiers images empilés */}
                       <div className="space-y-4">
-                        <div className="rounded-md border border-muted bg-muted/20 px-3 py-2">
+                        <div className="rounded-md border border-muted bg-white px-3 py-2">
                           <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
                           <ul className="space-y-0.5 text-xs text-muted-foreground">
                             <li>format carré : 1080 × 1080 px</li>
@@ -284,7 +242,7 @@ export default function StudioPage() {
                         </div>
                         <Alert className="py-3 border-[#E94C16] bg-white">
                           <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4" />
-                          <AlertDescription className="text-sm">
+                          <AlertDescription className="text-sm text-muted-foreground">
                             <strong className="font-semibold">Fichiers acceptés pour les publicités images :</strong>
                             <br />
                             .jpg, .png
@@ -295,7 +253,7 @@ export default function StudioPage() {
                       <div>
                         <Alert className="border-[#E94C16] bg-white">
                           <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4" />
-                          <AlertDescription>
+                          <AlertDescription className="text-muted-foreground">
                             <strong className="font-semibold">Fichiers acceptés pour les publicités vidéos :</strong>
                             <br />
                             .mov, .mp4
@@ -724,17 +682,15 @@ export default function StudioPage() {
                         </div>
                       </div>
 
-                      {/* Résolutions alternatives */}
-                      <Card className="mt-4">
-                        <CardContent className="pt-4">
-                          <p className="text-sm font-semibold mb-2">Résolutions alternatives acceptables</p>
-                          <ul className="text-sm space-y-1">
-                            <li>format carré : 1080 × 1080 px</li>
-                            <li>format vertical : 1080 × 1920 px</li>
-                            <li>format horizontal : 1200 × 628 px</li>
+                      {/* Résolutions alternatives acceptables */}
+                      <div className="mt-4 rounded-md border border-muted bg-white px-3 py-2">
+                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
+                        <ul className="space-y-0.5 text-xs text-muted-foreground">
+                          <li>format carré : 1080 × 1080 px</li>
+                          <li>format vertical : 1080 × 1920 px</li>
+                          <li>format horizontal : 1200 × 628 px</li>
                         </ul>
-                      </CardContent>
-                    </Card>
+                      </div>
                     </div>
 
                     {/* Colonne droite : publicités vidéos */}
@@ -822,20 +778,20 @@ export default function StudioPage() {
 
                     {/* Colonne droite : Fichiers acceptés */}
                     <div className="space-y-4">
-                      <Alert className="h-auto flex flex-col border-[#E94C16]">
+                      <Alert className="h-auto flex flex-col border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
-                        <AlertDescription className="flex-1">
+                        <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
+                        <AlertDescription className="flex-1 text-muted-foreground">
                           .jpg, .png<br />
                           Taille maximale : 5120 ko<br />
                           Le format .gif est incompatible avec la pub responsive.
                         </AlertDescription>
                       </Alert>
                       
-                      <Alert className="h-auto flex flex-col border-[#E94C16]">
+                      <Alert className="h-auto flex flex-col border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                        <AlertDescription className="flex-1">
+                        <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                        <AlertDescription className="flex-1 text-muted-foreground">
                           Lien YouTube au format https://…<br />
                           Durée optimale : 14 secondes maximum<br />
                           Durée maximum : 30 secondes<br />
@@ -1021,17 +977,15 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                      {/* Résolutions alternatives */}
-                      <Card className="mt-4">
-                        <CardContent className="pt-4">
-                          <p className="text-sm font-semibold mb-2">Résolutions alternatives acceptables</p>
-                          <ul className="text-sm space-y-1">
-                            <li>format carré : 1080 × 1080 px</li>
-                            <li>format vertical : 1080 × 1920 px (déprécié)</li>
-                            <li>format horizontal : 1200 × 628 px</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                      {/* Résolutions alternatives acceptables */}
+                      <div className="mt-4 rounded-md border border-muted bg-white px-3 py-2">
+                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
+                        <ul className="space-y-0.5 text-xs text-muted-foreground">
+                          <li>format carré : 1080 × 1080 px</li>
+                          <li>format vertical : 1080 × 1920 px (déprécié)</li>
+                          <li>format horizontal : 1200 × 628 px</li>
+                        </ul>
+                      </div>
                 </div>
 
                     {/* Colonne droite : publicités vidéos */}
@@ -1080,17 +1034,17 @@ export default function StudioPage() {
 
                   {/* Bloc "Fichiers acceptés" */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <Alert className="border-[#E94C16]">
+                    <Alert className="border-[#E94C16] bg-white">
                       <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images :</AlertTitle>
-                      <AlertDescription>
+                      <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités images :</AlertTitle>
+                      <AlertDescription className="text-muted-foreground">
                         .jpg, .png
                       </AlertDescription>
                     </Alert>
-                    <Alert className="border-[#E94C16]">
+                    <Alert className="border-[#E94C16] bg-white">
                       <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                      <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                      <AlertDescription>
+                      <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
+                      <AlertDescription className="text-muted-foreground">
                         .mp4<br />
                         Durée optimale : 14 secondes maximum<br />
                         Durée maximum : 30 secondes<br />
@@ -1324,8 +1278,8 @@ export default function StudioPage() {
           </TabsContent>
 
           {/* Onglet Snapchat */}
-          <TabsContent value="snap">
-            <Card>
+          <TabsContent value="snap" className="focus-visible:ring-0 focus-visible:ring-offset-0 outline-none">
+            <Card className="border-0 shadow-none">
               <CardHeader>
                 <h1>Publicités sur Snapchat</h1>
               </CardHeader>
@@ -1402,10 +1356,10 @@ export default function StudioPage() {
                     </Card>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert className="border-[#E94C16]">
+                      <Alert className="border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images :</AlertTitle>
-                  <AlertDescription>
+                        <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités images :</AlertTitle>
+                  <AlertDescription className="text-muted-foreground">
                           .jpg, .png<br />
                           Taille maximale : 5 Mo.
                   </AlertDescription>
@@ -1464,14 +1418,14 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 3 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="w-full max-w-[300px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Limites_caracteres_10x.png"
                               alt="Limites de caractères pour les wordings Snapchat"
                               width={1080}
                               height={1920}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain border-0 outline-none"
                             />
                             <TooltipProvider delayDuration={0}>
                               {/* 1 : nom de marque + Publicité + titre (en-tête) */}
@@ -1509,14 +1463,14 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + 2 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="w-full max-w-[300px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Marges_securite_10x.png"
                               alt="Marges de sécurité publicités verticales Snapchat"
                               width={1080}
                               height={1920}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain border-0 outline-none"
                             />
                             <TooltipProvider delayDuration={0}>
                               {/* 1 : bloc nom de marque + titre (haut) */}
@@ -1600,8 +1554,8 @@ export default function StudioPage() {
           </TabsContent>
 
           {/* Onglet TikTok */}
-          <TabsContent value="tiktok">
-                    <Card>
+          <TabsContent value="tiktok" className="focus-visible:ring-0 focus-visible:ring-offset-0 outline-none">
+                    <Card className="border-0 shadow-none">
               <CardHeader>
                 <h1>Publicités sur TikTok</h1>
                       </CardHeader>
@@ -1706,14 +1660,14 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 6 pastilles (ordre de l’image : nav haut, photo, marque, texte, CTA, nav bas) */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="w-full max-w-[300px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Limites_caracteres_10x.png"
                               alt="Limites de caractères pour les wordings TikTok"
                               width={1080}
                               height={1920}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain border-0 outline-none"
                             />
                             <TooltipProvider delayDuration={0}>
                               {/* 1 : bloc navigation application (haut) */}
@@ -1767,14 +1721,14 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="w-full max-w-[300px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Marges_securite_10x.png"
                               alt="Marges de sécurité publicités verticales TikTok"
                               width={1080}
                               height={1920}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain border-0 outline-none"
                             />
                             <TooltipProvider delayDuration={0}>
                               <Tooltip open={tiktokMarges1Open} onOpenChange={setTiktokMarges1Open}>
@@ -2191,15 +2145,13 @@ export default function StudioPage() {
                       </div>
 
                       {/* Résolutions alternatives acceptables */}
-                      <Card className="mt-4">
-                        <CardContent className="pt-4">
-                          <p className="text-sm font-semibold mb-2">Résolutions alternatives acceptables</p>
-                          <ul className="text-sm space-y-1">
-                            <li>format carré : 1080 × 1080 px</li>
-                            <li>format horizontal : 1200 × 628 px</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                      <div className="mt-4 rounded-md border border-muted bg-white px-3 py-2">
+                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
+                        <ul className="space-y-0.5 text-xs text-muted-foreground">
+                          <li>format carré : 1080 × 1080 px</li>
+                          <li>format horizontal : 1200 × 628 px</li>
+                        </ul>
+                      </div>
                   </div>
 
                     {/* Colonne droite : logo obligatoire */}
@@ -2548,16 +2500,14 @@ export default function StudioPage() {
                 </div>
 
                       {/* Résolutions alternatives acceptables */}
-                      <Card className="mb-4">
-                        <CardContent className="pt-4">
-                          <p className="text-sm font-semibold mb-2">Résolutions alternatives acceptables</p>
-                          <ul className="text-sm space-y-1">
-                            <li>format InFeed : 1080 × 1080 px</li>
-                            <li>format Shorts : 1080 × 1920 px</li>
-                            <li>format InStream, Bumper : 1200 × 628 px</li>
-                          </ul>
-                      </CardContent>
-                    </Card>
+                      <div className="mb-4 rounded-md border border-muted bg-white px-3 py-2">
+                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
+                        <ul className="space-y-0.5 text-xs text-muted-foreground">
+                          <li>format InFeed : 1080 × 1080 px</li>
+                          <li>format Shorts : 1080 × 1920 px</li>
+                          <li>format InStream, Bumper : 1200 × 628 px</li>
+                        </ul>
+                      </div>
 
                       {/* Encadré fichiers acceptés pour les publicités vidéos */}
                       <Alert className="border-[#E94C16]">

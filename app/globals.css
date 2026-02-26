@@ -138,6 +138,23 @@
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
+/* Studio : supprimer tout contour (bordure, outline) sur les images Limites / Marges Snapchat & TikTok
+   La règle globale * { border-border } applique une couleur de bordure à tous les éléments ;
+   on force ici tout à zéro pour le bloc et ses descendants (dont le span/img de Next Image). */
+.studio-limites-marges-image,
+.studio-limites-marges-image *,
+.studio-limites-marges-image span,
+.studio-limites-marges-image img,
+.studio-limites-marges-image div {
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Optimisations mobile globales */
 @media (max-width: 768px) {
   /* Réduire les espacements sur mobile */

@@ -20,6 +20,8 @@ import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
+import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
+import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
@@ -464,11 +466,18 @@ export interface StrategyCalendar {
   ranges?: CalendarRange[] // vue mois : phases posées sur la frise
 }
 
+// Calendrier stratégique (module Kanban/Timeline)
+export type StrategyCalendarData = import('@/app/pdv2/calendar/types').StrategyCalendarData
+
+function isStrategyCalendarData(cal: StrategyCalendar | StrategyCalendarData | null | undefined): cal is StrategyCalendarData {
+  return !!cal && 'duration' in cal && 'items' in cal && Array.isArray((cal as StrategyCalendarData).items)
+}
+
 interface StrategyBlock {
   id: string
   name: string
   items: StrategyItem[]
-  calendar?: StrategyCalendar | null
+  calendar?: StrategyCalendar | StrategyCalendarData | null
 }
 
 interface CustomRowState {
@@ -3184,317 +3193,44 @@ export default function PDV2Page() {
       <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null); setCalendarPhasesMenuPlatform(null) }}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Calendrier de diffusion</DialogTitle>
+            <DialogTitle>Calendrier stratégique</DialogTitle>
             <DialogDescription>
-              Vue Jour : sélectionnez une phase puis posez-la sur les jours. Vue Mois : glissez-déposez les phases sur la frise chronologique.
+              Planifiez les plateformes sur les jours de diffusion. Glissez les cartes entre les jours, étendez-les avec la poignée à droite.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {(() => {
-              const maxCalendarDays = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-              const clampEndToMaxDays = (start: string, end: string) => {
-                if (!start || !end) return end || start
-                const dates = getDatesBetween(start, end)
-                if (dates.length === 0) {
-                  const d = new Date(start + 'T12:00:00')
-                  if (Number.isNaN(d.getTime())) return end
-                  d.setDate(d.getDate() + maxCalendarDays - 1)
-                  return d.toISOString().slice(0, 10)
-                }
-                if (dates.length <= maxCalendarDays) return end
-                return dates[maxCalendarDays - 1] ?? end
-              }
-              return (
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Début</Label>
-                  <Input
-                    type="date"
-                    value={calendarPeriodStart}
-                    onChange={(e) => {
-                      const start = e.target.value
-                      setCalendarPeriodStart(start)
-                      if (calendarPeriodEnd) setCalendarPeriodEnd(clampEndToMaxDays(start, calendarPeriodEnd))
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Fin</Label>
-                  <Input
-                    type="date"
-                    value={calendarPeriodEnd}
-                    onChange={(e) => {
-                      const end = e.target.value
-                      if (calendarPeriodStart) {
-                        setCalendarPeriodEnd(clampEndToMaxDays(calendarPeriodStart, end))
-                      } else {
-                        setCalendarPeriodEnd(end)
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <Tabs value={calendarView} onValueChange={(v) => setCalendarView(v as 'day' | 'month')} className="ml-4">
-                <TabsList>
-                  <TabsTrigger value="day">Jour</TabsTrigger>
-                  <TabsTrigger value="month">Mois</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            ); })()}
-
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
-              const platformSet = new Set<string>()
-              block?.items.forEach((item) => platformSet.add(item.platform))
-              const strategyPlatforms = Array.from(platformSet).filter((p) => PLATFORM_CALENDAR_COLORS[p] != null).length ? Array.from(platformSet).sort((a, b) => PLATFORMS_ORDER.indexOf(a) - PLATFORMS_ORDER.indexOf(b)) : Array.from(platformSet)
-              const dates = getDatesBetween(calendarPeriodStart, calendarPeriodEnd)
-
-              // Entrées sélectionnables pour la grille : plateforme seule ou platform::phase
-              const getBrushEntries = (): string[] => {
-                const out: string[] = []
-                strategyPlatforms.forEach((p) => {
-                  const phases = calendarPlatformPhases[p]
-                  if (phases && phases.length > 0) phases.forEach((ph) => out.push(`${p}::${ph}`))
-                  else out.push(p)
-                })
-                return out
-              }
-              const brushEntries = getBrushEntries()
-
-              const toggleEntryOnDay = (dateKey: string, add: boolean) => {
-                if (!calendarSelectedEntry) return
-                setCalendarDays((prev) => {
-                  const list = prev[dateKey] ?? []
-                  if (add) {
-                    if (list.includes(calendarSelectedEntry!)) return prev
-                    return { ...prev, [dateKey]: [...list, calendarSelectedEntry!] }
-                  }
-                  return { ...prev, [dateKey]: list.filter((e) => e !== calendarSelectedEntry) }
-                })
-              }
-
+              if (!block) return null
+              const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+              const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
+                platform: item.platform,
+                budget: item.budget,
+                kpiLabel: item.estimatedKPIs > 0 ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}` : getMaxKpiLabel(item.objective),
+                maxDays: Math.max(1, item.days ?? duration),
+              }))
+              const existing = isStrategyCalendarData(block.calendar) ? block.calendar : null
               return (
-                <>
-                  {strategyPlatforms.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher les plateformes du calendrier.</p>
-                  ) : (
-                    <>
-                      {/* Plateformes et phases : une carte par plateforme, phases listées dessous */}
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="text-base">Phase à poser sur le calendrier</Label>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Choisissez une option ci‑dessous, puis cliquez sur les jours (vue Jour) ou glissez‑déposez sur la frise (vue Mois).
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {strategyPlatforms.map((p) => {
-                            const phases = calendarPlatformPhases[p] ?? []
-                            const isMenuOpen = calendarPhasesMenuPlatform === p
-                            const color = getPlatformCalendarColor(p)
-                            const totalAllowedDays = block?.items.filter((i) => i.platform === p).reduce((s, i) => s + (i.days || 0), 0) ?? 0
-                            return (
-                              <div
-                                key={p}
-                                className="relative rounded-lg border bg-card p-3"
-                                style={{ borderLeftWidth: 4, borderLeftColor: color }}
-                              >
-                                <div className="flex items-center justify-between gap-2 mb-2">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="font-medium text-sm" style={{ color }}>{p}</span>
-                                    {totalAllowedDays > 0 && (
-                                      <span className="text-[11px] text-muted-foreground">{totalAllowedDays} jour{totalAllowedDays > 1 ? 's' : ''} à répartir</span>
-                                    )}
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 text-xs text-muted-foreground"
-                                    onClick={() => setCalendarPhasesMenuPlatform(isMenuOpen ? null : p)}
-                                  >
-                                    {phases.length === 0 ? 'Créer des phases' : 'Gérer les phases'}
-                                  </Button>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {phases.length === 0 ? (
-                                    <button
-                                      type="button"
-                                      className={`rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors ${calendarSelectedEntry === p ? 'ring-2 ring-offset-1 ring-primary' : 'hover:bg-muted/80'}`}
-                                      style={{ borderColor: color, backgroundColor: calendarSelectedEntry === p ? color + '20' : color + '08' }}
-                                      onClick={() => setCalendarSelectedEntry(calendarSelectedEntry === p ? null : p)}
-                                    >
-                                      {p}
-                                    </button>
-                                  ) : (
-                                    phases.map((ph) => (
-                                      <button
-                                        key={ph}
-                                        type="button"
-                                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium border transition-colors ${calendarSelectedEntry === `${p}::${ph}` ? 'ring-2 ring-offset-1 ring-primary' : 'hover:bg-muted/80'}`}
-                                        style={{ borderColor: color, backgroundColor: calendarSelectedEntry === `${p}::${ph}` ? color + '20' : color + '08' }}
-                                        onClick={() => setCalendarSelectedEntry(calendarSelectedEntry === `${p}::${ph}` ? null : `${p}::${ph}`)}
-                                      >
-                                        {ph}
-                                      </button>
-                                    ))
-                                  )}
-                                </div>
-                                {isMenuOpen && (
-                                  <div className="absolute top-full left-0 right-0 z-50 mt-2 p-3 bg-background border rounded-lg shadow-lg border-gray-200">
-                                    <p className="text-xs font-medium text-muted-foreground mb-2">Phases pour {p}</p>
-                                    <p className="text-[11px] text-muted-foreground mb-2">
-                                      Jours à répartir : <span className="font-semibold text-foreground">{totalAllowedDays}</span> jour{totalAllowedDays > 1 ? 's' : ''} (total des lignes {p} dans la stratégie)
-                                    </p>
-                                    <div className="flex gap-2 mb-2">
-                                      <Input
-                                        placeholder="Nom de la phase"
-                                        value={calendarNewPhaseName}
-                                        onChange={(e) => setCalendarNewPhaseName(e.target.value)}
-                                        className="h-8 text-xs"
-                                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const n = calendarNewPhaseName.trim(); if (n) { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: [...(prev[p] ?? []), n] })); setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [n]: 0 } })); setCalendarNewPhaseName('') } } }}
-                                      />
-                                      <Button type="button" size="sm" className="h-8 text-xs shrink-0" onClick={() => { const n = calendarNewPhaseName.trim(); if (n) { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: [...(prev[p] ?? []), n] })); setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [n]: 0 } })); setCalendarNewPhaseName('') } }}>Ajouter</Button>
-                                    </div>
-                                    <ul className="space-y-2 max-h-40 overflow-y-auto">
-                                      {phases.map((ph) => {
-                                        const phaseDaysVal = calendarPhaseDays[p]?.[ph] ?? 0
-                                        return (
-                                          <li key={ph} className="flex items-center gap-2 text-xs">
-                                            <span className="min-w-[80px] truncate">{ph}</span>
-                                            <Input
-                                              type="number"
-                                              min={0}
-                                              max={totalAllowedDays}
-                                              className="h-7 w-16 text-xs"
-                                              value={phaseDaysVal || ''}
-                                              onChange={(e) => {
-                                                const v = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0)
-                                                setCalendarPhaseDays((prev) => ({ ...prev, [p]: { ...(prev[p] ?? {}), [ph]: v } }))
-                                              }}
-                                              placeholder="0"
-                                            />
-                                            <span className="text-muted-foreground">jours</span>
-                                            <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-destructive shrink-0" onClick={() => { setCalendarPlatformPhases((prev) => ({ ...prev, [p]: (prev[p] ?? []).filter((x) => x !== ph) })); setCalendarPhaseDays((prev) => { const next = { ...(prev[p] ?? {}) }; delete next[ph]; return { ...prev, [p]: next } }) }}>Supprimer</Button>
-                                          </li>
-                                        )
-                                      })}
-                                    </ul>
-                                    {phases.length > 0 && (() => {
-                                      const sumDays = phases.reduce((s, ph) => s + (calendarPhaseDays[p]?.[ph] ?? 0), 0)
-                                      const ok = sumDays === totalAllowedDays
-                                      return (
-                                        <p className={`text-[11px] mt-2 ${ok ? 'text-muted-foreground' : 'text-amber-600'}`}>
-                                          Total phases : {sumDays} jour{sumDays !== 1 ? 's' : ''} {ok ? '(égal au total autorisé)' : `— doit être égal à ${totalAllowedDays} jours`}
-                                        </p>
-                                      )
-                                    })()}
-                                    <Button type="button" variant="outline" size="sm" className="mt-2 w-full" onClick={() => { setCalendarPhasesMenuPlatform(null); setCalendarNewPhaseName('') }}>Fermer</Button>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                        {calendarSelectedEntry && (
-                          <p className="text-xs text-muted-foreground">
-                            Sélectionnée : <span className="font-medium text-foreground">{getCalendarEntryLabel(calendarSelectedEntry)}</span>
-                            {calendarSelectedEntry.includes('::') && ` (${getCalendarEntryPlatform(calendarSelectedEntry)})`}
-                          </p>
-                        )}
-                      </div>
-
-                      {calendarView === 'day' && dates.length > 0 && (
-                        <div className="space-y-2 w-full">
-                          <Label>Grille (sélectionnez une phase ci-dessus puis posez sur les jours)</Label>
-                          <div className="w-full border border-gray-200 rounded-lg p-4 bg-gray-50/50" onMouseLeave={() => setCalendarDragging(false)} onMouseUp={() => setCalendarDragging(false)}>
-                            <div className="grid grid-cols-3 gap-4 w-full">
-                              {groupDatesByMonth(dates).map(({ monthKey, label, dates: monthDates }) => {
-                                const [y, m, d] = monthDates[0].split('-').map(Number)
-                                const firstDay = new Date(y, m - 1, d)
-                                const startOffset = (firstDay.getDay() - 1 + 7) % 7
-                                const padded: string[] = [...Array(startOffset).fill(''), ...monthDates]
-                                const weeks: string[][] = []
-                                for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7))
-                                if (weeks.length && weeks[weeks.length - 1].length < 7) { const last = weeks[weeks.length - 1]; while (last.length < 7) last.push('') }
-                                const dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-                                return (
-                                  <div key={monthKey} className="min-w-0 w-full border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
-                                    <div className="text-sm font-semibold text-foreground mb-2">{label}</div>
-                                    <div className="grid grid-cols-7 gap-1 mb-1">
-                                      {dayLabels.map((dayLabel) => <div key={dayLabel} className="flex items-center justify-center text-[10px] font-medium text-muted-foreground aspect-square min-w-0">{dayLabel}</div>)}
-                                    </div>
-                                    <div className="grid auto-rows-fr gap-1">
-                                      {weeks.map((week, wi) => (
-                                        <div key={wi} className="grid grid-cols-7 gap-1">
-                                          {week.map((dateKey, di) => {
-                                            if (!dateKey) return <div key={`empty-${wi}-${di}`} className="aspect-square min-w-0 rounded border border-transparent bg-transparent" />
-                                            const entries = calendarDays[dateKey] ?? []
-                                            const hasEntry = calendarSelectedEntry ? entries.includes(calendarSelectedEntry) : false
-                                            return (
-                                              <div
-                                                key={dateKey}
-                                                className="aspect-square min-w-0 w-full rounded border border-gray-200 bg-muted/30 flex flex-col items-center justify-center cursor-pointer select-none"
-                                                onMouseDown={() => { if (calendarSelectedEntry) { setCalendarDragging(true); toggleEntryOnDay(dateKey, !hasEntry) } }}
-                                                onMouseEnter={() => { if (calendarDragging && calendarSelectedEntry) toggleEntryOnDay(dateKey, true) }}
-                                                title={dateKey + (entries.length ? ': ' + entries.map(getCalendarEntryLabel).join(', ') : '')}
-                                              >
-                                                <span className="text-[10px] text-muted-foreground leading-none">{new Date(dateKey).getDate()}</span>
-                                                <div className="flex gap-0.5 flex-wrap justify-center items-center shrink-0 mt-0.5">
-                                                  {entries.slice(0, 3).map((e) => (
-                                                    <span key={e} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(e)) }} title={getCalendarEntryLabel(e)} />
-                                                  ))}
-                                                  {entries.length > 3 && <span className="text-[8px]">+{entries.length - 3}</span>}
-                                                </div>
-                                              </div>
-                                            )
-                                          })}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {calendarView === 'month' && dates.length > 0 && (
-                        <CalendarMonthView
-                          dates={dates}
-                          ranges={calendarRanges}
-                          setRanges={setCalendarRanges}
-                          platformPhases={calendarPlatformPhases}
-                          strategyPlatforms={strategyPlatforms}
-                          getPlatformColor={getPlatformCalendarColor}
-                          getCalendarEntryLabel={getCalendarEntryLabel}
-                        />
-                      )}
-                    </>
-                  )}
-                </>
+                block.items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
+                ) : (
+                <StrategyCalendarBuilder
+                  key={calendarStrategyId}
+                  platformSources={platformSources}
+                  duration={duration}
+                  existing={existing}
+                  onSave={(data) => {
+                    setStrategies((prev) => prev.map((s) => s.id === calendarStrategyId ? { ...s, calendar: data } : s))
+                    setCalendarDialogOpen(false)
+                    setCalendarStrategyId(null)
+                  }}
+                />
+                )
               )
             })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setCalendarDialogOpen(false); setCalendarStrategyId(null) }}>Annuler</Button>
-            <Button
-              onClick={() => {
-                if (!calendarStrategyId) return
-                const start = calendarPeriodStart || undefined
-                const end = calendarPeriodEnd || undefined
-                if (start && end) {
-                  setStrategies((prev) => prev.map((s) => (s.id === calendarStrategyId ? { ...s, calendar: { startDate: start, endDate: end, days: { ...calendarDays }, platformPhases: { ...calendarPlatformPhases }, phaseDays: JSON.parse(JSON.stringify(calendarPhaseDays)), ranges: [...calendarRanges] } } : s)))
-                }
-                setCalendarDialogOpen(false)
-                setCalendarStrategyId(null)
-              }}
-            >
-              Enregistrer
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

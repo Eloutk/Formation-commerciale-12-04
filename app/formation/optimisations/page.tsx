@@ -227,7 +227,7 @@ export default function Optimisations() {
 
                         <div className="border rounded-lg overflow-hidden">
                           <Image
-                            src="/images/Optimisations-détail-tableau.png"
+                            src="/images/Optimisations-detail-tableau.png"
                             alt="Analyse détaillée des performances"
                             width={1200}
                             height={600}

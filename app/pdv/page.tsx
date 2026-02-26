@@ -40,6 +40,7 @@ const META_CUSTOM_OBJECTIVES = [
   "J'aime la page",
   'Réponses évènement',
   'Leads',
+  'conversion',
 ] as const
 
 const INSTA_CUSTOM_OBJECTIVES = [
@@ -52,7 +53,7 @@ const INSTA_CUSTOM_OBJECTIVES = [
 
 const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
 
-const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads'] as const
+const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
 
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
