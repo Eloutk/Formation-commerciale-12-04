@@ -173,7 +173,7 @@ export default function StudioPage() {
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
                               <div className="w-full">
-                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                                <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                               </div>
                             </div>
                             <div className="text-sm text-center">
@@ -221,7 +221,7 @@ export default function StudioPage() {
                           <div className="flex flex-col items-center">
                             <div className="w-full max-w-[240px] mb-2">
                               <div className="w-full">
-                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-auto object-contain" />
+                                <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-auto object-contain" />
                               </div>
                             </div>
                             <div className="text-sm text-center">
@@ -419,12 +419,11 @@ export default function StudioPage() {
                           <div className="w-full max-w-[300px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <SafeImage
-                              src="/images/META Marges de sécurité 2@10x.png"
+                              src="/images/META Marges de securite 2@10x.png"
                               extraSrcCandidates={[
                                 // NFC variant (single-codepoint accents) often differs from NFD (combining accents)
-                                "/images/META Marges de sécurité 2@10x.png",
-                                "/images/META%20Marges%20de%20sécurité%202@10x.png",
-                                "/images/META%20Marges%20de%20se%CC%81curite%CC%81%202@10x.png",
+                                "/images/META Marges de securite 2@10x.png",
+                                "/images/META%20Marges%20de%20securite%202@10x.png",
                               ]}
                               alt="Marges de sécurité pour les story et reels"
                               width={1440}
@@ -527,7 +526,7 @@ export default function StudioPage() {
                         <div className="grid grid-cols-3 gap-4 mb-6">
                           {/* Encart 1: format carré */}
                           <div className="flex flex-col items-center">
-                            <NextImage src="/images/META format carré.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                            <NextImage src="/images/META format carre.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                           </div>
 
                           {/* Encart 2: format vertical */}
@@ -686,7 +685,7 @@ export default function StudioPage() {
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
                             <div className="w-full">
-                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                              <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                             </div>
                           </div>
                           <div className="text-sm text-center">
@@ -746,7 +745,7 @@ export default function StudioPage() {
                         <div className="flex flex-col items-center">
                           <div className="w-full max-w-[240px] mb-2">
                             <div className="w-full">
-                              <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                              <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                             </div>
                           </div>
                           <div className="text-sm text-center">
@@ -799,7 +798,7 @@ export default function StudioPage() {
                       {/* Format carré */}
                       <div className="max-w-[200px]">
                         <div className="aspect-square w-full mb-2 overflow-hidden">
-                          <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
+                          <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
                         </div>
                         <div className="text-sm text-center">
                           <p className="font-medium">format carré</p>
@@ -987,7 +986,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1042,7 +1041,7 @@ export default function StudioPage() {
                         {/* Encart 1 : format carré */}
                           <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -1230,7 +1229,7 @@ export default function StudioPage() {
                         </div>
                         {/* Encart 3 : format carré (IMAGE 3) */}
                         <div className="flex flex-col items-center">
-                          <NextImage src="/images/META format carré.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
+                          <NextImage src="/images/META format carre.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
                           <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 3<br />image ou vidéo</span>
                         </div>
                       </div>
@@ -1917,7 +1916,7 @@ export default function StudioPage() {
                         {/* Encart 1: format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format Direct IO et Ad Studio" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format Direct IO et Ad Studio" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format Direct IO et Ad Studio</p>
@@ -1944,7 +1943,7 @@ export default function StudioPage() {
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1">
                               <div className="aspect-square w-full mb-2 overflow-hidden">
-                                <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                                <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                               </div>
                               <div className="text-sm text-center">
                                 <p className="font-medium">format carré</p>
@@ -2164,7 +2163,7 @@ export default function StudioPage() {
                         {/* Encart 1: format carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -2212,7 +2211,7 @@ export default function StudioPage() {
                         {/* Encart visuel carré : même largeur/hauteur que "format carré" de la colonne gauche */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format%20carré_infeed@10x.png" alt="Logo format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format%20carre_infeed@10x.png" alt="Logo format carré" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format carré</p>
@@ -2249,10 +2248,9 @@ export default function StudioPage() {
                     <div className="w-full max-w-[900px] relative">
                       <div className="w-full overflow-hidden rounded-lg shadow-sm relative">
                           <SafeImage
-                            src="/images/Search Limites de caractères@10x.png"
+                            src="/images/Search Limites de caracteres10x.png"
                             extraSrcCandidates={[
-                              "/images/Search%20Limites%20de%20caractères@10x.png",
-                              "/images/Search%20Limites%20de%20caracte%CC%80res@10x.png",
+                              "/images/Search%20Limites%20de%20caracteres10x.png",
                             ]}
                             alt="Limites de caractères pour les wordings Google Search"
                             width={1200}
@@ -2515,7 +2513,7 @@ export default function StudioPage() {
                         {/* Encart visuel carré */}
                         <div>
                           <div className="aspect-square w-full mb-2 overflow-hidden">
-                            <NextImage src="/images/format carré_infeed@10x.png" alt="Format InFeed" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <NextImage src="/images/format carre_infeed@10x.png" alt="Format InFeed" width={1440} height={1440} className="w-full h-full object-contain" />
                           </div>
                           <div className="text-sm text-center">
                             <p className="font-medium">format InFeed</p>
@@ -2585,10 +2583,9 @@ export default function StudioPage() {
                         <div>
                           <div className="aspect-video w-full mb-2 overflow-hidden rounded-lg shadow-sm">
                             <SafeImage
-                              src="/images/logo bannière@10x.png"
+                              src="/images/logo banniere10x.png"
                               extraSrcCandidates={[
-                                "/images/logo%20bannière@10x.png",
-                                "/images/logo%20bannie%CC%80re@10x.png",
+                                "/images/logo%20banniere10x.png",
                               ]}
                               alt="Format bannière"
                               width={1200}
