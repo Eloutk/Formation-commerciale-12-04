@@ -70,7 +70,6 @@ export function PlatformCard({ item, color, onResize, maxLength, disabled, spanD
         ${isDragging ? 'shadow-md z-50' : ''}
         ${disabled ? 'pointer-events-none opacity-60' : ''}
       `}
-      style={style}
     >
       <div
         {...listeners}
