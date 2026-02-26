@@ -94,13 +94,13 @@ export default function StudioPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* En un clin d'œil - META (compact) */}
-                <Alert className="border-orange-500/50 bg-orange-500/10">
+                {/* En 1 clin d'œil - META (compact) */}
+                <Alert id="meta-clin-doeil" className="border-orange-500/50 bg-orange-500/10">
                   <AlertDescription>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Eye className="h-4 w-4 text-orange-500" />
-                        <strong className="text-xl">En un clin d&apos;œil</strong>
+                        <strong className="text-xl">En 1 clin d&apos;œil</strong>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>

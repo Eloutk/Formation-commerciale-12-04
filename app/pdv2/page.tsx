@@ -847,7 +847,10 @@ const PDFDocument = ({
 
         {strategies.map((block, index) => {
           const hasItems = block.items.length > 0
-          const hasCalendar = !!(block.calendar?.startDate && block.calendar?.endDate)
+          const cal = block.calendar
+          const hasCalendar = !!cal?.startDate && (
+            isStrategyCalendarData(cal) ? (cal.duration > 0 || cal.items.length > 0) : !!(cal as StrategyCalendar).endDate
+          )
           if (!hasItems && !hasCalendar) return null
 
           const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
@@ -1013,9 +1016,11 @@ const PDFDocument = ({
               </View>
               )}
 
-              {/* Calendrier de diffusion (si présent) */}
-              {block.calendar?.startDate && block.calendar?.endDate && (() => {
-                const calDates = getDatesBetween(block.calendar.startDate, block.calendar.endDate)
+              {/* Calendrier de diffusion (si présent) — uniquement pour StrategyCalendar (avec endDate) */}
+              {block.calendar && !isStrategyCalendarData(block.calendar) && (() => {
+                const cal = block.calendar as StrategyCalendar
+                if (!cal.startDate || !cal.endDate) return null
+                const calDates = getDatesBetween(cal.startDate, cal.endDate)
                 if (calDates.length === 0) return null
                 const weeks: string[][] = []
                 for (let i = 0; i < calDates.length; i += 7) weeks.push(calDates.slice(i, i + 7))
@@ -1023,9 +1028,9 @@ const PDFDocument = ({
                   const last = weeks[weeks.length - 1]
                   while (last.length < 7) last.push('')
                 }
-                const daysBase = block.calendar.days ?? {}
+                const daysBase = cal.days ?? {}
                 const daysFromRanges: Record<string, string[]> = {}
-                ;(block.calendar.ranges ?? []).forEach((r) => {
+                ;(cal.ranges ?? []).forEach((r) => {
                   getDatesBetween(r.startDate, r.endDate).forEach((dateKey) => {
                     if (!daysFromRanges[dateKey]) daysFromRanges[dateKey] = []
                     daysFromRanges[dateKey].push(`${r.platform}::${r.phaseName}`)
@@ -2484,13 +2489,27 @@ export default function PDV2Page() {
                                     const cal = block.calendar
                                     if (cal) {
                                       setCalendarPeriodStart(cal.startDate)
-                                      const periodDates = getDatesBetween(cal.startDate, cal.endDate)
-                                      const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : cal.endDate
-                                      setCalendarPeriodEnd(clampedEnd)
-                                      setCalendarDays(cal.days ? { ...cal.days } : {})
-                                      setCalendarPlatformPhases(cal.platformPhases ? { ...cal.platformPhases } : {})
-                                      setCalendarPhaseDays(cal.phaseDays ? JSON.parse(JSON.stringify(cal.phaseDays)) : {})
-                                      setCalendarRanges((cal.ranges ?? []).map((r, i) => ({ ...r, id: (r as CalendarRange & { id?: string }).id || `range-${i}-${Date.now()}` })))
+                                      if (isStrategyCalendarData(cal)) {
+                                        const end = new Date(cal.startDate + 'T12:00:00')
+                                        end.setDate(end.getDate() + cal.duration - 1)
+                                        const endStr = end.toISOString().slice(0, 10)
+                                        const periodDates = getDatesBetween(cal.startDate, endStr)
+                                        const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : endStr
+                                        setCalendarPeriodEnd(clampedEnd)
+                                        setCalendarDays({})
+                                        setCalendarPlatformPhases({})
+                                        setCalendarPhaseDays({})
+                                        setCalendarRanges([])
+                                      } else {
+                                        const legacy = cal as StrategyCalendar
+                                        const periodDates = getDatesBetween(legacy.startDate, legacy.endDate)
+                                        const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : legacy.endDate
+                                        setCalendarPeriodEnd(clampedEnd)
+                                        setCalendarDays(legacy.days ? { ...legacy.days } : {})
+                                        setCalendarPlatformPhases(legacy.platformPhases ? { ...legacy.platformPhases } : {})
+                                        setCalendarPhaseDays(legacy.phaseDays ? JSON.parse(JSON.stringify(legacy.phaseDays)) : {})
+                                        setCalendarRanges((legacy.ranges ?? []).map((r, i) => ({ ...r, id: (r as CalendarRange & { id?: string }).id || `range-${i}-${Date.now()}` })))
+                                      }
                                     } else {
                                       setCalendarPeriodStart(today)
                                       const d = new Date(today + 'T12:00:00')
