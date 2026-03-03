@@ -2154,7 +2154,7 @@ export default function PDV2Page() {
                           onCheckedChange={(checked) => {
                             setSelectedPlatforms((prev) => {
                               const next = checked
-                                ? [...prev, platform].sort((a, b) => PLATFORMS_ORDER.indexOf(a) - PLATFORMS_ORDER.indexOf(b))
+                                ? [...prev, platform].sort((a, b) => PLATFORMS_ORDER.indexOf(a as (typeof PLATFORMS_ORDER)[number]) - PLATFORMS_ORDER.indexOf(b as (typeof PLATFORMS_ORDER)[number]))
                                 : prev.filter((p) => p !== platform)
                               return next
                             })
