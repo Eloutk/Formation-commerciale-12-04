@@ -1014,125 +1014,90 @@ const PDFDocument = ({
               )}
 
               {/* Détail de la stratégie */}
-              {hasItems && (
-              <View>
-                <Text style={[styles.chartTitle, { marginTop: 20, marginBottom: 10 }]}>
-                  Détail de la stratégie {index + 1}
-                </Text>
-                {block.items.map((item) => (
-                  <View key={item.id} style={styles.itemCard}>
-                    <Text style={styles.itemPlatform}>{item.platform}</Text>
-                    <Text style={styles.itemObjective}>{item.objective}</Text>
-                    <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>Budget :</Text>
-                      <Text style={styles.itemValue}>{formatNumber(item.budget, 0)} €</Text>
-                    </View>
-                    <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>KPIs estimés :</Text>
-                      <Text style={styles.itemValue}>
-                        {item.customKpiLabel
-                          ? item.customKpiLabel
-                          : item.estimatedKPIs > 0
-                            ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
-                                item.objective === 'Leads' ? ' (estimation)' : ''
-                              }`
-                            : `${getMaxKpiLabel(item.objective)}${
-                                item.objective === 'Leads' ? ' (estimation)' : ''
-                              }`}
-                      </Text>
-                    </View>
-                    <View style={styles.itemRow}>
-                      <Text style={styles.itemLabel}>Budget quotidien :</Text>
-                      <Text style={styles.itemValue}>{formatNumber(item.dailyBudget, 1)} €</Text>
-                    </View>
-                    {item.days > 0 && (
-                      <View style={styles.itemRow}>
-                        <Text style={styles.itemLabel}>Diffusion :</Text>
-                        <Text style={styles.itemValue}>
-                          {item.days} jour{item.days > 1 ? 's' : ''}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
-              )}
-
-              {/* Dates de début et de fin par plateforme (sans calendrier) */}
-              {block.calendar && !isStrategyCalendarData(block.calendar) && (() => {
-                const cal = block.calendar as StrategyCalendar
+              {hasItems && (() => {
                 const formatIsoToPdf = (iso: string) => {
                   if (!iso) return ''
                   const [y, m, d] = iso.split('-')
                   return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
                 }
-                const rows: { label: string; start: string; end: string }[] = []
-                if ((cal.ranges ?? []).length > 0) {
-                  cal.ranges!.forEach((r) => {
-                    rows.push({
-                      label: r.phaseName ? `${r.platform} (${r.phaseName})` : r.platform,
-                      start: formatIsoToPdf(r.startDate),
-                      end: formatIsoToPdf(r.endDate),
-                    })
-                  })
-                } else if (cal.startDate && cal.endDate) {
-                  const daysBase = cal.days ?? {}
-                  const entryToDates: Record<string, string[]> = {}
-                  Object.entries(daysBase).forEach(([dateKey, arr]) => {
-                    (arr ?? []).forEach((entry) => {
-                      if (!entryToDates[entry]) entryToDates[entry] = []
-                      entryToDates[entry].push(dateKey)
-                    })
-                  })
-                  Object.entries(entryToDates).forEach(([entry, dates]) => {
-                    const sorted = [...dates].sort()
-                    if (sorted.length > 0) {
-                      rows.push({
-                        label: entry.includes('::') ? entry.replace('::', ' (') + ')' : entry,
-                        start: formatIsoToPdf(sorted[0]!),
-                        end: formatIsoToPdf(sorted[sorted.length - 1]!),
-                      })
+                const getPlatformDates = (platform: string): { start: string; end: string } | null => {
+                  const cal = block.calendar
+                  if (!cal) return null
+                  if (isStrategyCalendarData(cal)) {
+                    if (!cal.startDate || !cal.items?.length) return null
+                    const calItem = cal.items.find((i) => i.platform === platform)
+                    if (!calItem) return null
+                    const base = new Date(cal.startDate + 'T12:00:00')
+                    const start = new Date(base)
+                    start.setDate(start.getDate() + calItem.startDay)
+                    const end = new Date(base)
+                    end.setDate(end.getDate() + calItem.startDay + Math.max(1, calItem.length) - 1)
+                    return {
+                      start: formatIsoToPdf(start.toISOString().slice(0, 10)),
+                      end: formatIsoToPdf(end.toISOString().slice(0, 10)),
                     }
-                  })
+                  }
+                  const legacy = cal as StrategyCalendar
+                  if ((legacy.ranges ?? []).length > 0) {
+                    const r = legacy.ranges!.find((x) => x.platform === platform || (x.phaseName && `${x.platform} (${x.phaseName})` === platform))
+                    if (r) return { start: formatIsoToPdf(r.startDate), end: formatIsoToPdf(r.endDate) }
+                    return null
+                  }
+                  if (!legacy.startDate || !legacy.endDate || !legacy.days) return null
+                  const entryKeys = Object.entries(legacy.days).filter(([, arr]) => (arr ?? []).some((e) => e === platform || e.startsWith(platform + '::')))
+                  if (entryKeys.length === 0) return null
+                  const dates = entryKeys.map(([d]) => d).sort()
+                  return { start: formatIsoToPdf(dates[0]!), end: formatIsoToPdf(dates[dates.length - 1]!) }
                 }
-                if (rows.length === 0) return null
                 return (
-                  <View style={styles.calendarSection} wrap={false}>
-                    <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Dates de diffusion par plateforme</Text>
-                    {rows.map((row, idx) => (
-                      <View key={idx} style={styles.itemRow}>
-                        <Text style={styles.itemLabel}>{row.label}</Text>
-                        <Text style={styles.itemValue}>
-                          du {row.start} au {row.end}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )
-              })()}
-              {block.calendar && isStrategyCalendarData(block.calendar) && (() => {
-                const cal = block.calendar as StrategyCalendarData
-                if (!cal.startDate || cal.duration <= 0 || !cal.items?.length) return null
-                const formatDate = (base: Date, offsetDays: number) => {
-                  const d = new Date(base)
-                  d.setDate(d.getDate() + offsetDays)
-                  const iso = d.toISOString().slice(0, 10)
-                  const [y, m, day] = iso.split('-')
-                  return `${day}/${m}/${y}`
-                }
-                const base = new Date(cal.startDate + 'T12:00:00')
-                return (
-                  <View style={styles.calendarSection} wrap={false}>
-                    <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Dates de diffusion par plateforme</Text>
-                    {cal.items.map((item, idx) => {
-                      const start = formatDate(base, item.startDay)
-                      const end = formatDate(base, item.startDay + Math.max(1, item.length) - 1)
+                  <View>
+                    <Text style={[styles.chartTitle, { marginTop: 20, marginBottom: 10 }]}>
+                      Détail de la stratégie {index + 1}
+                    </Text>
+                    {block.items.map((item) => {
+                      const platformDates = getPlatformDates(item.platform)
                       return (
-                        <View key={`${item.platform}-${idx}`} style={styles.itemRow}>
-                          <Text style={styles.itemLabel}>{item.platform}</Text>
-                          <Text style={styles.itemValue}>
-                            du {start} au {end}
-                          </Text>
+                        <View key={item.id} style={styles.itemCard}>
+                          <Text style={styles.itemPlatform}>{item.platform}</Text>
+                          <Text style={styles.itemObjective}>{item.objective}</Text>
+                          <View style={styles.itemRow}>
+                            <Text style={styles.itemLabel}>Budget :</Text>
+                            <Text style={styles.itemValue}>{formatNumber(item.budget, 0)} €</Text>
+                          </View>
+                          <View style={styles.itemRow}>
+                            <Text style={styles.itemLabel}>KPIs estimés :</Text>
+                            <Text style={styles.itemValue}>
+                              {item.customKpiLabel
+                                ? item.customKpiLabel
+                                : item.estimatedKPIs > 0
+                                  ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+                                      item.objective === 'Leads' ? ' (estimation)' : ''
+                                    }`
+                                  : `${getMaxKpiLabel(item.objective)}${
+                                      item.objective === 'Leads' ? ' (estimation)' : ''
+                                    }`}
+                            </Text>
+                          </View>
+                          <View style={styles.itemRow}>
+                            <Text style={styles.itemLabel}>Budget quotidien :</Text>
+                            <Text style={styles.itemValue}>{formatNumber(item.dailyBudget, 1)} €</Text>
+                          </View>
+                          {item.days > 0 && (
+                            <View style={styles.itemRow}>
+                              <Text style={styles.itemLabel}>Diffusion :</Text>
+                              <Text style={styles.itemValue}>
+                                {item.days} jour{item.days > 1 ? 's' : ''}
+                              </Text>
+                            </View>
+                          )}
+                          {platformDates && (
+                            <View style={styles.itemRow}>
+                              <Text style={styles.itemLabel}>Dates de diffusion :</Text>
+                              <Text style={styles.itemValue}>
+                                du {platformDates.start} au {platformDates.end}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       )
                     })}
