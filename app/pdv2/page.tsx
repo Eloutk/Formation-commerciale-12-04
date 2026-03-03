@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -22,14 +22,30 @@ import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
 import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
+import { cn } from '@/lib/utils'
 
 // Liste des plateformes dans l'ordre souhaité
-const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
+const PLATFORMS_ORDER = [
+  'META',
+  'Display',
+  'Perf max',
+  'Demand Gen',
+  'Search',
+  'Insta only',
+  'Youtube',
+  'LinkedIn',
+  'Snapchat',
+  'Tiktok',
+  'Spotify',
+] as const
 
 // Couleurs fixes par plateforme pour le calendrier de diffusion (toujours les mêmes)
 const PLATFORM_CALENDAR_COLORS: Record<string, string> = {
   META: '#E94C16',
   Display: '#4285F4',
+  'Perf max': '#3367D6',
+  'Demand Gen': '#34A853',
+  Search: '#4285F4',
   'Insta only': '#E4405F',
   Youtube: '#FF0000',
   LinkedIn: '#0A66C2',
@@ -324,6 +340,9 @@ function CalendarMonthView({
 const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
   META: '/images/Logo META.png',
   Display: '/images/Logo Google.png',
+  'Perf max': '/images/Logo Google.png',
+  'Demand Gen': '/images/Logo Google.png',
+  Search: '/images/Logo Google.png',
   Youtube: '/images/Logo YouTube.png',
   LinkedIn: '/images/Logo LinkedIn.png',
   Snapchat: '/images/Logo Snapchat.png',
@@ -357,9 +376,14 @@ const TIKTOK_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'conversion'] as const
 
 const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
 
+const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
+
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
+  'Perf max': DEFAULT_CUSTOM_OBJECTIVES,
+  'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
+  Search: SEARCH_CUSTOM_OBJECTIVES,
   'Insta only': INSTA_CUSTOM_OBJECTIVES,
   Youtube: ['Impressions'],
   LinkedIn: LINKEDIN_CUSTOM_OBJECTIVES,
@@ -389,6 +413,18 @@ function PlatformBadge({ platform, withDownload = false }: { platform: string; w
         </a>
       )}
     </span>
+  )
+}
+
+/** Champ de saisie avec icône stylo pour indiquer qu’il est modifiable (sauf type="file") */
+function EditableInput(props: React.ComponentProps<typeof Input>) {
+  const { className, type, ...rest } = props
+  if (type === 'file') return <Input {...props} />
+  return (
+    <div className="relative w-full">
+      <Input type={type} {...rest} className={cn('pr-8', className)} />
+      <Pencil className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden />
+    </div>
   )
 }
 
@@ -443,6 +479,8 @@ interface StrategyItem extends TableRowData {
   days: number
   // % AE utilisé au moment de l'ajout (ex: 40 pour 40 %)
   aePercentage: number
+  // Libellé personnalisé pour les KPIs (ex: valeur saisie pour Search > Clics)
+  customKpiLabel?: string
 }
 
 // Phase posée sur la frise (vue mois)
@@ -991,13 +1029,15 @@ const PDFDocument = ({
                     <View style={styles.itemRow}>
                       <Text style={styles.itemLabel}>KPIs estimés :</Text>
                       <Text style={styles.itemValue}>
-                        {item.estimatedKPIs > 0
-                          ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
-                              item.objective === 'Leads' ? ' (estimation)' : ''
-                            }`
-                          : `${getMaxKpiLabel(item.objective)}${
-                              item.objective === 'Leads' ? ' (estimation)' : ''
-                            }`}
+                        {item.customKpiLabel
+                          ? item.customKpiLabel
+                          : item.estimatedKPIs > 0
+                            ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+                                item.objective === 'Leads' ? ' (estimation)' : ''
+                              }`
+                            : `${getMaxKpiLabel(item.objective)}${
+                                item.objective === 'Leads' ? ' (estimation)' : ''
+                              }`}
                       </Text>
                     </View>
                     <View style={styles.itemRow}>
@@ -1281,7 +1321,7 @@ export default function PDV2Page() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [...PLATFORMS_ORDER])
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
   const [smsType, setSmsType] = useState<SmsType>('sms')
@@ -1295,6 +1335,7 @@ export default function PDV2Page() {
   })
   const [campaignMonths, setCampaignMonths] = useState<string>('1') // nombre de mois pour duplication campagne RCS
   const [creaByLinkCount, setCreaByLinkCount] = useState<string>('1') // nombre de CREA BY LINK
+  const [searchClicsStudyValue, setSearchClicsStudyValue] = useState<string>('') // Search > Clics : valeur selon étude TM
   
   // État des stratégies (jusqu'à 3)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
@@ -1568,7 +1609,7 @@ export default function PDV2Page() {
   }, [tableData])
 
   // Fonction pour ajouter à la stratégie active
-  const addToStrategy = (row: TableRowData) => {
+  const addToStrategy = (row: TableRowData & { customKpiLabel?: string }) => {
     const daysNum = parseFloat(diffusionDays) || 0
     const aeNum = parseFloat(aePercentage) || 0
 
@@ -1703,8 +1744,8 @@ export default function PDV2Page() {
       return 'bg-green-50 text-green-700'
     }
 
-    if (platform === 'Snapchat') {
-      // Snapchat : AE / jours (seuils spécifiques 10 / 15)
+    if (platform === 'Snapchat' || platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search') {
+      // Snapchat, Perf max, Demand Gen, Search : AE / jours (seuils spécifiques 10 / 15)
       if (aeCheckValue < 10) return 'bg-red-50 text-red-700'
       if (aeCheckValue <= 15) return 'bg-orange-50 text-orange-700'
       return 'bg-green-50 text-green-700'
@@ -2070,7 +2111,7 @@ export default function PDV2Page() {
                     <Label>
                       {calculationMode === 'budget-to-kpis' ? 'Budget (€)' : 'KPIs souhaités'}
                     </Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder={calculationMode === 'budget-to-kpis' ? 'Ex: 5000' : 'Ex: 10000'}
                       value={mainValue}
@@ -2080,7 +2121,7 @@ export default function PDV2Page() {
 
                   <div className="space-y-2">
                     <Label>% AE</Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder="Ex: 40 pour 40 %"
                       value={aePercentage}
@@ -2090,7 +2131,7 @@ export default function PDV2Page() {
 
                   <div className="space-y-2">
                     <Label>Jours de diffusion</Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder="Ex: 14"
                       value={diffusionDays}
@@ -2175,19 +2216,32 @@ export default function PDV2Page() {
               <div className="space-y-4">
                 {selectedPlatforms.map((platform) => {
                   const platformRows = groupedByPlatform[platform] || []
-                  if (platformRows.length === 0) return null
+                  const onlyCustomRow = platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search'
+                  if (!onlyCustomRow && platformRows.length === 0) return null
 
                   const custom = customRows[platform] ?? { objective: '', budget: '' }
+                  const daysNum = parseFloat(diffusionDays) || 14
+                  const mainValueNum = parseFloat(mainValue) || 0
+                  const aeNum = parseFloat(aePercentage) || 40
+
                   const referenceRowForObjective = platformRows.find(
                     (r) => r.objective === custom.objective,
                   )
                   const referenceRow = referenceRowForObjective ?? platformRows[0]
-                  const customBudgetNum = referenceRow?.budget ?? 0
-                  const customDailyBudget = referenceRow?.dailyBudget ?? 0
-                  const customAeCheckValue = referenceRow?.aeCheckValue ?? 0
-                  const daysNum = parseFloat(diffusionDays) || 14
+                  const customBudgetNum = onlyCustomRow
+                    ? mainValueNum
+                    : (referenceRow?.budget ?? 0)
+                  const customDailyBudget = onlyCustomRow
+                    ? (mainValueNum * (aeNum / 100)) / daysNum
+                    : (referenceRow?.dailyBudget ?? 0)
+                  const customAeCheckValue = onlyCustomRow
+                    ? customDailyBudget
+                    : (referenceRow?.aeCheckValue ?? 0)
                   const customRowColor = getRowColorClass(platform, customAeCheckValue, daysNum)
-                  const objectivesForPlatform = CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
+                  const objectivesForPlatform =
+                    platform === 'META'
+                      ? [...META_CUSTOM_OBJECTIVES, 'conversion']
+                      : CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
                   const isCustomInStrategy = strategy.some(
                     (item) => item.platform === platform && item.objective === custom.objective,
                   )
@@ -2212,7 +2266,10 @@ export default function PDV2Page() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {platformRows.map((row, index) => {
+                              {!onlyCustomRow && platformRows.map((row, index) => {
+                                if (platform === 'META' && row.objective === 'conversion') {
+                                  return null
+                                }
                                 const colorClass = getRowColorClass(row.platform, row.aeCheckValue, daysNum)
                                 const isInStrategy = strategy.some(
                                   item => item.platform === row.platform && item.objective === row.objective
@@ -2254,30 +2311,112 @@ export default function PDV2Page() {
                                 )
                               })}
 
-                              {/* Ligne personnalisable */}
+                              {/* Search : 2 lignes distinctes (Clics, Conversion) */}
+                              {platform === 'Search' && (() => {
+                                const searchObjectives = ['Clics', 'Conversion'] as const
+                                return searchObjectives.map((obj) => {
+                                  const isInStrategy = strategy.some(
+                                    (item) => item.platform === platform && item.objective === obj,
+                                  )
+                                  return (
+                                    <TableRow key={`search-${obj}`} className={customRowColor}>
+                                      <TableCell>{obj}</TableCell>
+                                      <TableCell className="text-right font-semibold text-xs">
+                                        {customBudgetNum > 0
+                                          ? `${customBudgetNum.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`
+                                          : '—'}
+                                      </TableCell>
+                                      <TableCell className="text-right text-xs">
+                                        {obj === 'Conversion' && <>Max de conversion</>}
+                                        {obj === 'Clics' && (
+                                          <div className="space-y-1">
+                                            <EditableInput
+                                              value={searchClicsStudyValue}
+                                              onChange={(e) => setSearchClicsStudyValue(e.target.value)}
+                                              placeholder="Valeur selon étude TM"
+                                              className="h-7 w-full max-w-[120px] ml-auto text-[11px] rounded-sm border-gray-300"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground italic">
+                                              selon étude menée par les TM
+                                            </p>
+                                          </div>
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right font-bold text-xs">
+                                        {customDailyBudget > 0
+                                          ? `${customDailyBudget.toLocaleString('fr-FR', {
+                                              minimumFractionDigits: 1,
+                                              maximumFractionDigits: 1,
+                                            })} €`
+                                          : '—'}
+                                      </TableCell>
+                                      <TableCell>
+                                        {!isInStrategy && customBudgetNum > 0 && (
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                              addToStrategy({
+                                                platform,
+                                                objective: obj,
+                                                budget: customBudgetNum,
+                                                estimatedKPIs: 0,
+                                                dailyBudget: customDailyBudget,
+                                                aeCheckValue: customAeCheckValue,
+                                                isAvailable: true,
+                                                customKpiLabel:
+                                                  obj === 'Clics'
+                                                    ? (searchClicsStudyValue || 'Max de clics')
+                                                    : getMaxKpiLabel(obj),
+                                              })
+                                            }
+                                            className="h-8 w-8 p-0"
+                                          >
+                                            <Plus className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  )
+                                })
+                              })()}
+
+                              {/* Ligne personnalisable (Perf max, Demand Gen et autres plateformes) — masquée pour Search */}
+                              {platform !== 'Search' && (
                               <TableRow className={customRowColor}>
                                 <TableCell>
-                                  <Select
-                                    value={custom.objective}
-                                    onValueChange={(value: string) =>
-                                      handleCustomRowChange(platform, 'objective', value)
-                                    }
-                                  >
-                                    <SelectTrigger className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0">
-                                      <SelectValue placeholder="Objectif" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {objectivesForPlatform.map((obj) => (
-                                        <SelectItem
-                                          key={obj}
-                                          value={obj}
-                                          className="text-[11px] py-1"
-                                        >
-                                          {obj}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  {platform === 'Perf max' || platform === 'Demand Gen' ? (
+                                    <EditableInput
+                                      value={custom.objective}
+                                      onChange={(e) =>
+                                        handleCustomRowChange(platform, 'objective', e.target.value)
+                                      }
+                                      placeholder="Objectif (ex : conversions e-commerce)"
+                                      className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0"
+                                    />
+                                  ) : (
+                                    <Select
+                                      value={custom.objective}
+                                      onValueChange={(value: string) =>
+                                        handleCustomRowChange(platform, 'objective', value)
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0">
+                                        <SelectValue placeholder="Objectif" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {objectivesForPlatform.map((obj) => (
+                                          <SelectItem
+                                            key={obj}
+                                            value={obj}
+                                            className="text-[11px] py-1"
+                                          >
+                                            {obj}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-semibold text-xs">
                                   {customBudgetNum > 0
@@ -2311,8 +2450,6 @@ export default function PDV2Page() {
                                           platform,
                                           objective: custom.objective,
                                           budget: customBudgetNum,
-                                          // Pour les objectifs \"max\" (non présents dans les lignes standard),
-                                          // on ne stocke pas de KPIs chiffrés : on met 0 pour afficher \"-\".
                                           estimatedKPIs:
                                             referenceRowForObjective?.estimatedKPIs ?? 0,
                                           dailyBudget: customDailyBudget,
@@ -2327,6 +2464,7 @@ export default function PDV2Page() {
                                   )}
                                 </TableCell>
                               </TableRow>
+                              )}
                             </TableBody>
                           </Table>
                         </div>
@@ -2358,7 +2496,7 @@ export default function PDV2Page() {
 
             {isAddingStrategy && (
               <div className="flex gap-2 mb-2">
-                <Input
+                <EditableInput
                   placeholder={`Nom de la stratégie (ex: Strat agressive)`}
                   value={newStrategyName}
                   onChange={(e) => setNewStrategyName(e.target.value)}
@@ -2430,7 +2568,7 @@ export default function PDV2Page() {
                           <CardTitle className="flex items-center gap-2 text-sm">
                             {renamingStrategyId === block.id ? (
                               <div className="flex items-center gap-2">
-                                <Input
+                                <EditableInput
                                   autoFocus
                                   className="h-7 text-xs px-2 py-1"
                                   value={renamingStrategyName}
@@ -2621,19 +2759,17 @@ export default function PDV2Page() {
                                         €
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {item.estimatedKPIs > 0 ? (
-                                          <>
-                                            {`${item.estimatedKPIs.toLocaleString(
-                                              'fr-FR',
-                                            )} ${getKpiUnitLabel(item.objective)}${
-                                              item.objective === 'Leads' ? ' (estimation)' : ''
-                                            }`}
-                                          </>
-                                        ) : (
-                                          `${getMaxKpiLabel(item.objective)}${
-                                            item.objective === 'Leads' ? ' (estimation)' : ''
-                                          }`
-                                        )}
+                                        {item.customKpiLabel
+                                          ? item.customKpiLabel
+                                          : item.estimatedKPIs > 0
+                                            ? `${item.estimatedKPIs.toLocaleString(
+                                                'fr-FR',
+                                              )} ${getKpiUnitLabel(item.objective)}${
+                                                item.objective === 'Leads' ? ' (estimation)' : ''
+                                              }`
+                                            : `${getMaxKpiLabel(item.objective)}${
+                                                item.objective === 'Leads' ? ' (estimation)' : ''
+                                              }`}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
                                         {item.days > 0 &&
@@ -2947,7 +3083,7 @@ export default function PDV2Page() {
                             {smsOptions.duplicateCampaign && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
-                                <Input
+                                <EditableInput
                                   type="number"
                                   min="1"
                                   value={campaignMonths}
@@ -2995,7 +3131,7 @@ export default function PDV2Page() {
                             {smsOptions.creaByLink && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre :</span>
-                                <Input
+                                <EditableInput
                                   type="number"
                                   min="1"
                                   value={creaByLinkCount}
@@ -3039,7 +3175,7 @@ export default function PDV2Page() {
                             {smsOptions.duplicateCampaign && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
-                                <Input
+                                <EditableInput
                                   type="number"
                                   min="1"
                                   value={campaignMonths}
@@ -3064,7 +3200,7 @@ export default function PDV2Page() {
                           Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}
                           {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? ' par campagne' : ''}
                         </Label>
-                        <Input
+                        <EditableInput
                           type="number"
                           min={0}
                           placeholder={`Ex: ${smsType === 'sms' ? '20000' : '15000'}`}
@@ -3285,7 +3421,11 @@ export default function PDV2Page() {
               const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
                 platform: item.platform,
                 budget: item.budget,
-                kpiLabel: item.estimatedKPIs > 0 ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}` : getMaxKpiLabel(item.objective),
+                kpiLabel: item.customKpiLabel
+                  ? item.customKpiLabel
+                  : item.estimatedKPIs > 0
+                    ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
+                    : getMaxKpiLabel(item.objective),
                 maxDays: Math.max(1, item.days ?? duration),
               }))
               const existing = isStrategyCalendarData(block.calendar) ? block.calendar : null
@@ -3326,7 +3466,7 @@ export default function PDV2Page() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="client-name">Nom du client *</Label>
-              <Input
+              <EditableInput
                 id="client-name"
                 placeholder="Ex: Entreprise ABC"
                 value={clientName}
@@ -3340,7 +3480,7 @@ export default function PDV2Page() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="client-comment">Commentaire (optionnel)</Label>
-              <Input
+              <EditableInput
                 id="client-comment"
                 placeholder="Ex: Campagne janvier 2026"
                 value={pdfClientComment}
@@ -3376,7 +3516,7 @@ export default function PDV2Page() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="validation-message">Message *</Label>
-              <Input
+              <EditableInput
                 id="validation-message"
                 placeholder="Votre message pour la validation..."
                 value={validationMessage}
@@ -3385,7 +3525,7 @@ export default function PDV2Page() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="client-name-tm">Nom du client (optionnel)</Label>
-              <Input
+              <EditableInput
                 id="client-name-tm"
                 placeholder="Ex: Entreprise ABC"
                 value={clientName}
@@ -3421,7 +3561,7 @@ export default function PDV2Page() {
             {/* Nom du fichier */}
             <div className="space-y-2">
               <Label htmlFor="pdf-filename">Nom du fichier *</Label>
-              <Input
+              <EditableInput
                 id="pdf-filename"
                 placeholder={`Ex: devis-${currentSmsType}-client`}
                 value={smsPdfFileName}
@@ -3432,7 +3572,7 @@ export default function PDV2Page() {
             {/* Commentaire */}
             <div className="space-y-2">
               <Label htmlFor="pdf-comment">Commentaire (optionnel)</Label>
-              <Input
+              <EditableInput
                 id="pdf-comment"
                 placeholder="Ex: Campagne janvier 2026"
                 value={smsPdfComment}

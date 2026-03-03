@@ -20,6 +20,18 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Impressions: { cost: 2.552, perThousand: true },
     Clics: { cost: 0.823, perThousand: false },
   },
+  'Perf max': {
+    Impressions: { cost: 2.552, perThousand: true },
+    Clics: { cost: 0.823, perThousand: false },
+  },
+  'Demand Gen': {
+    Impressions: { cost: 2.552, perThousand: true },
+    Clics: { cost: 0.823, perThousand: false },
+  },
+  Search: {
+    Clics: { cost: 0.823, perThousand: false },
+    Conversion: { cost: 70.4, perThousand: false },
+  },
   Youtube: {
     Impressions: { cost: 5.28, perThousand: true },
   },
@@ -154,6 +166,19 @@ export function calculatePriceForKPIs(
       }
       break
 
+    case 'Search':
+      switch (objective) {
+        case 'Clics':
+          price = ((kpis * 0.823) / aeFactor) * 1.3
+          break
+        case 'Conversion':
+          price = ((kpis * 70.4) / aeFactor) * 1.3
+          break
+        default:
+          throw new Error('Objectif non supporté pour Search')
+      }
+      break
+
     case 'Youtube':
       switch (objective) {
         case 'Impressions':
@@ -283,6 +308,13 @@ export function calculatePriceForKPIsDirection(
         default: throw new Error('Objectif non supporté pour Display')
       }
       break
+    case 'Search':
+      switch (objective) {
+        case 'Clics': price = ((kpis * 0.823) / aeFactor) * mult; break
+        case 'Conversion': price = ((kpis * 70.4) / aeFactor) * mult; break
+        default: throw new Error('Objectif non supporté pour Search')
+      }
+      break
     case 'Youtube':
       switch (objective) {
         case 'Impressions': price = ((kpis / 1000 * 5.28) / aeFactor) * mult; break
@@ -399,6 +431,19 @@ export function calculateKPIsForBudget(
           break
         default:
           throw new Error('Objectif non supporté pour Display')
+      }
+      break
+
+    case 'Search':
+      switch (objective) {
+        case 'Clics':
+          calculatedKpis = ((budget / 1.3) * aeFactor) / 0.823
+          break
+        case 'Conversion':
+          calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
+          break
+        default:
+          throw new Error('Objectif non supporté pour Search')
       }
       break
 
@@ -527,6 +572,13 @@ export function calculateKPIsForBudgetDirection(
         case 'Impressions': calculatedKpis = (base / 2.552) * 1000; break
         case 'Clics': calculatedKpis = base / 0.823; break
         default: throw new Error('Objectif non supporté pour Display')
+      }
+      break
+    case 'Search':
+      switch (objective) {
+        case 'Clics': calculatedKpis = base / 0.823; break
+        case 'Conversion': calculatedKpis = base / 70.4; break
+        default: throw new Error('Objectif non supporté pour Search')
       }
       break
     case 'Youtube':
