@@ -216,10 +216,10 @@ export default function HomePage() {
       {false && (
         <>
           {/* Actu Flash & Succès (si admin a rempli) */}
-          {monthlyContent && (monthlyContent.actu_flash_title || monthlyContent!.success_items.length > 0) && (
+          {monthlyContent && (monthlyContent!.actu_flash_title || monthlyContent!.success_items.length > 0) && (
             <div className="mb-4 lg:mb-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Actu Flash */}
-              {monthlyContent.actu_flash_title && (
+              {monthlyContent!.actu_flash_title && (
                 <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
                   <CardHeader className="p-3 pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -227,8 +227,8 @@ export default function HomePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
-                    <h3 className="font-semibold text-sm mb-1">{monthlyContent.actu_flash_title}</h3>
-                    <p className="text-xs text-muted-foreground">{monthlyContent.actu_flash_description}</p>
+                    <h3 className="font-semibold text-sm mb-1">{monthlyContent!.actu_flash_title}</h3>
+                    <p className="text-xs text-muted-foreground">{monthlyContent!.actu_flash_description}</p>
                   </CardContent>
                 </Card>
               )}
