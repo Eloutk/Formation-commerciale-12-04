@@ -173,26 +173,36 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-3 lg:py-4 max-w-7xl">
-      {/* Main Sections Grid */}
-      <div className="mb-4 lg:mb-5">
-        <h2 className="text-lg font-semibold mb-3">
-          Accès rapide
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="container mx-auto px-4 py-6 lg:py-10 max-w-6xl min-h-[80vh] flex items-center">
+      <div className="w-full">
+        {/* Main Sections Grid */}
+        <div className="mb-6 lg:mb-8 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">
+              Accès rapide
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
+              Choisissez directement l&apos;outil dont vous avez besoin : calculateur PDV, Studio de créations, documentation et ressources.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5">
           {mainSections.map((section) => {
             const Icon = section.icon
             return (
               <Link key={section.href} href={section.href}>
-                <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-[#E94C16]/20">
-                  <CardHeader className="p-2 lg:p-3 pb-1">
-                    <div className={`w-8 h-8 rounded-lg ${section.bgColor} flex items-center justify-center mb-1`}>
-                      <Icon className={`w-4 h-4 ${section.color}`} />
+                <Card className="group h-full min-h-[120px] lg:min-h-[150px] hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer border-2 hover:border-[#E94C16]/30">
+                  <CardHeader className="p-3 lg:p-4 pb-2">
+                    <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-lg ${section.bgColor} flex items-center justify-center mb-2`}>
+                      <Icon className={`w-4 h-4 lg:w-5 lg:h-5 ${section.color}`} />
                     </div>
-                    <CardTitle className="text-sm lg:text-base">{section.title}</CardTitle>
+                    <CardTitle className="text-sm lg:text-base">
+                      {section.title}
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-2 lg:p-3 pt-0">
-                    <CardDescription className="text-xs leading-tight line-clamp-2">
+                  <CardContent className="px-3 lg:px-4 pb-3 lg:pb-4 pt-0">
+                    <CardDescription className="text-[11px] lg:text-xs leading-snug line-clamp-3">
                       {section.description}
                     </CardDescription>
                   </CardContent>
@@ -203,166 +213,170 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Actu Flash & Succès (si admin a rempli) */}
-      {monthlyContent && (monthlyContent.actu_flash_title || monthlyContent.success_items.length > 0) && (
-        <div className="mb-4 lg:mb-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {/* Actu Flash */}
-          {monthlyContent.actu_flash_title && (
-            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
-              <CardHeader className="p-3 pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  📰 L'actu flash
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 pt-0">
-                <h3 className="font-semibold text-sm mb-1">{monthlyContent.actu_flash_title}</h3>
-                <p className="text-xs text-muted-foreground">{monthlyContent.actu_flash_description}</p>
-              </CardContent>
-            </Card>
+      {false && (
+        <>
+          {/* Actu Flash & Succès (si admin a rempli) */}
+          {monthlyContent && (monthlyContent.actu_flash_title || monthlyContent.success_items.length > 0) && (
+            <div className="mb-4 lg:mb-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Actu Flash */}
+              {monthlyContent.actu_flash_title && (
+                <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+                  <CardHeader className="p-3 pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      📰 L'actu flash
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <h3 className="font-semibold text-sm mb-1">{monthlyContent.actu_flash_title}</h3>
+                    <p className="text-xs text-muted-foreground">{monthlyContent.actu_flash_description}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Les succès du mois */}
+              {monthlyContent.success_items.length > 0 && (
+                <Card className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-white">
+                  <CardHeader className="p-3 pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      🏆 Les succès du mois
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
+                      {monthlyContent.success_items.map((item, index) => (
+                        <li key={index} className="flex items-start gap-1.5">
+                          <span className="text-yellow-600 mt-0.5">•</span>
+                          <span className="flex-1 text-muted-foreground leading-snug">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
 
-          {/* Les succès du mois */}
-          {monthlyContent.success_items.length > 0 && (
-            <Card className="border-2 border-yellow-200 bg-gradient-to-br from-yellow-50 to-white">
+          {/* Three Column Section: Birthdays, New Clients, Monthly Info */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {/* Anniversaires du mois */}
+            <Card className="border-2">
               <CardHeader className="p-3 pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  🏆 Les succès du mois
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Cake className="w-4 h-4 text-pink-500" />
+                  Anniversaires
                 </CardTitle>
+                <CardDescription className="text-xs">{currentMonthName} 2026</CardDescription>
               </CardHeader>
               <CardContent className="p-3 pt-0">
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs">
-                  {monthlyContent.success_items.map((item, index) => (
-                    <li key={index} className="flex items-start gap-1.5">
-                      <span className="text-yellow-600 mt-0.5">•</span>
-                      <span className="flex-1 text-muted-foreground leading-snug">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* Three Column Section: Birthdays, New Clients, Monthly Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Anniversaires du mois */}
-        <Card className="border-2">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Cake className="w-4 h-4 text-pink-500" />
-              Anniversaires
-            </CardTitle>
-            <CardDescription className="text-xs">{currentMonthName} 2026</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {birthdayCards.length > 0 ? (
-              <div className="space-y-1.5">
-                {birthdayCards.slice(0, 3).map((person, index) => (
-                  <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
-                      {person.name.split('.')[0].trim().charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs">{person.name}</p>
-                      <p className="text-xs text-pink-600">{person.date}</p>
-                    </div>
-                    <div className="text-lg">🎂</div>
-                  </div>
-                ))}
-                {birthdayCards.length > 3 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{birthdayCards.length - 3} autre{birthdayCards.length - 3 > 1 ? 's' : ''}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">
-                Aucun anniversaire ce mois-ci
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Nouveaux clients */}
-        <Card className="border-2">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Users className="w-4 h-4 text-green-500" />
-              Nouveaux clients
-            </CardTitle>
-            <CardDescription className="text-xs">Ce mois-ci</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {newClients.length > 0 ? (
-              <div className="space-y-1.5">
-                {newClients.slice(0, 3).map((client, index) => (
-                  <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <p className="font-medium text-xs">{client.name}</p>
-                      <Badge variant="outline" className="text-xs bg-white h-5">
-                        {client.type}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(client.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                ))}
-                {newClients.length > 3 && (
-                  <p className="text-xs text-muted-foreground text-center pt-1">
-                    +{newClients.length - 3} autre{newClients.length - 3 > 1 ? 's' : ''}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">
-                Aucun nouveau client ce mois-ci
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Info digitale du mois */}
-        <Card className="border-2 border-[#E94C16]/20 bg-gradient-to-br from-orange-50 to-white">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Lightbulb className="w-4 h-4 text-[#E94C16]" />
-              Info digitale
-            </CardTitle>
-            <CardDescription className="text-xs">{monthlyInfo.date}</CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {monthlyContent?.digital_info_title ? (
-              <div className="space-y-1.5">
-                <h3 className="font-semibold text-xs leading-tight">
-                  {monthlyInfo.title}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
-                  {monthlyInfo.description}
-                </p>
-                {monthlyInfo.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {monthlyInfo.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs h-5">
-                        {tag}
-                      </Badge>
+                {birthdayCards.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {birthdayCards.slice(0, 3).map((person, index) => (
+                      <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
+                          {person.name.split('.')[0].trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs">{person.name}</p>
+                          <p className="text-xs text-pink-600">{person.date}</p>
+                        </div>
+                        <div className="text-lg">🎂</div>
+                      </div>
                     ))}
+                    {birthdayCards.length > 3 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        +{birthdayCards.length - 3} autre{birthdayCards.length - 3 > 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Aucun anniversaire ce mois-ci
+                  </p>
                 )}
-                <Button className="w-full mt-1.5 bg-[#E94C16] hover:bg-[#E94C16]/90 h-7 text-xs">
-                  En savoir plus
-                  <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">
-                Aucune info digitale ce mois-ci
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
+
+            {/* Nouveaux clients */}
+            <Card className="border-2">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="w-4 h-4 text-green-500" />
+                  Nouveaux clients
+                </CardTitle>
+                <CardDescription className="text-xs">Ce mois-ci</CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                {newClients.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {newClients.slice(0, 3).map((client, index) => (
+                      <div key={index} className="p-1.5 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <p className="font-medium text-xs">{client.name}</p>
+                          <Badge variant="outline" className="text-xs bg-white h-5">
+                            {client.type}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(client.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                    ))}
+                    {newClients.length > 3 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        +{newClients.length - 3} autre{newClients.length - 3 > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Aucun nouveau client ce mois-ci
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Info digitale du mois */}
+            <Card className="border-2 border-[#E94C16]/20 bg-gradient-to-br from-orange-50 to-white">
+              <CardHeader className="p-3 pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Lightbulb className="w-4 h-4 text-[#E94C16]" />
+                  Info digitale
+                </CardTitle>
+                <CardDescription className="text-xs">{monthlyInfo.date}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                {monthlyContent?.digital_info_title ? (
+                  <div className="space-y-1.5">
+                    <h3 className="font-semibold text-xs leading-tight">
+                      {monthlyInfo.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+                      {monthlyInfo.description}
+                    </p>
+                    {monthlyInfo.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {monthlyInfo.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs h-5">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <Button className="w-full mt-1.5 bg-[#E94C16] hover:bg-[#E94C16]/90 h-7 text-xs">
+                      En savoir plus
+                      <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Aucune info digitale ce mois-ci
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
   )
 }

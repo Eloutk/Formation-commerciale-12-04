@@ -341,7 +341,6 @@ const META_CUSTOM_OBJECTIVES = [
   "J'aime la page",
   'Réponses évènement',
   'Leads',
-  'conversion',
 ] as const
 
 const INSTA_CUSTOM_OBJECTIVES = [
@@ -354,6 +353,8 @@ const INSTA_CUSTOM_OBJECTIVES = [
 
 const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
 
+const TIKTOK_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'conversion'] as const
+
 const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
 
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
@@ -363,7 +364,7 @@ const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly strin
   Youtube: ['Impressions'],
   LinkedIn: LINKEDIN_CUSTOM_OBJECTIVES,
   Snapchat: DEFAULT_CUSTOM_OBJECTIVES,
-  Tiktok: DEFAULT_CUSTOM_OBJECTIVES,
+  Tiktok: TIKTOK_CUSTOM_OBJECTIVES,
   Spotify: ['Impressions'],
 }
 
@@ -1362,10 +1363,23 @@ export default function PDV2Page() {
   const [tarifsDirection, setTarifsDirection] = useState(false)
 
   // --- Logique de calcul SMS (indépendante du Social Media) ---
+  // Volume saisi = volume par campagne
   const smsVolumeNumber = Math.max(0, Math.floor(Number(smsVolume) || 0))
 
+  const campaignMonthsNumber = useMemo(() => {
+    const parsed = parseInt(campaignMonths, 10)
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed
+  }, [campaignMonths])
+
+  const totalUnitsNumber = useMemo(() => {
+    const perCampaign = smsVolumeNumber
+    if (perCampaign <= 0) return 0
+    const multiplier = smsOptions.duplicateCampaign ? campaignMonthsNumber : 1
+    return perCampaign * multiplier
+  }, [smsVolumeNumber, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
   const smsBasePU = useMemo(() => {
-    const n = smsVolumeNumber
+    const n = totalUnitsNumber
     if (n <= 0) return 0
     if (n <= 10_000) return 0.1764
     if (n <= 25_000) return 0.1666
@@ -1374,7 +1388,7 @@ export default function PDV2Page() {
     if (n <= 500_000) return 0.131
     // Hors barème : on garde la dernière tranche, mais on pourrait aussi bloquer
     return 0.131
-  }, [smsVolumeNumber])
+  }, [totalUnitsNumber])
 
   const smsOptionPU = useMemo(() => {
     if (smsType !== 'sms') return 0
@@ -1386,8 +1400,12 @@ export default function PDV2Page() {
 
   // Si Tarif Intermarché est coché, le PU est figé à 0,12 € quel que soit le volume.
   const smsUnitPrice = smsOptions.tarifIntermarche ? 0.12 : smsBasePU + smsOptionPU
-  const smsTotalPrice =
-    smsVolumeNumber > 0 && smsBasePU > 0 ? smsUnitPrice * smsVolumeNumber + 190 : 0
+
+  const smsTotalPrice = useMemo(() => {
+    if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
+    const base = smsUnitPrice * smsVolumeNumber + 190
+    return smsOptions.duplicateCampaign ? base * campaignMonthsNumber : base
+  }, [smsType, smsVolumeNumber, smsBasePU, smsUnitPrice, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // --- Logique de calcul RCS (indépendante du SMS) ---
   const rcsBasePU = useMemo(() => {
@@ -1397,11 +1415,6 @@ export default function PDV2Page() {
     if (n <= 50_000) return 0.19
     return 0.15 // 50_001+
   }, [smsVolumeNumber])
-
-  const campaignMonthsNumber = useMemo(() => {
-    const parsed = parseInt(campaignMonths, 10)
-    return isNaN(parsed) || parsed < 1 ? 1 : parsed
-  }, [campaignMonths])
 
   const creaByLinkCountNumber = useMemo(() => {
     const parsed = parseInt(creaByLinkCount, 10)
@@ -1418,9 +1431,12 @@ export default function PDV2Page() {
 
   const rcsTotalPrice = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
-    const basePrice = rcsBasePU * smsVolumeNumber + 250 + rcsOptionFee // 250€ frais fixes obligatoires
-    // Si duplication campagne activée, multiplier par le nombre de mois
-    return smsOptions.duplicateCampaign ? basePrice * campaignMonthsNumber : basePrice
+    const setupFee = 250 // frais fixes obligatoires comptés une seule fois
+    const variablePerCampaign = rcsBasePU * smsVolumeNumber + rcsOptionFee
+    if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
+      return setupFee + variablePerCampaign
+    }
+    return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // Récupérer le nom de l'utilisateur connecté
@@ -1920,6 +1936,7 @@ export default function PDV2Page() {
               ciblage: smsOptions.ciblage,
               richSms: smsOptions.richSms,
               tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
             }
           : {
               agent: smsOptions.agent,
@@ -1931,7 +1948,7 @@ export default function PDV2Page() {
         salesConditions={currentSmsType === 'sms' ? SMS_SALES_CONDITIONS : RCS_SALES_CONDITIONS}
         userName={userPseudo || userName}
         tarifIntermarche={smsOptions.tarifIntermarche}
-        campaignMonths={currentSmsType === 'rcs' ? campaignMonthsNumber : undefined}
+        campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
         creaByLinkCount={currentSmsType === 'rcs' ? creaByLinkCountNumber : undefined}
         comment={smsPdfComment || undefined}
         imageBase64={smsPdfImage}
@@ -2913,6 +2930,35 @@ export default function PDV2Page() {
                               <span>Tarif Intermarché</span>
                             </div>
                           </label>
+
+                          <label className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                                checked={smsOptions.duplicateCampaign}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, duplicateCampaign: e.target.checked }))
+                                }
+                              />
+                              <span className="cursor-pointer">Dupliquer la campagne</span>
+                            </div>
+                            
+                            {smsOptions.duplicateCampaign && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={campaignMonths}
+                                  onChange={(e) => setCampaignMonths(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 w-16 text-center"
+                                  placeholder="1"
+                                />
+                              </div>
+                            )}
+                          </label>
                         </div>
                       )}
 
@@ -3014,7 +3060,10 @@ export default function PDV2Page() {
                   {(smsType === 'sms' || smsType === 'rcs') && (
                     <div className="space-y-3 rounded-lg border border-black bg-white p-3">
                       <div className="space-y-2">
-                        <Label>Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}</Label>
+                        <Label>
+                          Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}
+                          {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? ' par campagne' : ''}
+                        </Label>
                         <Input
                           type="number"
                           min={0}
@@ -3022,9 +3071,15 @@ export default function PDV2Page() {
                           value={smsVolume}
                           onChange={(e) => setSmsVolume(e.target.value)}
                         />
-                        {smsType === 'rcs' && smsVolumeNumber > 0 && smsVolumeNumber < 10_000 && (
+                        {smsType === 'rcs' && totalUnitsNumber > 0 && totalUnitsNumber < 10_000 && (
                           <p className="text-xs text-red-600 font-medium">
                             Volume minimum requis : 10 000 RCS
+                          </p>
+                        )}
+                        {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && smsVolumeNumber > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Nombre total de {smsType === 'sms' ? 'SMS' : 'RCS'} :{' '}
+                            {totalUnitsNumber.toLocaleString('fr-FR')}
                           </p>
                         )}
                       </div>
@@ -3076,6 +3131,11 @@ export default function PDV2Page() {
                             <div className="text-xs text-muted-foreground leading-snug">
                               Inclut les frais fixes de mise en place : 190 €.
                             </div>
+                            {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && (
+                              <p className="text-xs font-semibold text-[#E94C16] mt-1">
+                                × {campaignMonthsNumber} mois
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
