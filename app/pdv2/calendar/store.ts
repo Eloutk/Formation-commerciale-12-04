@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CalendarItem, StrategyCalendarData, CalendarViewMode, CalendarPlatformSource } from './types'
+import type { CalendarItem, StrategyCalendarData, CalendarViewMode, CalendarTimeGranularity, CalendarPlatformSource } from './types'
 import {
   getDatesFromStart,
   autoDistribute,
@@ -12,6 +12,7 @@ export interface CalendarState {
   startDate: string
   duration: number
   viewMode: CalendarViewMode
+  timeGranularity: CalendarTimeGranularity
   allowOverlap: boolean
   syncAllPlatforms: boolean
   items: CalendarItem[]
@@ -23,6 +24,7 @@ export interface CalendarActions {
   setStartDate: (startDate: string) => void
   setDuration: (duration: number) => void
   setViewMode: (mode: CalendarViewMode) => void
+  setTimeGranularity: (granularity: CalendarTimeGranularity) => void
   setAllowOverlap: (allow: boolean) => void
   setSyncAllPlatforms: (sync: boolean) => void
   setPlatformSources: (sources: CalendarPlatformSource[]) => void
@@ -39,7 +41,8 @@ export interface CalendarActions {
 const defaultState: CalendarState = {
   startDate: '',
   duration: 0,
-  viewMode: 'kanban',
+  viewMode: 'timeline',
+  timeGranularity: 'month',
   allowOverlap: true,
   syncAllPlatforms: false,
   items: [],
@@ -56,6 +59,8 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
 
   setViewMode: (viewMode) => set({ viewMode }),
 
+  setTimeGranularity: (timeGranularity) => set({ timeGranularity }),
+
   setAllowOverlap: (allowOverlap) => set({ allowOverlap }),
 
   setSyncAllPlatforms: (syncAllPlatforms) => set({ syncAllPlatforms }),
@@ -66,19 +71,20 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
 
   initFromStrategy: (sources, duration, existing) => {
     const startDate = existing?.startDate ?? new Date().toISOString().slice(0, 10)
+    const calDuration = existing?.duration ?? duration
     let items: CalendarItem[]
     if (existing?.items?.length) {
       items = existing.items.map((i) => ({
         ...i,
-        startDay: Math.max(0, Math.min(i.startDay, duration - 1)),
-        length: Math.max(1, Math.min(i.length, duration)),
+        startDay: Math.max(0, Math.min(i.startDay, calDuration - 1)),
+        length: Math.max(1, Math.min(i.length, calDuration)),
       }))
     } else {
       items = autoDistribute(sources, duration)
     }
     set({
       platformSources: sources,
-      duration: Math.max(1, duration),
+      duration: Math.max(1, calDuration),
       startDate,
       items,
       validationError: null,

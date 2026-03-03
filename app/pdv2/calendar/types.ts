@@ -16,6 +16,9 @@ export interface StrategyCalendarData {
 
 export type CalendarViewMode = 'kanban' | 'timeline'
 
+/** Granularité d'affichage du calendrier */
+export type CalendarTimeGranularity = 'day' | 'week' | 'month'
+
 export interface CalendarPlatformSource {
   platform: string
   budget: number

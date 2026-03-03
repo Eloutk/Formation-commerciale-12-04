@@ -4,7 +4,6 @@ import React, { useEffect } from 'react'
 import { useCalendarStore } from './store'
 import type { CalendarPlatformSource, StrategyCalendarData } from './types'
 import { CalendarToolbar } from './CalendarToolbar'
-import { CalendarGrid } from './CalendarGrid'
 import { TimelineView } from './TimelineView'
 
 export interface StrategyCalendarBuilderProps {
@@ -28,7 +27,6 @@ export function StrategyCalendarBuilder({
   children,
 }: StrategyCalendarBuilderProps) {
   const initFromStrategy = useCalendarStore((s) => s.initFromStrategy)
-  const viewMode = useCalendarStore((s) => s.viewMode)
   const getCalendarData = useCalendarStore((s) => s.getCalendarData)
   const validate = useCalendarStore((s) => s.validate)
 
@@ -59,9 +57,8 @@ export function StrategyCalendarBuilder({
         )}
         {children}
       </aside>
-      <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        {viewMode === 'kanban' && <CalendarGrid />}
-        {viewMode === 'timeline' && <TimelineView />}
+      <main className="flex-1 min-w-0 min-h-0 overflow-auto flex flex-col max-h-[75vh]">
+        <TimelineView />
       </main>
     </div>
   )

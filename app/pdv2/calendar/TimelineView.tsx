@@ -4,13 +4,22 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useCalendarStore } from './store'
 import { getPlatformColor } from './colors'
 import { getDatesFromStart } from '@/lib/utils/calendarEngine'
+import type { CalendarTimeGranularity } from './types'
+import { MonthGridView } from './MonthGridView'
 
 const ROW_HEIGHT = 56
 const DAY_WIDTH = 80
+/** Format YYYY-MM-DD → JJ/MM/AA */
+function formatDateJJMMAA(iso: string): string {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d ?? ''}/${m ?? ''}/${(y ?? '').slice(2) ?? ''}`
+}
 
 export function TimelineView() {
   const startDate = useCalendarStore((s) => s.startDate)
   const duration = useCalendarStore((s) => s.duration)
+  const timeGranularity = useCalendarStore((s) => s.timeGranularity)
   const items = useCalendarStore((s) => s.items)
   const moveItem = useCalendarStore((s) => s.moveItem)
   const resizeItem = useCalendarStore((s) => s.resizeItem)
@@ -23,6 +32,43 @@ export function TimelineView() {
   const startLengthRef = useRef(0)
 
   const totalWidth = duration * DAY_WIDTH
+
+  const headerCells = React.useMemo(() => {
+    if (timeGranularity === 'day') {
+      return dates.map((d) => ({ label: formatDateJJMMAA(d), subLabel: '', width: DAY_WIDTH }))
+    }
+    if (timeGranularity === 'week') {
+      const numWeeks = Math.ceil(duration / 7)
+      return Array.from({ length: numWeeks }, (_, w) => {
+        const start = w * 7
+        const end = Math.min((w + 1) * 7, duration) - 1
+        return {
+          label: `S.${w + 1}`,
+          subLabel: `${formatDateJJMMAA(dates[start] ?? '')} → ${formatDateJJMMAA(dates[end] ?? '')}`,
+          width: (Math.min((w + 1) * 7, duration) - start) * DAY_WIDTH,
+        }
+      })
+    }
+    const monthRanges: { label: string; subLabel: string; width: number }[] = []
+    const seen = new Set<string>()
+    for (let d = 0; d < duration; d++) {
+      const dateStr = dates[d]
+      if (!dateStr) continue
+      const monthKey = dateStr.slice(0, 7)
+      if (seen.has(monthKey)) continue
+      seen.add(monthKey)
+      let endDay = d
+      while (endDay + 1 < duration && (dates[endDay + 1] ?? '').slice(0, 7) === monthKey) endDay++
+      const [y, m] = monthKey.split('-').map(Number)
+      const label = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
+      monthRanges.push({
+        label,
+        subLabel: `${formatDateJJMMAA(dates[d] ?? '')} → ${formatDateJJMMAA(dates[endDay] ?? '')}`,
+        width: (endDay - d + 1) * DAY_WIDTH,
+      })
+    }
+    return monthRanges
+  }, [dates, duration, timeGranularity])
 
   const handleBarMouseDown = (e: React.MouseEvent, platform: string) => {
     e.preventDefault()
@@ -81,6 +127,10 @@ export function TimelineView() {
     }
   }, [resizing, resizeItem])
 
+  if (timeGranularity === 'month') {
+    return <MonthGridView startDate={startDate} duration={duration} items={items} />
+  }
+
   return (
     <div className="rounded-lg border bg-background overflow-auto">
       <div className="min-w-max">
@@ -89,14 +139,14 @@ export function TimelineView() {
             Plateforme
           </div>
           <div className="flex" style={{ width: totalWidth }}>
-            {dates.map((d, i) => (
+            {headerCells.map((cell, i) => (
               <div
                 key={i}
                 className="shrink-0 border-r py-2 text-center text-xs font-medium"
-                style={{ width: DAY_WIDTH }}
+                style={{ width: cell.width }}
               >
-                J{i + 1}
-                <div className="text-muted-foreground">{d}</div>
+                <div>{cell.label}</div>
+                {cell.subLabel ? <div className="text-muted-foreground truncate px-0.5">{cell.subLabel}</div> : null}
               </div>
             ))}
           </div>
@@ -116,11 +166,6 @@ export function TimelineView() {
                 style={{ color }}
               >
                 {item.platform}
-                {item.budget != null && (
-                  <span className="text-muted-foreground font-normal ml-1">
-                    {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
-                  </span>
-                )}
               </div>
               <div className="relative flex-1" style={{ width: totalWidth }}>
                 <div

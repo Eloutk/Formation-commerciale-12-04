@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -22,6 +22,7 @@ import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
 import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
+import { getPlatformColor } from '@/app/pdv2/calendar/colors'
 import { cn } from '@/lib/utils'
 
 // Liste des plateformes dans l'ordre souhaité
@@ -39,19 +40,19 @@ const PLATFORMS_ORDER = [
   'Spotify',
 ] as const
 
-// Couleurs fixes par plateforme pour le calendrier de diffusion (toujours les mêmes)
+// Couleurs distinctes par plateforme (calendrier, PDF) — éviter les teintes proches
 const PLATFORM_CALENDAR_COLORS: Record<string, string> = {
   META: '#E94C16',
-  Display: '#4285F4',
-  'Perf max': '#3367D6',
-  'Demand Gen': '#34A853',
-  Search: '#4285F4',
-  'Insta only': '#E4405F',
-  Youtube: '#FF0000',
+  Display: '#2563EB',
+  'Perf max': '#7C3AED',
+  'Demand Gen': '#0D9488',
+  Search: '#0891B2',
+  'Insta only': '#DB2777',
+  Youtube: '#DC2626',
   LinkedIn: '#0A66C2',
-  Snapchat: '#FFFC00',
-  Tiktok: '#000000',
-  Spotify: '#1DB954',
+  Snapchat: '#EAB308',
+  Tiktok: '#171717',
+  Spotify: '#16A34A',
 }
 function getPlatformCalendarColor(platform: string): string {
   return PLATFORM_CALENDAR_COLORS[platform] ?? '#94a3b8'
@@ -629,7 +630,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   itemCard: {
-    marginBottom: 12,
+    marginBottom: 14,
     padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
@@ -925,7 +926,7 @@ const PDFDocument = ({
           }))
 
           return (
-            <View key={block.id} wrap={false}>
+            <View key={block.id} wrap={true}>
               {/* Résumé par stratégie */}
               <View style={[styles.summary, { marginTop: index === 0 ? 10 : 20 }]}>
                 {(() => {
@@ -1057,68 +1058,84 @@ const PDFDocument = ({
               </View>
               )}
 
-              {/* Calendrier de diffusion (si présent) — uniquement pour StrategyCalendar (avec endDate) */}
+              {/* Dates de début et de fin par plateforme (sans calendrier) */}
               {block.calendar && !isStrategyCalendarData(block.calendar) && (() => {
                 const cal = block.calendar as StrategyCalendar
-                if (!cal.startDate || !cal.endDate) return null
-                const calDates = getDatesBetween(cal.startDate, cal.endDate)
-                if (calDates.length === 0) return null
-                const weeks: string[][] = []
-                for (let i = 0; i < calDates.length; i += 7) weeks.push(calDates.slice(i, i + 7))
-                if (weeks.length > 0) {
-                  const last = weeks[weeks.length - 1]
-                  while (last.length < 7) last.push('')
+                const formatIsoToPdf = (iso: string) => {
+                  if (!iso) return ''
+                  const [y, m, d] = iso.split('-')
+                  return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
                 }
-                const daysBase = cal.days ?? {}
-                const daysFromRanges: Record<string, string[]> = {}
-                ;(cal.ranges ?? []).forEach((r) => {
-                  getDatesBetween(r.startDate, r.endDate).forEach((dateKey) => {
-                    if (!daysFromRanges[dateKey]) daysFromRanges[dateKey] = []
-                    daysFromRanges[dateKey].push(`${r.platform}::${r.phaseName}`)
+                const rows: { label: string; start: string; end: string }[] = []
+                if ((cal.ranges ?? []).length > 0) {
+                  cal.ranges!.forEach((r) => {
+                    rows.push({
+                      label: r.phaseName ? `${r.platform} (${r.phaseName})` : r.platform,
+                      start: formatIsoToPdf(r.startDate),
+                      end: formatIsoToPdf(r.endDate),
+                    })
                   })
-                })
-                const days: Record<string, string[]> = {}
-                Object.entries(daysBase).forEach(([k, arr]) => { days[k] = [...arr] })
-                Object.entries(daysFromRanges).forEach(([k, arr]) => { days[k] = [...(days[k] ?? []), ...arr] })
-                const platformsInCal = new Set<string>()
-                Object.values(days).forEach((arr) => arr.forEach((p) => platformsInCal.add(p)))
+                } else if (cal.startDate && cal.endDate) {
+                  const daysBase = cal.days ?? {}
+                  const entryToDates: Record<string, string[]> = {}
+                  Object.entries(daysBase).forEach(([dateKey, arr]) => {
+                    (arr ?? []).forEach((entry) => {
+                      if (!entryToDates[entry]) entryToDates[entry] = []
+                      entryToDates[entry].push(dateKey)
+                    })
+                  })
+                  Object.entries(entryToDates).forEach(([entry, dates]) => {
+                    const sorted = [...dates].sort()
+                    if (sorted.length > 0) {
+                      rows.push({
+                        label: entry.includes('::') ? entry.replace('::', ' (') + ')' : entry,
+                        start: formatIsoToPdf(sorted[0]!),
+                        end: formatIsoToPdf(sorted[sorted.length - 1]!),
+                      })
+                    }
+                  })
+                }
+                if (rows.length === 0) return null
                 return (
                   <View style={styles.calendarSection} wrap={false}>
-                    <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Calendrier de diffusion</Text>
-                    {weeks.map((week, wi) => (
-                      <View key={wi} style={styles.calendarGridRow}>
-                        {week.map((dateKey, di) => {
-                          if (!dateKey) return <View key={`e-${wi}-${di}`} style={[styles.calendarCell, { backgroundColor: '#f9fafb' }]} />
-                          const platformList = days[dateKey] ?? []
-                          const bgColor = platformList.length === 0 ? '#f9fafb' : platformList.length === 1 ? getPlatformCalendarColor(getCalendarEntryPlatform(platformList[0])) : '#f3f4f6'
-                          return (
-                            <View
-                              key={dateKey}
-                              style={[styles.calendarCell, { backgroundColor: bgColor }]}
-                            >
-                              <Text style={styles.calendarDayNum}>{new Date(dateKey).getDate()}</Text>
-                              {platformList.length > 1 && (
-                                <View style={{ flexDirection: 'row', marginTop: 2, gap: 1, justifyContent: 'center' }}>
-                                  {platformList.slice(0, 3).map((entry) => (
-                                    <View key={entry} style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(entry)) }} />
-                                  ))}
-                                </View>
-                              )}
-                            </View>
-                          )
-                        })}
+                    <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Dates de diffusion par plateforme</Text>
+                    {rows.map((row, idx) => (
+                      <View key={idx} style={styles.itemRow}>
+                        <Text style={styles.itemLabel}>{row.label}</Text>
+                        <Text style={styles.itemValue}>
+                          du {row.start} au {row.end}
+                        </Text>
                       </View>
                     ))}
-                    {platformsInCal.size > 0 && (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 8 }}>
-                        {Array.from(platformsInCal).map((entry) => (
-                          <View key={entry} style={[styles.legendItem, { marginBottom: 0 }]}>
-                            <View style={[styles.legendColor, { backgroundColor: getPlatformCalendarColor(getCalendarEntryPlatform(entry)) }]} />
-                            <Text style={styles.legendLabel}>{getCalendarEntryLabel(entry)}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
+                  </View>
+                )
+              })()}
+              {block.calendar && isStrategyCalendarData(block.calendar) && (() => {
+                const cal = block.calendar as StrategyCalendarData
+                if (!cal.startDate || cal.duration <= 0 || !cal.items?.length) return null
+                const formatDate = (base: Date, offsetDays: number) => {
+                  const d = new Date(base)
+                  d.setDate(d.getDate() + offsetDays)
+                  const iso = d.toISOString().slice(0, 10)
+                  const [y, m, day] = iso.split('-')
+                  return `${day}/${m}/${y}`
+                }
+                const base = new Date(cal.startDate + 'T12:00:00')
+                return (
+                  <View style={styles.calendarSection} wrap={false}>
+                    <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Dates de diffusion par plateforme</Text>
+                    {cal.items.map((item, idx) => {
+                      const start = formatDate(base, item.startDay)
+                      const end = formatDate(base, item.startDay + Math.max(1, item.length) - 1)
+                      return (
+                        <View key={`${item.platform}-${idx}`} style={styles.itemRow}>
+                          <Text style={styles.itemLabel}>{item.platform}</Text>
+                          <Text style={styles.itemValue}>
+                            du {start} au {end}
+                          </Text>
+                        </View>
+                      )
+                    })}
                   </View>
                 )
               })()}
@@ -1349,6 +1366,8 @@ export default function PDV2Page() {
   const [newStrategyName, setNewStrategyName] = useState('')
   const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
   const [renamingStrategyName, setRenamingStrategyName] = useState('')
+  // Dates de début par plateforme (utilisées dans le popup Calendrier)
+  const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
@@ -1516,6 +1535,12 @@ export default function PDV2Page() {
     getUserName()
   }, [])
 
+  // En mode KPIs → Budget, on exclut les objectifs "max" (Conversion, Leads, Likes, etc.)
+  const isMaxObjective = (objective: string): boolean => {
+    const o = objective.toLowerCase()
+    return o === 'conversion' || o === 'leads' || o === 'likes'
+  }
+
   // Générer toutes les combinaisons plateforme/objectif
   const generateTableData = (): TableRowData[] => {
     const rows: TableRowData[] = []
@@ -1530,6 +1555,7 @@ export default function PDV2Page() {
       if (!platformData) return
 
       Object.keys(platformData).forEach((objective) => {
+        if (calculationMode === 'kpis-to-budget' && isMaxObjective(objective)) return
         try {
           let budget = 0
           let estimatedKPIs = 0
@@ -2549,7 +2575,7 @@ export default function PDV2Page() {
                   }`}
                 >
                   <CardHeader
-                    className="flex-shrink-0 cursor-pointer"
+                    className="flex-shrink-0 cursor-pointer overflow-visible"
                     onClick={() =>
                       setExpandedStrategies((prev) => ({
                         ...prev,
@@ -2557,15 +2583,15 @@ export default function PDV2Page() {
                       }))
                     }
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-2">
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-start gap-2 min-w-0 flex-1">
                         <ChevronDown
                           className={`h-4 w-4 transition-transform ${
                             isExpanded ? 'rotate-180' : ''
                           }`}
                         />
-                        <div className="flex flex-col gap-0.5">
-                          <CardTitle className="flex items-center gap-2 text-sm">
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                          <CardTitle className="flex items-center flex-wrap gap-2 text-sm">
                             {renamingStrategyId === block.id ? (
                               <div className="flex items-center gap-2">
                                 <EditableInput
@@ -2678,6 +2704,28 @@ export default function PDV2Page() {
                                     setCalendarSelectedEntry(null)
                                     setCalendarPhasesMenuPlatform(null)
                                     setCalendarView('day')
+                                    const perPlatform: Record<string, string> = {}
+                                    if (cal && isStrategyCalendarData(cal)) {
+                                      cal.items.forEach((it) => {
+                                        const d = new Date(cal.startDate + 'T12:00:00')
+                                        d.setDate(d.getDate() + it.startDay)
+                                        perPlatform[it.platform] = d.toISOString().slice(0, 10)
+                                      })
+                                    }
+                                    block.items.forEach((item, i) => {
+                                      if (perPlatform[item.platform]) return
+                                      if (i === 0) {
+                                        perPlatform[item.platform] = today
+                                        return
+                                      }
+                                      const prev = block.items[i - 1]!
+                                      const prevStart = perPlatform[prev.platform] ?? today
+                                      const prevLen = Math.max(1, prev.days ?? daysNum)
+                                      const d = new Date(prevStart + 'T12:00:00')
+                                      d.setDate(d.getDate() + prevLen)
+                                      perPlatform[item.platform] = d.toISOString().slice(0, 10)
+                                    })
+                                    setDefineDatesPerPlatform(perPlatform)
                                     setCalendarDialogOpen(true)
                                   }}
                                 >
@@ -3410,7 +3458,7 @@ export default function PDV2Page() {
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
             <DialogDescription>
-              Planifiez les plateformes sur les jours de diffusion. Glissez les cartes entre les jours, étendez-les avec la poignée à droite.
+              Définissez la date de début par plateforme ci-dessous, puis consultez ou ajustez le planning dans le calendrier.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -3418,6 +3466,8 @@ export default function PDV2Page() {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               if (!block) return null
               const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+              const daysBetween = (a: string, b: string) =>
+                Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
               const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
                 platform: item.platform,
                 budget: item.budget,
@@ -3428,22 +3478,72 @@ export default function PDV2Page() {
                     : getMaxKpiLabel(item.objective),
                 maxDays: Math.max(1, item.days ?? duration),
               }))
-              const existing = isStrategyCalendarData(block.calendar) ? block.calendar : null
+              const starts = block.items.map((it) => defineDatesPerPlatform[it.platform] ?? new Date().toISOString().slice(0, 10))
+              const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+              let globalEndDay = 0
+              const computedItems = block.items.map((item, i) => {
+                const startDate = defineDatesPerPlatform[item.platform] ?? globalStart
+                const startDay = Math.max(0, daysBetween(globalStart, startDate))
+                const length = Math.max(1, item.days ?? duration)
+                globalEndDay = Math.max(globalEndDay, startDay + length)
+                return {
+                  platform: item.platform,
+                  startDay,
+                  length,
+                  budget: item.budget,
+                  kpiLabel: platformSources[i]!.kpiLabel,
+                }
+              })
+              const existingFromForm: StrategyCalendarData = { startDate: globalStart, duration: globalEndDay, items: computedItems }
               return (
                 block.items.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
                 ) : (
-                <StrategyCalendarBuilder
-                  key={calendarStrategyId}
-                  platformSources={platformSources}
-                  duration={duration}
-                  existing={existing}
-                  onSave={(data) => {
-                    setStrategies((prev) => prev.map((s) => s.id === calendarStrategyId ? { ...s, calendar: data } : s))
-                    setCalendarDialogOpen(false)
-                    setCalendarStrategyId(null)
-                  }}
-                />
+                <>
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <div className="text-sm font-medium">Dates de début par plateforme</div>
+                    <div className="flex flex-wrap gap-3">
+                      {block.items.map((item) => {
+                        const platformDays = Math.max(1, item.days ?? duration)
+                        const platformColor = getPlatformColor(item.platform)
+                        return (
+                          <div
+                            key={item.platform}
+                            className="flex flex-wrap items-center gap-2 rounded-lg border-2 bg-background p-2 min-w-[200px]"
+                            style={{ borderColor: platformColor }}
+                          >
+                            <span className="font-medium text-sm w-20 shrink-0" style={{ color: platformColor }}>{item.platform}</span>
+                            <div className="flex-1 min-w-[120px]">
+                              <Label className="text-xs text-muted-foreground">Date de début</Label>
+                              <EditableInput
+                                type="date"
+                                value={defineDatesPerPlatform[item.platform] ?? ''}
+                                onChange={(e) =>
+                                  setDefineDatesPerPlatform((prev) => ({ ...prev, [item.platform]: e.target.value }))
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {platformDays} jour{platformDays > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <StrategyCalendarBuilder
+                    key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
+                    platformSources={platformSources}
+                    duration={existingFromForm.duration}
+                    existing={existingFromForm}
+                    onSave={(data) => {
+                      setStrategies((prev) => prev.map((s) => s.id === calendarStrategyId ? { ...s, calendar: data } : s))
+                      setCalendarDialogOpen(false)
+                      setCalendarStrategyId(null)
+                    }}
+                  />
+                </>
                 )
               )
             })()}
