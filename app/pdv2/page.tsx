@@ -2241,7 +2241,7 @@ export default function PDV2Page() {
                   const objectivesForPlatform =
                     platform === 'META'
                       ? [...META_CUSTOM_OBJECTIVES, 'conversion']
-                      : CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
+                      : CUSTOM_OBJECTIVES[platform as (typeof PLATFORMS_ORDER)[number]] ?? DEFAULT_CUSTOM_OBJECTIVES
                   const isCustomInStrategy = strategy.some(
                     (item) => item.platform === platform && item.objective === custom.objective,
                   )
