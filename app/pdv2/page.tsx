@@ -482,6 +482,8 @@ interface StrategyItem extends TableRowData {
   aePercentage: number
   // Libellé personnalisé pour les KPIs (ex: valeur saisie pour Search > Clics)
   customKpiLabel?: string
+  // Tarifs direction appliqués pour cette ligne (au moment de l'ajout)
+  tarifsDirection?: boolean
 }
 
 // Phase posée sur la frise (vue mois)
@@ -948,6 +950,16 @@ const PDFDocument = ({
                               ? `${formatNumber(strategyAe, 0)} %`
                               : '-'}
                           </Text>
+                          {block.items.some((it) => it.tarifsDirection) && (
+                            <Text
+                              style={[
+                                styles.summaryText,
+                                { marginTop: 4, fontStyle: 'italic', color: '#1d4ed8' },
+                              ]}
+                            >
+                              Tarifs direction : certaines plateformes
+                            </Text>
+                          )}
                         </>
                       )}
                       {!hasItems && hasCalendar && (
@@ -1095,6 +1107,13 @@ const PDFDocument = ({
                               <Text style={styles.itemLabel}>Dates de diffusion :</Text>
                               <Text style={styles.itemValue}>
                                 du {platformDates.start} au {platformDates.end}
+                              </Text>
+                            </View>
+                          )}
+                          {item.tarifsDirection && (
+                            <View style={styles.itemRow}>
+                              <Text style={[styles.itemLabel, { fontStyle: 'italic', color: '#1d4ed8' }]}>
+                                Tarifs direction appliqués
                               </Text>
                             </View>
                           )}
@@ -1625,7 +1644,12 @@ export default function PDV2Page() {
     }
     setStrategies((prev) => {
       return prev.map((s) =>
-        s.id === targetId ? { ...s, items: [...s.items, newItem] } : s,
+        s.id === targetId
+          ? {
+              ...s,
+              items: [...s.items, { ...newItem, tarifsDirection }],
+            }
+          : s,
       )
     })
   }
@@ -2191,7 +2215,30 @@ export default function PDV2Page() {
 
                 {/* Plateformes à afficher */}
                 <div className="space-y-2">
-                  <Label>Plateformes à afficher</Label>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label>Plateformes à afficher</Label>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedPlatforms([...PLATFORMS_ORDER])}
+                      >
+                        Tout cocher
+                      </Button>
+                      <span className="text-muted-foreground">|</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedPlatforms([])}
+                      >
+                        Tout décocher
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex flex-wrap gap-4">
                     {PLATFORMS_ORDER.map((platform) => (
                       <label
@@ -2587,6 +2634,7 @@ export default function PDV2Page() {
               const items = block.items
               const blockAe = items.length > 0 ? items[0].aePercentage : 0
               const total = items.reduce((sum, it) => sum + it.budget, 0)
+              const hasAnyTarifsDirection = items.some((it) => it.tarifsDirection)
               const hasSummary = items.length > 0
               const budgetLabel = total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
 
@@ -2820,8 +2868,13 @@ export default function PDV2Page() {
                                     className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
                                   >
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm">
+                                      <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
                                         <PlatformBadge platform={item.platform} />
+                                        {item.tarifsDirection && (
+                                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                            Tarifs direction
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
                                         {item.objective}
