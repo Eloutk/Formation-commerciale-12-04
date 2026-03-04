@@ -282,7 +282,7 @@ export default function StudioPage() {
                         <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
                           Limites de caractères pour les wordings
                         </h2>
-                        <div className="flex justify-center">
+                        <div className="flex justify-start">
                           <div className="w-full max-w-[135px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                               <SafeImage
@@ -784,44 +784,44 @@ export default function StudioPage() {
                   <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
                   
                   {/* Grille de logos seule (même logique 3 colonnes que la liste des formats) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 md:mb-9 lg:mb-12">
-                    {/* Logo format carré */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-full max-w-[240px] mb-2">
-                        <div className="aspect-square w-full overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 md:mb-9 lg:mb-12 items-start">
+                    {/* Logo format carré : taille fixe 240px comme le format carré publicités images */}
+                    <div className="flex flex-col items-center md:min-w-[240px]">
+                      <div className="w-[240px] mb-2 shrink-0">
+                        <div className="w-full">
                           <NextImage
                             src="/images/format%20carre_infeed@10x.png"
                             alt="Format carré"
-                            width={1080}
-                            height={1080}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format carré</p>
-                        <p>1080 × 1080 px</p>
-                        <p>ratio 1:1</p>
-                      </div>
-                    </div>
-
-                    {/* Logo format bannière */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-full max-w-[240px] mb-2">
-                        <div className="w-full overflow-hidden">
-                          <NextImage
-                            src="/images/format%20horizontal_tv_instream@10x.png"
-                            alt="Format bannière"
                             width={1440}
-                            height={754}
+                            height={1440}
                             className="w-full h-auto object-contain"
                           />
                         </div>
                       </div>
                       <div className="text-sm text-center">
+                        <p className="font-medium">format carré</p>
+                        <p>1440 × 1440 px</p>
+                        <p>ratio 1:1</p>
+                      </div>
+                    </div>
+
+                    {/* Logo format bannière : même largeur max que le carré pour cohérence */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[240px] mb-2">
+                        <div className="aspect-[1.91/1] w-full overflow-hidden">
+                          <NextImage
+                            src="/images/format%20horizontal_tv_instream@10x.png"
+                            alt="Format bannière"
+                            width={1440}
+                            height={754}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-center">
                         <p className="font-medium">format bannière</p>
-                        <p>800 × 200 px</p>
-                        <p>ratio 4:1</p>
+                        <p>1440 × 754 px</p>
+                        <p>ratio 1.91:1</p>
                       </div>
                     </div>
 
@@ -830,59 +830,37 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Limites de caractères pour les wordings et Rappel des livrables */}
+                {/* H2 : Limites de caractères pour les wordings */}
                 <div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    {/* Colonne gauche : Limites de caractères */}
-                    <div>
-                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Limites de caractères pour les wordings</h2>
-                      <Card>
-                        <CardContent className="pt-4">
-                          <ul className="text-sm space-y-2">
-                            <li><strong>1 titre long (obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
-                            <li><strong>5 titres courts (1 obligatoire)</strong><br />30 caractères maximum, espaces inclus</li>
-                            <li><strong>5 descriptions (1 obligatoire)</strong><br />90 caractères maximum, espaces inclus</li>
-                            <li><strong>Nom d'entreprise (obligatoire)</strong><br />25 caractères maximum, espaces inclus</li>
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Colonne droite : Rappel des livrables (même DA que META) */}
-                    <div>
-                      <h2 className="text-2xl font-bold text-orange-500 mb-6">
-                        Rappel des livrables attendus par Display
-                      </h2>
-                      <div className="space-y-4">
-                        {/* Pré-requis média minimum obligatoires */}
-                        <div>
-                          <h5 className="text-sm font-semibold mb-2">
-                            Pré-requis média minimum obligatoires :
-                          </h5>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 visuel image décliné aux 3 formats (carré, vertical, horizontal).</li>
-                            <li>5 visuels maximum (images et/ou vidéos confondues).</li>
-                            <li>2 visuels logo (format carré et bannière).</li>
-                            <li>5 logos maximum.</li>
-                          </ul>
-                        </div>
-
-                        {/* Pré-requis wording minimum obligatoires */}
-                        <div>
-                          <h5 className="text-sm font-semibold mb-2">
-                            Pré-requis wording¹ minimum obligatoires :
-                          </h5>
-                          <ul className="text-sm space-y-1 ml-4 list-disc">
-                            <li>1 titre long.</li>
-                            <li>1 titre court (jusqu&apos;à 5 maximum).</li>
-                            <li>1 description (jusqu&apos;à 5 maximum).</li>
-                            <li>Nom d&apos;entreprise.</li>
-                            <li>1 CTA².</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">
+                    Limites de caractères pour les wordings
+                  </h2>
+                  <Card className="inline-block">
+                    <CardContent className="pt-4">
+                      <ul className="text-sm space-y-2">
+                        <li>
+                          <strong>1 titre long (obligatoire)</strong>
+                          <br />
+                          90 caractères maximum, espaces inclus
+                        </li>
+                        <li>
+                          <strong>5 titres courts (1 obligatoire)</strong>
+                          <br />
+                          30 caractères maximum, espaces inclus
+                        </li>
+                        <li>
+                          <strong>5 descriptions (1 obligatoire)</strong>
+                          <br />
+                          90 caractères maximum, espaces inclus
+                        </li>
+                        <li>
+                          <strong>Nom d&apos;entreprise (obligatoire)</strong>
+                          <br />
+                          25 caractères maximum, espaces inclus
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
@@ -918,6 +896,44 @@ export default function StudioPage() {
                         </p>
                       </CardContent>
                     </Card>
+                  </div>
+                </div>
+                
+                {/* Section: Rappel des livrables attendus par Display (en dernière section, même organisation que META) */}
+                <div className="mt-7 md:mt-9 lg:mt-12">
+                  <h2 className="text-2xl font-bold text-orange-500 mb-6">
+                    Rappel des livrables attendus par Display
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Colonne gauche : Pré-requis média minimum obligatoires */}
+                    <div>
+                      <h5 className="text-sm font-semibold mb-2">
+                        Pré-requis média minimum obligatoires :
+                      </h5>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>
+                          1 visuel image décliné aux 3 formats (carré, vertical,
+                          horizontal).
+                        </li>
+                        <li>5 visuels maximum (images et/ou vidéos confondues).</li>
+                        <li>2 visuels logo (format carré et bannière).</li>
+                        <li>5 logos maximum.</li>
+                      </ul>
+                    </div>
+
+                    {/* Colonne droite : Pré-requis wording minimum obligatoires */}
+                    <div>
+                      <h5 className="text-sm font-semibold mb-2">
+                        Pré-requis wording¹ minimum obligatoires :
+                      </h5>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>1 titre long.</li>
+                        <li>1 titre court (jusqu&apos;à 5 maximum).</li>
+                        <li>1 description (jusqu&apos;à 5 maximum).</li>
+                        <li>Nom d&apos;entreprise.</li>
+                        <li>1 CTA².</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -1920,12 +1936,20 @@ export default function StudioPage() {
                       <div className="mb-4">
                         <h4 className="font-semibold mb-4">logos obligatoires</h4>
                         
-                        {/* Encart visuel carré */}
+                        {/* Encart visuel carré (même règle que format carré Display) */}
                         <div className="mb-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="md:col-span-1">
-                              <div className="aspect-square w-full mb-2 overflow-hidden">
-                                <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1440} height={1440} className="w-full h-full object-contain" />
+                            <div className="md:col-span-1 flex flex-col items-center">
+                              <div className="w-full max-w-[240px] mb-2">
+                                <div className="aspect-square w-full overflow-hidden">
+                                  <NextImage
+                                    src="/images/format%20carre_infeed@10x.png"
+                                    alt="Format carré"
+                                    width={1440}
+                                    height={1440}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
                               </div>
                               <div className="text-sm text-center">
                                 <p className="font-medium">format carré</p>
@@ -1934,8 +1958,8 @@ export default function StudioPage() {
                               </div>
                             </div>
                           </div>
-                  </div>
-                </div>
+                        </div>
+                      </div>
 
                     </div>
 
@@ -2423,13 +2447,12 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* Encadré d'alerte (pleine largeur) */}
-                <Alert className="mt-6 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                      <AlertDescription>
-                    <strong>3 annonces différentes maximum.</strong>
-                      </AlertDescription>
-                    </Alert>
+                {/* Rappel final : nombre d'annonces (même DA que META) */}
+                <div className="mt-6 border-t border-orange-500/50 pt-3 text-center">
+                  <p className="text-sm font-semibold text-orange-500 inline-block">
+                    3 annonces différentes maximum.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
