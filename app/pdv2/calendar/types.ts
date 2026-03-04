@@ -2,6 +2,8 @@ export interface CalendarItem {
   platform: string
   startDay: number
   length: number
+  /** Objectif lisible (ex: Clics, Impressions, Conversion) */
+  objective?: string
   /** Optional: budget for this placement (from strategy) */
   budget?: number
   /** Optional: main KPI label (from strategy) */

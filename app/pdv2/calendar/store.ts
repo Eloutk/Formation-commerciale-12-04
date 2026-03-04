@@ -18,6 +18,8 @@ export interface CalendarState {
   items: CalendarItem[]
   platformSources: CalendarPlatformSource[]
   validationError: string | null
+  /** Plateforme sélectionnée pour définir la date de début (clic dans le calendrier) */
+  selectedPlatform: string | null
 }
 
 export interface CalendarActions {
@@ -36,6 +38,7 @@ export interface CalendarActions {
   reset: () => void
   getCalendarData: () => StrategyCalendarData
   validate: () => boolean
+  setSelectedPlatform: (platform: string | null) => void
 }
 
 const defaultState: CalendarState = {
@@ -48,6 +51,7 @@ const defaultState: CalendarState = {
   items: [],
   platformSources: [],
   validationError: null,
+  selectedPlatform: null,
 }
 
 export const useCalendarStore = create<CalendarState & CalendarActions>((set, get) => ({
@@ -143,7 +147,18 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
 
   getCalendarData: () => {
     const { startDate, duration, items } = get()
-    return { startDate, duration, items: items.map(({ platform, startDay, length, budget, kpiLabel }) => ({ platform, startDay, length, budget, kpiLabel })) }
+    return {
+      startDate,
+      duration,
+      items: items.map(({ platform, startDay, length, budget, kpiLabel, objective }) => ({
+        platform,
+        startDay,
+        length,
+        budget,
+        kpiLabel,
+        objective,
+      })),
+    }
   },
 
   validate: () => {
@@ -152,6 +167,8 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
     set({ validationError: result.valid ? null : result.message ?? null })
     return result.valid
   },
+
+  setSelectedPlatform: (selectedPlatform) => set({ selectedPlatform }),
 }))
 
 export function getCalendarDates(state: CalendarState): string[] {

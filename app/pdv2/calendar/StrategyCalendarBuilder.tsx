@@ -15,6 +15,12 @@ export interface StrategyCalendarBuilderProps {
   existing?: StrategyCalendarData | null
   /** Callback pour récupérer les données à sauvegarder */
   onSave?: (data: StrategyCalendarData) => void
+  /** Callback quand l'utilisateur définit une date de début en cliquant sur un jour (entrée unique plateforme+objectif) */
+  onPlatformStartDateChange?: (entryKey: string, startDate: string) => void
+  /** Callback quand l'utilisateur modifie le nombre de jours de diffusion dans le calendrier (entrée unique plateforme+objectif) */
+  onPlatformDaysChange?: (entryKey: string, days: number) => void
+  /** Messages d'avertissement (règles durée / budget quotidien non respectées) pour le calendrier */
+  calendarWarnings?: string[]
   /** Enfants optionnels (ex: bouton Enregistrer en bas du panneau) */
   children?: React.ReactNode
 }
@@ -24,15 +30,19 @@ export function StrategyCalendarBuilder({
   duration,
   existing,
   onSave,
+  onPlatformStartDateChange,
+  onPlatformDaysChange,
+  calendarWarnings,
   children,
 }: StrategyCalendarBuilderProps) {
   const initFromStrategy = useCalendarStore((s) => s.initFromStrategy)
   const getCalendarData = useCalendarStore((s) => s.getCalendarData)
   const validate = useCalendarStore((s) => s.validate)
 
+  const itemsSignature = existing?.items?.map((i) => `${i.platform}-${i.startDay}-${i.length}`).join('|') ?? ''
   useEffect(() => {
     initFromStrategy(platformSources, duration, existing)
-  }, [platformSources, duration, existing?.startDate, existing?.duration, existing?.items?.length, initFromStrategy])
+  }, [platformSources, duration, existing?.startDate, existing?.duration, itemsSignature, initFromStrategy])
 
   const handleSave = () => {
     if (!validate()) return
@@ -41,25 +51,36 @@ export function StrategyCalendarBuilder({
   }
 
   return (
-    <div className="flex gap-4 p-4 min-h-0">
-      <aside className="flex flex-col gap-4">
-        <CalendarToolbar />
-        {onSave && (
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Enregistrer le calendrier
-            </button>
-          </div>
-        )}
-        {children}
-      </aside>
-      <main className="flex-1 min-w-0 min-h-0 overflow-auto flex flex-col max-h-[75vh]">
-        <TimelineView />
-      </main>
+    <div className="w-full flex flex-col gap-3 p-4 rounded-xl border bg-muted/20 min-h-0">
+      {/* Barre d'info / erreurs au-dessus, centrée */}
+      <div className="mb-1 flex justify-center">
+        <div className="w-full max-w-4xl flex flex-col gap-2">
+          <CalendarToolbar />
+          {children}
+        </div>
+      </div>
+
+      {/* Calendrier centré dans l'encart, pleine largeur dispo */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-4xl">
+          <TimelineView
+            onPlatformStartDateSet={onPlatformStartDateChange}
+            onPlatformDaysChange={onPlatformDaysChange}
+            calendarWarnings={calendarWarnings}
+          />
+        </div>
+      </div>
+      {onSave && (
+        <div className="shrink-0 pt-2 border-t">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Enregistrer le calendrier
+          </button>
+        </div>
+      )}
     </div>
   )
 }

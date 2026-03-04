@@ -16,7 +16,15 @@ function formatDateJJMMAA(iso: string): string {
   return `${d ?? ''}/${m ?? ''}/${(y ?? '').slice(2) ?? ''}`
 }
 
-export function TimelineView() {
+export function TimelineView({
+  onPlatformStartDateSet,
+  onPlatformDaysChange,
+  calendarWarnings,
+}: {
+  onPlatformStartDateSet?: (entryKey: string, startDate: string) => void
+  onPlatformDaysChange?: (entryKey: string, days: number) => void
+  calendarWarnings?: string[]
+} = {}) {
   const startDate = useCalendarStore((s) => s.startDate)
   const duration = useCalendarStore((s) => s.duration)
   const timeGranularity = useCalendarStore((s) => s.timeGranularity)
@@ -128,7 +136,16 @@ export function TimelineView() {
   }, [resizing, resizeItem])
 
   if (timeGranularity === 'month') {
-    return <MonthGridView startDate={startDate} duration={duration} items={items} />
+    return (
+      <MonthGridView
+        startDate={startDate}
+        duration={duration}
+        items={items}
+        onPlatformStartDateSet={onPlatformStartDateSet}
+        onPlatformDaysChange={onPlatformDaysChange}
+        calendarWarnings={calendarWarnings}
+      />
+    )
   }
 
   return (

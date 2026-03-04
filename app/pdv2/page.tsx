@@ -40,19 +40,19 @@ const PLATFORMS_ORDER = [
   'Spotify',
 ] as const
 
-// Couleurs distinctes par plateforme (calendrier, PDF) — éviter les teintes proches
+// Couleurs très contrastées par plateforme (calendrier, PDF)
 const PLATFORM_CALENDAR_COLORS: Record<string, string> = {
-  META: '#E94C16',
-  Display: '#2563EB',
-  'Perf max': '#7C3AED',
-  'Demand Gen': '#0D9488',
-  Search: '#0891B2',
-  'Insta only': '#DB2777',
-  Youtube: '#DC2626',
-  LinkedIn: '#0A66C2',
-  Snapchat: '#EAB308',
-  Tiktok: '#171717',
-  Spotify: '#16A34A',
+  META: '#E85D04',
+  Display: '#0077B6',
+  'Perf max': '#6A0DAD',
+  'Demand Gen': '#2D6A4F',
+  Search: '#00B4D8',
+  'Insta only': '#C71585',
+  Youtube: '#B71C1C',
+  LinkedIn: '#3D5AFE',
+  Snapchat: '#FFB800',
+  Tiktok: '#212529',
+  Spotify: '#2DC653',
 }
 function getPlatformCalendarColor(platform: string): string {
   return PLATFORM_CALENDAR_COLORS[platform] ?? '#94a3b8'
@@ -1690,7 +1690,7 @@ export default function PDV2Page() {
   // Couleurs pour le graphique
   const COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
-  // Règle durée de campagne : < 5 jours → rouge, 5 à 10 jours → orange (prioritaire sur l'AE)
+  // Règle durée de campagne : par défaut < 5 jours → rouge, 5 à 10 jours → orange (prioritaire sur l'AE)
   const getDaysOverrideClass = (days: number): string | null => {
     if (days < 5) return 'bg-red-50 text-red-700'
     if (days < 10) return 'bg-orange-50 text-orange-700'
@@ -1699,9 +1699,67 @@ export default function PDV2Page() {
 
   // Couleur ligne : d'abord la règle durée, sinon couleur selon AE
   const getRowColorClass = (platform: string, aeCheckValue: number, days: number): string => {
+    // Cas spécifique Search : durée minimale recommandée 3 mois (90 jours)
+    // - < 40 jours  → rouge
+    // - 40 à 89 jours → orange
+    // - ≥ 90 jours :
+    //     - budget (AE/jour) < 8 € → orange
+    //     - budget (AE/jour) ≥ 8 € → vert
+    if (platform === 'Search') {
+      if (days > 0 && days < 40) return 'bg-red-50 text-red-700'
+      if (days >= 40 && days < 90) return 'bg-orange-50 text-orange-700'
+      if (days >= 90) {
+        // Pour Search, aeCheckValue correspond à l'AE par jour (même base que le budget quotidien)
+        if (aeCheckValue >= 8) return 'bg-green-50 text-green-700'
+        return 'bg-orange-50 text-orange-700'
+      }
+      return getAeColorClass(platform, aeCheckValue)
+    }
     const daysClass = getDaysOverrideClass(days)
     if (daysClass) return daysClass
     return getAeColorClass(platform, aeCheckValue)
+  }
+
+  // Messages d'avertissement pour le calendrier (règles durée / budget quotidien)
+  const getCalendarWarningsForBlock = (b: StrategyBlock): string[] => {
+    const warnings: string[] = []
+    b.items.forEach((item) => {
+      const days = item.days || 0
+      if (item.platform === 'Search' && days > 0 && days < 90) {
+        warnings.push(`Search : durée ${days} jour(s) (minimum 3 mois / 90 jours requis).`)
+      }
+      if (days > 0 && days < 5) {
+        warnings.push(`${item.platform} : durée ${days} jour(s) (minimum 5 jours recommandé).`)
+      }
+      if (days >= 5 && days < 10) {
+        warnings.push(`${item.platform} : durée ${days} jours (à valider par le TM).`)
+      }
+      const aeVal = item.aeCheckValue ?? 0
+      if (aeVal <= 0) return
+      if (item.platform === 'Spotify') {
+        if (aeVal < 250) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (sous le minimum 250 €).`)
+        else if (aeVal <= 350) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (à valider, objectif 350 €+).`)
+      } else {
+        const dailyBudget = item.dailyBudget ?? 0
+        const isMetaLike = ['META', 'Insta only', 'Display', 'Youtube'].includes(item.platform)
+        const isLinkedInTiktok = ['LinkedIn', 'Tiktok'].includes(item.platform)
+        const isSnapEtc = ['Snapchat', 'Perf max', 'Demand Gen', 'Search'].includes(item.platform)
+        if (isMetaLike && dailyBudget < 5) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 5 €/j).`)
+        } else if (isMetaLike && dailyBudget <= 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 10 €/j+).`)
+        } else if (isLinkedInTiktok && dailyBudget < 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 10 €/j).`)
+        } else if (isLinkedInTiktok && dailyBudget <= 20) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 20 €/j+).`)
+        } else if (isSnapEtc && dailyBudget < 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 10 €/j).`)
+        } else if (isSnapEtc && dailyBudget <= 15) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 15 €/j+).`)
+        }
+      }
+    })
+    return warnings
   }
 
   // Fonction pour déterminer la couleur selon le niveau d'AE (par jour ou total Spotify)
@@ -2674,21 +2732,24 @@ export default function PDV2Page() {
                                       cal.items.forEach((it) => {
                                         const d = new Date(cal.startDate + 'T12:00:00')
                                         d.setDate(d.getDate() + it.startDay)
-                                        perPlatform[it.platform] = d.toISOString().slice(0, 10)
+                                        const key = `${it.platform}::${it.objective ?? ''}`
+                                        perPlatform[key] = d.toISOString().slice(0, 10)
                                       })
                                     }
                                     block.items.forEach((item, i) => {
-                                      if (perPlatform[item.platform]) return
+                                      const key = `${item.platform}::${item.objective}`
+                                      if (perPlatform[key]) return
                                       if (i === 0) {
-                                        perPlatform[item.platform] = today
+                                        perPlatform[key] = today
                                         return
                                       }
                                       const prev = block.items[i - 1]!
-                                      const prevStart = perPlatform[prev.platform] ?? today
+                                      const prevKey = `${prev.platform}::${prev.objective}`
+                                      const prevStart = perPlatform[prevKey] ?? today
                                       const prevLen = Math.max(1, prev.days ?? daysNum)
                                       const d = new Date(prevStart + 'T12:00:00')
                                       d.setDate(d.getDate() + prevLen)
-                                      perPlatform[item.platform] = d.toISOString().slice(0, 10)
+                                      perPlatform[key] = d.toISOString().slice(0, 10)
                                     })
                                     setDefineDatesPerPlatform(perPlatform)
                                     setCalendarDialogOpen(true)
@@ -3419,11 +3480,11 @@ export default function PDV2Page() {
 
       {/* Modale Calendrier de diffusion */}
       <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null); setCalendarPhasesMenuPlatform(null) }}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-full">
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
             <DialogDescription>
-              Définissez la date de début par plateforme ci-dessous, puis consultez ou ajustez le planning dans le calendrier.
+              Cliquez sur une plateforme dans la légende puis sur un jour du calendrier pour définir sa date de début. Les pastilles affichent les jours de diffusion.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -3434,7 +3495,7 @@ export default function PDV2Page() {
               const daysBetween = (a: string, b: string) =>
                 Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
               const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
-                platform: item.platform,
+                platform: `${item.platform}::${item.objective}`,
                 budget: item.budget,
                 kpiLabel: item.customKpiLabel
                   ? item.customKpiLabel
@@ -3443,11 +3504,15 @@ export default function PDV2Page() {
                     : getMaxKpiLabel(item.objective),
                 maxDays: Math.max(1, item.days ?? duration),
               }))
-              const starts = block.items.map((it) => defineDatesPerPlatform[it.platform] ?? new Date().toISOString().slice(0, 10))
+              const starts = block.items.map((it) => {
+                const key = `${it.platform}::${it.objective}`
+                return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+              })
               const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
               let globalEndDay = 0
               const computedItems = block.items.map((item, i) => {
-                const startDate = defineDatesPerPlatform[item.platform] ?? globalStart
+                const key = `${item.platform}::${item.objective}`
+                const startDate = defineDatesPerPlatform[key] ?? globalStart
                 const startDay = Math.max(0, daysBetween(globalStart, startDate))
                 const length = Math.max(1, item.days ?? duration)
                 globalEndDay = Math.max(globalEndDay, startDay + length)
@@ -3457,6 +3522,7 @@ export default function PDV2Page() {
                   length,
                   budget: item.budget,
                   kpiLabel: platformSources[i]!.kpiLabel,
+                  objective: item.objective,
                 }
               })
               const existingFromForm: StrategyCalendarData = { startDate: globalStart, duration: globalEndDay, items: computedItems }
@@ -3465,43 +3531,42 @@ export default function PDV2Page() {
                   <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
                 ) : (
                 <>
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                    <div className="text-sm font-medium">Dates de début par plateforme</div>
-                    <div className="flex flex-wrap gap-3">
-                      {block.items.map((item) => {
-                        const platformDays = Math.max(1, item.days ?? duration)
-                        const platformColor = getPlatformColor(item.platform)
-                        return (
-                          <div
-                            key={item.platform}
-                            className="flex flex-wrap items-center gap-2 rounded-lg border-2 bg-background p-2 min-w-[200px]"
-                            style={{ borderColor: platformColor }}
-                          >
-                            <span className="font-medium text-sm w-20 shrink-0" style={{ color: platformColor }}>{item.platform}</span>
-                            <div className="flex-1 min-w-[120px]">
-                              <Label className="text-xs text-muted-foreground">Date de début</Label>
-                              <EditableInput
-                                type="date"
-                                value={defineDatesPerPlatform[item.platform] ?? ''}
-                                onChange={(e) =>
-                                  setDefineDatesPerPlatform((prev) => ({ ...prev, [item.platform]: e.target.value }))
-                                }
-                                className="w-full"
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {platformDays} jour{platformDays > 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de début en cliquant sur un jour, et modifier le nombre de jours de diffusion dans le champ « Jours ». Les pastilles et la couleur dans la stratégie se mettent à jour (rouge / orange si les règles ne sont pas respectées).
+                  </p>
                   <StrategyCalendarBuilder
                     key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
                     platformSources={platformSources}
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
+                    onPlatformStartDateChange={(entryKey, startDate) =>
+                      setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                    }
+                    onPlatformDaysChange={(entryKey, days) => {
+                      setStrategies((prev) =>
+                        prev.map((s) =>
+                          s.id !== calendarStrategyId
+                            ? s
+                            : {
+                                ...s,
+                                items: s.items.map((it) =>
+                                  `${it.platform}::${it.objective}` !== entryKey
+                                    ? it
+                                    : {
+                                        ...it,
+                                        days,
+                                        dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
+                                        aeCheckValue:
+                                          it.platform === 'Spotify'
+                                            ? it.budget * (it.aePercentage / 100)
+                                            : (it.budget * (it.aePercentage / 100)) / days,
+                                      }
+                                ),
+                              }
+                        )
+                      )
+                    }}
+                    calendarWarnings={getCalendarWarningsForBlock(block)}
                     onSave={(data) => {
                       setStrategies((prev) => prev.map((s) => s.id === calendarStrategyId ? { ...s, calendar: data } : s))
                       setCalendarDialogOpen(false)
@@ -3513,9 +3578,7 @@ export default function PDV2Page() {
               )
             })()}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setCalendarDialogOpen(false); setCalendarStrategyId(null) }}>Annuler</Button>
-          </DialogFooter>
+          {/* Pas de bouton Annuler : fermer via Enregistrer le calendrier ou la croix de la modale */}
         </DialogContent>
       </Dialog>
 

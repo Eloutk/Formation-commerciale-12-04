@@ -1,16 +1,16 @@
-// Couleurs bien distinctes visuellement (éviter bleus/verts/rouges proches)
+// Couleurs très contrastées (une teinte bien distincte par plateforme)
 export const PLATFORM_COLORS: Record<string, string> = {
-  META: '#E94C16',        // orange
-  Display: '#2563EB',     // bleu
-  'Perf max': '#7C3AED',  // violet
-  'Demand Gen': '#0D9488', // teal
-  Search: '#0891B2',      // cyan
-  'Insta only': '#DB2777', // rose / magenta
-  Youtube: '#DC2626',     // rouge
-  LinkedIn: '#0A66C2',    // bleu LinkedIn
-  Snapchat: '#EAB308',    // jaune / ambre
-  Tiktok: '#171717',      // noir / gris très foncé
-  Spotify: '#16A34A',     // vert
+  META: '#E85D04',        // orange vif
+  Display: '#0077B6',     // bleu océan
+  'Perf max': '#6A0DAD',  // violet
+  'Demand Gen': '#2D6A4F', // vert forêt
+  Search: '#00B4D8',      // cyan
+  'Insta only': '#C71585', // rose / magenta
+  Youtube: '#B71C1C',     // rouge
+  LinkedIn: '#3D5AFE',    // bleu indigo
+  Snapchat: '#FFB800',    // or / jaune
+  Tiktok: '#212529',      // gris très foncé
+  Spotify: '#2DC653',     // vert vif
 }
 
 export function getPlatformColor(platform: string): string {

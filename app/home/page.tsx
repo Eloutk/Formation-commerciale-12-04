@@ -211,6 +211,51 @@ export default function HomePage() {
             )
           })}
         </div>
+
+        {/* Anniversaires du mois (encart dédié) */}
+        <div className="mt-8 max-w-md">
+          <Card className="border-2">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Cake className="w-4 h-4 text-pink-500" />
+                Anniversaires du mois
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {currentMonthName} {currentYear}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              {birthdayCards.length > 0 ? (
+                <div className="space-y-1.5">
+                  {birthdayCards.slice(0, 4).map((person, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 p-1.5 rounded-lg bg-pink-50 hover:bg-pink-100 transition-colors"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-700 font-semibold text-xs">
+                        {person.name.split('.')[0].trim().charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-xs truncate">{person.name}</p>
+                        <p className="text-xs text-pink-600">{person.date}</p>
+                      </div>
+                      <div className="text-lg">🎂</div>
+                    </div>
+                  ))}
+                  {birthdayCards.length > 4 && (
+                    <p className="text-xs text-muted-foreground text-center pt-1">
+                      +{birthdayCards.length - 4} autre{birthdayCards.length - 4 > 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Aucun anniversaire ce mois-ci
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {false && (
