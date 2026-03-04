@@ -430,7 +430,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 }
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
-type PdvSection = 'social' | 'sms'
+type PdvSection = 'social' | 'sms' | 'calendar'
 type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
@@ -1218,16 +1218,16 @@ const SMSRCSPDFDocument = ({
             <Text style={styles.itemValue}>{setupFee} €</Text>
           </View>
 
-          {/* Options - affichées seulement si cochées */}
+          {/* Options - affichées seulement si cochées (dont = inclus dans le total) */}
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Ciblage :</Text>
+              <Text style={styles.itemLabel}>dont Ciblage :</Text>
               <Text style={styles.itemValue}>+0,028 € / SMS</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Rich SMS :</Text>
+              <Text style={styles.itemLabel}>dont Rich SMS :</Text>
               <Text style={styles.itemValue}>+0,021 € / SMS</Text>
             </View>
           )}
@@ -1447,8 +1447,13 @@ export default function PDV2Page() {
 
   const smsTotalPrice = useMemo(() => {
     if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
-    const base = smsUnitPrice * smsVolumeNumber + 190
-    return smsOptions.duplicateCampaign ? base * campaignMonthsNumber : base
+    const setupFee = 190 // frais fixes de setup, comptés une seule fois
+    const variablePerCampaign = smsUnitPrice * smsVolumeNumber
+    if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
+      return setupFee + variablePerCampaign
+    }
+    // En cas de duplication, on multiplie uniquement la partie variable
+    return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, smsBasePU, smsUnitPrice, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // --- Logique de calcul RCS (indépendante du SMS) ---
@@ -2108,7 +2113,7 @@ export default function PDV2Page() {
             onValueChange={(value) => setPdvSection(value as PdvSection)}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2 border-2 border-gray-300">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 border-2 border-gray-300">
               <TabsTrigger
                 value="social"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -2121,11 +2126,17 @@ export default function PDV2Page() {
               >
                 SMS
               </TabsTrigger>
+              <TabsTrigger
+                value="calendar"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                Calendrier
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        {pdvSection === 'social' && (
+        {pdvSection !== 'sms' && (
         <>
         {/* Layout 2 colonnes sur desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
@@ -3208,7 +3219,7 @@ export default function PDV2Page() {
                             </div>
                             
                             {smsOptions.duplicateCampaign && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
                                 <EditableInput
                                   type="number"
@@ -3216,7 +3227,7 @@ export default function PDV2Page() {
                                   value={campaignMonths}
                                   onChange={(e) => setCampaignMonths(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="h-8 w-16 text-center"
+                                  className="h-8 w-20 text-center"
                                   placeholder="1"
                                 />
                               </div>
@@ -3300,7 +3311,7 @@ export default function PDV2Page() {
                             </div>
                             
                             {smsOptions.duplicateCampaign && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 shrink-0">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
                                 <EditableInput
                                   type="number"
@@ -3308,7 +3319,7 @@ export default function PDV2Page() {
                                   value={campaignMonths}
                                   onChange={(e) => setCampaignMonths(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="h-8 w-16 text-center"
+                                  className="h-8 w-20 text-center"
                                   placeholder="1"
                                 />
                               </div>

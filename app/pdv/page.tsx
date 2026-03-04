@@ -737,16 +737,16 @@ const SMSRCSPDFDocument = ({
             <Text style={styles.itemValue}>{setupFee} €</Text>
           </View>
 
-          {/* Options - affichées seulement si cochées */}
+          {/* Options - affichées seulement si cochées (dont = déjà inclus dans le total) */}
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Ciblage :</Text>
+              <Text style={styles.itemLabel}>dont Ciblage :</Text>
               <Text style={styles.itemValue}>+0,028 € / SMS</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Rich SMS :</Text>
+              <Text style={styles.itemLabel}>dont Rich SMS :</Text>
               <Text style={styles.itemValue}>+0,021 € / SMS</Text>
             </View>
           )}
