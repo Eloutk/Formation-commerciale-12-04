@@ -89,9 +89,6 @@ export default function StudioPage() {
             <Card>
               <CardHeader>
                 <h1>Publicités sur META (Facebook & Instagram)</h1>
-                <CardDescription>
-                  Formats et contraintes pour Facebook et Instagram Ads
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* En 1 clin d'œil - META (compact) */}
@@ -286,7 +283,7 @@ export default function StudioPage() {
                           Limites de caractères pour les wordings
                         </h2>
                         <div className="flex justify-center">
-                          <div className="w-full max-w-[300px] relative">
+                          <div className="w-full max-w-[135px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                               <SafeImage
                                 src="/images/META-format-complet-carre-10x.png"
@@ -373,8 +370,8 @@ export default function StudioPage() {
                         <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
                           Marges de sécurité pour les story et reels
                         </h2>
-                        <div className="flex justify-center">
-                          <div className="w-full max-w-[300px] relative">
+                        <div className="flex justify-start">
+                          <div className="w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <SafeImage
                               src="/images/META Marges de securite 2@10x.png"
@@ -574,11 +571,11 @@ export default function StudioPage() {
                 </div>
 
                     {/* Bandeau de rappel final */}
-                    <Alert className="bg-orange-500/10 border-orange-500/50">
-                      <AlertDescription className="font-semibold">
+                    <div className="mt-4 border-t border-orange-500/50 pt-3 text-center">
+                      <p className="text-sm font-semibold text-orange-500 inline-block">
                         6 groupes publicitaires (standard et/ou carrousel) maximum.
-                      </AlertDescription>
-                    </Alert>
+                      </p>
+                    </div>
                 </div>
               </CardContent>
             </Card>
@@ -682,15 +679,7 @@ export default function StudioPage() {
                         </div>
                       </div>
 
-                      {/* Résolutions alternatives acceptables */}
-                      <div className="mt-4 rounded-md border border-muted bg-white px-3 py-2">
-                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">Résolutions alternatives acceptables</h5>
-                        <ul className="space-y-0.5 text-xs text-muted-foreground">
-                          <li>format carré : 1080 × 1080 px</li>
-                          <li>format vertical : 1080 × 1920 px</li>
-                          <li>format horizontal : 1200 × 628 px</li>
-                        </ul>
-                      </div>
+                      {/* (Résolutions alternatives acceptables déplacé plus bas, à côté des fichiers acceptés) */}
                     </div>
 
                     {/* Colonne droite : publicités vidéos */}
@@ -745,65 +734,99 @@ export default function StudioPage() {
 
                 {/* H2 : Logos obligatoires */}
                 <div>
-                  <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
-                  
-                  {/* Grid 2 colonnes : logos à gauche, encadrés à droite */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-7 md:mb-9 lg:mb-12">
-                    {/* Colonne gauche : Logos */}
-                    <div className="space-y-6 flex flex-col items-center">
-                      {/* Format carré */}
-                      <div className="max-w-[200px]">
-                        <div className="aspect-square w-full mb-2 overflow-hidden">
-                          <NextImage src="/images/format%20carre_infeed@10x.png" alt="Format carré" width={1080} height={1080} className="w-full h-full object-contain" />
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format carré</p>
-                          <p>1080 × 1080 px</p>
-                          <p>ratio 1:1</p>
-                        </div>
+                  {/* Résolutions + fichiers acceptés, alignés sur 2 colonnes */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {/* Colonne gauche : résolutions + fichiers images/logos */}
+                    <div className="space-y-3">
+                      <div className="rounded-md border border-muted bg-white px-3 py-2">
+                        <h5 className="text-xs font-medium mb-1.5 text-muted-foreground">
+                          Résolutions alternatives acceptables
+                        </h5>
+                        <ul className="space-y-0.5 text-xs text-muted-foreground">
+                          <li>format carré : 1080 × 1080 px</li>
+                          <li>format vertical : 1080 × 1920 px</li>
+                          <li>format horizontal : 1200 × 628 px</li>
+                        </ul>
                       </div>
-
-                      {/* Format bannière */}
-                      <div className="max-w-[320px]">
-                        <div className="w-full mb-2">
-                          <NextImage src="/images/format%20horizontal_tv_instream@10x.png" alt="Format bannière" width={1440} height={754} className="w-full h-auto object-contain" />
-                        </div>
-                        <div className="text-sm text-center">
-                          <p className="font-medium">format bannière</p>
-                          <p>800 × 200 px</p>
-                          <p>ratio 4:1</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Colonne droite : Fichiers acceptés */}
-                    <div className="space-y-4">
                       <Alert className="h-auto flex flex-col border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
+                        <AlertTitle className="font-semibold text-muted-foreground">
+                          Fichiers acceptés pour les publicités images et logos :
+                        </AlertTitle>
                         <AlertDescription className="flex-1 text-muted-foreground">
                           .jpg, .png<br />
                           Taille maximale : 5120 ko<br />
                           Le format .gif est incompatible avec la pub responsive.
                         </AlertDescription>
                       </Alert>
-                      
-                      <Alert className="h-auto flex flex-col border-[#E94C16] bg-white">
-                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold text-muted-foreground">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
-                        <AlertDescription className="flex-1 text-muted-foreground">
-                          Lien YouTube au format https://…<br />
-                          Durée optimale : 14 secondes maximum<br />
-                          Durée maximum : 30 secondes<br />
-                          5 liens vidéos maximum<br /><br />
-                          Pour être utilisées, les vidéos doivent être déjà hébergées sur votre chaîne YouTube.<br />
-                          L'importation se fait uniquement grâce au lien YouTube correspondant aux vidéos.<br />
-                          Les vidéos peuvent être en non référencées mais doivent être impérativement publiques.<br /><br />
-                          La diffusion exclusive de vidéo n'est pas possible dans Google Display.<br />
-                          Des visuels au format publicités images sont obligatoires pour configurer la campagne.
-                        </AlertDescription>
-                      </Alert>
                     </div>
+
+                    {/* Colonne droite : fichiers vidéos */}
+                    <Alert className="h-auto flex flex-col border-[#E94C16] bg-white">
+                      <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
+                      <AlertTitle className="font-semibold text-muted-foreground">
+                        Fichiers acceptés pour les publicités vidéos :
+                      </AlertTitle>
+                      <AlertDescription className="flex-1 text-muted-foreground">
+                        Lien YouTube au format https://…<br />
+                        Durée optimale : 14 secondes maximum<br />
+                        Durée maximum : 30 secondes<br />
+                        5 liens vidéos maximum<br /><br />
+                        Pour être utilisées, les vidéos doivent être déjà hébergées sur votre chaîne YouTube.<br />
+                        L'importation se fait uniquement grâce au lien YouTube correspondant aux vidéos.<br />
+                        Les vidéos peuvent être en non référencées mais doivent être impérativement publiques.<br /><br />
+                        La diffusion exclusive de vidéo n'est pas possible dans Google Display.<br />
+                        Des visuels au format publicités images sont obligatoires pour configurer la campagne.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+
+                  <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
+                  
+                  {/* Grille de logos seule (même logique 3 colonnes que la liste des formats) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 md:mb-9 lg:mb-12">
+                    {/* Logo format carré */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[240px] mb-2">
+                        <div className="aspect-square w-full overflow-hidden">
+                          <NextImage
+                            src="/images/format%20carre_infeed@10x.png"
+                            alt="Format carré"
+                            width={1080}
+                            height={1080}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-center">
+                        <p className="font-medium">format carré</p>
+                        <p>1080 × 1080 px</p>
+                        <p>ratio 1:1</p>
+                      </div>
+                    </div>
+
+                    {/* Logo format bannière */}
+                    <div className="flex flex-col items-center">
+                      <div className="w-full max-w-[240px] mb-2">
+                        <div className="w-full overflow-hidden">
+                          <NextImage
+                            src="/images/format%20horizontal_tv_instream@10x.png"
+                            alt="Format bannière"
+                            width={1440}
+                            height={754}
+                            className="w-full h-auto object-contain"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-sm text-center">
+                        <p className="font-medium">format bannière</p>
+                        <p>800 × 200 px</p>
+                        <p>ratio 4:1</p>
+                      </div>
+                    </div>
+
+                    {/* Colonne vide (réserve pour un 3ᵉ format si besoin) */}
+                    <div className="hidden md:block" />
                   </div>
                 </div>
 
@@ -825,34 +848,39 @@ export default function StudioPage() {
                       </Card>
                     </div>
 
-                    {/* Colonne droite : Rappel des livrables */}
+                    {/* Colonne droite : Rappel des livrables (même DA que META) */}
                     <div>
-                      <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">Rappel des livrables attendus par Display</h2>
-                      <Card>
-                        <CardContent className="pt-4">
-                          <div className="space-y-4">
-                            <div>
-                              <p className="text-sm font-semibold mb-2">Pré-requis média minimum obligatoires :</p>
-                              <ul className="text-sm space-y-1 ml-4 list-disc">
-                                <li>1 visuel image décliné aux 3 formats (carré, vertical, horizontal).</li>
-                                <li>5 maximum. (Même pour une vidéo)</li>
-                                <li>2 visuels logo (format carré et bannière).</li>
-                                <li>5 maximum.</li>
-                              </ul>
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold mb-2">Pré-requis wording¹ minimum obligatoires :</p>
-                              <ul className="text-sm space-y-1 ml-4 list-disc">
-                                <li>1 titre long.</li>
-                                <li>1 titre court. 5 maximum.</li>
-                                <li>1 description. 5 maximum.</li>
-                                <li>Nom d'entreprise.</li>
-                                <li>1 CTA².</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <h2 className="text-2xl font-bold text-orange-500 mb-6">
+                        Rappel des livrables attendus par Display
+                      </h2>
+                      <div className="space-y-4">
+                        {/* Pré-requis média minimum obligatoires */}
+                        <div>
+                          <h5 className="text-sm font-semibold mb-2">
+                            Pré-requis média minimum obligatoires :
+                          </h5>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 visuel image décliné aux 3 formats (carré, vertical, horizontal).</li>
+                            <li>5 visuels maximum (images et/ou vidéos confondues).</li>
+                            <li>2 visuels logo (format carré et bannière).</li>
+                            <li>5 logos maximum.</li>
+                          </ul>
+                        </div>
+
+                        {/* Pré-requis wording minimum obligatoires */}
+                        <div>
+                          <h5 className="text-sm font-semibold mb-2">
+                            Pré-requis wording¹ minimum obligatoires :
+                          </h5>
+                          <ul className="text-sm space-y-1 ml-4 list-disc">
+                            <li>1 titre long.</li>
+                            <li>1 titre court (jusqu&apos;à 5 maximum).</li>
+                            <li>1 description (jusqu&apos;à 5 maximum).</li>
+                            <li>Nom d&apos;entreprise.</li>
+                            <li>1 CTA².</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1394,7 +1422,7 @@ export default function StudioPage() {
                       </div>
 
                       {/* Encadré fichiers acceptés */}
-                      <Alert className="border-[#E94C16]">
+                      <Alert className="border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
                         <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités vidéos :</AlertTitle>
                   <AlertDescription>
@@ -1418,7 +1446,7 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 3 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Limites_caracteres_10x.png"
@@ -1463,7 +1491,7 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + 2 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Marges_securite_10x.png"
@@ -1660,7 +1688,7 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 6 pastilles (ordre de l’image : nav haut, photo, marque, texte, CTA, nav bas) */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Limites_caracteres_10x.png"
@@ -1721,7 +1749,7 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Marges_securite_10x.png"
@@ -1909,14 +1937,6 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                      {/* Encadré fichiers acceptés */}
-                      <Alert className="border-[#E94C16]">
-                        <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
-                        <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités images et logos :</AlertTitle>
-                      <AlertDescription>
-                          .jpg, .png
-                      </AlertDescription>
-                    </Alert>
                     </div>
 
                     {/* Colonne droite : canvas et publicités audios */}
@@ -1940,7 +1960,7 @@ export default function StudioPage() {
                       </div>
 
                       {/* Encadré fichiers acceptés pour les canvas */}
-                      <Alert className="mb-4 border-[#E94C16]">
+                      <Alert className="mb-4 border-[#E94C16] bg-white">
                         <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
                         <AlertTitle className="font-semibold">Fichiers acceptés pour les canvas :</AlertTitle>
                       <AlertDescription>
@@ -1954,7 +1974,7 @@ export default function StudioPage() {
                         <h3 className="font-semibold mb-4">publicités audios</h3>
                         
                         {/* Encadré fichiers acceptés pour les publicités audios */}
-                        <Alert className="border-[#E94C16]">
+                        <Alert className="border-[#E94C16] bg-white">
                           <NextImage src="/images/Avertissement 2025 noBG.png" alt="Avertissement" width={16} height={16} className="h-4 w-4 mb-2" />
                           <AlertTitle className="font-semibold">Fichiers acceptés pour les publicités audios :</AlertTitle>
                       <AlertDescription>
@@ -1973,10 +1993,9 @@ export default function StudioPage() {
 
                 {/* 1. Limites de caractères pour les wordings¹ */}
                 <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
-                  <p className="text-sm text-muted-foreground mb-4">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
-                  <div className="flex justify-center">
-                    <div className="w-full max-w-[300px] relative">
+              <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
+                  <div className="flex justify-start">
+                    <div className="w-full max-w-[135px] relative">
                           <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
                             <SafeImage
                               src="/images/Spotify-Limites-caracteres-10x.png"
@@ -2014,10 +2033,27 @@ export default function StudioPage() {
                           </div>
                         </div>
                   </div>
-                  <p className="mt-4 text-xs text-center text-muted-foreground italic">Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.</p>
+                  <p className="mt-4 text-xs text-center text-muted-foreground">
+                    Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
+                  </p>
                 </div>
 
-                {/* 2. Livrables attendus par Spotify (en dessous des Limites) */}
+                {/* H2 : Recommandations et contraintes */}
+                <div className="mt-6">
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Recommandations et contraintes</h2>
+                  
+                  <Card>
+                    <CardContent className="pt-4">
+                      <p className="text-sm">
+                        Ne pas dépasser les limites de caractères pour les wordings¹.<br />
+                        Dépasser les limites de caractères a pour conséquence d'empêcher la création de campagne.<br />
+                        Aucune tolérance n'est accordée.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 2. Livrables attendus par Spotify (en dernier) */}
                 <div className="mt-6">
                   <h2 className="text-2xl font-bold text-orange-500 mb-4">Livrables attendus par Spotify</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2038,21 +2074,6 @@ export default function StudioPage() {
                       </ul>
                     </div>
                   </div>
-                </div>
-
-                {/* H2 : Recommandations et contraintes */}
-                <div className="mt-6">
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Recommandations et contraintes</h2>
-                  
-                    <Card>
-                    <CardContent className="pt-4">
-                      <p className="text-sm">
-                        Ne pas dépasser les limites de caractères pour les wordings¹.<br />
-                        Dépasser les limites de caractères a pour conséquence d'empêcher la création de campagne.<br />
-                        Aucune tolérance n'est accordée.
-                      </p>
-                      </CardContent>
-                    </Card>
                 </div>
 
                 {/* Légende tout en bas de la section Spotify */}
