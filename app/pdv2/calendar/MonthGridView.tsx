@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { getPlatformColor } from './colors'
+import { getPlatformColor, getPlatformPhaseColor, getPhaseIndexByPlatformKey } from './colors'
 import { useCalendarStore } from './store'
 import type { CalendarItem } from './types'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -34,6 +34,8 @@ export function MonthGridView({
   onPlatformStartDateSet,
   onPlatformDaysChange,
   calendarWarnings,
+  twoMonths = false,
+  showLegend = true,
 }: {
   startDate: string
   duration: number
@@ -41,6 +43,10 @@ export function MonthGridView({
   onPlatformStartDateSet?: (entryKey: string, startDate: string) => void
   onPlatformDaysChange?: (entryKey: string, days: number) => void
   calendarWarnings?: string[]
+  /** true = afficher 2 mois côte à côte (onglet Rétroplanning), false = 1 mois (modale stratégie) */
+  twoMonths?: boolean
+  /** false = masquer la légende à droite (vue rétroplanning 2 mois) */
+  showLegend?: boolean
 }) {
   const selectedPlatformKey = useCalendarStore((s) => s.selectedPlatform)
   const setSelectedPlatform = useCalendarStore((s) => s.setSelectedPlatform)
@@ -61,74 +67,42 @@ export function MonthGridView({
     setDisplayMonth(parseInt(startDate.slice(5, 7), 10))
   }, [startDate])
 
-  const firstDay = new Date(displayYear, displayMonth - 1, 1)
-  const lastDay = new Date(displayYear, displayMonth, 0).getDate()
-  const startOffset = (firstDay.getDay() + 6) % 7
-  const gridSlots: { day: number | null; dateStr: string; dayIndex: number }[] = []
-  for (let i = 0; i < startOffset; i++) gridSlots.push({ day: null, dateStr: '', dayIndex: -1 })
-  for (let d = 1; d <= lastDay; d++) {
-    const dateStr = `${displayYear}-${String(displayMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const dayIndex = getDayIndex(dateStr, startDate)
-    gridSlots.push({ day: d, dateStr, dayIndex })
-  }
-  while (gridSlots.length < 42) gridSlots.push({ day: null, dateStr: '', dayIndex: -1 })
+  type GridSlot = { day: number | null; dateStr: string; dayIndex: number }
 
-  const monthLabel = firstDay.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
+  const buildMonthGrid = (year: number, month: number): { label: string; slots: GridSlot[] } => {
+    const firstDay = new Date(year, month - 1, 1)
+    const lastDay = new Date(year, month, 0).getDate()
+    const startOffset = (firstDay.getDay() + 6) % 7
+    const slots: GridSlot[] = []
+    for (let i = 0; i < startOffset; i++) slots.push({ day: null, dateStr: '', dayIndex: -1 })
+    for (let d = 1; d <= lastDay; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const dayIndex = getDayIndex(dateStr, startDate)
+      slots.push({ day: d, dateStr, dayIndex })
+    }
+    while (slots.length < 42) slots.push({ day: null, dateStr: '', dayIndex: -1 })
+    const label = firstDay.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
+    return { label, slots }
+  }
+
+  const currentMonthGrid = buildMonthGrid(displayYear, displayMonth)
+  const nextMonthDate = new Date(displayYear, displayMonth, 1)
+  const nextYear = nextMonthDate.getFullYear()
+  const nextMonthNum = nextMonthDate.getMonth() + 1
+  const nextMonthGrid = buildMonthGrid(nextYear, nextMonthNum)
+
+  const monthLabel = twoMonths
+    ? `${currentMonthGrid.label} — ${nextMonthGrid.label}`
+    : currentMonthGrid.label
+  const gridsToShow = twoMonths ? [currentMonthGrid, nextMonthGrid] : [currentMonthGrid]
 
   const makeItemKey = (item: CalendarItem): string =>
     `${item.platform}::${(item.objective || '').trim()}`
 
-  // Couleurs nuancées par plateforme + objectif (ex: Search Clics vs Search Conversion)
-  function adjustHex(hex: string, amount: number): string {
-    // amount > 0 → éclaircir, amount < 0 → assombrir
-    const clean = hex.replace('#', '')
-    const num = parseInt(clean, 16)
-    if (Number.isNaN(num)) return hex
-    const r = (num >> 16) & 0xff
-    const g = (num >> 8) & 0xff
-    const b = num & 0xff
-    const fn = (c: number) =>
-      amount >= 0
-        ? Math.min(255, Math.round(c + (255 - c) * amount))
-        : Math.max(0, Math.round(c * (1 + amount)))
-    const nr = fn(r)
-    const ng = fn(g)
-    const nb = fn(b)
-    return `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb
-      .toString(16)
-      .padStart(2, '0')}`
-  }
+  const phaseIndexMap = useMemo(() => getPhaseIndexByPlatformKey(items), [items])
 
-  const colorByItemKey = useMemo(() => {
-    const map: Record<string, string> = {}
-    const objectivesByPlatform: Record<string, string[]> = {}
-    items.forEach((item) => {
-      const obj = (item.objective || '').trim()
-      const list = objectivesByPlatform[item.platform] ?? (objectivesByPlatform[item.platform] = [])
-      if (!list.includes(obj)) list.push(obj)
-    })
-    Object.entries(objectivesByPlatform).forEach(([platform, objectives]) => {
-      const base = getPlatformColor(platform)
-      objectives.forEach((obj, idx) => {
-        const key = `${platform}::${obj}`
-        if (idx === 0) {
-          map[key] = base
-        } else if (idx === 1) {
-          // 2ème objectif : nuance nettement plus claire
-          map[key] = adjustHex(base, 0.4)
-        } else {
-          // 3ème (rare) : nuance nettement plus sombre
-          map[key] = adjustHex(base, -0.35)
-        }
-      })
-    })
-    return map
-  }, [items])
-
-  const getItemColor = (item: CalendarItem): string => {
-    const key = `${item.platform}::${(item.objective || '').trim()}`
-    return colorByItemKey[key] ?? getPlatformColor(item.platform)
-  }
+  const getItemColor = (item: CalendarItem): string =>
+    getPlatformPhaseColor(item.platform, phaseIndexMap.get(item.platform) ?? 0)
 
   const handleDayClick = (dateStr: string) => {
     if (!selectedPlatformKey || !onPlatformStartDateSet) return
@@ -176,59 +150,77 @@ export function MonthGridView({
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full max-w-full min-w-0">
-            {WEEKDAYS.map((wd) => (
-              <div
-                key={wd}
-                className="min-w-0 py-1.5 text-center text-xs font-medium text-muted-foreground"
-              >
-                {wd}
-              </div>
-            ))}
-            {gridSlots.slice(0, 42).map((slot, i) => {
-              const activePlatforms =
-                slot.day != null
-                  ? items.filter((item) =>
-                      isPlatformActiveOnDay(item, slot.dayIndex, duration),
-                    )
-                  : []
-              const isDayClickable = slot.day != null && !!selectedPlatformKey && !!onPlatformStartDateSet
-              return (
-                <div
-                  key={i}
-                  role={isDayClickable ? 'button' : undefined}
-                  tabIndex={isDayClickable ? 0 : undefined}
-                  onClick={isDayClickable ? () => handleDayClick(slot.dateStr) : undefined}
-                  onKeyDown={isDayClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleDayClick(slot.dateStr) } : undefined}
-                  className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md text-sm px-0.5 ${
-                    slot.day == null
-                      ? 'bg-transparent text-muted-foreground/40'
-                      : 'bg-muted/20 text-foreground'
-                  } ${isDayClickable ? 'cursor-pointer hover:bg-primary/15 hover:ring-2 hover:ring-primary/40 transition-colors' : ''}`}
-                >
-                  <span>{slot.day ?? ''}</span>
-                  {activePlatforms.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-0.5">
-                      {activePlatforms.map((item) => (
-                        <span
-                          key={item.platform}
-                          className="inline-block h-2 w-2 rounded-full shrink-0 ring-1 ring-white/80"
-                          style={{ backgroundColor: getItemColor(item) }}
-                          title={`${item.platform}${item.objective ? ` — ${item.objective}` : ''}`}
-                        />
-                      ))}
-                    </div>
-                  )}
+            <div className={twoMonths ? 'grid grid-cols-1 md:grid-cols-2 gap-4 w-full' : 'w-full'}>
+              {gridsToShow.map((month, idx) => (
+                <div key={idx} className="w-full">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full max-w-full min-w-0 mb-1">
+                    {WEEKDAYS.map((wd) => (
+                      <div
+                        key={wd}
+                        className="min-w-0 py-1.5 text-center text-xs font-medium text-muted-foreground"
+                      >
+                        {wd}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full max-w-full min-w-0">
+                    {month.slots.slice(0, 42).map((slot, i) => {
+                      const activePlatforms =
+                        slot.day != null
+                          ? items.filter((item) =>
+                              isPlatformActiveOnDay(item, slot.dayIndex, duration),
+                            )
+                          : []
+                      const isDayClickable =
+                        slot.day != null && !!selectedPlatformKey && !!onPlatformStartDateSet
+                      return (
+                        <div
+                          key={i}
+                          role={isDayClickable ? 'button' : undefined}
+                          tabIndex={isDayClickable ? 0 : undefined}
+                          onClick={isDayClickable ? () => handleDayClick(slot.dateStr) : undefined}
+                          onKeyDown={
+                            isDayClickable
+                              ? (e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') handleDayClick(slot.dateStr)
+                                }
+                              : undefined
+                          }
+                          className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md text-sm px-0.5 ${
+                            slot.day == null
+                              ? 'bg-transparent text-muted-foreground/40'
+                              : 'bg-muted/20 text-foreground'
+                          } ${
+                            isDayClickable
+                              ? 'cursor-pointer hover:bg-primary/15 hover:ring-2 hover:ring-primary/40 transition-colors'
+                              : ''
+                          }`}
+                        >
+                          <span>{slot.day ?? ''}</span>
+                          {activePlatforms.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-0.5">
+                              {activePlatforms.map((item) => (
+                                <span
+                                  key={item.platform}
+                                  className="inline-block h-2 w-2 rounded-full shrink-0 ring-1 ring-white/80"
+                                  style={{ backgroundColor: getItemColor(item) }}
+                                  title={`${item.platform}${
+                                    item.objective ? ` — ${item.objective}` : ''
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              )
-            })}
+              ))}
             </div>
           </div>
-          {items.length > 0 && (
+          {showLegend && items.length > 0 && (
             <div className="flex-[2] min-w-[220px] max-w-sm border-l pl-4 py-1 space-y-3">
-              <div className="text-xs font-medium text-muted-foreground">
-                Légende — Cliquez sur une plateforme puis sur un jour pour définir la date de début
-              </div>
               <div className="flex flex-col gap-1.5">
                 {items.map((item) => {
                   const key = makeItemKey(item)

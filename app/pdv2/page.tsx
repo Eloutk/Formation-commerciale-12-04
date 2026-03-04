@@ -21,8 +21,10 @@ import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle }
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
-import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
+import { RetroPlanningPanel } from '@/app/pdv2/calendar/RetroPlanningPanel'
+import type { CalendarPlatformSource, RetroPlatformPhase } from '@/app/pdv2/calendar/types'
 import { getPlatformColor } from '@/app/pdv2/calendar/colors'
+import { autoDistribute, getDatesFromStart } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
 
 // Liste des plateformes dans l'ordre souhaité
@@ -1350,6 +1352,11 @@ export default function PDV2Page() {
   const [newStrategyName, setNewStrategyName] = useState('')
   const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
   const [renamingStrategyName, setRenamingStrategyName] = useState('')
+  // Rétroplanning (onglet dédié, indépendant des stratégies)
+  const [retroCalendarData, setRetroCalendarData] = useState<StrategyCalendarData | null>(null)
+  const [retroStartDate, setRetroStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [retroDurationDays, setRetroDurationDays] = useState(365)
+  const [retroPlatformPhases, setRetroPlatformPhases] = useState<RetroPlatformPhase[]>([])
   // Dates de début par plateforme (utilisées dans le popup Calendrier)
   const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
   // Calendrier de diffusion : stratégie en cours d'édition
@@ -2088,6 +2095,55 @@ export default function PDV2Page() {
     setSmsPdfImage(null)
   }
 
+  function handleExportRetroPDF(data: StrategyCalendarData) {
+    const dates = getDatesFromStart(data.startDate, data.duration)
+    const formatDate = (dayIndex: number) => {
+      const d = dates[dayIndex]
+      if (!d) return '–'
+      const [y, m, day] = d.split('-')
+      return `${day}/${m}/${y?.slice(2) ?? ''}`
+    }
+    const RetroPDFDoc = () => (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: '#1a1a1a' }}>
+            Rétroplanning – Calendrier de diffusion
+          </Text>
+          <Text style={{ fontSize: 10, color: '#666', marginBottom: 12 }}>
+            Période du {formatDate(0)} au {formatDate(data.duration - 1)} ({data.duration} jours)
+          </Text>
+          <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd', paddingVertical: 6, marginBottom: 4 }}>
+            <Text style={{ width: '35%', fontSize: 9, fontWeight: 'bold' }}>Phase / Plateforme</Text>
+            <Text style={{ width: '22%', fontSize: 9, fontWeight: 'bold' }}>Début</Text>
+            <Text style={{ width: '22%', fontSize: 9, fontWeight: 'bold' }}>Fin</Text>
+            <Text style={{ width: '12%', fontSize: 9, fontWeight: 'bold' }}>Jours</Text>
+          </View>
+          {data.items.map((item, i) => {
+            const startStr = formatDate(item.startDay)
+            const endStr = formatDate(item.startDay + item.length - 1)
+            const phaseLabel = item.platform.includes('::') ? item.platform.replace('::', ' – ') : (item.objective ? `${item.platform} – ${item.objective}` : item.platform)
+            return (
+              <View key={i} style={{ flexDirection: 'row', borderBottomWidth: 0.5, borderColor: '#eee', paddingVertical: 5 }}>
+                <Text style={{ width: '35%', fontSize: 9 }}>{phaseLabel}</Text>
+                <Text style={{ width: '22%', fontSize: 9 }}>{startStr}</Text>
+                <Text style={{ width: '22%', fontSize: 9 }}>{endStr}</Text>
+                <Text style={{ width: '12%', fontSize: 9 }}>{item.length}</Text>
+              </View>
+            )
+          })}
+        </Page>
+      </Document>
+    )
+    pdf(<RetroPDFDoc />).toBlob().then((blob) => {
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Retroplanning_${data.startDate}_${data.duration}j.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
+    })
+  }
+
   if (!adminChecked) {
     return (
       <div className="container mx-auto px-4 py-24 flex items-center justify-center">
@@ -2130,13 +2186,13 @@ export default function PDV2Page() {
                 value="calendar"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
               >
-                Calendrier
+                Rétroplanning
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        {pdvSection !== 'sms' && (
+        {pdvSection === 'social' && (
         <>
         {/* Layout 2 colonnes sur desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
@@ -3538,6 +3594,103 @@ export default function PDV2Page() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {pdvSection === 'calendar' && (
+          <div className="mt-6 space-y-6">
+            <RetroPlanningPanel
+              availablePlatforms={PLATFORMS_ORDER}
+              startDate={retroStartDate}
+              onStartDateChange={setRetroStartDate}
+              durationDays={retroDurationDays}
+              onDurationDaysChange={setRetroDurationDays}
+              platformPhases={retroPlatformPhases}
+              onPlatformPhasesChange={setRetroPlatformPhases}
+              onApplyDistribution={() => {
+                const duration = Math.max(1, retroDurationDays)
+                const sources: CalendarPlatformSource[] = retroPlatformPhases.flatMap(({ platform, phases }) => {
+                  if (phases.length === 0) {
+                    return [{ platform, budget: 0, kpiLabel: '', maxDays: duration }]
+                  }
+                  return phases.map((ph) => ({
+                    platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
+                    budget: 0,
+                    kpiLabel: '',
+                    maxDays: Math.max(1, ph.defaultDays ?? duration),
+                  }))
+                })
+                if (sources.length === 0) return
+                const items = autoDistribute(sources, duration)
+                setRetroCalendarData({
+                  startDate: retroStartDate,
+                  duration,
+                  items: items.map((i) => ({
+                    ...i,
+                    objective: i.platform.includes('::') ? i.platform.split('::')[1] : undefined,
+                  })),
+                })
+              }}
+              onExportPDF={() => {
+                if (!retroCalendarData?.items?.length) return
+                handleExportRetroPDF(retroCalendarData)
+              }}
+              calendarData={retroCalendarData}
+            />
+            {(() => {
+              const duration = retroCalendarData?.duration && retroCalendarData.duration > 0
+                ? retroCalendarData.duration
+                : Math.max(1, retroDurationDays)
+              const defaultStart = retroStartDate || new Date().toISOString().slice(0, 10)
+
+              const platformSources: CalendarPlatformSource[] =
+                retroPlatformPhases.length > 0
+                  ? retroPlatformPhases.flatMap(({ platform, phases }) => {
+                      if (phases.length === 0) {
+                        return [{ platform, budget: 0, kpiLabel: '', maxDays: duration }]
+                      }
+                      return phases.map((ph) => ({
+                        platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
+                        budget: 0,
+                        kpiLabel: '',
+                        maxDays: Math.max(1, ph.defaultDays ?? duration),
+                      }))
+                    })
+                  : retroCalendarData?.items?.length
+                    ? retroCalendarData.items.map((item) => ({
+                        platform: item.objective ? `${item.platform}::${item.objective}` : item.platform,
+                        budget: item.budget ?? 0,
+                        kpiLabel: item.kpiLabel ?? '',
+                        maxDays: Math.max(1, item.length || duration),
+                      }))
+                    : []
+
+              const existingFromForm: StrategyCalendarData | undefined = retroCalendarData
+                ? retroCalendarData
+                : { startDate: defaultStart, duration, items: [] }
+
+              const hasItems = !!retroCalendarData?.items?.length
+
+              return (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    {hasItems
+                      ? 'Visualisez et ajustez votre rétroplanning. Vue mois : sélectionnez une phase dans la légende puis cliquez sur un jour. Vue timeline : glissez les barres pour déplacer, redimensionnez par la poignée à droite.'
+                      : 'Configurez les plateformes et phases ci-dessus, puis cliquez sur « Répartir sur le calendrier ». Vous pourrez ensuite déplacer et redimensionner les phases sur le calendrier.'}
+                  </p>
+                  <StrategyCalendarBuilder
+                    key={`retro-${existingFromForm?.startDate}-${existingFromForm?.duration}`}
+                    platformSources={platformSources}
+                    duration={existingFromForm?.duration ?? duration}
+                    existing={existingFromForm}
+                    fullWidth
+                    twoMonths={duration <= 120}
+                    forceTimeGranularity={duration > 120 ? 'week' : undefined}
+                    onSave={(data) => setRetroCalendarData(data)}
+                  />
+                </>
+              )
+            })()}
           </div>
         )}
       </div>

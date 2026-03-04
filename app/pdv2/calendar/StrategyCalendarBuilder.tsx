@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react'
 import { useCalendarStore } from './store'
-import type { CalendarPlatformSource, StrategyCalendarData } from './types'
+import type { CalendarPlatformSource, StrategyCalendarData, CalendarTimeGranularity } from './types'
 import { CalendarToolbar } from './CalendarToolbar'
 import { TimelineView } from './TimelineView'
 
@@ -23,6 +23,12 @@ export interface StrategyCalendarBuilderProps {
   calendarWarnings?: string[]
   /** Enfants optionnels (ex: bouton Enregistrer en bas du panneau) */
   children?: React.ReactNode
+  /** Affichage large (onglet Rétroplanning plein écran) */
+  fullWidth?: boolean
+  /** Afficher 2 mois côte à côte (onglet Rétroplanning). false = 1 mois (modale stratégie) */
+  twoMonths?: boolean
+  /** Forcer la granularité (ex. 'week' pour timeline glisser-déposer sur longue période) */
+  forceTimeGranularity?: CalendarTimeGranularity
 }
 
 export function StrategyCalendarBuilder({
@@ -34,15 +40,23 @@ export function StrategyCalendarBuilder({
   onPlatformDaysChange,
   calendarWarnings,
   children,
+  fullWidth,
+  twoMonths = false,
+  forceTimeGranularity,
 }: StrategyCalendarBuilderProps) {
   const initFromStrategy = useCalendarStore((s) => s.initFromStrategy)
   const getCalendarData = useCalendarStore((s) => s.getCalendarData)
   const validate = useCalendarStore((s) => s.validate)
+  const setTimeGranularity = useCalendarStore((s) => s.setTimeGranularity)
 
   const itemsSignature = existing?.items?.map((i) => `${i.platform}-${i.startDay}-${i.length}`).join('|') ?? ''
   useEffect(() => {
     initFromStrategy(platformSources, duration, existing)
   }, [platformSources, duration, existing?.startDate, existing?.duration, itemsSignature, initFromStrategy])
+
+  useEffect(() => {
+    if (forceTimeGranularity) setTimeGranularity(forceTimeGranularity)
+  }, [forceTimeGranularity, setTimeGranularity])
 
   const handleSave = () => {
     if (!validate()) return
@@ -50,23 +64,26 @@ export function StrategyCalendarBuilder({
     onSave?.(data)
   }
 
+  const maxWidthClass = fullWidth ? 'max-w-6xl' : 'max-w-4xl'
+
   return (
     <div className="w-full flex flex-col gap-3 p-4 rounded-xl border bg-muted/20 min-h-0">
       {/* Barre d'info / erreurs au-dessus, centrée */}
       <div className="mb-1 flex justify-center">
-        <div className="w-full max-w-4xl flex flex-col gap-2">
-          <CalendarToolbar />
+        <div className={`w-full ${maxWidthClass} flex flex-col gap-2`}>
+          <CalendarToolbar showGranularitySelector={fullWidth} />
           {children}
         </div>
       </div>
 
       {/* Calendrier centré dans l'encart, pleine largeur dispo */}
       <div className="flex justify-center">
-        <div className="w-full max-w-4xl">
+        <div className={`w-full ${maxWidthClass}`}>
           <TimelineView
             onPlatformStartDateSet={onPlatformStartDateChange}
             onPlatformDaysChange={onPlatformDaysChange}
             calendarWarnings={calendarWarnings}
+            twoMonths={twoMonths}
           />
         </div>
       </div>

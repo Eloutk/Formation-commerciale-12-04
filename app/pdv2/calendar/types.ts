@@ -28,3 +28,15 @@ export interface CalendarPlatformSource {
   /** Max days allowed for this platform (from strategy) */
   maxDays: number
 }
+
+/** Une phase nommée pour le rétroplanning (ex. "META::Lancement") */
+export interface RetroPhase {
+  name: string
+  defaultDays?: number
+}
+
+/** Config rétroplanning : plateforme + phases personnalisées */
+export interface RetroPlatformPhase {
+  platform: string
+  phases: RetroPhase[]
+}
