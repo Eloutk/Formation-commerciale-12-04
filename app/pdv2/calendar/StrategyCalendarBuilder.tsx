@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react'
 import { useCalendarStore } from './store'
 import type { CalendarPlatformSource, StrategyCalendarData, CalendarTimeGranularity } from './types'
+import { getDayIndex } from '@/lib/utils/calendarEngine'
 import { CalendarToolbar } from './CalendarToolbar'
 import { TimelineView } from './TimelineView'
 
@@ -48,6 +49,10 @@ export function StrategyCalendarBuilder({
   const getCalendarData = useCalendarStore((s) => s.getCalendarData)
   const validate = useCalendarStore((s) => s.validate)
   const setTimeGranularity = useCalendarStore((s) => s.setTimeGranularity)
+  const storeStartDate = useCalendarStore((s) => s.startDate)
+  const storeDuration = useCalendarStore((s) => s.duration)
+  const moveItem = useCalendarStore((s) => s.moveItem)
+  const resizeItem = useCalendarStore((s) => s.resizeItem)
 
   const itemsSignature = existing?.items?.map((i) => `${i.platform}-${i.startDay}-${i.length}`).join('|') ?? ''
   useEffect(() => {
@@ -80,8 +85,23 @@ export function StrategyCalendarBuilder({
       <div className="flex justify-center">
         <div className={`w-full ${maxWidthClass}`}>
           <TimelineView
-            onPlatformStartDateSet={onPlatformStartDateChange}
-            onPlatformDaysChange={onPlatformDaysChange}
+            onPlatformStartDateSet={
+              storeStartDate && storeDuration > 0
+                ? (entryKey: string, dateStr: string) => {
+                    const dayIndex = getDayIndex(dateStr, storeStartDate)
+                    moveItem(entryKey, Math.max(0, Math.min(dayIndex, storeDuration - 1)))
+                    onPlatformStartDateChange?.(entryKey, dateStr)
+                  }
+                : onPlatformStartDateChange
+            }
+            onPlatformDaysChange={
+              onPlatformDaysChange
+                ? (key, days) => {
+                    resizeItem(key, days)
+                    onPlatformDaysChange(key, days)
+                  }
+                : undefined
+            }
             calendarWarnings={calendarWarnings}
             twoMonths={twoMonths}
           />

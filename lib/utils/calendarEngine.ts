@@ -2,7 +2,17 @@ import type { CalendarItem, StrategyCalendarData } from '@/app/pdv2/calendar/typ
 import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
 
 /**
- * Generate dates from startDate for N days (YYYY-MM-DD).
+ * Index du jour (0, 1, 2, …) pour une date YYYY-MM-DD par rapport à la date de début.
+ * Utiliser partout (grille mois + clic) pour garder les pastilles alignées.
+ */
+export function getDayIndex(dateStr: string, startDate: string): number {
+  const a = new Date(dateStr + 'T12:00:00').getTime()
+  const b = new Date(startDate + 'T12:00:00').getTime()
+  return Math.round((a - b) / (24 * 60 * 60 * 1000))
+}
+
+/**
+ * Generate dates from startDate for N days (YYYY-MM-DD), en heure locale pour cohérence avec getDayIndex.
  */
 export function getDatesFromStart(startDate: string, days: number): string[] {
   const out: string[] = []
@@ -11,7 +21,10 @@ export function getDatesFromStart(startDate: string, days: number): string[] {
   for (let i = 0; i < days; i++) {
     const copy = new Date(d)
     copy.setDate(copy.getDate() + i)
-    out.push(copy.toISOString().slice(0, 10))
+    const y = copy.getFullYear()
+    const m = String(copy.getMonth() + 1).padStart(2, '0')
+    const day = String(copy.getDate()).padStart(2, '0')
+    out.push(`${y}-${m}-${day}`)
   }
   return out
 }

@@ -1357,6 +1357,8 @@ export default function PDV2Page() {
   const [retroStartDate, setRetroStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [retroDurationDays, setRetroDurationDays] = useState(365)
   const [retroPlatformPhases, setRetroPlatformPhases] = useState<RetroPlatformPhase[]>([])
+  const [retroLinkSocial, setRetroLinkSocial] = useState(false)
+  const [retroLinkSms, setRetroLinkSms] = useState(false)
   // Dates de début par plateforme (utilisées dans le popup Calendrier)
   const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
   // Calendrier de diffusion : stratégie en cours d'édition
@@ -3599,6 +3601,34 @@ export default function PDV2Page() {
 
         {pdvSection === 'calendar' && (
           <div className="mt-6 space-y-6">
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+              <Label className="text-sm font-medium">Lien avec les stratégies</Label>
+              <p className="text-xs text-muted-foreground">
+                Vous pouvez utiliser le rétroplanning seul ou l’associer à la stratégie Social media et/ou SMS.
+              </p>
+              <div className="flex flex-wrap gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={retroLinkSocial}
+                    onCheckedChange={(c) => setRetroLinkSocial(c === true)}
+                  />
+                  <span className="text-sm">
+                    Inclure la stratégie Social media
+                    {(() => {
+                      const block = strategies.find((s) => s.id === activeStrategyId)
+                      return block ? ` (${block.name})` : ''
+                    })()}
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={retroLinkSms}
+                    onCheckedChange={(c) => setRetroLinkSms(c === true)}
+                  />
+                  <span className="text-sm">Inclure la stratégie SMS / RCS</span>
+                </label>
+              </div>
+            </div>
             <RetroPlanningPanel
               availablePlatforms={PLATFORMS_ORDER}
               startDate={retroStartDate}
@@ -3607,6 +3637,18 @@ export default function PDV2Page() {
               onDurationDaysChange={setRetroDurationDays}
               platformPhases={retroPlatformPhases}
               onPlatformPhasesChange={setRetroPlatformPhases}
+              linkSocial={retroLinkSocial}
+              strategyItems={
+                retroLinkSocial
+                  ? (strategies.find((s) => s.id === activeStrategyId)?.items ?? []).map((it) => ({
+                      platform: it.platform,
+                      objective: it.objective,
+                      days: it.days,
+                    }))
+                  : []
+              }
+              linkSms={retroLinkSms}
+              smsType={smsType}
               onApplyDistribution={() => {
                 const duration = Math.max(1, retroDurationDays)
                 const sources: CalendarPlatformSource[] = retroPlatformPhases.flatMap(({ platform, phases }) => {
@@ -3636,14 +3678,107 @@ export default function PDV2Page() {
                 handleExportRetroPDF(retroCalendarData)
               }}
               calendarData={retroCalendarData}
+              onLinkedSocialPhaseAdd={
+                retroLinkSocial
+                  ? (platform, objective, days) => {
+                      const block = strategies.find((s) => s.id === activeStrategyId)
+                      if (!block) return
+                      const template = block.items.find((it) => it.platform === platform)
+                      const aeNum = template?.aePercentage ?? parseFloat(aePercentage) || 40
+                      const budget = template?.budget ?? 0
+                      const newItem: StrategyItem = {
+                        ...(template ?? {
+                          platform,
+                          objective: '',
+                          budget: 0,
+                          estimatedKPIs: 0,
+                          dailyBudget: 0,
+                          aeCheckValue: 0,
+                          isAvailable: true,
+                        }),
+                        id: `${platform}-${objective}-${Date.now()}`,
+                        platform,
+                        objective,
+                        days,
+                        aePercentage: aeNum,
+                        dailyBudget: budget * (aeNum / 100) / days,
+                        aeCheckValue:
+                          platform === 'Spotify'
+                            ? budget * (aeNum / 100)
+                            : (budget * (aeNum / 100)) / days,
+                      }
+                      setStrategies((prev) =>
+                        prev.map((s) =>
+                          s.id === activeStrategyId ? { ...s, items: [...s.items, newItem] } : s,
+                        ),
+                      )
+                    }
+                  : undefined
+              }
+              onLinkedSocialPhaseRemove={
+                retroLinkSocial
+                  ? (platform, objective) => {
+                      setStrategies((prev) =>
+                        prev.map((s) =>
+                          s.id === activeStrategyId
+                            ? {
+                                ...s,
+                                items: s.items.filter(
+                                  (it) => !(it.platform === platform && it.objective === objective),
+                                ),
+                              }
+                            : s,
+                        ),
+                      )
+                    }
+                  : undefined
+              }
+              onLinkedSocialPhaseUpdate={
+                retroLinkSocial
+                  ? (platform, objectiveIndex, updates) => {
+                      setStrategies((prev) =>
+                        prev.map((s) => {
+                          if (s.id !== activeStrategyId) return s
+                          const platformItems = s.items
+                            .map((it, i) => ({ it, i }))
+                            .filter(({ it }) => it.platform === platform)
+                          const target = platformItems[objectiveIndex]
+                          if (!target) return s
+                          const idx = target.i
+                          const item = s.items[idx]!
+                          const next = [...s.items]
+                          const name = updates.name ?? item.objective
+                          const days = updates.days ?? item.days
+                          const aeNum = item.aePercentage / 100
+                          next[idx] = {
+                            ...item,
+                            objective: name,
+                            days,
+                            dailyBudget: (item.budget * aeNum) / days,
+                            aeCheckValue:
+                              item.platform === 'Spotify'
+                                ? item.budget * aeNum
+                                : (item.budget * aeNum) / days,
+                          }
+                          return { ...s, items: next }
+                        }),
+                      )
+                    }
+                  : undefined
+              }
             />
             {(() => {
               const duration = retroCalendarData?.duration && retroCalendarData.duration > 0
                 ? retroCalendarData.duration
                 : Math.max(1, retroDurationDays)
               const defaultStart = retroStartDate || new Date().toISOString().slice(0, 10)
+              const daysBetween = (a: string, b: string) =>
+                Math.round(
+                  (new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) /
+                    (24 * 60 * 60 * 1000),
+                )
 
-              const platformSources: CalendarPlatformSource[] =
+              let platformSources: CalendarPlatformSource[] =
                 retroPlatformPhases.length > 0
                   ? retroPlatformPhases.flatMap(({ platform, phases }) => {
                       if (phases.length === 0) {
@@ -3665,11 +3800,122 @@ export default function PDV2Page() {
                       }))
                     : []
 
-              const existingFromForm: StrategyCalendarData | undefined = retroCalendarData
-                ? retroCalendarData
-                : { startDate: defaultStart, duration, items: [] }
+              let items: StrategyCalendarData['items'] = retroCalendarData?.items ?? []
+              if (!retroCalendarData?.items?.length && retroPlatformPhases.length > 0) {
+                items = []
+              } else if (retroCalendarData?.items?.length) {
+                items = [...retroCalendarData.items]
+              }
 
-              const hasItems = !!retroCalendarData?.items?.length
+              const strategyPlatformKeys = new Set<string>()
+
+              if (retroLinkSocial) {
+                const block = strategies.find((s) => s.id === activeStrategyId)
+                if (block?.items?.length) {
+                  const stratDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                  const stratStart = block.items
+                    .map((it) => defineDatesPerPlatform[`${it.platform}::${it.objective}`] ?? defaultStart)
+                    .reduce((min, d) => (d < min ? d : min), defaultStart)
+                  const offset = daysBetween(defaultStart, stratStart)
+                  const stratSources: CalendarPlatformSource[] = block.items.map((item) => ({
+                    platform: `${item.platform}::${item.objective}`,
+                    budget: item.budget ?? 0,
+                    kpiLabel: item.customKpiLabel ?? '',
+                    maxDays: Math.max(1, item.days ?? stratDuration),
+                  }))
+                  const stratItems: StrategyCalendarData['items'] = block.items.map((item) => {
+                    const key = `${item.platform}::${item.objective}`
+                    strategyPlatformKeys.add(key)
+                    const startDate = defineDatesPerPlatform[key] ?? stratStart
+                    const startDay = Math.max(0, daysBetween(defaultStart, startDate))
+                    const length = Math.max(1, item.days ?? stratDuration)
+                    return {
+                      platform: key,
+                      startDay,
+                      length,
+                      budget: item.budget,
+                      kpiLabel: item.customKpiLabel,
+                      objective: item.objective,
+                    }
+                  })
+                  platformSources = [...platformSources, ...stratSources]
+                  items = [...items, ...stratItems]
+                } else if (block?.calendar && isStrategyCalendarData(block.calendar)) {
+                  const cal = block.calendar
+                  const offset = daysBetween(defaultStart, cal.startDate)
+                  const calItems = cal.items.map((item) => {
+                    const key = item.objective ? `${item.platform}::${item.objective}` : item.platform
+                    strategyPlatformKeys.add(key)
+                    return {
+                      ...item,
+                      platform: key,
+                      startDay: Math.max(0, offset + item.startDay),
+                      length: item.length,
+                    }
+                  })
+                  items = [...items, ...calItems]
+                  platformSources = [
+                    ...platformSources,
+                    ...cal.items.map((item) => ({
+                      platform: item.objective ? `${item.platform}::${item.objective}` : item.platform,
+                      budget: item.budget ?? 0,
+                      kpiLabel: item.kpiLabel ?? '',
+                      maxDays: Math.max(1, item.length ?? duration),
+                    })),
+                  ]
+                }
+              }
+
+              if (retroLinkSms) {
+                const smsPlatform = smsType === 'sms' ? 'SMS' : 'RCS'
+                const smsLength = Math.max(30, campaignMonthsNumber * 30)
+                strategyPlatformKeys.add(smsPlatform)
+                platformSources = [...platformSources, { platform: smsPlatform, budget: 0, kpiLabel: '', maxDays: smsLength }]
+                items = [...items, { platform: smsPlatform, startDay: 0, length: Math.min(smsLength, duration), budget: 0, kpiLabel: '' }]
+              }
+
+              const mergedDuration = Math.max(
+                duration,
+                ...items.map((i) => i.startDay + i.length),
+              )
+              const existingFromForm: StrategyCalendarData = {
+                startDate: defaultStart,
+                duration: mergedDuration,
+                items,
+              }
+
+              const hasItems = items.length > 0
+
+              const handleSave = (data: StrategyCalendarData) => {
+                const retroItems = data.items.filter(
+                  (i) => !strategyPlatformKeys.has(i.platform),
+                )
+                const socialItems = data.items.filter((i) => {
+                  if (i.platform === 'SMS' || i.platform === 'RCS') return false
+                  return strategyPlatformKeys.has(i.platform)
+                })
+                setRetroCalendarData({ ...data, items: retroItems, duration: data.duration })
+                if (retroLinkSocial && socialItems.length > 0) {
+                  setStrategies((prev) =>
+                    prev.map((s) =>
+                      s.id === activeStrategyId
+                        ? { ...s, calendar: { startDate: data.startDate, duration: data.duration, items: socialItems } }
+                        : s,
+                    ),
+                  )
+                  const formatDayToDate = (dayIndex: number) => {
+                    const d = new Date(data.startDate + 'T12:00:00')
+                    d.setDate(d.getDate() + dayIndex)
+                    return d.toISOString().slice(0, 10)
+                  }
+                  setDefineDatesPerPlatform((prev) => ({
+                    ...prev,
+                    ...Object.fromEntries(
+                      socialItems.map((i) => [i.platform, formatDayToDate(i.startDay)]),
+                    ),
+                  }))
+                }
+              }
 
               return (
                 <>
@@ -3679,14 +3925,53 @@ export default function PDV2Page() {
                       : 'Configurez les plateformes et phases ci-dessus, puis cliquez sur « Répartir sur le calendrier ». Vous pourrez ensuite déplacer et redimensionner les phases sur le calendrier.'}
                   </p>
                   <StrategyCalendarBuilder
-                    key={`retro-${existingFromForm?.startDate}-${existingFromForm?.duration}`}
+                    key={`retro-${existingFromForm.startDate}-${existingFromForm.duration}-${retroLinkSocial}-${retroLinkSms}`}
                     platformSources={platformSources}
-                    duration={existingFromForm?.duration ?? duration}
+                    duration={existingFromForm.duration}
                     existing={existingFromForm}
                     fullWidth
-                    twoMonths={duration <= 120}
-                    forceTimeGranularity={duration > 120 ? 'week' : undefined}
-                    onSave={(data) => setRetroCalendarData(data)}
+                    twoMonths={mergedDuration <= 120}
+                    forceTimeGranularity={mergedDuration > 120 ? 'week' : undefined}
+                    onSave={handleSave}
+                    onPlatformStartDateChange={
+                      retroLinkSocial
+                        ? (entryKey, startDate) => {
+                            if (strategyPlatformKeys.has(entryKey) && entryKey !== 'SMS' && entryKey !== 'RCS') {
+                              setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                            }
+                          }
+                        : undefined
+                    }
+                    onPlatformDaysChange={
+                      retroLinkSocial
+                        ? (entryKey, days) => {
+                            setStrategies((prev) =>
+                              prev.map((s) =>
+                                s.id !== activeStrategyId
+                                  ? s
+                                  : {
+                                      ...s,
+                                      items: s.items.map((it) => {
+                                        if (`${it.platform}::${it.objective}` !== entryKey) return it
+                                        const aeFactor = (it.aePercentage ?? 0) / 100
+                                        const dailyBudget = (it.budget ?? 0) * aeFactor / days
+                                        const aeCheckValue =
+                                          it.platform === 'Spotify'
+                                            ? (it.budget ?? 0) * aeFactor
+                                            : ((it.budget ?? 0) * aeFactor) / days
+                                        return {
+                                          ...it,
+                                          days,
+                                          dailyBudget,
+                                          aeCheckValue,
+                                        }
+                                      }),
+                                    },
+                              ),
+                            )
+                          }
+                        : undefined
+                    }
                   />
                 </>
               )

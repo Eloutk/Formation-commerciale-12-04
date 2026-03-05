@@ -4,15 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { getPlatformColor, getPlatformPhaseColor, getPhaseIndexByPlatformKey } from './colors'
 import { useCalendarStore } from './store'
 import type { CalendarItem } from './types'
+import { getDayIndex } from '@/lib/utils/calendarEngine'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-
-function getDayIndex(dateStr: string, startDate: string): number {
-  const a = new Date(dateStr + 'T12:00:00').getTime()
-  const b = new Date(startDate + 'T12:00:00').getTime()
-  return Math.round((a - b) / (24 * 60 * 60 * 1000))
-}
 
 function isPlatformActiveOnDay(
   item: CalendarItem,
@@ -186,6 +181,7 @@ export function MonthGridView({
                                 }
                               : undefined
                           }
+                          title={isDayClickable ? 'Cliquer pour définir la date de début de la phase sélectionnée' : undefined}
                           className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md text-sm px-0.5 ${
                             slot.day == null
                               ? 'bg-transparent text-muted-foreground/40'
@@ -225,7 +221,6 @@ export function MonthGridView({
                 {items.map((item) => {
                   const key = makeItemKey(item)
                   const isSelected = selectedPlatformKey === key
-                  const maxDays = platformSources.find((p) => p.platform === item.platform)?.maxDays ?? 365
                   return (
                     <div key={item.platform} className="flex flex-col gap-1">
                       <button
@@ -240,29 +235,14 @@ export function MonthGridView({
                           style={{ backgroundColor: getItemColor(item) }}
                         />
                         <span className="text-xs font-medium">
-                          {item.platform}
-                          {item.objective ? ` — ${item.objective}` : ''}
+                          {item.platform.includes('::')
+                            ? item.platform.replace('::', ' – ')
+                            : item.objective
+                              ? `${item.platform} — ${item.objective}`
+                              : item.platform}
                         </span>
                         {isSelected && <span className="text-xs text-primary ml-1">(sélectionnée)</span>}
                       </button>
-                      {isSelected && onPlatformDaysChange && (
-                        <div className="flex items-center gap-2 px-2 py-1 -mx-2 rounded-md bg-muted/30">
-                          <label className="text-xs text-muted-foreground whitespace-nowrap">Jours :</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={maxDays}
-                            value={item.length}
-                            onChange={(e) => {
-                              const v = parseInt(e.target.value, 10)
-                              if (!Number.isNaN(v) && v >= 1 && v <= maxDays) {
-                                onPlatformDaysChange(key, v)
-                              }
-                            }}
-                            className="w-14 rounded border border-input bg-background px-1.5 py-0.5 text-xs"
-                          />
-                        </div>
-                      )}
                     </div>
                   )
                 })}

@@ -11,6 +11,8 @@ export const PLATFORM_COLORS: Record<string, string> = {
   Snapchat: '#FFB800',    // or / jaune
   Tiktok: '#212529',      // gris très foncé
   Spotify: '#2DC653',     // vert vif
+  SMS: '#0ea5e9',         // sky
+  RCS: '#06b6d4',        // cyan
 }
 
 /** Retourne la couleur pour une plateforme (accepte "META::Phase 1" → utilise META) */
