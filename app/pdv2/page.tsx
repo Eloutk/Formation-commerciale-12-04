@@ -3684,7 +3684,7 @@ export default function PDV2Page() {
                       const block = strategies.find((s) => s.id === activeStrategyId)
                       if (!block) return
                       const template = block.items.find((it) => it.platform === platform)
-                      const aeNum = template?.aePercentage ?? parseFloat(aePercentage) || 40
+                      const aeNum = template?.aePercentage ?? (parseFloat(aePercentage) || 40)
                       const budget = template?.budget ?? 0
                       const newItem: StrategyItem = {
                         ...(template ?? {

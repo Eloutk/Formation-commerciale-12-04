@@ -1,28 +1,49 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Pencil, Calendar } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import { UNIT_COSTS, calculatePriceForKPIs, calculateKPIsForBudget } from '@/lib/pdv-calculations'
+import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
+import { cn } from '@/lib/utils'
+import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
+import type { CalendarPlatformSource, StrategyCalendarData } from '@/app/pdv2/calendar/types'
+import { useCalendarStore } from '@/app/pdv2/calendar/store'
 
 // Liste des plateformes dans l'ordre souhaité
-const PLATFORMS_ORDER = ['META', 'Display', 'Insta only', 'Youtube', 'LinkedIn', 'Snapchat', 'Tiktok', 'Spotify']
+const PLATFORMS_ORDER = [
+  'META',
+  'Display',
+  'Perf max',
+  'Demand Gen',
+  'Search',
+  'Insta only',
+  'Youtube',
+  'LinkedIn',
+  'Snapchat',
+  'Tiktok',
+  'Spotify',
+] as const
 
 const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
   META: '/images/Logo META.png',
   Display: '/images/Logo Google.png',
+  'Perf max': '/images/Logo Google.png',
+  'Demand Gen': '/images/Logo Google.png',
+  Search: '/images/Logo Google.png',
   Youtube: '/images/Logo YouTube.png',
   LinkedIn: '/images/Logo LinkedIn.png',
   Snapchat: '/images/Logo Snapchat.png',
@@ -58,6 +79,9 @@ const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
+  'Perf max': DEFAULT_CUSTOM_OBJECTIVES,
+  'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
+  Search: DEFAULT_CUSTOM_OBJECTIVES,
   'Insta only': INSTA_CUSTOM_OBJECTIVES,
   Youtube: ['Impressions'],
   LinkedIn: LINKEDIN_CUSTOM_OBJECTIVES,
@@ -87,6 +111,17 @@ function PlatformBadge({ platform, withDownload = false }: { platform: string; w
         </a>
       )}
     </span>
+  )
+}
+
+function EditableInput(props: React.ComponentProps<typeof Input>) {
+  const { className, type, ...rest } = props
+  if (type === 'file') return <Input {...props} />
+  return (
+    <div className="relative w-full">
+      <Input type={type} {...rest} className={cn('pr-8', className)} />
+      <Pencil className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden />
+    </div>
   )
 }
 
@@ -141,12 +176,29 @@ interface StrategyItem extends TableRowData {
   days: number
   // % AE utilisé au moment de l'ajout (ex: 40 pour 40 %)
   aePercentage: number
+  // Libellé KPI personnalisé éventuel (ex: Search clics)
+  customKpiLabel?: string
+  // Indique si les tarifs direction étaient appliqués
+  tarifsDirection?: boolean
+}
+
+interface StrategyCalendar {
+  startDate: string
+  duration: number
+  items: StrategyCalendarData['items']
+}
+
+function isStrategyCalendarData(
+  cal: StrategyCalendar | StrategyCalendarData | null | undefined,
+): cal is StrategyCalendarData {
+  return !!cal && 'duration' in cal && 'items' in cal && Array.isArray((cal as StrategyCalendarData).items)
 }
 
 interface StrategyBlock {
   id: string
   name: string
   items: StrategyItem[]
+  calendar?: StrategyCalendarData | StrategyCalendar | null
 }
 
 interface CustomRowState {
@@ -169,6 +221,7 @@ const getKpiUnitLabel = (objective: string): string => {
   const o = objective.toLowerCase()
   if (o.includes('impression')) return 'impressions'
   if (o.includes('lead')) return 'leads'
+  if (o.includes('conversion')) return 'conversions'
   if (o.includes('clic')) return 'clics'
   return 'KPIs'
 }
@@ -827,6 +880,7 @@ export default function PDVPage() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
   const [smsType, setSmsType] = useState<SmsType>('sms')
@@ -840,6 +894,7 @@ export default function PDVPage() {
   })
   const [campaignMonths, setCampaignMonths] = useState<string>('1') // nombre de mois pour duplication campagne RCS
   const [creaByLinkCount, setCreaByLinkCount] = useState<string>('1') // nombre de CREA BY LINK
+  const [searchClicsStudyValue, setSearchClicsStudyValue] = useState<string>('') // Search > Clics : valeur selon étude TM
   
   // État des stratégies (jusqu'à 3)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
@@ -853,6 +908,12 @@ export default function PDVPage() {
   const [newStrategyName, setNewStrategyName] = useState('')
   const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
   const [renamingStrategyName, setRenamingStrategyName] = useState('')
+  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
+  const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
+  const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
+  const [timelineExportDialogOpen, setTimelineExportDialogOpen] = useState(false)
+  const [timelineExportStrategyId, setTimelineExportStrategyId] = useState<string | null>(null)
+  const [timelineExportFileName, setTimelineExportFileName] = useState('')
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -890,12 +951,27 @@ export default function PDVPage() {
   
   // État pour le nom de l'utilisateur connecté
   const [userName, setUserName] = useState<string>('')
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [tarifsDirection, setTarifsDirection] = useState(false)
 
   // --- Logique de calcul SMS (indépendante du Social Media) ---
+  // Volume saisi = volume par campagne
   const smsVolumeNumber = Math.max(0, Math.floor(Number(smsVolume) || 0))
 
+  const campaignMonthsNumber = useMemo(() => {
+    const parsed = parseInt(campaignMonths, 10)
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed
+  }, [campaignMonths])
+
+  const totalUnitsNumber = useMemo(() => {
+    const perCampaign = smsVolumeNumber
+    if (perCampaign <= 0) return 0
+    const multiplier = smsOptions.duplicateCampaign ? campaignMonthsNumber : 1
+    return perCampaign * multiplier
+  }, [smsVolumeNumber, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
   const smsBasePU = useMemo(() => {
-    const n = smsVolumeNumber
+    const n = totalUnitsNumber
     if (n <= 0) return 0
     if (n <= 10_000) return 0.1764
     if (n <= 25_000) return 0.1666
@@ -904,7 +980,7 @@ export default function PDVPage() {
     if (n <= 500_000) return 0.131
     // Hors barème : on garde la dernière tranche, mais on pourrait aussi bloquer
     return 0.131
-  }, [smsVolumeNumber])
+  }, [totalUnitsNumber])
 
   const smsOptionPU = useMemo(() => {
     if (smsType !== 'sms') return 0
@@ -916,8 +992,15 @@ export default function PDVPage() {
 
   // Si Tarif Intermarché est coché, le PU est figé à 0,12 € quel que soit le volume.
   const smsUnitPrice = smsOptions.tarifIntermarche ? 0.12 : smsBasePU + smsOptionPU
-  const smsTotalPrice =
-    smsVolumeNumber > 0 && smsBasePU > 0 ? smsUnitPrice * smsVolumeNumber + 190 : 0
+  const smsTotalPrice = useMemo(() => {
+    if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
+    const setupFee = 190
+    const variablePerCampaign = smsUnitPrice * smsVolumeNumber
+    if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
+      return setupFee + variablePerCampaign
+    }
+    return setupFee + variablePerCampaign * campaignMonthsNumber
+  }, [smsType, smsVolumeNumber, smsBasePU, smsUnitPrice, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // --- Logique de calcul RCS (indépendante du SMS) ---
   const rcsBasePU = useMemo(() => {
@@ -927,11 +1010,6 @@ export default function PDVPage() {
     if (n <= 50_000) return 0.19
     return 0.15 // 50_001+
   }, [smsVolumeNumber])
-
-  const campaignMonthsNumber = useMemo(() => {
-    const parsed = parseInt(campaignMonths, 10)
-    return isNaN(parsed) || parsed < 1 ? 1 : parsed
-  }, [campaignMonths])
 
   const creaByLinkCountNumber = useMemo(() => {
     const parsed = parseInt(creaByLinkCount, 10)
@@ -948,9 +1026,12 @@ export default function PDVPage() {
 
   const rcsTotalPrice = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
-    const basePrice = rcsBasePU * smsVolumeNumber + 250 + rcsOptionFee // 250€ frais fixes obligatoires
-    // Si duplication campagne activée, multiplier par le nombre de mois
-    return smsOptions.duplicateCampaign ? basePrice * campaignMonthsNumber : basePrice
+    const setupFee = 250
+    const variablePerCampaign = rcsBasePU * smsVolumeNumber + rcsOptionFee
+    if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
+      return setupFee + variablePerCampaign
+    }
+    return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // Récupérer le nom de l'utilisateur connecté
@@ -962,10 +1043,12 @@ export default function PDVPage() {
           // Essayer de récupérer depuis le profil
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, role')
             .eq('id', session.user.id)
             .maybeSingle()
-          
+
+          const role = (profile as { role?: string } | null)?.role ?? null
+          setUserRole(role)
           const profileName = profile?.full_name as string | undefined
           const metaName = (session.user.user_metadata as any)?.full_name as string | undefined
           const name = (profileName || metaName || '').trim()
@@ -987,6 +1070,11 @@ export default function PDVPage() {
     getUserName()
   }, [])
 
+  const isMaxObjective = (objective: string): boolean => {
+    const o = objective.toLowerCase()
+    return o === 'conversion' || o === 'leads' || o === 'likes'
+  }
+
   // Générer toutes les combinaisons plateforme/objectif
   const generateTableData = (): TableRowData[] => {
     const rows: TableRowData[] = []
@@ -1001,20 +1089,22 @@ export default function PDVPage() {
       if (!platformData) return
 
       Object.keys(platformData).forEach((objective) => {
+        if (calculationMode === 'kpis-to-budget' && isMaxObjective(objective)) return
         try {
           let budget = 0
           let estimatedKPIs = 0
 
               if (calculationMode === 'budget-to-kpis') {
-                // Budget global → répartition par plateforme/objectif
-                budget = mainValueNum // Budget total à répartir
-                const result = calculateKPIsForBudget(platform, objective, aeNum, budget)
+                budget = mainValueNum
+                const result = tarifsDirection
+                  ? calculateKPIsForBudgetDirection(platform, objective, aeNum, budget)
+                  : calculateKPIsForBudget(platform, objective, aeNum, budget)
                 estimatedKPIs = Math.ceil(result.calculatedKpis || 0)
               } else {
-                // KPIs → Budget nécessaire
                 estimatedKPIs = mainValueNum
-                const result = calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
-                // Budget total arrondi (pas de décimales)
+                const result = tarifsDirection
+                  ? calculatePriceForKPIsDirection(platform, objective, aeNum, mainValueNum)
+                  : calculatePriceForKPIs(platform, objective, aeNum, mainValueNum)
                 budget = Math.round(result.price || 0)
               }
 
@@ -1077,7 +1167,7 @@ export default function PDVPage() {
   }, [tableData])
 
   // Fonction pour ajouter à la stratégie active
-  const addToStrategy = (row: TableRowData) => {
+  const addToStrategy = (row: TableRowData & { customKpiLabel?: string }) => {
     const daysNum = parseFloat(diffusionDays) || 0
     const aeNum = parseFloat(aePercentage) || 0
 
@@ -1102,7 +1192,7 @@ export default function PDVPage() {
     }
     setStrategies((prev) => {
       return prev.map((s) =>
-        s.id === targetId ? { ...s, items: [...s.items, newItem] } : s,
+        s.id === targetId ? { ...s, items: [...s.items, { ...newItem, tarifsDirection }] } : s,
       )
     })
   }
@@ -1167,6 +1257,68 @@ export default function PDVPage() {
   // Couleurs pour le graphique
   const COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
+  const getDaysOverrideClass = (days: number): string | null => {
+    if (days < 5) return 'bg-red-50 text-red-700'
+    if (days < 10) return 'bg-orange-50 text-orange-700'
+    return null
+  }
+
+  const getRowColorClass = (platform: string, aeCheckValue: number, days: number): string => {
+    if (platform === 'Search') {
+      if (days > 0 && days < 40) return 'bg-red-50 text-red-700'
+      if (days >= 40 && days < 90) return 'bg-orange-50 text-orange-700'
+      if (days >= 90) {
+        if (aeCheckValue >= 8) return 'bg-green-50 text-green-700'
+        return 'bg-orange-50 text-orange-700'
+      }
+      return getAeColorClass(platform, aeCheckValue)
+    }
+    const daysClass = getDaysOverrideClass(days)
+    if (daysClass) return daysClass
+    return getAeColorClass(platform, aeCheckValue)
+  }
+
+  const getCalendarWarningsForBlock = (b: StrategyBlock): string[] => {
+    const warnings: string[] = []
+    b.items.forEach((item) => {
+      const days = item.days || 0
+      if (item.platform === 'Search' && days > 0 && days < 90) {
+        warnings.push(`Search : durée ${days} jour(s) (minimum 3 mois / 90 jours requis).`)
+      }
+      if (days > 0 && days < 5) {
+        warnings.push(`${item.platform} : durée ${days} jour(s) (minimum 5 jours recommandé).`)
+      }
+      if (days >= 5 && days < 10) {
+        warnings.push(`${item.platform} : durée ${days} jours (à valider par le TM).`)
+      }
+      const aeVal = item.aeCheckValue ?? 0
+      if (aeVal <= 0) return
+      if (item.platform === 'Spotify') {
+        if (aeVal < 250) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (sous le minimum 250 €).`)
+        else if (aeVal <= 350) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (à valider, objectif 350 €+).`)
+      } else {
+        const dailyBudget = item.dailyBudget ?? 0
+        const isMetaLike = ['META', 'Insta only', 'Display', 'Youtube'].includes(item.platform)
+        const isLinkedInTiktok = ['LinkedIn', 'Tiktok'].includes(item.platform)
+        const isSnapEtc = ['Snapchat', 'Perf max', 'Demand Gen', 'Search'].includes(item.platform)
+        if (isMetaLike && dailyBudget < 5) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 5 €/j).`)
+        } else if (isMetaLike && dailyBudget <= 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 10 €/j+).`)
+        } else if (isLinkedInTiktok && dailyBudget < 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 10 €/j).`)
+        } else if (isLinkedInTiktok && dailyBudget <= 20) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 20 €/j+).`)
+        } else if (isSnapEtc && dailyBudget < 10) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 10 €/j).`)
+        } else if (isSnapEtc && dailyBudget <= 15) {
+          warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (à valider, objectif 15 €/j+).`)
+        }
+      }
+    })
+    return warnings
+  }
+
   // Fonction pour déterminer la couleur selon le niveau d'AE (par jour ou total Spotify)
   const getAeColorClass = (platform: string, aeCheckValue: number): string => {
     if (aeCheckValue === 0) return 'bg-gray-100 text-gray-400'
@@ -1198,8 +1350,7 @@ export default function PDVPage() {
       return 'bg-green-50 text-green-700'
     }
 
-    if (platform === 'Snapchat') {
-      // Snapchat : AE / jours (seuils spécifiques 10 / 15)
+    if (platform === 'Snapchat' || platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search') {
       if (aeCheckValue < 10) return 'bg-red-50 text-red-700'
       if (aeCheckValue <= 15) return 'bg-orange-50 text-orange-700'
       return 'bg-green-50 text-green-700'
@@ -1289,6 +1440,378 @@ export default function PDVPage() {
     setPdfDialogOpen(false)
     setClientName('')
     setPdfClientComment('')
+  }
+
+  const buildTimelineFileName = (strategyName: string) =>
+    `frise-${strategyName.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'strategie'}`
+
+  const handleOpenTimelineExportDialog = (strategyId: string) => {
+    const block = strategies.find((s) => s.id === strategyId)
+    if (!block) return
+    setTimelineExportStrategyId(strategyId)
+    setTimelineExportFileName(buildTimelineFileName(block.name))
+    setTimelineExportDialogOpen(true)
+  }
+
+  const handleDownloadTimelineImage = async (strategyId: string, requestedFileName?: string) => {
+    const block = strategies.find((s) => s.id === strategyId)
+    if (!block || block.items.length === 0) {
+      alert('Ajoutez au moins une ligne à cette stratégie pour générer la frise.')
+      return
+    }
+
+    const safeBaseName = (requestedFileName?.trim() || buildTimelineFileName(block.name))
+      .replace(/[\\/:*?"<>|]+/g, '-')
+      .replace(/\.(png|jpg|jpeg)$/i, '')
+
+    const buildCalendarDataForBlock = (target: StrategyBlock): StrategyCalendarData => {
+      const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+      const daysBetween = (a: string, b: string) =>
+        Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
+      const starts = target.items.map((it) => {
+        const key = `${it.platform}::${it.objective}`
+        return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+      })
+      const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+      let globalEndDay = 0
+      const items = target.items.map((item) => {
+        const key = `${item.platform}::${item.objective}`
+        const startDate = defineDatesPerPlatform[key] ?? globalStart
+        const startDay = Math.max(0, daysBetween(globalStart, startDate))
+        const length = Math.max(1, item.days ?? duration)
+        globalEndDay = Math.max(globalEndDay, startDay + length)
+        return {
+          platform: item.platform,
+          startDay,
+          length,
+          budget: item.budget,
+          kpiLabel: item.customKpiLabel,
+          objective: item.objective,
+        }
+      })
+      return {
+        startDate: globalStart,
+        duration: Math.max(globalEndDay, duration),
+        items,
+      }
+    }
+
+    const storeData =
+      calendarDialogOpen && calendarStrategyId === strategyId
+        ? useCalendarStore.getState().getCalendarData()
+        : null
+
+    const calendarData =
+      storeData && storeData.items.length > 0
+        ? storeData
+        : isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
+          ? block.calendar
+          : buildCalendarDataForBlock(block)
+
+    if (!calendarData.items.length) {
+      alert('Placez d’abord les plateformes dans le calendrier avant de télécharger la frise.')
+      return
+    }
+
+    const width = 1800
+    const height = 1000
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const loadImage = (src: string) =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new window.Image()
+        img.onload = () => resolve(img)
+        img.onerror = () => resolve(null)
+        img.src = src
+      })
+
+    const backgroundImage = await loadImage('/images/base-presentation.jpg')
+    if (backgroundImage) {
+      ctx.drawImage(backgroundImage, 0, 0, width, height)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)'
+      ctx.fillRect(0, 0, width, height)
+    } else {
+      ctx.fillStyle = '#f7f4f1'
+      ctx.fillRect(0, 0, width, height)
+    }
+
+    const title = safeBaseName
+    ctx.fillStyle = '#161616'
+    ctx.font = 'bold 54px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText(title, width / 2, 110)
+
+    const groupedByStart = new Map<number, {
+      label: string
+      entries: Array<{ platform: string; label: string; durationLabel: string }>
+    }>()
+    const sortedItems = [...calendarData.items].sort((a, b) => a.startDay - b.startDay)
+    sortedItems.forEach((item) => {
+      const date = new Date(calendarData.startDate + 'T12:00:00')
+      date.setDate(date.getDate() + item.startDay)
+      const month = date.toLocaleDateString('fr-FR', { month: 'long' })
+      const dayLabel = date.getDate() === 1 ? `1er ${month}` : `${date.getDate()} ${month}`
+      const key = item.startDay
+      const label = item.objective ? `${item.platform} - ${item.objective}` : item.platform
+      const durationLabel = `${item.length} jour${item.length > 1 ? 's' : ''}`
+      if (!groupedByStart.has(key)) {
+        groupedByStart.set(key, {
+          label: dayLabel,
+          entries: [{ platform: item.platform, label, durationLabel }],
+        })
+      } else {
+        const existing = groupedByStart.get(key)!
+        existing.entries.push({ platform: item.platform, label, durationLabel })
+      }
+    })
+
+    const groups = Array.from(groupedByStart.entries())
+      .map(([startDay, value]) => ({ startDay, ...value }))
+      .sort((a, b) => a.startDay - b.startDay)
+
+    const totalSpan = Math.max(1, ...sortedItems.map((item) => item.startDay + item.length - 1))
+    const startX = 170
+    const endX = width - 170
+    const lineY = 480
+    const usableWidth = endX - startX
+    const baseXForDay = (day: number) => startX + (day / totalSpan) * usableWidth
+
+    ctx.strokeStyle = '#111111'
+    ctx.lineWidth = 6
+    ctx.beginPath()
+    ctx.moveTo(startX, lineY)
+    ctx.lineTo(endX, lineY)
+    ctx.stroke()
+
+    const drawCircle = (x: number, y: number, r: number, color: string) => {
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle = color
+      ctx.fill()
+    }
+
+    drawCircle(startX, lineY, 14, '#111111')
+    drawCircle(endX, lineY, 14, '#111111')
+
+    const wrapText = (text: string, maxWidth: number) => {
+      const words = text.split(' ')
+      const lines: string[] = []
+      let current = ''
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word
+        if (ctx.measureText(candidate).width <= maxWidth || !current) {
+          current = candidate
+        } else {
+          lines.push(current)
+          current = word
+        }
+      }
+      if (current) lines.push(current)
+      return lines
+    }
+
+    const logoCache = new Map<string, HTMLImageElement | null>()
+    await Promise.all(
+      Array.from(new Set(sortedItems.map((item) => item.platform))).map(async (platform) => {
+        const src = PLATFORM_LOGOS[platform as keyof typeof PLATFORM_LOGOS]
+        logoCache.set(platform, src ? await loadImage(src) : null)
+      }),
+    )
+
+    const cardWidth = 280
+    const cardPaddingX = 18
+    const cardPaddingY = 16
+    const cardGapFromLine = 34
+    const layerSpacing = 30
+    const titleSafeTop = 150
+    const placedRects: Array<{ left: number; top: number; right: number; bottom: number }> = []
+
+    const rectsOverlap = (
+      a: { left: number; top: number; right: number; bottom: number },
+      b: { left: number; top: number; right: number; bottom: number },
+      gap = 16,
+    ) =>
+      a.left < b.right + gap &&
+      a.right > b.left - gap &&
+      a.top < b.bottom + gap &&
+      a.bottom > b.top - gap
+
+    const drawRoundedRect = (x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath()
+      ctx.moveTo(x + r, y)
+      ctx.lineTo(x + w - r, y)
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+      ctx.lineTo(x + w, y + h - r)
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+      ctx.lineTo(x + r, y + h)
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+      ctx.lineTo(x, y + r)
+      ctx.quadraticCurveTo(x, y, x + r, y)
+      ctx.closePath()
+    }
+
+    const measuredGroups = groups.map((group) => {
+      ctx.font = 'bold 24px Arial'
+      const entryMetrics = group.entries.map((entry) => {
+        const logo = logoCache.get(entry.platform) ?? null
+        const textWidth = cardWidth - cardPaddingX * 2 - (logo ? 32 : 0)
+        const labelLines = wrapText(entry.label, textWidth)
+        const entryHeight = labelLines.length * 24 + 30
+        return { entry, logo, labelLines, entryHeight }
+      })
+      const contentHeight = entryMetrics.reduce((sum, metric) => sum + metric.entryHeight, 0)
+      const cardHeight = cardPaddingY * 2 + 34 + contentHeight
+      return {
+        ...group,
+        pointX: baseXForDay(group.startDay),
+        entryMetrics,
+        cardHeight,
+      }
+    })
+
+    const placedGroups = measuredGroups.map((group, index) => {
+      const candidateAnchors = [
+        { align: 'center' as const, left: group.pointX - cardWidth / 2, pointerX: group.pointX },
+        { align: 'left' as const, left: group.pointX - 26, pointerX: group.pointX },
+        { align: 'right' as const, left: group.pointX - cardWidth + 26, pointerX: group.pointX },
+      ]
+      let bestCandidate: {
+        side: 'above' | 'below'
+        left: number
+        top: number
+        rect: { left: number; top: number; right: number; bottom: number }
+        connectorX: number
+        penalty: number
+      } | null = null
+
+      for (let layer = 0; layer < 5; layer += 1) {
+        const sides: Array<'below' | 'above'> = index % 2 === 0 ? ['below', 'above'] : ['above', 'below']
+        for (const side of sides) {
+          for (const anchor of candidateAnchors) {
+            const left = Math.max(startX, Math.min(anchor.left, endX - cardWidth))
+            const top =
+              side === 'below'
+                ? lineY + cardGapFromLine + layer * (group.cardHeight + layerSpacing)
+                : lineY - cardGapFromLine - group.cardHeight - layer * (group.cardHeight + layerSpacing)
+
+            if (top < titleSafeTop || top + group.cardHeight > height - 80) continue
+
+            const rect = {
+              left,
+              top,
+              right: left + cardWidth,
+              bottom: top + group.cardHeight,
+            }
+
+            if (placedRects.some((placed) => rectsOverlap(rect, placed))) continue
+
+            const connectorX = Math.max(left + 28, Math.min(anchor.pointerX, left + cardWidth - 28))
+            const distancePenalty = Math.abs((left + cardWidth / 2) - group.pointX)
+            const sidePenalty = side === 'above' ? 6 : 0
+            const penalty = layer * 100 + distancePenalty + sidePenalty
+
+            if (!bestCandidate || penalty < bestCandidate.penalty) {
+              bestCandidate = { side, left, top, rect, connectorX, penalty }
+            }
+          }
+        }
+        if (bestCandidate) break
+      }
+
+      if (!bestCandidate) {
+        const fallbackLeft = Math.max(startX, Math.min(group.pointX - cardWidth / 2, endX - cardWidth))
+        const fallbackTop = lineY + cardGapFromLine + placedRects.length * 12
+        bestCandidate = {
+          side: 'below',
+          left: fallbackLeft,
+          top: fallbackTop,
+          rect: {
+            left: fallbackLeft,
+            top: fallbackTop,
+            right: fallbackLeft + cardWidth,
+            bottom: fallbackTop + group.cardHeight,
+          },
+          connectorX: Math.max(fallbackLeft + 28, Math.min(group.pointX, fallbackLeft + cardWidth - 28)),
+          penalty: Number.MAX_SAFE_INTEGER,
+        }
+      }
+
+      placedRects.push(bestCandidate.rect)
+
+      return {
+        ...group,
+        side: bestCandidate.side,
+        leftX: bestCandidate.left,
+        topY: bestCandidate.top,
+        connectorX: bestCandidate.connectorX,
+      }
+    })
+
+    placedGroups.forEach((group) => {
+      drawCircle(group.pointX, lineY, 12, '#E96B2C')
+
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.22)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(group.pointX, group.side === 'above' ? lineY - 12 : lineY + 12)
+      ctx.lineTo(group.connectorX, group.side === 'above' ? group.topY + group.cardHeight : group.topY)
+      ctx.stroke()
+
+      drawRoundedRect(group.leftX, group.topY, cardWidth, group.cardHeight, 18)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(17, 17, 17, 0.08)'
+      ctx.lineWidth = 1
+      ctx.stroke()
+
+      ctx.fillStyle = '#1a1a1a'
+      ctx.font = 'bold 24px Arial'
+      ctx.textAlign = 'center'
+      ctx.fillText(group.label, group.leftX + cardWidth / 2, group.topY + 30)
+
+      let currentY = group.topY + cardPaddingY + 34
+      group.entryMetrics.forEach(({ entry, logo, labelLines, entryHeight }) => {
+        const logoX = group.leftX + cardPaddingX
+        const textX = logoX + (logo ? 30 : 0)
+
+        if (logo) {
+          ctx.drawImage(logo, logoX, currentY - 12, 18, 18)
+        }
+
+        ctx.fillStyle = '#222222'
+        ctx.font = 'bold 22px Arial'
+        ctx.textAlign = 'left'
+        labelLines.forEach((line, lineIndex) => {
+          ctx.fillText(line, textX, currentY + lineIndex * 24)
+        })
+
+        ctx.fillStyle = '#5b5b5b'
+        ctx.font = '19px Arial'
+        ctx.fillText(entry.durationLabel, textX, currentY + labelLines.length * 24)
+
+        currentY += entryHeight
+      })
+    })
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png', 1))
+    if (!blob) {
+      alert("Impossible de générer l'image de la frise.")
+      return
+    }
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${safeBaseName}.png`
+    link.click()
+    URL.revokeObjectURL(url)
+    setTimelineExportDialogOpen(false)
+    setTimelineExportStrategyId(null)
+    setTimelineExportFileName('')
   }
 
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
@@ -1431,6 +1954,7 @@ export default function PDVPage() {
               ciblage: smsOptions.ciblage,
               richSms: smsOptions.richSms,
               tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
             }
           : {
               agent: smsOptions.agent,
@@ -1442,7 +1966,7 @@ export default function PDVPage() {
         salesConditions={currentSmsType === 'sms' ? SMS_SALES_CONDITIONS : RCS_SALES_CONDITIONS}
         userName={userPseudo || userName}
         tarifIntermarche={smsOptions.tarifIntermarche}
-        campaignMonths={currentSmsType === 'rcs' ? campaignMonthsNumber : undefined}
+        campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
         creaByLinkCount={currentSmsType === 'rcs' ? creaByLinkCountNumber : undefined}
         comment={smsPdfComment || undefined}
         imageBase64={smsPdfImage}
@@ -1515,6 +2039,22 @@ export default function PDVPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {(userRole === 'direction' || userRole === 'admin' || userRole === 'super_admin') && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="tarifs-direction-pdv"
+                      checked={tarifsDirection}
+                      onCheckedChange={(checked) => setTarifsDirection(checked === true)}
+                    />
+                    <label
+                      htmlFor="tarifs-direction-pdv"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Appliquer les tarifs direction
+                    </label>
+                  </div>
+                )}
+
                 {/* Mode de calcul */}
                 <div className="space-y-2">
                   <Label>Mode de calcul</Label>
@@ -1539,7 +2079,7 @@ export default function PDVPage() {
                     <Label>
                       {calculationMode === 'budget-to-kpis' ? 'Budget (€)' : 'KPIs souhaités'}
                     </Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder={calculationMode === 'budget-to-kpis' ? 'Ex: 5000' : 'Ex: 10000'}
                       value={mainValue}
@@ -1549,7 +2089,7 @@ export default function PDVPage() {
 
                   <div className="space-y-2">
                     <Label>% AE</Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder="Ex: 40 pour 40 %"
                       value={aePercentage}
@@ -1559,7 +2099,7 @@ export default function PDVPage() {
 
                   <div className="space-y-2">
                     <Label>Jours de diffusion</Label>
-                    <Input
+                    <EditableInput
                       type="number"
                       placeholder="Ex: 14"
                       value={diffusionDays}
@@ -1567,6 +2107,74 @@ export default function PDVPage() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label>Plateformes à afficher</Label>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedPlatforms([...PLATFORMS_ORDER])}
+                      >
+                        Tout cocher
+                      </Button>
+                      <span className="text-muted-foreground">|</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelectedPlatforms([])}
+                      >
+                        Tout décocher
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    {PLATFORMS_ORDER.map((platform) => (
+                      <label key={platform} className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Checkbox
+                          checked={selectedPlatforms.includes(platform)}
+                          onCheckedChange={(checked) => {
+                            setSelectedPlatforms((prev) => {
+                              const next = checked
+                                ? [...prev, platform].sort((a, b) => PLATFORMS_ORDER.indexOf(a as (typeof PLATFORMS_ORDER)[number]) - PLATFORMS_ORDER.indexOf(b as (typeof PLATFORMS_ORDER)[number]))
+                                : prev.filter((p) => p !== platform)
+                              return next
+                            })
+                          }}
+                        />
+                        <span>{platform}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {(() => {
+                  const daysNum = parseFloat(diffusionDays) || 0
+                  if (daysNum >= 10 || daysNum <= 0) return null
+                  if (daysNum < 5) {
+                    return (
+                      <Alert variant="destructive" className="mt-4">
+                        <AlertTitle>Durée trop courte</AlertTitle>
+                        <AlertDescription>
+                          Une durée inférieure à 5 jours de campagne n&apos;est pas possible. Toutes les lignes passent en rouge. Veuillez choisir au moins 5 jours.
+                        </AlertDescription>
+                      </Alert>
+                    )
+                  }
+                  return (
+                    <Alert className="mt-4 border-orange-500 bg-orange-50 text-orange-800 [&>svg]:text-orange-600">
+                      <AlertTitle>Durée à valider</AlertTitle>
+                      <AlertDescription>
+                        Une durée entre 5 et 10 jours doit être validée par le TM. Les lignes sont en orange.
+                      </AlertDescription>
+                    </Alert>
+                  )
+                })()}
               </CardContent>
             </Card>
 
@@ -1592,20 +2200,29 @@ export default function PDVPage() {
             {/* Plateformes segmentées */}
             {tableData.length > 0 && (
               <div className="space-y-4">
-                {PLATFORMS_ORDER.map((platform) => {
+                {selectedPlatforms.map((platform) => {
                   const platformRows = groupedByPlatform[platform] || []
-                  if (platformRows.length === 0) return null
+                  const onlyCustomRow = platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search'
+                  if (!onlyCustomRow && platformRows.length === 0) return null
 
                   const custom = customRows[platform] ?? { objective: '', budget: '' }
-                  const referenceRowForObjective = platformRows.find(
-                    (r) => r.objective === custom.objective,
-                  )
+                  const daysNum = parseFloat(diffusionDays) || 14
+                  const mainValueNum = parseFloat(mainValue) || 0
+                  const aeNum = parseFloat(aePercentage) || 40
+                  const referenceRowForObjective = platformRows.find((r) => r.objective === custom.objective)
                   const referenceRow = referenceRowForObjective ?? platformRows[0]
-                  const customBudgetNum = referenceRow?.budget ?? 0
-                  const customDailyBudget = referenceRow?.dailyBudget ?? 0
-                  const customAeCheckValue = referenceRow?.aeCheckValue ?? 0
-                  const customRowColor = getAeColorClass(platform, customAeCheckValue)
-                  const objectivesForPlatform = CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
+                  const customBudgetNum = onlyCustomRow ? mainValueNum : (referenceRow?.budget ?? 0)
+                  const customDailyBudget = onlyCustomRow
+                    ? (mainValueNum * (aeNum / 100)) / daysNum
+                    : (referenceRow?.dailyBudget ?? 0)
+                  const customAeCheckValue = onlyCustomRow
+                    ? customDailyBudget
+                    : (referenceRow?.aeCheckValue ?? 0)
+                  const customRowColor = getRowColorClass(platform, customAeCheckValue, daysNum)
+                  const objectivesForPlatform =
+                    platform === 'META'
+                      ? [...META_CUSTOM_OBJECTIVES, 'conversion']
+                      : CUSTOM_OBJECTIVES[platform as (typeof PLATFORMS_ORDER)[number]] ?? DEFAULT_CUSTOM_OBJECTIVES
                   const isCustomInStrategy = strategy.some(
                     (item) => item.platform === platform && item.objective === custom.objective,
                   )
@@ -1630,8 +2247,11 @@ export default function PDVPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {platformRows.map((row, index) => {
-                                const colorClass = getAeColorClass(row.platform, row.aeCheckValue)
+                              {!onlyCustomRow && platformRows.map((row, index) => {
+                                if (platform === 'META' && row.objective === 'conversion') {
+                                  return null
+                                }
+                                const colorClass = getRowColorClass(row.platform, row.aeCheckValue, daysNum)
                                 const isInStrategy = strategy.some(
                                   item => item.platform === row.platform && item.objective === row.objective
                                 )
@@ -1672,30 +2292,107 @@ export default function PDVPage() {
                                 )
                               })}
 
-                              {/* Ligne personnalisable */}
+                              {platform === 'Search' && (['Clics', 'Conversion'] as const).map((obj) => {
+                                const isInStrategy = strategy.some(
+                                  (item) => item.platform === platform && item.objective === obj,
+                                )
+                                return (
+                                  <TableRow key={`search-${obj}`} className={customRowColor}>
+                                    <TableCell>{obj}</TableCell>
+                                    <TableCell className="text-right font-semibold text-xs">
+                                      {customBudgetNum > 0
+                                        ? `${customBudgetNum.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`
+                                        : '—'}
+                                    </TableCell>
+                                    <TableCell className="text-right text-xs">
+                                      {obj === 'Conversion' && <>Max de conversion</>}
+                                      {obj === 'Clics' && (
+                                        <div className="space-y-1">
+                                          <EditableInput
+                                            value={searchClicsStudyValue}
+                                            onChange={(e) => setSearchClicsStudyValue(e.target.value)}
+                                            placeholder="Valeur selon étude TM"
+                                            className="h-7 w-full max-w-[120px] ml-auto text-[11px] rounded-sm border-gray-300"
+                                          />
+                                          <p className="text-[10px] text-muted-foreground italic">
+                                            selon étude menée par les TM
+                                          </p>
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right font-bold text-xs">
+                                      {customDailyBudget > 0
+                                        ? `${customDailyBudget.toLocaleString('fr-FR', {
+                                            minimumFractionDigits: 1,
+                                            maximumFractionDigits: 1,
+                                          })} €`
+                                        : '—'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {!isInStrategy && customBudgetNum > 0 && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            addToStrategy({
+                                              platform,
+                                              objective: obj,
+                                              budget: customBudgetNum,
+                                              estimatedKPIs: 0,
+                                              dailyBudget: customDailyBudget,
+                                              aeCheckValue: customAeCheckValue,
+                                              isAvailable: true,
+                                              customKpiLabel:
+                                                obj === 'Clics'
+                                                  ? (searchClicsStudyValue || 'Max de clics')
+                                                  : getMaxKpiLabel(obj),
+                                            })
+                                          }
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Plus className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
+
+                              {platform !== 'Search' && (
                               <TableRow className={customRowColor}>
                                 <TableCell>
-                                  <Select
-                                    value={custom.objective}
-                                    onValueChange={(value: string) =>
-                                      handleCustomRowChange(platform, 'objective', value)
-                                    }
-                                  >
-                                    <SelectTrigger className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0">
-                                      <SelectValue placeholder="Objectif" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {objectivesForPlatform.map((obj) => (
-                                        <SelectItem
-                                          key={obj}
-                                          value={obj}
-                                          className="text-[11px] py-1"
-                                        >
-                                          {obj}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  {platform === 'Perf max' || platform === 'Demand Gen' ? (
+                                    <EditableInput
+                                      value={custom.objective}
+                                      onChange={(e) =>
+                                        handleCustomRowChange(platform, 'objective', e.target.value)
+                                      }
+                                      placeholder="Objectif (ex : conversions e-commerce)"
+                                      className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0"
+                                    />
+                                  ) : (
+                                    <Select
+                                      value={custom.objective}
+                                      onValueChange={(value: string) =>
+                                        handleCustomRowChange(platform, 'objective', value)
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0">
+                                        <SelectValue placeholder="Objectif" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {objectivesForPlatform.map((obj) => (
+                                          <SelectItem
+                                            key={obj}
+                                            value={obj}
+                                            className="text-[11px] py-1"
+                                          >
+                                            {obj}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-semibold text-xs">
                                   {customBudgetNum > 0
@@ -1729,8 +2426,6 @@ export default function PDVPage() {
                                           platform,
                                           objective: custom.objective,
                                           budget: customBudgetNum,
-                                          // Pour les objectifs \"max\" (non présents dans les lignes standard),
-                                          // on ne stocke pas de KPIs chiffrés : on met 0 pour afficher \"-\".
                                           estimatedKPIs:
                                             referenceRowForObjective?.estimatedKPIs ?? 0,
                                           dailyBudget: customDailyBudget,
@@ -1745,6 +2440,7 @@ export default function PDVPage() {
                                   )}
                                 </TableCell>
                               </TableRow>
+                              )}
                             </TableBody>
                           </Table>
                         </div>
@@ -1912,6 +2608,47 @@ export default function PDVPage() {
                                 >
                                   Renommer
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setCalendarStrategyId(block.id)
+                                    const daysNum = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                                    const today = new Date().toISOString().slice(0, 10)
+                                    const perPlatform: Record<string, string> = {}
+                                    const cal = block.calendar
+                                    if (cal && isStrategyCalendarData(cal)) {
+                                      cal.items.forEach((it) => {
+                                        const d = new Date(cal.startDate + 'T12:00:00')
+                                        d.setDate(d.getDate() + it.startDay)
+                                        const key = `${it.platform}::${it.objective ?? ''}`
+                                        perPlatform[key] = d.toISOString().slice(0, 10)
+                                      })
+                                    }
+                                    block.items.forEach((item, i) => {
+                                      const key = `${item.platform}::${item.objective}`
+                                      if (perPlatform[key]) return
+                                      if (i === 0) {
+                                        perPlatform[key] = today
+                                        return
+                                      }
+                                      const prev = block.items[i - 1]!
+                                      const prevKey = `${prev.platform}::${prev.objective}`
+                                      const prevStart = perPlatform[prevKey] ?? today
+                                      const prevLen = Math.max(1, prev.days ?? daysNum)
+                                      const d = new Date(prevStart + 'T12:00:00')
+                                      d.setDate(d.getDate() + prevLen)
+                                      perPlatform[key] = d.toISOString().slice(0, 10)
+                                    })
+                                    setDefineDatesPerPlatform(perPlatform)
+                                    setCalendarDialogOpen(true)
+                                  }}
+                                >
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  Calendrier
+                                </Button>
                               </>
                             )}
                           </CardTitle>
@@ -1967,15 +2704,20 @@ export default function PDVPage() {
                           <div className="flex-1 overflow-y-auto mb-4 mt-2">
                             <div className="space-y-2">
                               {items.map((item) => {
-                                const colorClass = getAeColorClass(item.platform, item.aeCheckValue)
+                                const colorClass = getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
                                 return (
                                   <div
                                     key={item.id}
                                     className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
                                   >
                                     <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm">
+                                      <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
                                         <PlatformBadge platform={item.platform} />
+                                        {item.tarifsDirection && (
+                                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                                            Tarifs direction
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
                                         {item.objective}
@@ -1987,19 +2729,17 @@ export default function PDVPage() {
                                         €
                                       </div>
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {item.estimatedKPIs > 0 ? (
-                                          <>
-                                            {`${item.estimatedKPIs.toLocaleString(
-                                              'fr-FR',
-                                            )} ${getKpiUnitLabel(item.objective)}${
-                                              item.objective === 'Leads' ? ' (estimation)' : ''
-                                            }`}
-                                          </>
-                                        ) : (
-                                          `${getMaxKpiLabel(item.objective)}${
-                                            item.objective === 'Leads' ? ' (estimation)' : ''
-                                          }`
-                                        )}
+                                        {item.customKpiLabel
+                                          ? item.customKpiLabel
+                                          : item.estimatedKPIs > 0
+                                            ? `${item.estimatedKPIs.toLocaleString(
+                                                'fr-FR',
+                                              )} ${getKpiUnitLabel(item.objective)}${
+                                                item.objective === 'Leads' ? ' (estimation)' : ''
+                                              }`
+                                            : `${getMaxKpiLabel(item.objective)}${
+                                                item.objective === 'Leads' ? ' (estimation)' : ''
+                                              }`}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
                                         {item.days > 0 &&
@@ -2296,6 +3036,35 @@ export default function PDVPage() {
                               <span>Tarif Intermarché</span>
                             </div>
                           </label>
+
+                          <label className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                                checked={smsOptions.duplicateCampaign}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({ ...prev, duplicateCampaign: e.target.checked }))
+                                }
+                              />
+                              <span className="cursor-pointer">Dupliquer la campagne</span>
+                            </div>
+
+                            {smsOptions.duplicateCampaign && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
+                                <EditableInput
+                                  type="number"
+                                  min="1"
+                                  value={campaignMonths}
+                                  onChange={(e) => setCampaignMonths(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 w-20 text-center"
+                                  placeholder="1"
+                                />
+                              </div>
+                            )}
+                          </label>
                         </div>
                       )}
 
@@ -2332,13 +3101,13 @@ export default function PDVPage() {
                             {smsOptions.creaByLink && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre :</span>
-                                <Input
+                                <EditableInput
                                   type="number"
                                   min="1"
                                   value={creaByLinkCount}
                                   onChange={(e) => setCreaByLinkCount(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="h-8 w-16 text-center"
+                                  className="h-8 w-20 text-center"
                                   placeholder="1"
                                 />
                                 <span className="text-xs text-muted-foreground">× 100 €</span>
@@ -2376,13 +3145,13 @@ export default function PDVPage() {
                             {smsOptions.duplicateCampaign && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
-                                <Input
+                                <EditableInput
                                   type="number"
                                   min="1"
                                   value={campaignMonths}
                                   onChange={(e) => setCampaignMonths(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="h-8 w-16 text-center"
+                                  className="h-8 w-20 text-center"
                                   placeholder="1"
                                 />
                               </div>
@@ -2398,13 +3167,22 @@ export default function PDVPage() {
                     <div className="space-y-3 rounded-lg border border-black bg-white p-3">
                       <div className="space-y-2">
                         <Label>Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}</Label>
-                        <Input
+                        <EditableInput
                           type="number"
                           min={0}
                           placeholder={`Ex: ${smsType === 'sms' ? '20000' : '15000'}`}
                           value={smsVolume}
                           onChange={(e) => setSmsVolume(e.target.value)}
                         />
+                        {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && (
+                          <p className="text-xs text-muted-foreground">
+                            Nombre total de {smsType === 'sms' ? 'SMS' : 'RCS'} :{' '}
+                            <span className="font-medium">
+                              {totalUnitsNumber.toLocaleString('fr-FR')}
+                            </span>{' '}
+                            ({smsVolumeNumber.toLocaleString('fr-FR')} par campagne x {campaignMonthsNumber} mois)
+                          </p>
+                        )}
                         {smsType === 'rcs' && smsVolumeNumber > 0 && smsVolumeNumber < 10_000 && (
                           <p className="text-xs text-red-600 font-medium">
                             Volume minimum requis : 10 000 RCS
@@ -2458,6 +3236,7 @@ export default function PDVPage() {
                             </div>
                             <div className="text-xs text-muted-foreground leading-snug">
                               Inclut les frais fixes de mise en place : 190 €.
+                              {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? ' Une seule fois.' : ''}
                             </div>
                           </div>
                         </div>
@@ -2590,6 +3369,185 @@ export default function PDVPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null) }}>
+        <DialogContent className="max-w-5xl w-full">
+          <DialogHeader>
+            <DialogTitle>Calendrier stratégique</DialogTitle>
+            <DialogDescription>
+              Cliquez sur une plateforme dans la légende puis sur un jour du calendrier pour définir sa date de début. Les pastilles affichent les jours de diffusion.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {calendarStrategyId && (() => {
+              const block = strategies.find((s) => s.id === calendarStrategyId)
+              if (!block) return null
+              const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+              const daysBetween = (a: string, b: string) =>
+                Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
+              const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
+                platform: `${item.platform}::${item.objective}`,
+                budget: item.budget,
+                kpiLabel: item.customKpiLabel
+                  ? item.customKpiLabel
+                  : item.estimatedKPIs > 0
+                    ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
+                    : getMaxKpiLabel(item.objective),
+                maxDays: Math.max(1, item.days ?? duration),
+              }))
+              const starts = block.items.map((it) => {
+                const key = `${it.platform}::${it.objective}`
+                return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+              })
+              const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+              let globalEndDay = 0
+              const computedItems = block.items.map((item, i) => {
+                const key = `${item.platform}::${item.objective}`
+                const startDate = defineDatesPerPlatform[key] ?? globalStart
+                const startDay = Math.max(0, daysBetween(globalStart, startDate))
+                const length = Math.max(1, item.days ?? duration)
+                globalEndDay = Math.max(globalEndDay, startDay + length)
+                return {
+                  platform: item.platform,
+                  startDay,
+                  length,
+                  budget: item.budget,
+                  kpiLabel: platformSources[i]!.kpiLabel,
+                  objective: item.objective,
+                }
+              })
+              const existingFromForm: StrategyCalendarData = {
+                startDate: globalStart,
+                duration: globalEndDay,
+                items: computedItems,
+              }
+              return (
+                block.items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <p className="text-sm text-muted-foreground">
+                        Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de début en cliquant sur un jour. Les pastilles et la couleur dans la stratégie se mettent à jour.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => handleOpenTimelineExportDialog(block.id)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger la frise
+                      </Button>
+                    </div>
+                    <StrategyCalendarBuilder
+                      key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
+                      platformSources={platformSources}
+                      duration={existingFromForm.duration}
+                      existing={existingFromForm}
+                      onPlatformStartDateChange={(entryKey, startDate) =>
+                        setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                      }
+                      onPlatformDaysChange={(entryKey, days) => {
+                        setStrategies((prev) =>
+                          prev.map((s) =>
+                            s.id !== calendarStrategyId
+                              ? s
+                              : {
+                                  ...s,
+                                  items: s.items.map((it) =>
+                                    `${it.platform}::${it.objective}` !== entryKey
+                                      ? it
+                                      : {
+                                          ...it,
+                                          days,
+                                          dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
+                                          aeCheckValue:
+                                            it.platform === 'Spotify'
+                                              ? it.budget * (it.aePercentage / 100)
+                                              : (it.budget * (it.aePercentage / 100)) / days,
+                                        }
+                                  ),
+                                }
+                          )
+                        )
+                      }}
+                      calendarWarnings={getCalendarWarningsForBlock(block)}
+                      onSave={(data) => {
+                        setStrategies((prev) =>
+                          prev.map((s) => (s.id === calendarStrategyId ? { ...s, calendar: data } : s)),
+                        )
+                        setCalendarDialogOpen(false)
+                        setCalendarStrategyId(null)
+                      }}
+                    />
+                  </>
+                )
+              )
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={timelineExportDialogOpen}
+        onOpenChange={(open) => {
+          setTimelineExportDialogOpen(open)
+          if (!open) {
+            setTimelineExportStrategyId(null)
+            setTimelineExportFileName('')
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Télécharger la frise</DialogTitle>
+            <DialogDescription>
+              Choisissez le nom du fichier PNG avant de lancer le téléchargement.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="timeline-file-name">Nom du fichier</Label>
+              <Input
+                id="timeline-file-name"
+                placeholder="frise-strategie"
+                value={timelineExportFileName}
+                onChange={(e) => setTimelineExportFileName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && timelineExportStrategyId) {
+                    handleDownloadTimelineImage(timelineExportStrategyId, timelineExportFileName)
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">L’extension `.png` sera ajoutée automatiquement.</p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setTimelineExportDialogOpen(false)
+                setTimelineExportStrategyId(null)
+                setTimelineExportFileName('')
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              onClick={() => {
+                if (!timelineExportStrategyId) return
+                handleDownloadTimelineImage(timelineExportStrategyId, timelineExportFileName)
+              }}
+            >
+              Télécharger
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modale pour export PDF */}
       <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
