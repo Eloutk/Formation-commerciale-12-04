@@ -1255,7 +1255,7 @@ const SMSRCSPDFDocument = ({
           )}
           {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
             <View style={styles.itemRow}>
-              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de mois :</Text>
+              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagnes :</Text>
               <Text style={[styles.itemValue, { fontWeight: 'bold' }]}>× {campaignMonths}</Text>
             </View>
           )}
@@ -3278,7 +3278,7 @@ export default function PDV2Page() {
                             
                             {smsOptions.duplicateCampaign && (
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de campagnes :</span>
                                 <EditableInput
                                   type="number"
                                   min="1"
@@ -3370,7 +3370,7 @@ export default function PDV2Page() {
                             
                             {smsOptions.duplicateCampaign && (
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de mois :</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre de campagnes :</span>
                                 <EditableInput
                                   type="number"
                                   min="1"
