@@ -515,6 +515,7 @@ const PDFDocument = ({
   aePercentage,
   comment,
   logoDataUrl,
+  showAe,
 }: {
   strategies: StrategyBlock[]
   clientName: string
@@ -522,6 +523,7 @@ const PDFDocument = ({
   aePercentage: number
   comment?: string
   logoDataUrl?: string | null
+  showAe?: boolean
 }) => {
   return (
     <Document>
@@ -589,12 +591,14 @@ const PDFDocument = ({
                       <Text style={styles.summaryTotal}>
                         Total : {formatNumber(total, 0)} €
                       </Text>
-                      <Text style={[styles.summaryText, { marginTop: 4 }]}>
-                        AE :{' '}
-                        {strategyAe > 0
-                          ? `${formatNumber(strategyAe, 0)} %`
-                          : '-'}
-                      </Text>
+                      {showAe && (
+                        <Text style={[styles.summaryText, { marginTop: 4 }]}>
+                          AE :{' '}
+                          {strategyAe > 0
+                            ? `${formatNumber(strategyAe, 0)} %`
+                            : '-'}
+                        </Text>
+                      )}
                     </>
                   )
                 })()}
@@ -671,13 +675,20 @@ const PDFDocument = ({
                     <View style={styles.itemRow}>
                       <Text style={styles.itemLabel}>KPIs estimés :</Text>
                       <Text style={styles.itemValue}>
-                        {item.estimatedKPIs > 0
-                          ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+                        {(() => {
+                          const customLabel = (item as any).customKpiLabel as string | undefined
+                          if (customLabel && customLabel.trim().length > 0) {
+                            return customLabel.trim()
+                          }
+                          if (item.estimatedKPIs > 0) {
+                            return `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
                               item.objective === 'Leads' ? ' (estimation)' : ''
                             }`
-                          : `${getMaxKpiLabel(item.objective)}${
-                              item.objective === 'Leads' ? ' (estimation)' : ''
-                            }`}
+                          }
+                          return `${getMaxKpiLabel(item.objective)}${
+                            item.objective === 'Leads' ? ' (estimation)' : ''
+                          }`
+                        })()}
                       </Text>
                     </View>
                     <View style={styles.itemRow}>
@@ -932,6 +943,7 @@ export default function PDVPage() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [clientName, setClientName] = useState('')
   const [pdfClientComment, setPdfClientComment] = useState('')
+  const [showAeInPdf, setShowAeInPdf] = useState(true)
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -1428,6 +1440,7 @@ export default function PDVPage() {
         aePercentage={parseFloat(aePercentage) || 0}
         comment={pdfClientComment}
         logoDataUrl={logoDataUrl}
+        showAe={showAeInPdf}
       />
     )
     const blob = await pdf(doc).toBlob()
@@ -3581,6 +3594,16 @@ export default function PDVPage() {
                 value={pdfClientComment}
                 onChange={(e) => setPdfClientComment(e.target.value)}
               />
+            </div>
+            <div className="flex items-center space-x-2 pt-1">
+              <Checkbox
+                id="show-ae-pdf"
+                checked={showAeInPdf}
+                onCheckedChange={(checked) => setShowAeInPdf(!!checked)}
+              />
+              <Label htmlFor="show-ae-pdf" className="text-sm font-normal">
+                Afficher le % d&apos;AE dans le PDF
+              </Label>
             </div>
           </div>
           <DialogFooter>
