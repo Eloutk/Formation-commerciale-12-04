@@ -39,4 +39,9 @@ export interface RetroPhase {
 export interface RetroPlatformPhase {
   platform: string
   phases: RetroPhase[]
+  /**
+   * Si aucune phase nommée : durée (j) de la barre unique sur la frise,
+   * synchronisée avec l’étirement (mode « partir de 0 »).
+   */
+  singleLineDays?: number
 }

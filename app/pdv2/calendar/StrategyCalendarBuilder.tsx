@@ -1,6 +1,8 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useCalendarStore } from './store'
 import type { CalendarPlatformSource, StrategyCalendarData, CalendarTimeGranularity } from './types'
 import { getDayIndex } from '@/lib/utils/calendarEngine'
@@ -24,6 +26,8 @@ export interface StrategyCalendarBuilderProps {
   calendarWarnings?: string[]
   /** Enfants optionnels (ex: bouton Enregistrer en bas du panneau) */
   children?: React.ReactNode
+  /** Export PDF (ex. document structuré rétroplanning) : fichier + callback */
+  exportPdf?: { filename: string; onExport: () => Promise<void> }
   /** Affichage large (onglet Rétroplanning plein écran) */
   fullWidth?: boolean
   /** Afficher 2 mois côte à côte (onglet Rétroplanning). false = 1 mois (modale stratégie) */
@@ -41,13 +45,16 @@ export function StrategyCalendarBuilder({
   onPlatformDaysChange,
   calendarWarnings,
   children,
+  exportPdf,
   fullWidth,
   twoMonths = false,
   forceTimeGranularity,
 }: StrategyCalendarBuilderProps) {
+  const [exportingPdf, setExportingPdf] = useState(false)
   const initFromStrategy = useCalendarStore((s) => s.initFromStrategy)
   const getCalendarData = useCalendarStore((s) => s.getCalendarData)
   const validate = useCalendarStore((s) => s.validate)
+  const storeItems = useCalendarStore((s) => s.items)
   const setTimeGranularity = useCalendarStore((s) => s.setTimeGranularity)
   const storeStartDate = useCalendarStore((s) => s.startDate)
   const storeDuration = useCalendarStore((s) => s.duration)
@@ -69,21 +76,32 @@ export function StrategyCalendarBuilder({
     onSave?.(data)
   }
 
+  const handleExportPdf = async () => {
+    if (!exportPdf || storeItems.length === 0) return
+    setExportingPdf(true)
+    try {
+      await exportPdf.onExport()
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const maxWidthClass = fullWidth ? 'max-w-6xl' : 'max-w-4xl'
 
   return (
     <div className="w-full flex flex-col gap-3 p-4 rounded-xl border bg-muted/20 min-h-0">
-      {/* Barre d'info / erreurs au-dessus, centrée */}
-      <div className="mb-1 flex justify-center">
-        <div className={`w-full ${maxWidthClass} flex flex-col gap-2`}>
-          <CalendarToolbar showGranularitySelector={fullWidth} />
-          {children}
+      <div className="w-full flex flex-col gap-3 min-h-0 rounded-md bg-background">
+        {/* Barre d'info / erreurs au-dessus, centrée */}
+        <div className="mb-1 flex justify-center">
+          <div className={`w-full ${maxWidthClass} flex flex-col gap-2`}>
+            <CalendarToolbar showGranularitySelector={fullWidth} />
+            {children}
+          </div>
         </div>
-      </div>
 
-      {/* Calendrier centré dans l'encart, pleine largeur dispo */}
-      <div className="flex justify-center">
-        <div className={`w-full ${maxWidthClass}`}>
+        {/* Calendrier centré dans l'encart, pleine largeur dispo */}
+        <div className="flex justify-center">
+          <div className={`w-full ${maxWidthClass}`}>
           <TimelineView
             onPlatformStartDateSet={
               storeStartDate && storeDuration > 0
@@ -105,17 +123,30 @@ export function StrategyCalendarBuilder({
             calendarWarnings={calendarWarnings}
             twoMonths={twoMonths}
           />
+          </div>
         </div>
       </div>
       {onSave && (
-        <div className="shrink-0 pt-2 border-t">
+        <div className="shrink-0 pt-2 border-t flex flex-wrap gap-2 items-stretch">
           <button
             type="button"
             onClick={handleSave}
-            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="flex-1 min-w-[140px] rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Enregistrer le calendrier
           </button>
+          {exportPdf ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 shrink-0"
+              disabled={exportingPdf || storeItems.length === 0}
+              onClick={handleExportPdf}
+            >
+              <Download className="h-4 w-4" />
+              Télécharger le calendrier (PDF)
+            </Button>
+          ) : null}
         </div>
       )}
     </div>

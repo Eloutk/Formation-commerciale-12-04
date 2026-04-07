@@ -28,6 +28,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const [savingName, setSavingName] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  // Ne pas masquer login / register / reset : sinon un init auth lent ou bloqué laisse l'écran "Chargement..." indéfiniment.
+  const isPublicPath =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname?.startsWith("/reset-password") ||
+    pathname?.startsWith("/auth/callback") ||
+    pathname?.startsWith("/test-supabase-connection")
   const pathnameRef = useRef(pathname)
   const hydrateInFlightRef = useRef<Promise<boolean> | null>(null)
   const lastHydrateAtRef = useRef(0)
@@ -367,13 +374,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
   }
 
-  if (loading) {
+  if (loading && !isPublicPath) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!(pathname === '/login' || pathname === '/register' || pathname === '/reset-password') && (
+      {!isPublicPath && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
           <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
             <Link href="/home" className="flex items-center gap-2 font-semibold">

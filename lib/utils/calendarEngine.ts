@@ -30,14 +30,45 @@ export function getDatesFromStart(startDate: string, days: number): string[] {
 }
 
 /**
- * Auto-distribute platforms uniformly over the duration.
- * Each platform gets a contiguous block; blocks are distributed in order.
+ * Auto-distribute platforms over the duration.
+ *
+ * - Si chaque entrée peut au moins prendre une part égale (ceil(duration / n)),
+ *   répartition **uniforme** : toutes les plateformes apparaissent sur la frise.
+ * - Sinon (plafonds maxDays bas), comportement séquentiel historique : blocs
+ *   contigus dans l’ordre jusqu’à épuisement de la durée.
  */
 export function autoDistribute(
   platforms: CalendarPlatformSource[],
   duration: number
 ): CalendarItem[] {
   if (duration <= 0 || platforms.length === 0) return []
+  const n = platforms.length
+  const minShare = Math.ceil(duration / n)
+  const canEqualSplit = platforms.every((p) => p.maxDays >= minShare)
+
+  if (canEqualSplit) {
+    const items: CalendarItem[] = []
+    const base = Math.floor(duration / n)
+    let rem = duration % n
+    let cursor = 0
+    for (let i = 0; i < n; i++) {
+      let len = base + (rem > 0 ? 1 : 0)
+      if (rem > 0) rem--
+      len = Math.min(len, platforms[i].maxDays, duration - cursor)
+      if (len > 0) {
+        items.push({
+          platform: platforms[i].platform,
+          startDay: cursor,
+          length: len,
+          budget: platforms[i].budget,
+          kpiLabel: platforms[i].kpiLabel,
+        })
+        cursor += len
+      }
+    }
+    return items
+  }
+
   const items: CalendarItem[] = []
   let cursor = 0
   for (const p of platforms) {

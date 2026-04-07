@@ -31,6 +31,7 @@ export function TimelineView({
   const startDate = useCalendarStore((s) => s.startDate)
   const duration = useCalendarStore((s) => s.duration)
   const timeGranularity = useCalendarStore((s) => s.timeGranularity)
+  const timelineZoom = useCalendarStore((s) => s.timelineZoom)
   const items = useCalendarStore((s) => s.items)
   const moveItem = useCalendarStore((s) => s.moveItem)
   const resizeItem = useCalendarStore((s) => s.resizeItem)
@@ -42,7 +43,9 @@ export function TimelineView({
   const startStartDayRef = useRef(0)
   const startLengthRef = useRef(0)
 
-  const dayWidth = duration > 0 ? Math.min(DAY_WIDTH_DEFAULT, Math.max(12, MAX_TIMELINE_WIDTH / duration)) : DAY_WIDTH_DEFAULT
+  const baseDayWidth =
+    duration > 0 ? Math.min(DAY_WIDTH_DEFAULT, Math.max(12, MAX_TIMELINE_WIDTH / duration)) : DAY_WIDTH_DEFAULT
+  const dayWidth = Math.max(6, Math.min(220, baseDayWidth * timelineZoom))
   const totalWidth = duration * dayWidth
 
   const phaseIndexMap = React.useMemo(() => getPhaseIndexByPlatformKey(items), [items])

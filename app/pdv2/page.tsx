@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
@@ -22,10 +23,14 @@ import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
 import { RetroPlanningPanel } from '@/app/pdv2/calendar/RetroPlanningPanel'
-import type { CalendarPlatformSource, RetroPlatformPhase } from '@/app/pdv2/calendar/types'
+import { useCalendarStore } from '@/app/pdv2/calendar/store'
+import { syncManualRetroPlatformPhasesFromItems } from '@/app/pdv2/calendar/syncManualRetroFromStore'
+import { downloadRetroplanningPdf } from '@/app/pdv2/calendar/RetroplanningPdfDocument'
+import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/pdv2/calendar/types'
 import { getPlatformColor } from '@/app/pdv2/calendar/colors'
-import { autoDistribute, getDatesFromStart } from '@/lib/utils/calendarEngine'
+import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
+import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/pdv2/calendar/smsSalesConditions'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = [
@@ -444,24 +449,6 @@ interface SmsOptionsState {
   duplicateCampaign: boolean
 }
 
-const SMS_SALES_CONDITIONS = [
-  'Offre disponible en France métropolitaine (dont Corse).',
-  '160 caractères MAXIMUM (dont mentions légales).',
-  'Si 2ème campagne dans les 2 semaines (retargeting), -30 % sur la base de données.',
-  '4 jours de mise en place minimum.',
-  'Statistiques et résultats de campagne sous 48h.',
-  'Rich SMS = Jeux concours (= notoriété + ventes + leads) // Store locator.',
-  'Pour jeux concours : cadeaux INTÉRESSANTS obligatoires.',
-] as const
-
-const RCS_SALES_CONDITIONS = [
-  "Création et vérification d'agent OBLIGATOIRE si inexistant.",
-  'Délai de création : 7 jours à partir de la réception du formulaire complété par le client.',
-  'La créa visuelle est à fournir par le client ou par Link (1000x720px, peu de texte pour une bonne lisibilité sur mobile).',
-  "Si besoin d’un agent « conversationnel », devis spécifique à prévoir : à privilégier le RCS classique pour éviter une hausse importante des coûts.",
-  'Si le volume RCS est < 10 000 contacts, bascule possible sur une campagne SMS classique.',
-  "ATTENTION : les frais de set up correspondent aux frais de paramétrage de la campagne (routage, agrégation, etc.) et ne doivent pas être confondus avec la créa, facturée en sus.",
-] as const
 type ChartView = 'platform' | 'objective'
 
 interface TableRowData {
@@ -512,6 +499,43 @@ export interface StrategyCalendar {
 
 // Calendrier stratégique (module Kanban/Timeline)
 export type StrategyCalendarData = import('@/app/pdv2/calendar/types').StrategyCalendarData
+
+/** Plateforme SMS/RCS dans le rétroplanning (hors réseaux sociaux) */
+function isSmsRetroPlatform(p: string): boolean {
+  return p === 'SMS' || p === 'RCS' || p.startsWith('SMS::') || p.startsWith('RCS::')
+}
+
+/** Adapte le calendrier déjà enregistré au mode Social / SMS / les deux / partir de 0 */
+function filterRetroCalendarDataForSourceChoice(
+  data: StrategyCalendarData | null,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): StrategyCalendarData | null {
+  if (!data) return data
+  if (choice === 'none') return null
+  const raw = data.items ?? []
+  if (choice === 'both') return data
+  const items =
+    choice === 'social'
+      ? raw.filter((i) => !isSmsRetroPlatform(i.platform))
+      : raw.filter((i) => isSmsRetroPlatform(i.platform))
+  const extent = items.length
+    ? Math.max(...items.map((i) => (i.startDay ?? 0) + (i.length ?? 0)))
+    : 0
+  const duration = items.length > 0 ? Math.max(data.duration, extent) : Math.max(1, data.duration)
+  return { ...data, items, duration }
+}
+
+function filterDefineDatesForSourceChoice(
+  prev: Record<string, string>,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): Record<string, string> {
+  if (choice === 'both') return prev
+  if (choice === 'none') return {}
+  const entries = Object.entries(prev).filter(([k]) =>
+    choice === 'social' ? !isSmsRetroPlatform(k) : isSmsRetroPlatform(k),
+  )
+  return Object.fromEntries(entries)
+}
 
 function isStrategyCalendarData(cal: StrategyCalendar | StrategyCalendarData | null | undefined): cal is StrategyCalendarData {
   return !!cal && 'duration' in cal && 'items' in cal && Array.isArray((cal as StrategyCalendarData).items)
@@ -1355,12 +1379,30 @@ export default function PDV2Page() {
   // Rétroplanning (onglet dédié, indépendant des stratégies)
   const [retroCalendarData, setRetroCalendarData] = useState<StrategyCalendarData | null>(null)
   const [retroStartDate, setRetroStartDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [retroDurationDays, setRetroDurationDays] = useState(365)
+  const [retroDurationDays, setRetroDurationDays] = useState(90)
   const [retroPlatformPhases, setRetroPlatformPhases] = useState<RetroPlatformPhase[]>([])
+  const [retroSmsPhases, setRetroSmsPhases] = useState<RetroPhase[]>([])
   const [retroLinkSocial, setRetroLinkSocial] = useState(false)
   const [retroLinkSms, setRetroLinkSms] = useState(false)
+  /** null = modale de choix de source à afficher ; défini une fois l’utilisateur a choisi */
+  const [retroSourceChoice, setRetroSourceChoice] = useState<'social' | 'sms' | 'both' | 'none' | null>(null)
+  useEffect(() => {
+    if (pdvSection !== 'calendar') {
+      setRetroSourceChoice(null)
+    }
+  }, [pdvSection])
+
   // Dates de début par plateforme (utilisées dans le popup Calendrier)
   const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
+  const applyRetroSourceChoice = useCallback((choice: 'social' | 'sms' | 'both' | 'none') => {
+    setRetroLinkSocial(choice === 'social' || choice === 'both')
+    setRetroLinkSms(choice === 'sms' || choice === 'both')
+    setRetroSourceChoice(choice)
+    setRetroCalendarData((prev) => filterRetroCalendarDataForSourceChoice(prev, choice))
+    setRetroPlatformPhases((phases) => (choice === 'sms' || choice === 'none' ? [] : phases))
+    setRetroSmsPhases((phases) => (choice === 'social' || choice === 'none' ? [] : phases))
+    setDefineDatesPerPlatform((prev) => filterDefineDatesForSourceChoice(prev, choice))
+  }, [])
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
@@ -1399,6 +1441,10 @@ export default function PDV2Page() {
   const [smsPdfFileName, setSmsPdfFileName] = useState('')
   const [smsPdfComment, setSmsPdfComment] = useState('')
   const [smsPdfImage, setSmsPdfImage] = useState<string | null>(null)
+  const [retroPdfDialogOpen, setRetroPdfDialogOpen] = useState(false)
+  const [retroPdfFileName, setRetroPdfFileName] = useState('')
+  const [retroPdfComment, setRetroPdfComment] = useState('')
+  const retroPdfExportRef = useRef<((filename: string, documentComment: string) => Promise<void>) | null>(null)
   const [currentSmsType, setCurrentSmsType] = useState<'sms' | 'rcs'>('sms')
   
   // État pour la modale Validation TM
@@ -1496,6 +1542,44 @@ export default function PDV2Page() {
     }
     return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
+  /** Au moins une ligne dans la stratégie Social active (pour rétroplanning lié) */
+  const activeStrategyHasLines = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return (b?.items?.length ?? 0) > 0
+  }, [strategies, activeStrategyId])
+
+  const activeStrategyName = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return b?.name?.trim() || 'Stratégie active'
+  }, [strategies, activeStrategyId])
+
+  const socialLineCount = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return b?.items?.length ?? 0
+  }, [strategies, activeStrategyId])
+
+  /** Campagne SMS/RCS exploitable pour le rétroplanning lié (mêmes critères que les boutons PDF SMS) */
+  const smsCampaignReadyForRetro = useMemo(() => {
+    if (smsType === 'sms') {
+      return smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
+    }
+    return smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
+  }, [smsType, smsVolumeNumber, smsUnitPrice, smsTotalPrice, rcsBasePU, rcsTotalPrice])
+
+  const retroPlanningMissingLinkedData = useMemo(
+    () =>
+      retroSourceChoice !== null &&
+      retroSourceChoice !== 'none' &&
+      ((retroLinkSocial && !activeStrategyHasLines) || (retroLinkSms && !smsCampaignReadyForRetro)),
+    [
+      retroSourceChoice,
+      retroLinkSocial,
+      retroLinkSms,
+      activeStrategyHasLines,
+      smsCampaignReadyForRetro,
+    ],
+  )
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -2097,53 +2181,21 @@ export default function PDV2Page() {
     setSmsPdfImage(null)
   }
 
-  function handleExportRetroPDF(data: StrategyCalendarData) {
-    const dates = getDatesFromStart(data.startDate, data.duration)
-    const formatDate = (dayIndex: number) => {
-      const d = dates[dayIndex]
-      if (!d) return '–'
-      const [y, m, day] = d.split('-')
-      return `${day}/${m}/${y?.slice(2) ?? ''}`
+  const handleConfirmRetroPdf = async () => {
+    const raw = retroPdfFileName.trim()
+    if (!raw) {
+      alert('Veuillez renseigner un nom de fichier.')
+      return
     }
-    const RetroPDFDoc = () => (
-      <Document>
-        <Page size="A4" style={styles.page}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: '#1a1a1a' }}>
-            Rétroplanning – Calendrier de diffusion
-          </Text>
-          <Text style={{ fontSize: 10, color: '#666', marginBottom: 12 }}>
-            Période du {formatDate(0)} au {formatDate(data.duration - 1)} ({data.duration} jours)
-          </Text>
-          <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd', paddingVertical: 6, marginBottom: 4 }}>
-            <Text style={{ width: '35%', fontSize: 9, fontWeight: 'bold' }}>Phase / Plateforme</Text>
-            <Text style={{ width: '22%', fontSize: 9, fontWeight: 'bold' }}>Début</Text>
-            <Text style={{ width: '22%', fontSize: 9, fontWeight: 'bold' }}>Fin</Text>
-            <Text style={{ width: '12%', fontSize: 9, fontWeight: 'bold' }}>Jours</Text>
-          </View>
-          {data.items.map((item, i) => {
-            const startStr = formatDate(item.startDay)
-            const endStr = formatDate(item.startDay + item.length - 1)
-            const phaseLabel = item.platform.includes('::') ? item.platform.replace('::', ' – ') : (item.objective ? `${item.platform} – ${item.objective}` : item.platform)
-            return (
-              <View key={i} style={{ flexDirection: 'row', borderBottomWidth: 0.5, borderColor: '#eee', paddingVertical: 5 }}>
-                <Text style={{ width: '35%', fontSize: 9 }}>{phaseLabel}</Text>
-                <Text style={{ width: '22%', fontSize: 9 }}>{startStr}</Text>
-                <Text style={{ width: '22%', fontSize: 9 }}>{endStr}</Text>
-                <Text style={{ width: '12%', fontSize: 9 }}>{item.length}</Text>
-              </View>
-            )
-          })}
-        </Page>
-      </Document>
-    )
-    pdf(<RetroPDFDoc />).toBlob().then((blob) => {
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `Retroplanning_${data.startDate}_${data.duration}j.pdf`
-      link.click()
-      URL.revokeObjectURL(url)
-    })
+    const filename = raw.toLowerCase().endsWith('.pdf') ? raw : `${raw}.pdf`
+    try {
+      await retroPdfExportRef.current?.(filename, retroPdfComment)
+    } finally {
+      setRetroPdfDialogOpen(false)
+      setRetroPdfFileName('')
+      setRetroPdfComment('')
+      retroPdfExportRef.current = null
+    }
   }
 
   if (!adminChecked) {
@@ -3601,35 +3653,335 @@ export default function PDV2Page() {
 
         {pdvSection === 'calendar' && (
           <div className="mt-6 space-y-6">
-            <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
-              <Label className="text-sm font-medium">Lien avec les stratégies</Label>
-              <p className="text-xs text-muted-foreground">
-                Vous pouvez utiliser le rétroplanning seul ou l’associer à la stratégie Social media et/ou SMS.
-              </p>
-              <div className="flex flex-wrap gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={retroLinkSocial}
-                    onCheckedChange={(c) => setRetroLinkSocial(c === true)}
-                  />
-                  <span className="text-sm">
-                    Inclure la stratégie Social media
-                    {(() => {
-                      const block = strategies.find((s) => s.id === activeStrategyId)
-                      return block ? ` (${block.name})` : ''
-                    })()}
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox
-                    checked={retroLinkSms}
-                    onCheckedChange={(c) => setRetroLinkSms(c === true)}
-                  />
-                  <span className="text-sm">Inclure la stratégie SMS / RCS</span>
-                </label>
-              </div>
-            </div>
-            <RetroPlanningPanel
+            <Dialog open={retroSourceChoice === null} onOpenChange={() => {}}>
+              <DialogContent
+                className="sm:max-w-xl [&>button.absolute]:hidden"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
+                <DialogHeader className="space-y-2 text-left">
+                  <DialogTitle className="text-xl font-bold tracking-tight text-[#E94C16]">Rétroplanning</DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground">Vert</span> : option utilisable d’un clic.{' '}
+                    <span className="font-medium text-red-700 dark:text-red-400">Rouge</span> : prérequis manquants —
+                    complétez l’onglet concerné, l’option deviendra verte automatiquement.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => applyRetroSourceChoice('none')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2',
+                      'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45',
+                    )}
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-800 dark:text-emerald-200">
+                      <LayoutGrid className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-emerald-950 dark:text-emerald-50">Partir de 0</span>
+                        <Badge variant="secondary" className="border-emerald-600/30 bg-emerald-500/15 text-[10px] font-normal text-emerald-900 dark:text-emerald-100">
+                          Sans liaison
+                        </Badge>
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-100/85">
+                        Vous cochez les plateformes et créez les phases vous-même. Aucune donnée n’est importée depuis
+                        les onglets Social ou SMS.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                        >
+                          Toujours disponible
+                        </Badge>
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!activeStrategyHasLines}
+                    onClick={() => applyRetroSourceChoice('social')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      activeStrategyHasLines
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        activeStrategyHasLines
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <Share2 className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            activeStrategyHasLines
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Partir de la stratégie Social media
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          activeStrategyHasLines
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Reprend les lignes de la stratégie active (plateformes, objectifs, durées) comme base du
+                        calendrier.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        {activeStrategyHasLines ? (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Prêt · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''} · « {activeStrategyName} »
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Non disponible · Ajoutez au moins une ligne dans l’onglet Social media
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!smsCampaignReadyForRetro}
+                    onClick={() => applyRetroSourceChoice('sms')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      smsCampaignReadyForRetro
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        smsCampaignReadyForRetro
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <MessageSquare className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            smsCampaignReadyForRetro
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Partir de la stratégie SMS / RCS
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          smsCampaignReadyForRetro
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Intègre une campagne {smsType === 'sms' ? 'SMS' : 'RCS'} (volume, options) dans le même document
+                        de rétroplanning.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        {smsCampaignReadyForRetro ? (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Prêt · campagne {smsType === 'sms' ? 'SMS' : 'RCS'} renseignée
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Non disponible · Volume et barème dans l’onglet SMS / RCS
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!(activeStrategyHasLines && smsCampaignReadyForRetro)}
+                    onClick={() => applyRetroSourceChoice('both')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      activeStrategyHasLines && smsCampaignReadyForRetro
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        activeStrategyHasLines && smsCampaignReadyForRetro
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <Layers className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            activeStrategyHasLines && smsCampaignReadyForRetro
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Social media + SMS / RCS
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-[10px] font-normal',
+                            activeStrategyHasLines && smsCampaignReadyForRetro
+                              ? 'border-emerald-600/30 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100'
+                              : 'border-red-600/30 bg-red-500/15 text-red-900 dark:text-red-100',
+                          )}
+                        >
+                          Combiné
+                        </Badge>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          activeStrategyHasLines && smsCampaignReadyForRetro
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Un seul PDF avec la stratégie Social, le détail SMS / RCS et le planning : les deux sources doivent
+                        être prêtes pour un rendu complet.
+                      </span>
+                      <span className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center">
+                        {activeStrategyHasLines ? (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Social · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Social · manquant
+                          </Badge>
+                        )}
+                        {smsCampaignReadyForRetro ? (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            SMS / RCS · prêt
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            SMS / RCS · manquant
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {retroSourceChoice !== null && (
+              <>
+                {retroPlanningMissingLinkedData ? (
+                  <div className="rounded-xl border bg-background p-6 space-y-4 shadow-sm">
+                    <Alert className="border-orange-500 bg-orange-50 text-orange-950 dark:bg-orange-950/20 dark:border-orange-600 dark:text-orange-100">
+                      <AlertTitle>Aucune stratégie prête pour cette option</AlertTitle>
+                      <AlertDescription className="space-y-3 text-sm">
+                        <p>
+                          Vous avez choisi de partir d’une stratégie Social media et/ou SMS / RCS, mais il n’y a pas encore
+                          assez d’éléments en place pour construire le rétroplanning à partir de ces sources.
+                        </p>
+                        <ul className="list-disc pl-5 space-y-2">
+                          {retroLinkSocial && !activeStrategyHasLines && (
+                            <li>
+                              <strong>Social media :</strong> la stratégie active ne contient aucune ligne (aucune
+                              plateforme avec objectif et budget). Ouvrez l’onglet Social media, ajoutez au moins une
+                              ligne à votre stratégie, puis revenez ici — ou choisissez une autre base ci-dessous.
+                            </li>
+                          )}
+                          {retroLinkSms && !smsCampaignReadyForRetro && (
+                            <li>
+                              <strong>SMS / RCS :</strong> la campagne n’est pas encore exploitable (volume manquant ou
+                              hors barème, selon le type). Complétez l’onglet SMS / RCS avec un volume valide, puis
+                              revenez — ou repartez de zéro.
+                            </li>
+                          )}
+                        </ul>
+                        <p className="font-medium leading-relaxed">
+                          En résumé : remplissez d’abord la ou les stratégies dans les onglets concernés, ou utilisez
+                          « Choisir une autre base » pour revenir au choix initial et sélectionner « Partir de 0 » afin de
+                          construire votre calendrier sans lier une stratégie existante.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => setRetroSourceChoice(null)}
+                        className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                      >
+                        Choisir une autre base
+                      </Button>
+                      {retroLinkSocial && !activeStrategyHasLines && (
+                        <Button type="button" variant="outline" onClick={() => setPdvSection('social')}>
+                          Aller à l’onglet Social media
+                        </Button>
+                      )}
+                      {retroLinkSms && !smsCampaignReadyForRetro && (
+                        <Button type="button" variant="outline" onClick={() => setPdvSection('sms')}>
+                          Aller à l’onglet SMS / RCS
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <RetroPlanningPanel
               availablePlatforms={PLATFORMS_ORDER}
               startDate={retroStartDate}
               onStartDateChange={setRetroStartDate}
@@ -3637,6 +3989,7 @@ export default function PDV2Page() {
               onDurationDaysChange={setRetroDurationDays}
               platformPhases={retroPlatformPhases}
               onPlatformPhasesChange={setRetroPlatformPhases}
+              fromScratchRetro={retroSourceChoice === 'none'}
               linkSocial={retroLinkSocial}
               strategyItems={
                 retroLinkSocial
@@ -3649,6 +4002,8 @@ export default function PDV2Page() {
               }
               linkSms={retroLinkSms}
               smsType={smsType}
+              smsPhases={retroSmsPhases}
+              onSmsPhasesChange={setRetroSmsPhases}
               onApplyDistribution={() => {
                 const duration = Math.max(1, retroDurationDays)
                 const sources: CalendarPlatformSource[] = retroPlatformPhases.flatMap(({ platform, phases }) => {
@@ -3673,104 +4028,9 @@ export default function PDV2Page() {
                   })),
                 })
               }}
-              onExportPDF={() => {
-                if (!retroCalendarData?.items?.length) return
-                handleExportRetroPDF(retroCalendarData)
-              }}
-              calendarData={retroCalendarData}
-              onLinkedSocialPhaseAdd={
-                retroLinkSocial
-                  ? (platform, objective, days) => {
-                      const block = strategies.find((s) => s.id === activeStrategyId)
-                      if (!block) return
-                      const template = block.items.find((it) => it.platform === platform)
-                      const aeNum = template?.aePercentage ?? (parseFloat(aePercentage) || 40)
-                      const budget = template?.budget ?? 0
-                      const newItem: StrategyItem = {
-                        ...(template ?? {
-                          platform,
-                          objective: '',
-                          budget: 0,
-                          estimatedKPIs: 0,
-                          dailyBudget: 0,
-                          aeCheckValue: 0,
-                          isAvailable: true,
-                        }),
-                        id: `${platform}-${objective}-${Date.now()}`,
-                        platform,
-                        objective,
-                        days,
-                        aePercentage: aeNum,
-                        dailyBudget: budget * (aeNum / 100) / days,
-                        aeCheckValue:
-                          platform === 'Spotify'
-                            ? budget * (aeNum / 100)
-                            : (budget * (aeNum / 100)) / days,
-                      }
-                      setStrategies((prev) =>
-                        prev.map((s) =>
-                          s.id === activeStrategyId ? { ...s, items: [...s.items, newItem] } : s,
-                        ),
-                      )
-                    }
-                  : undefined
-              }
-              onLinkedSocialPhaseRemove={
-                retroLinkSocial
-                  ? (platform, objective) => {
-                      setStrategies((prev) =>
-                        prev.map((s) =>
-                          s.id === activeStrategyId
-                            ? {
-                                ...s,
-                                items: s.items.filter(
-                                  (it) => !(it.platform === platform && it.objective === objective),
-                                ),
-                              }
-                            : s,
-                        ),
-                      )
-                    }
-                  : undefined
-              }
-              onLinkedSocialPhaseUpdate={
-                retroLinkSocial
-                  ? (platform, objectiveIndex, updates) => {
-                      setStrategies((prev) =>
-                        prev.map((s) => {
-                          if (s.id !== activeStrategyId) return s
-                          const platformItems = s.items
-                            .map((it, i) => ({ it, i }))
-                            .filter(({ it }) => it.platform === platform)
-                          const target = platformItems[objectiveIndex]
-                          if (!target) return s
-                          const idx = target.i
-                          const item = s.items[idx]!
-                          const next = [...s.items]
-                          const name = updates.name ?? item.objective
-                          const days = updates.days ?? item.days
-                          const aeNum = item.aePercentage / 100
-                          next[idx] = {
-                            ...item,
-                            objective: name,
-                            days,
-                            dailyBudget: (item.budget * aeNum) / days,
-                            aeCheckValue:
-                              item.platform === 'Spotify'
-                                ? item.budget * aeNum
-                                : (item.budget * aeNum) / days,
-                          }
-                          return { ...s, items: next }
-                        }),
-                      )
-                    }
-                  : undefined
-              }
             />
             {(() => {
-              const duration = retroCalendarData?.duration && retroCalendarData.duration > 0
-                ? retroCalendarData.duration
-                : Math.max(1, retroDurationDays)
+              const baseDuration = Math.max(1, retroDurationDays)
               const defaultStart = retroStartDate || new Date().toISOString().slice(0, 10)
               const daysBetween = (a: string, b: string) =>
                 Math.round(
@@ -3778,11 +4038,31 @@ export default function PDV2Page() {
                     (24 * 60 * 60 * 1000),
                 )
 
+              let items: StrategyCalendarData['items'] = retroCalendarData?.items ?? []
+              if (!retroCalendarData?.items?.length && retroPlatformPhases.length > 0) {
+                items = []
+              } else if (retroCalendarData?.items?.length) {
+                items = [...retroCalendarData.items]
+              }
+
+              const durationFromItems =
+                items.length > 0
+                  ? items.reduce((max, it) => Math.max(max, (it.startDay ?? 0) + (it.length ?? 0)), 0)
+                  : 0
+              const duration = Math.max(baseDuration, durationFromItems || baseDuration)
+
               let platformSources: CalendarPlatformSource[] =
                 retroPlatformPhases.length > 0
-                  ? retroPlatformPhases.flatMap(({ platform, phases }) => {
+                  ? retroPlatformPhases.flatMap(({ platform, phases, singleLineDays }) => {
                       if (phases.length === 0) {
-                        return [{ platform, budget: 0, kpiLabel: '', maxDays: duration }]
+                        return [
+                          {
+                            platform,
+                            budget: 0,
+                            kpiLabel: '',
+                            maxDays: Math.max(1, singleLineDays ?? duration),
+                          },
+                        ]
                       }
                       return phases.map((ph) => ({
                         platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
@@ -3791,21 +4071,14 @@ export default function PDV2Page() {
                         maxDays: Math.max(1, ph.defaultDays ?? duration),
                       }))
                     })
-                  : retroCalendarData?.items?.length
-                    ? retroCalendarData.items.map((item) => ({
+                  : items.length
+                    ? items.map((item) => ({
                         platform: item.objective ? `${item.platform}::${item.objective}` : item.platform,
                         budget: item.budget ?? 0,
                         kpiLabel: item.kpiLabel ?? '',
                         maxDays: Math.max(1, item.length || duration),
                       }))
                     : []
-
-              let items: StrategyCalendarData['items'] = retroCalendarData?.items ?? []
-              if (!retroCalendarData?.items?.length && retroPlatformPhases.length > 0) {
-                items = []
-              } else if (retroCalendarData?.items?.length) {
-                items = [...retroCalendarData.items]
-              }
 
               const strategyPlatformKeys = new Set<string>()
 
@@ -3869,9 +4142,47 @@ export default function PDV2Page() {
               if (retroLinkSms) {
                 const smsPlatform = smsType === 'sms' ? 'SMS' : 'RCS'
                 const smsLength = Math.max(30, campaignMonthsNumber * 30)
-                strategyPlatformKeys.add(smsPlatform)
-                platformSources = [...platformSources, { platform: smsPlatform, budget: 0, kpiLabel: '', maxDays: smsLength }]
-                items = [...items, { platform: smsPlatform, startDay: 0, length: Math.min(smsLength, duration), budget: 0, kpiLabel: '' }]
+
+                if (retroSmsPhases.length > 0) {
+                  retroSmsPhases.forEach((phase, idx) => {
+                    const phaseName = phase.name?.trim() || `Phase ${idx + 1}`
+                    const key = `${smsPlatform}::${phaseName}`
+                    const phaseLength =
+                      Math.max(1, phase.defaultDays ?? Math.floor(smsLength / retroSmsPhases.length))
+
+                    strategyPlatformKeys.add(key)
+                    platformSources = [
+                      ...platformSources,
+                      { platform: key, budget: 0, kpiLabel: '', maxDays: smsLength },
+                    ]
+                    items = [
+                      ...items,
+                      {
+                        platform: key,
+                        startDay: 0,
+                        length: Math.min(phaseLength, duration),
+                        budget: 0,
+                        kpiLabel: '',
+                      },
+                    ]
+                  })
+                } else {
+                  strategyPlatformKeys.add(smsPlatform)
+                  platformSources = [
+                    ...platformSources,
+                    { platform: smsPlatform, budget: 0, kpiLabel: '', maxDays: smsLength },
+                  ]
+                  items = [
+                    ...items,
+                    {
+                      platform: smsPlatform,
+                      startDay: 0,
+                      length: Math.min(smsLength, duration),
+                      budget: 0,
+                      kpiLabel: '',
+                    },
+                  ]
+                }
               }
 
               const mergedDuration = Math.max(
@@ -3887,33 +4198,20 @@ export default function PDV2Page() {
               const hasItems = items.length > 0
 
               const handleSave = (data: StrategyCalendarData) => {
+                const isSmsPlatform = (p: string) =>
+                  p === 'SMS' ||
+                  p === 'RCS' ||
+                  p.startsWith('SMS::') ||
+                  p.startsWith('RCS::')
+
                 const retroItems = data.items.filter(
-                  (i) => !strategyPlatformKeys.has(i.platform),
+                  (i) => !strategyPlatformKeys.has(i.platform) && !isSmsPlatform(i.platform),
                 )
-                const socialItems = data.items.filter((i) => {
-                  if (i.platform === 'SMS' || i.platform === 'RCS') return false
-                  return strategyPlatformKeys.has(i.platform)
-                })
                 setRetroCalendarData({ ...data, items: retroItems, duration: data.duration })
-                if (retroLinkSocial && socialItems.length > 0) {
-                  setStrategies((prev) =>
-                    prev.map((s) =>
-                      s.id === activeStrategyId
-                        ? { ...s, calendar: { startDate: data.startDate, duration: data.duration, items: socialItems } }
-                        : s,
-                    ),
+                if (retroSourceChoice === 'none' && retroItems.length > 0) {
+                  setRetroPlatformPhases((prev) =>
+                    syncManualRetroPlatformPhasesFromItems(prev, retroItems),
                   )
-                  const formatDayToDate = (dayIndex: number) => {
-                    const d = new Date(data.startDate + 'T12:00:00')
-                    d.setDate(d.getDate() + dayIndex)
-                    return d.toISOString().slice(0, 10)
-                  }
-                  setDefineDatesPerPlatform((prev) => ({
-                    ...prev,
-                    ...Object.fromEntries(
-                      socialItems.map((i) => [i.platform, formatDayToDate(i.startDay)]),
-                    ),
-                  }))
                 }
               }
 
@@ -3932,50 +4230,79 @@ export default function PDV2Page() {
                     fullWidth
                     twoMonths={mergedDuration <= 120}
                     forceTimeGranularity={mergedDuration > 120 ? 'week' : undefined}
-                    onSave={handleSave}
-                    onPlatformStartDateChange={
-                      retroLinkSocial
-                        ? (entryKey, startDate) => {
-                            if (strategyPlatformKeys.has(entryKey) && entryKey !== 'SMS' && entryKey !== 'RCS') {
-                              setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
-                            }
-                          }
-                        : undefined
-                    }
-                    onPlatformDaysChange={
-                      retroLinkSocial
-                        ? (entryKey, days) => {
-                            setStrategies((prev) =>
-                              prev.map((s) =>
-                                s.id !== activeStrategyId
-                                  ? s
-                                  : {
-                                      ...s,
-                                      items: s.items.map((it) => {
-                                        if (`${it.platform}::${it.objective}` !== entryKey) return it
-                                        const aeFactor = (it.aePercentage ?? 0) / 100
-                                        const dailyBudget = (it.budget ?? 0) * aeFactor / days
-                                        const aeCheckValue =
-                                          it.platform === 'Spotify'
-                                            ? (it.budget ?? 0) * aeFactor
-                                            : ((it.budget ?? 0) * aeFactor) / days
-                                        return {
-                                          ...it,
-                                          days,
-                                          dailyBudget,
-                                          aeCheckValue,
+                    exportPdf={{
+                      filename: `Retroplanning_${defaultStart}_${mergedDuration}j.pdf`,
+                      onExport: async () => {
+                        const cal = useCalendarStore.getState().getCalendarData()
+                        if (!cal.items.length) return
+                        const block = strategies.find((s) => s.id === activeStrategyId)
+                        retroPdfExportRef.current = async (filename, documentComment) => {
+                          const cal2 = useCalendarStore.getState().getCalendarData()
+                          if (!cal2.items.length) return
+                          await downloadRetroplanningPdf({
+                            filename,
+                            documentComment: documentComment.trim() || undefined,
+                            personName: userName.trim() || userPseudo.trim() || '',
+                            linkSocial: retroLinkSocial,
+                            linkSms: retroLinkSms,
+                            smsType,
+                            strategyLines:
+                              retroLinkSocial && block?.items?.length
+                                ? block.items.map((it) => ({
+                                    platform: it.platform,
+                                    objective: it.objective,
+                                    budget: it.budget,
+                                    estimatedKPIs: it.estimatedKPIs,
+                                    days: it.days,
+                                    aePercentage: it.aePercentage,
+                                    customKpiLabel: it.customKpiLabel,
+                                    dailyBudget: it.dailyBudget,
+                                  }))
+                                : undefined,
+                            smsQuoteDetail: retroLinkSms
+                              ? {
+                                  volume: smsVolumeNumber,
+                                  unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                                  totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
+                                  options:
+                                    smsType === 'sms'
+                                      ? {
+                                          ciblage: smsOptions.ciblage,
+                                          richSms: smsOptions.richSms,
+                                          tarifIntermarche: smsOptions.tarifIntermarche,
+                                          duplicateCampaign: smsOptions.duplicateCampaign,
                                         }
-                                      }),
-                                    },
-                              ),
-                            )
-                          }
-                        : undefined
-                    }
+                                      : {
+                                          agent: smsOptions.agent,
+                                          creaByLink: smsOptions.creaByLink,
+                                          tarifIntermarche: smsOptions.tarifIntermarche,
+                                          duplicateCampaign: smsOptions.duplicateCampaign,
+                                        },
+                                  campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
+                                  creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
+                                  comment: smsPdfComment.trim() || undefined,
+                                  imageBase64: smsPdfImage ?? undefined,
+                                }
+                              : undefined,
+                            calendarData: cal2,
+                          })
+                        }
+                        setRetroPdfFileName(`Retroplanning_${defaultStart}_${mergedDuration}j`)
+                        setRetroPdfComment('')
+                        setRetroPdfDialogOpen(true)
+                      },
+                    }}
+                    onSave={handleSave}
+                    onPlatformStartDateChange={undefined}
+                    onPlatformDaysChange={undefined}
                   />
                 </>
               )
             })()}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -4173,6 +4500,72 @@ export default function PDV2Page() {
               className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
             >
               {sendingToSlack ? 'Envoi...' : 'Envoyer sur Slack'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale export PDF rétroplanning */}
+      <Dialog
+        open={retroPdfDialogOpen}
+        onOpenChange={(open) => {
+          setRetroPdfDialogOpen(open)
+          if (!open) {
+            setRetroPdfFileName('')
+            setRetroPdfComment('')
+            retroPdfExportRef.current = null
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le rétroplanning en PDF</DialogTitle>
+            <DialogDescription>
+              Indiquez le nom du fichier et, si vous le souhaitez, un commentaire affiché sous le titre du document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-filename">Nom du fichier *</Label>
+              <EditableInput
+                id="retro-pdf-filename"
+                placeholder="Ex: Retroplanning-client"
+                value={retroPdfFileName}
+                onChange={(e) => setRetroPdfFileName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-comment">Commentaire (optionnel)</Label>
+              <EditableInput
+                id="retro-pdf-comment"
+                placeholder="Ex: Campagne Q1 2026"
+                value={retroPdfComment}
+                onChange={(e) => setRetroPdfComment(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Ce commentaire apparaît sous le titre principal du PDF.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRetroPdfDialogOpen(false)
+                setRetroPdfFileName('')
+                setRetroPdfComment('')
+                retroPdfExportRef.current = null
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleConfirmRetroPdf}
+              disabled={!retroPdfFileName.trim()}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger le PDF
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -20,6 +20,8 @@ export interface CalendarState {
   validationError: string | null
   /** Plateforme sélectionnée pour définir la date de début (clic dans le calendrier) */
   selectedPlatform: string | null
+  /** Zoom affichage timeline / grille mois (1 = 100 %) */
+  timelineZoom: number
 }
 
 export interface CalendarActions {
@@ -39,6 +41,18 @@ export interface CalendarActions {
   getCalendarData: () => StrategyCalendarData
   validate: () => boolean
   setSelectedPlatform: (platform: string | null) => void
+  setTimelineZoom: (zoom: number) => void
+  zoomTimelineIn: () => void
+  zoomTimelineOut: () => void
+  resetTimelineZoom: () => void
+}
+
+const ZOOM_MIN = 0.5
+const ZOOM_MAX = 2.5
+const ZOOM_STEP = 0.15
+
+function clampZoom(z: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100))
 }
 
 const defaultState: CalendarState = {
@@ -52,6 +66,7 @@ const defaultState: CalendarState = {
   platformSources: [],
   validationError: null,
   selectedPlatform: null,
+  timelineZoom: 1,
 }
 
 export const useCalendarStore = create<CalendarState & CalendarActions>((set, get) => ({
@@ -169,6 +184,20 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
   },
 
   setSelectedPlatform: (selectedPlatform) => set({ selectedPlatform }),
+
+  setTimelineZoom: (timelineZoom) => set({ timelineZoom: clampZoom(timelineZoom) }),
+
+  zoomTimelineIn: () => {
+    const z = clampZoom(get().timelineZoom + ZOOM_STEP)
+    set({ timelineZoom: z })
+  },
+
+  zoomTimelineOut: () => {
+    const z = clampZoom(get().timelineZoom - ZOOM_STEP)
+    set({ timelineZoom: z })
+  },
+
+  resetTimelineZoom: () => set({ timelineZoom: 1 }),
 }))
 
 export function getCalendarDates(state: CalendarState): string[] {
