@@ -18,8 +18,8 @@ export interface StrategyCalendarData {
 
 export type CalendarViewMode = 'kanban' | 'timeline'
 
-/** Granularité d'affichage du calendrier */
-export type CalendarTimeGranularity = 'day' | 'week' | 'month'
+/** Granularité d'affichage du calendrier (frise = une ligne synthétique des périodes) */
+export type CalendarTimeGranularity = 'day' | 'week' | 'month' | 'frise'
 
 export interface CalendarPlatformSource {
   platform: string

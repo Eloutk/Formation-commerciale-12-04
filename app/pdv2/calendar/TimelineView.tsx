@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useCalendarStore } from './store'
 import { getPlatformPhaseColor, getPhaseIndexByPlatformKey } from './colors'
 import { getDatesFromStart } from '@/lib/utils/calendarEngine'
-import type { CalendarTimeGranularity } from './types'
+import { calendarItemsForDisplayGrouped } from './calendarDisplayItems'
 import { MonthGridView } from './MonthGridView'
 
 const ROW_HEIGHT = 56
@@ -48,13 +48,14 @@ export function TimelineView({
   const dayWidth = Math.max(6, Math.min(220, baseDayWidth * timelineZoom))
   const totalWidth = duration * dayWidth
 
-  const phaseIndexMap = React.useMemo(() => getPhaseIndexByPlatformKey(items), [items])
+  const displayItems = React.useMemo(() => calendarItemsForDisplayGrouped(items), [items])
+  const phaseIndexMap = React.useMemo(() => getPhaseIndexByPlatformKey(displayItems), [displayItems])
 
   const headerCells = React.useMemo(() => {
     if (timeGranularity === 'day') {
       return dates.map((d) => ({ label: formatDateJJMMAA(d), subLabel: '', width: dayWidth }))
     }
-    if (timeGranularity === 'week') {
+    if (timeGranularity === 'week' || timeGranularity === 'frise') {
       const numWeeks = Math.ceil(duration / 7)
       return Array.from({ length: numWeeks }, (_, w) => {
         const start = w * 7
@@ -144,6 +145,101 @@ export function TimelineView({
     }
   }, [resizing, resizeItem, dayWidth])
 
+  if (timeGranularity === 'frise') {
+    const axisY = 58
+    return (
+      <div className="rounded-2xl border border-border/60 bg-background overflow-auto shadow-sm">
+        <div className="min-w-max">
+          <div className="flex border-b border-border/60 sticky top-0 z-10 bg-muted/30 backdrop-blur-sm">
+            <div className="flex" style={{ width: totalWidth }}>
+              {headerCells.map((cell, i) => (
+                <div
+                  key={i}
+                  className="shrink-0 border-r border-border/50 py-2.5 text-center text-xs font-semibold text-foreground"
+                  style={{ width: cell.width }}
+                >
+                  <div>{cell.label}</div>
+                  {cell.subLabel ? (
+                    <div className="text-muted-foreground font-normal truncate px-0.5 mt-0.5">{cell.subLabel}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative bg-muted/5" style={{ width: totalWidth, minHeight: 108 }}>
+            <div
+              className="absolute left-0 right-0 h-0.5 rounded-full bg-foreground/20 pointer-events-none"
+              style={{ top: axisY }}
+            />
+            {displayItems.map((item) => {
+              const color = getPlatformPhaseColor(item.platform, phaseIndexMap.get(item.platform) ?? 0)
+              const startPx = item.startDay * dayWidth
+              const endPx = (item.startDay + item.length) * dayWidth
+              const segLeft = startPx + 1
+              const segWidth = Math.max(8, endPx - startPx - 2)
+              const phaseLabel = item.platform.includes('::')
+                ? item.platform.replace(/::/g, ' – ')
+                : item.objective
+                  ? `${item.platform} – ${item.objective}`
+                  : item.platform
+              return (
+                <React.Fragment key={item.platform}>
+                  <div
+                    className="absolute w-0.5 rounded-full pointer-events-none z-10"
+                    style={{
+                      left: startPx,
+                      top: 34,
+                      height: 50,
+                      backgroundColor: color,
+                    }}
+                  />
+                  <div
+                    className="absolute w-0.5 rounded-full pointer-events-none z-10"
+                    style={{
+                      left: endPx,
+                      top: 34,
+                      height: 50,
+                      backgroundColor: color,
+                    }}
+                  />
+                  <div
+                    onMouseDown={(e) => handleBarMouseDown(e, item.platform)}
+                    className="absolute cursor-grab active:cursor-grabbing rounded-md border border-border/50 shadow-sm z-[5] flex items-center justify-center px-1"
+                    style={{
+                      left: segLeft,
+                      width: segWidth,
+                      top: 48,
+                      height: 20,
+                      backgroundColor: `${color}40`,
+                      borderLeftWidth: 3,
+                      borderLeftColor: color,
+                      opacity: dragging === item.platform ? 0.9 : 1,
+                    }}
+                    title={phaseLabel}
+                  >
+                    <span className="text-[10px] font-medium text-foreground truncate max-w-full leading-tight text-center pointer-events-none">
+                      {phaseLabel}
+                    </span>
+                  </div>
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, item.platform)}
+                    className="absolute w-2 cursor-ew-resize z-20 hover:bg-primary/20 rounded"
+                    style={{ left: segLeft + segWidth - 5, top: 44, height: 28 }}
+                    title="Ajuster la durée"
+                  />
+                </React.Fragment>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground px-3 py-2.5 border-t border-border/50 bg-muted/10 max-w-4xl leading-relaxed">
+            Vue synthétique : une ligne de temps avec traits de début et de fin par plateforme. Faites glisser un segment
+            pour le décaler, la poignée droite allonge ou raccourcit la diffusion.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (timeGranularity === 'month') {
     return (
       <MonthGridView
@@ -161,23 +257,25 @@ export function TimelineView({
   }
 
   return (
-    <div className="rounded-lg border bg-background overflow-auto">
+    <div className="rounded-2xl border border-border/60 bg-background overflow-auto shadow-sm">
       <div className="min-w-max">
-        <div className="flex border-b sticky top-0 z-10 bg-background">
+        <div className="flex border-b border-border/60 sticky top-0 z-10 bg-muted/30 backdrop-blur-sm">
           <div className="flex" style={{ width: totalWidth }}>
             {headerCells.map((cell, i) => (
               <div
                 key={i}
-                className="shrink-0 border-r py-2 text-center text-xs font-medium"
+                className="shrink-0 border-r border-border/50 py-2.5 text-center text-xs font-semibold text-foreground"
                 style={{ width: cell.width }}
               >
                 <div>{cell.label}</div>
-                {cell.subLabel ? <div className="text-muted-foreground truncate px-0.5">{cell.subLabel}</div> : null}
+                {cell.subLabel ? (
+                  <div className="text-muted-foreground font-normal truncate px-0.5 mt-0.5">{cell.subLabel}</div>
+                ) : null}
               </div>
             ))}
           </div>
         </div>
-        {items.map((item) => {
+        {displayItems.map((item) => {
           const color = getPlatformPhaseColor(item.platform, phaseIndexMap.get(item.platform) ?? 0)
           const left = item.startDay * dayWidth
           const width = item.length * dayWidth - 4
@@ -195,7 +293,7 @@ export function TimelineView({
               <div className="relative" style={{ width: totalWidth }}>
                 <div
                   onMouseDown={(e) => handleBarMouseDown(e, item.platform)}
-                  className="absolute top-2 bottom-2 rounded-md border shadow-sm cursor-grab active:cursor-grabbing flex items-center px-2 transition-opacity"
+                  className="absolute top-2 bottom-2 rounded-xl border border-border/50 shadow-sm cursor-grab active:cursor-grabbing flex items-center px-2.5 transition-opacity"
                   style={{
                     left: left + 2,
                     width,
@@ -206,12 +304,14 @@ export function TimelineView({
                 >
                   <span className="text-xs text-muted-foreground truncate">{phaseLabel}</span>
                 </div>
-                <div
-                  onMouseDown={(e) => handleResizeStart(e, item.platform)}
-                  className="absolute top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center hover:bg-primary/10 rounded"
-                  style={{ left: left + width - 2, zIndex: 1 }}
-                  title="Étendre"
-                />
+                {timeGranularity === 'day' ? (
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, item.platform)}
+                    className="absolute top-0 bottom-0 w-2 cursor-ew-resize flex items-center justify-center hover:bg-primary/10 rounded"
+                    style={{ left: left + width - 2, zIndex: 1 }}
+                    title="Étendre"
+                  />
+                ) : null}
               </div>
             </div>
           )

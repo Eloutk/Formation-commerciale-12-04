@@ -5,9 +5,21 @@ import { getPlatformColor, getPlatformPhaseColor, getPhaseIndexByPlatformKey } f
 import { useCalendarStore } from './store'
 import type { CalendarItem } from './types'
 import { getDayIndex } from '@/lib/utils/calendarEngine'
+import { calendarItemsForDisplayGrouped } from './calendarDisplayItems'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+function monthKey(year: number, month: number): number {
+  return year * 12 + month
+}
+
+/** JJ/MM/YYYY court */
+function formatFrenchShort(iso: string): string {
+  if (!iso || iso.length < 10) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
 
 function isPlatformActiveOnDay(
   item: CalendarItem,
@@ -45,7 +57,6 @@ export function MonthGridView({
 }) {
   const selectedPlatformKey = useCalendarStore((s) => s.selectedPlatform)
   const setSelectedPlatform = useCalendarStore((s) => s.setSelectedPlatform)
-  const platformSources = useCalendarStore((s) => s.platformSources)
 
   const [displayYear, setDisplayYear] = useState(() => {
     if (!startDate) return new Date().getFullYear()
@@ -56,11 +67,43 @@ export function MonthGridView({
     return parseInt(startDate.slice(5, 7), 10)
   })
 
+  const planningBounds = useMemo(() => {
+    if (!startDate) return null
+    const dur = Math.max(1, Math.floor(duration) || 1)
+    const start = new Date(startDate + 'T12:00:00')
+    if (Number.isNaN(start.getTime())) return null
+    const end = new Date(startDate + 'T12:00:00')
+    end.setDate(end.getDate() + dur - 1)
+    return {
+      firstY: start.getFullYear(),
+      firstM: start.getMonth() + 1,
+      lastY: end.getFullYear(),
+      lastM: end.getMonth() + 1,
+      endIso: end.toISOString().slice(0, 10),
+      dur,
+    }
+  }, [startDate, duration])
+
   useEffect(() => {
     if (!startDate) return
     setDisplayYear(parseInt(startDate.slice(0, 4), 10))
     setDisplayMonth(parseInt(startDate.slice(5, 7), 10))
   }, [startDate])
+
+  /** Garder le mois affiché dans [premier mois … dernier mois] de la période de diffusion */
+  useEffect(() => {
+    if (!planningBounds) return
+    const cur = monthKey(displayYear, displayMonth)
+    const minK = monthKey(planningBounds.firstY, planningBounds.firstM)
+    const maxK = monthKey(planningBounds.lastY, planningBounds.lastM)
+    if (cur < minK) {
+      setDisplayYear(planningBounds.firstY)
+      setDisplayMonth(planningBounds.firstM)
+    } else if (cur > maxK) {
+      setDisplayYear(planningBounds.lastY)
+      setDisplayMonth(planningBounds.lastM)
+    }
+  }, [planningBounds, displayYear, displayMonth])
 
   type GridSlot = { day: number | null; dateStr: string; dayIndex: number }
 
@@ -98,7 +141,14 @@ export function MonthGridView({
     return obj ? `${item.platform}::${obj}` : item.platform
   }
 
-  const phaseIndexMap = useMemo(() => getPhaseIndexByPlatformKey(items), [items])
+  const displayItems = useMemo(() => calendarItemsForDisplayGrouped(items), [items])
+
+  const phaseIndexMap = useMemo(
+    () => getPhaseIndexByPlatformKey(displayItems),
+    [displayItems],
+  )
+
+  const durDays = planningBounds?.dur ?? Math.max(1, Math.floor(Number(duration)) || 1)
 
   const getItemColor = (item: CalendarItem): string =>
     getPlatformPhaseColor(item.platform, phaseIndexMap.get(item.platform) ?? 0)
@@ -108,13 +158,22 @@ export function MonthGridView({
     onPlatformStartDateSet(selectedPlatformKey, dateStr)
   }
 
+  const canGoPrev = planningBounds
+    ? monthKey(displayYear, displayMonth) > monthKey(planningBounds.firstY, planningBounds.firstM)
+    : true
+  const canGoNext = planningBounds
+    ? monthKey(displayYear, displayMonth) < monthKey(planningBounds.lastY, planningBounds.lastM)
+    : true
+
   const prevMonth = () => {
+    if (!canGoPrev) return
     if (displayMonth === 1) {
       setDisplayMonth(12)
       setDisplayYear((y) => y - 1)
     } else setDisplayMonth((m) => m - 1)
   }
   const nextMonth = () => {
+    if (!canGoNext) return
     if (displayMonth === 12) {
       setDisplayMonth(1)
       setDisplayYear((y) => y + 1)
@@ -122,31 +181,45 @@ export function MonthGridView({
   }
 
   return (
-    <div className="rounded-lg border bg-background overflow-hidden w-full">
-      <div className="p-3 sm:p-4 w-full min-w-0">
-        <div className="flex gap-4 lg:gap-6 items-start max-w-full">
-          {/* Bloc calendrier, plus large */}
-          <div className="flex flex-col flex-[3] min-w-0">
-            <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <button
-                type="button"
-                onClick={prevMonth}
-                className="p-2 rounded-md hover:bg-muted transition-colors shrink-0"
-                aria-label="Mois précédent"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <div className="text-base font-medium capitalize min-w-[140px] text-center">
-                {monthLabel}
+    <div className="rounded-2xl border border-border/60 bg-background overflow-hidden w-full shadow-sm">
+      <div className="p-4 sm:p-5 w-full min-w-0">
+        <div className="flex gap-3 lg:gap-4 items-start max-w-full">
+          {/* Bloc calendrier : prend tout l’espace restant */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex flex-col gap-2 mb-3 sm:mb-4">
+              {planningBounds ? (
+                <p className="text-[11px] text-center text-muted-foreground leading-snug tabular-nums px-2">
+                  Période de diffusion : {formatFrenchShort(startDate)} →{' '}
+                  {formatFrenchShort(planningBounds.endIso)} ({planningBounds.dur} j)
+                </p>
+              ) : null}
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  disabled={!canGoPrev}
+                  className={`p-2 rounded-xl border border-transparent transition-colors shrink-0 ${
+                    canGoPrev ? 'hover:bg-muted hover:border-border/60' : 'opacity-35 cursor-not-allowed'
+                  }`}
+                  aria-label="Mois précédent"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <div className="text-base font-semibold tracking-tight capitalize min-w-[140px] text-center text-foreground">
+                  {monthLabel}
+                </div>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  disabled={!canGoNext}
+                  className={`p-2 rounded-xl border border-transparent transition-colors shrink-0 ${
+                    canGoNext ? 'hover:bg-muted hover:border-border/60' : 'opacity-35 cursor-not-allowed'
+                  }`}
+                  aria-label="Mois suivant"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={nextMonth}
-                className="p-2 rounded-md hover:bg-muted transition-colors shrink-0"
-                aria-label="Mois suivant"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
             </div>
 
             <div className={twoMonths ? 'grid grid-cols-1 md:grid-cols-2 gap-4 w-full' : 'w-full'}>
@@ -166,14 +239,16 @@ export function MonthGridView({
                     {month.slots.slice(0, 42).map((slot, i) => {
                       const activePlatforms =
                         slot.day != null
-                          ? items.filter((item) =>
-                              isPlatformActiveOnDay(item, slot.dayIndex, duration),
+                          ? displayItems.filter((item) =>
+                              isPlatformActiveOnDay(item, slot.dayIndex, durDays),
                             )
                           : []
                       const inPlanningRange =
                         slot.day != null &&
                         slot.dayIndex >= 0 &&
-                        slot.dayIndex < duration
+                        slot.dayIndex < durDays
+                      const isOutOfPlanning =
+                        slot.day != null && !inPlanningRange && slot.dayIndex !== -1
                       const isDayClickable =
                         inPlanningRange && !!selectedPlatformKey && !!onPlatformStartDateSet
                       return (
@@ -196,13 +271,15 @@ export function MonthGridView({
                                   selectedPlatformKey &&
                                   onPlatformStartDateSet &&
                                   !inPlanningRange
-                                ? 'Jour hors de la période du rétroplanning'
+                                ? 'Jour hors de la période de diffusion définie'
                                 : undefined
                           }
-                          className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md text-sm px-0.5 ${
+                          className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-xl text-sm px-0.5 border ${
                             slot.day == null
-                              ? 'bg-transparent text-muted-foreground/40'
-                              : 'bg-muted/20 text-foreground'
+                              ? 'bg-transparent text-muted-foreground/40 border-transparent'
+                              : isOutOfPlanning
+                                ? 'bg-muted/5 text-muted-foreground/55 border-dashed border-border/50 opacity-80'
+                                : 'bg-muted/30 text-foreground border-border/25'
                           } ${
                             isDayClickable
                               ? 'cursor-pointer hover:bg-primary/15 hover:ring-2 hover:ring-primary/40 transition-colors'
@@ -232,40 +309,47 @@ export function MonthGridView({
               ))}
             </div>
           </div>
-          {showLegend && items.length > 0 && (
-            <div className="flex-[2] min-w-[220px] max-w-sm border-l pl-4 py-1 space-y-3">
-              <div className="flex flex-col gap-1.5">
-                {items.map((item, itemIdx) => {
+          {showLegend && displayItems.length > 0 && (
+            <div className="flex-none w-[10.5rem] sm:w-44 max-w-[11.5rem] shrink-0 border-l border-border/60 pl-3 py-1 space-y-3 min-w-0">
+              <div className="flex flex-col gap-1.5 min-w-0">
+                {displayItems.map((item, itemIdx) => {
                   const key = itemScheduleKey(item)
                   const isSelected = selectedPlatformKey === key
                   return (
-                    <div key={`${key}-${itemIdx}`} className="flex flex-col gap-1">
+                    <div key={`${key}-${itemIdx}`} className="flex flex-col gap-1 min-w-0">
                       <button
                         type="button"
+                        title={
+                          isSelected
+                            ? 'Plateforme sélectionnée — cliquer pour désélectionner'
+                            : 'Cliquer pour sélectionner et placer la date sur le calendrier'
+                        }
                         onClick={() => setSelectedPlatform(isSelected ? null : key)}
-                        className={`flex items-center gap-2 w-full text-left rounded-md px-2 py-1 -mx-2 transition-colors ${
+                        className={`flex items-start gap-2 w-full min-w-0 text-left rounded-md px-2 py-1 -mx-1 transition-colors ${
                           isSelected ? 'bg-primary/15 ring-2 ring-primary/50' : 'hover:bg-muted/50'
                         }`}
                       >
                         <span
-                          className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                          className="inline-block h-2.5 w-2.5 rounded-full shrink-0 mt-0.5"
                           style={{ backgroundColor: getItemColor(item) }}
                         />
-                        <span className="text-xs font-medium">
+                        <span className="text-[11px] sm:text-xs font-medium leading-snug break-words min-w-0">
                           {item.platform.includes('::')
                             ? item.platform.replace('::', ' – ')
                             : item.objective
                               ? `${item.platform} — ${item.objective}`
                               : item.platform}
+                          {isSelected ? (
+                            <span className="text-primary font-normal"> (sél.)</span>
+                          ) : null}
                         </span>
-                        {isSelected && <span className="text-xs text-primary ml-1">(sélectionnée)</span>}
                       </button>
                     </div>
                   )
                 })}
               </div>
               {!!calendarWarnings?.length && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-1 mt-2 max-w-xs">
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-2 space-y-1 mt-2 max-w-full">
                   <p className="text-xs font-medium text-amber-800">
                     Règles durée / budget quotidien
                   </p>

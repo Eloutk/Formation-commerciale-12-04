@@ -95,11 +95,8 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
     let items: CalendarItem[]
     if (existing?.items?.length) {
       const d = Math.max(1, calDuration)
-      items = existing.items.map((i) => ({
-        ...i,
-        startDay: Math.max(0, Math.min(i.startDay, d - 1)),
-        length: Math.max(1, Math.min(i.length, d)),
-      }))
+      // Respecter startDay + length <= duration (sinon validateItems échoue, autoPersist bloque, frise désynchronisée)
+      items = existing.items.map((i) => clampItem({ ...i }, d))
       items = ensureItemsForAllPlatformSources(items, sources, d)
     } else {
       items = autoDistribute(sources, duration)

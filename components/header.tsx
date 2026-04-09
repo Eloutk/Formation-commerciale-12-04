@@ -135,7 +135,7 @@ export default function Header() {
 
               <NavigationMenuItem>
                 <Link href="/pdv" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>PDV</NavigationMenuLink>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Vente</NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
 

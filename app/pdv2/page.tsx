@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
@@ -29,12 +30,20 @@ import {
   syncManualRetroItemLengthsFromPhases,
   syncManualRetroPlatformPhasesFromItems,
 } from '@/app/pdv2/calendar/syncManualRetroFromStore'
-import { downloadRetroplanningPdf } from '@/app/pdv2/calendar/RetroplanningPdfDocument'
+import {
+  downloadRetroplanningPdf,
+  type RetroplanningPdfExportOptions,
+} from '@/app/pdv2/calendar/RetroplanningPdfDocument'
 import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/pdv2/calendar/types'
 import { getPlatformColor } from '@/app/pdv2/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
 import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/pdv2/calendar/smsSalesConditions'
+import {
+  rebalanceRetroSocialSegments,
+  retroStrategyLineKey,
+  retroStrategySubPlatformKey,
+} from '@/app/pdv2/calendar/retroSocialSplits'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = [
@@ -94,6 +103,12 @@ function getDatesBetween(start: string, end: string): string[] {
     d.setDate(d.getDate() + 1)
   }
   return out
+}
+
+function addCalendarDays(isoDate: string, deltaDays: number): string {
+  const d = new Date(isoDate + 'T12:00:00')
+  d.setDate(d.getDate() + deltaDays)
+  return d.toISOString().slice(0, 10)
 }
 
 // Grouper les dates par mois pour afficher le calendrier par mois (avec libellé)
@@ -441,7 +456,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 }
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
-type PdvSection = 'social' | 'sms' | 'calendar'
+type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax'
 type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
@@ -477,6 +492,36 @@ interface StrategyItem extends TableRowData {
   customKpiLabel?: string
   // Tarifs direction appliqués pour cette ligne (au moment de l'ajout)
   tarifsDirection?: boolean
+}
+
+/** Ligne du module « Kpis max » uniquement (aucune donnée partagée avec Social / SMS / Rétroplanning) */
+interface KpiMaxLine {
+  id: string
+  platform: string
+  objective: string
+  budget: number
+  estimatedKPIs: number
+  days: number
+}
+
+function kpiMaxObjectivesForPlatform(platform: string): string[] {
+  if (platform === 'META') {
+    return [...META_CUSTOM_OBJECTIVES, 'conversion'] as string[]
+  }
+  const key = platform as (typeof PLATFORMS_ORDER)[number]
+  const list = CUSTOM_OBJECTIVES[key]
+  return list ? [...list] : [...DEFAULT_CUSTOM_OBJECTIVES]
+}
+
+/** Liste unique de tous les objectifs (Kpis max, sans choix de plateforme) */
+function kpiMaxAllObjectivesSorted(): string[] {
+  const set = new Set<string>()
+  for (const p of PLATFORMS_ORDER) {
+    for (const o of kpiMaxObjectivesForPlatform(p)) {
+      set.add(o)
+    }
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
 }
 
 // Phase posée sur la frise (vue mois)
@@ -594,6 +639,24 @@ const formatNumber = (num: number, decimals: number = 0): string => {
   }
   
   return decimalPart ? `${formatted},${decimalPart}` : formatted
+}
+
+/** Mois de diffusion (tranches de 30 j) : ceil(jours/30), min. 1 — ex. 15 j → 1, 60 j → 2 */
+function diffusionRepetitionMonths(briefDays: number): number {
+  const d = Math.max(1, Math.floor(briefDays))
+  return Math.max(1, Math.ceil(d / 30))
+}
+
+/** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
+function isMaxObjective(objective: string): boolean {
+  const o = objective.trim().toLowerCase()
+  return o === 'conversion' || o === 'leads' || o === 'likes'
+}
+
+const KPI_MAX_UNIT_SORT_ORDER = ['impressions', 'clics', 'leads', 'conversions', 'KPIs'] as const
+function kpiMaxUnitSortRank(unit: string): number {
+  const i = KPI_MAX_UNIT_SORT_ORDER.indexOf(unit as (typeof KPI_MAX_UNIT_SORT_ORDER)[number])
+  return i === -1 ? 100 : i
 }
 
 // Styles pour le PDF
@@ -1352,6 +1415,14 @@ export default function PDV2Page() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
+  /** Nombre de comptes annonceur dispo — aligné sur la demande de potentiel (vue Kpis max) */
+  const [kpiMaxComptesDispo, setKpiMaxComptesDispo] = useState<string>('1')
+  /** Idéal = volume / notoriété ; maximal = leads, conversions, likes */
+  const [kpiMaxStrategyMode, setKpiMaxStrategyMode] = useState<'ideal' | 'maximal'>('ideal')
+  /** Onglet Kpis max : jours de diffusion propres (non liés au calculateur Social) */
+  const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
+  const [kpiMaxLines, setKpiMaxLines] = useState<KpiMaxLine[]>([])
+  const [kpiMaxAddObjective, setKpiMaxAddObjective] = useState<string>('Impressions')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
@@ -1388,6 +1459,10 @@ export default function PDV2Page() {
   const [retroSmsPhases, setRetroSmsPhases] = useState<RetroPhase[]>([])
   const [retroLinkSocial, setRetroLinkSocial] = useState(false)
   const [retroLinkSms, setRetroLinkSms] = useState(false)
+  /** Découpe rétro par ligne Social (clé platform::objectif) : somme des jours = jours de la ligne stratégie */
+  const [retroSocialLineSplits, setRetroSocialLineSplits] = useState<
+    Record<string, { name: string; days: number }[]>
+  >({})
   /** null = modale de choix de source à afficher ; défini une fois l’utilisateur a choisi */
   const [retroSourceChoice, setRetroSourceChoice] = useState<'social' | 'sms' | 'both' | 'none' | null>(null)
   useEffect(() => {
@@ -1406,7 +1481,27 @@ export default function PDV2Page() {
     setRetroPlatformPhases((phases) => (choice === 'sms' || choice === 'none' ? [] : phases))
     setRetroSmsPhases((phases) => (choice === 'social' || choice === 'none' ? [] : phases))
     setDefineDatesPerPlatform((prev) => filterDefineDatesForSourceChoice(prev, choice))
+    if (choice === 'sms' || choice === 'none') setRetroSocialLineSplits({})
   }, [])
+
+  useEffect(() => {
+    if (!retroLinkSocial || !activeStrategyId) return
+    const block = strategies.find((s) => s.id === activeStrategyId)
+    const valid = new Set(
+      (block?.items ?? []).map((it) => retroStrategyLineKey(it.platform, it.objective)),
+    )
+    setRetroSocialLineSplits((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const k of Object.keys(next)) {
+        if (!valid.has(k)) {
+          delete next[k]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [retroLinkSocial, activeStrategyId, strategies])
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
@@ -1447,8 +1542,19 @@ export default function PDV2Page() {
   const [smsPdfImage, setSmsPdfImage] = useState<string | null>(null)
   const [retroPdfDialogOpen, setRetroPdfDialogOpen] = useState(false)
   const [retroPdfFileName, setRetroPdfFileName] = useState('')
+  const [retroPdfClientName, setRetroPdfClientName] = useState('')
   const [retroPdfComment, setRetroPdfComment] = useState('')
-  const retroPdfExportRef = useRef<((filename: string, documentComment: string) => Promise<void>) | null>(null)
+  const [retroPdfIncludeWeekView, setRetroPdfIncludeWeekView] = useState(true)
+  const [retroPdfIncludeMonthView, setRetroPdfIncludeMonthView] = useState(true)
+  const retroPdfExportRef = useRef<
+    | ((
+        filename: string,
+        documentComment: string,
+        clientName: string,
+        options: RetroplanningPdfExportOptions,
+      ) => Promise<void>)
+    | null
+  >(null)
   const [currentSmsType, setCurrentSmsType] = useState<'sms' | 'rcs'>('sms')
   
   // État pour la modale Validation TM
@@ -1620,12 +1726,6 @@ export default function PDV2Page() {
     }
     getUserName()
   }, [])
-
-  // En mode KPIs → Budget, on exclut les objectifs "max" (Conversion, Leads, Likes, etc.)
-  const isMaxObjective = (objective: string): boolean => {
-    const o = objective.toLowerCase()
-    return o === 'conversion' || o === 'leads' || o === 'likes'
-  }
 
   // Générer toutes les combinaisons plateforme/objectif
   const generateTableData = (): TableRowData[] => {
@@ -2191,13 +2291,23 @@ export default function PDV2Page() {
       alert('Veuillez renseigner un nom de fichier.')
       return
     }
+    if (!retroPdfClientName.trim()) {
+      alert('Veuillez renseigner le nom du client.')
+      return
+    }
     const filename = raw.toLowerCase().endsWith('.pdf') ? raw : `${raw}.pdf`
     try {
-      await retroPdfExportRef.current?.(filename, retroPdfComment)
+      await retroPdfExportRef.current?.(filename, retroPdfComment, retroPdfClientName.trim(), {
+        includeWeekTimeline: retroPdfIncludeWeekView,
+        includeMonthGrids: retroPdfIncludeMonthView,
+      })
     } finally {
       setRetroPdfDialogOpen(false)
       setRetroPdfFileName('')
+      setRetroPdfClientName('')
       setRetroPdfComment('')
+      setRetroPdfIncludeWeekView(true)
+      setRetroPdfIncludeMonthView(true)
       retroPdfExportRef.current = null
     }
   }
@@ -2215,7 +2325,7 @@ export default function PDV2Page() {
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-3">Calculateur PDV 2</h1>
+          <h1 className="text-4xl font-bold mb-3">Calculateur Vente 2</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Calculez vos prix de vente selon la plateforme, l'objectif et votre budget. Unifiez vos simulations en un seul endroit.
           </p>
@@ -2227,7 +2337,7 @@ export default function PDV2Page() {
             onValueChange={(value) => setPdvSection(value as PdvSection)}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 border-2 border-gray-300">
+            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 sm:grid-cols-4 border-2 border-gray-300 gap-1">
               <TabsTrigger
                 value="social"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -2245,6 +2355,12 @@ export default function PDV2Page() {
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
               >
                 Rétroplanning
+              </TabsTrigger>
+              <TabsTrigger
+                value="kpiMax"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                Kpis max
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -3932,7 +4048,7 @@ export default function PDV2Page() {
             {retroSourceChoice !== null && (
               <>
                 {retroPlanningMissingLinkedData ? (
-                  <div className="rounded-xl border bg-background p-6 space-y-4 shadow-sm">
+                  <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-4 shadow-sm">
                     <Alert className="border-orange-500 bg-orange-50 text-orange-950 dark:bg-orange-950/20 dark:border-orange-600 dark:text-orange-100">
                       <AlertTitle>Aucune stratégie prête pour cette option</AlertTitle>
                       <AlertDescription className="space-y-3 text-sm">
@@ -3984,7 +4100,7 @@ export default function PDV2Page() {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-6">
                     <RetroPlanningPanel
               availablePlatforms={PLATFORMS_ORDER}
               startDate={retroStartDate}
@@ -4008,6 +4124,14 @@ export default function PDV2Page() {
               smsType={smsType}
               smsPhases={retroSmsPhases}
               onSmsPhasesChange={setRetroSmsPhases}
+              linkedSocialLineSplits={retroSocialLineSplits}
+              onLinkedSocialLineSplitsChange={(lineKey, segments) =>
+                setRetroSocialLineSplits((prev) => ({ ...prev, [lineKey]: segments }))
+              }
+              strategyDaysFallback={Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))}
+              smsCampaignTotalDays={
+                retroLinkSms ? Math.max(30, campaignMonthsNumber * 30) : undefined
+              }
               onApplyDistribution={() => {
                 const duration = Math.max(1, retroDurationDays)
                 const sources: CalendarPlatformSource[] = retroPlatformPhases.flatMap(({ platform, phases }) => {
@@ -4091,32 +4215,53 @@ export default function PDV2Page() {
                 if (block?.items?.length) {
                   const stratDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
                   const stratStart = block.items
-                    .map((it) => defineDatesPerPlatform[`${it.platform}::${it.objective}`] ?? defaultStart)
+                    .map((it) => {
+                      const lk = retroStrategyLineKey(it.platform, it.objective)
+                      return defineDatesPerPlatform[lk] ?? defaultStart
+                    })
                     .reduce((min, d) => (d < min ? d : min), defaultStart)
-                  const offset = daysBetween(defaultStart, stratStart)
-                  const stratSources: CalendarPlatformSource[] = block.items.map((item) => ({
-                    platform: `${item.platform}::${item.objective}`,
-                    budget: item.budget ?? 0,
-                    kpiLabel: item.customKpiLabel ?? '',
-                    maxDays: Math.max(1, item.days ?? stratDuration),
-                  }))
-                  const stratItems: StrategyCalendarData['items'] = block.items.map((item) => {
-                    const key = `${item.platform}::${item.objective}`
-                    strategyPlatformKeys.add(key)
-                    const startDate = defineDatesPerPlatform[key] ?? stratStart
-                    const startDay = Math.max(0, daysBetween(defaultStart, startDate))
-                    const length = Math.max(1, item.days ?? stratDuration)
-                    return {
-                      platform: key,
-                      startDay,
-                      length,
-                      budget: item.budget,
-                      kpiLabel: item.customKpiLabel,
-                      objective: item.objective,
-                    }
-                  })
+
+                  const stratSources: CalendarPlatformSource[] = []
+                  const stratItemsMerged: StrategyCalendarData['items'] = []
+
+                  for (const item of block.items) {
+                    const lineKey = retroStrategyLineKey(item.platform, item.objective)
+                    const totalDays = Math.max(1, item.days ?? stratDuration)
+                    const rawSegs =
+                      retroSocialLineSplits[lineKey] && retroSocialLineSplits[lineKey]!.length > 0
+                        ? retroSocialLineSplits[lineKey]!
+                        : [{ name: item.objective, days: totalDays }]
+                    const segments = rebalanceRetroSocialSegments(rawSegs, totalDays)
+                    const startDateLine = defineDatesPerPlatform[lineKey] ?? stratStart
+                    let cursorDay = Math.max(0, daysBetween(defaultStart, startDateLine))
+                    const budget = item.budget ?? 0
+                    const nSeg = segments.length
+
+                    segments.forEach((seg, idx) => {
+                      const subKey = retroStrategySubPlatformKey(lineKey, idx)
+                      strategyPlatformKeys.add(subKey)
+                      const len = seg.days
+                      const share = nSeg > 0 ? budget / nSeg : budget
+                      stratSources.push({
+                        platform: subKey,
+                        budget: share,
+                        kpiLabel: item.customKpiLabel ?? '',
+                        maxDays: Math.max(1, len),
+                      })
+                      stratItemsMerged.push({
+                        platform: subKey,
+                        startDay: cursorDay,
+                        length: len,
+                        budget: share,
+                        kpiLabel: item.customKpiLabel,
+                        objective: seg.name,
+                      })
+                      cursorDay += len
+                    })
+                  }
+
                   platformSources = [...platformSources, ...stratSources]
-                  items = [...items, ...stratItems]
+                  items = [...items, ...stratItemsMerged]
                 } else if (block?.calendar && isStrategyCalendarData(block.calendar)) {
                   const cal = block.calendar
                   const offset = daysBetween(defaultStart, cal.startDate)
@@ -4157,7 +4302,12 @@ export default function PDV2Page() {
                     strategyPlatformKeys.add(key)
                     platformSources = [
                       ...platformSources,
-                      { platform: key, budget: 0, kpiLabel: '', maxDays: smsLength },
+                      {
+                        platform: key,
+                        budget: 0,
+                        kpiLabel: '',
+                        maxDays: Math.max(1, phaseLength),
+                      },
                     ]
                     items = [
                       ...items,
@@ -4245,12 +4395,6 @@ export default function PDV2Page() {
               }
 
               return (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    {hasItems
-                      ? 'Visualisez et ajustez votre rétroplanning. Vue mois : sélectionnez une phase dans la légende puis cliquez sur un jour. Vue timeline : glissez les barres pour déplacer, redimensionnez par la poignée à droite.'
-                      : 'Configurez les plateformes et phases ci-dessus, puis cliquez sur « Répartir sur le calendrier ». Vous pourrez ensuite déplacer et redimensionner les phases sur le calendrier.'}
-                  </p>
                   <StrategyCalendarBuilder
                     key={`retro-${existingFromForm.startDate}-${existingFromForm.duration}-${retroLinkSocial}-${retroLinkSms}`}
                     platformSources={platformSources}
@@ -4259,22 +4403,36 @@ export default function PDV2Page() {
                     fullWidth
                     twoMonths={mergedDuration <= 120}
                     forceTimeGranularity={mergedDuration > 120 ? 'week' : undefined}
+                    headerTitle="Calendrier du rétroplanning"
+                    headerDescription={
+                      hasItems
+                        ? 'Mois : légende + clic sur un jour. Semaines : barres à faire glisser ; vue jour : poignée droite pour la durée. Frise : une ligne de temps avec traits début/fin par plateforme. Tout s’enregistre automatiquement.'
+                        : 'Configurez le paramétrage ci-dessus puis cliquez sur « Répartir sur le calendrier ». Vous pourrez ensuite ajuster les phases comme indiqué.'
+                    }
                     exportPdf={{
                       filename: `Retroplanning_${defaultStart}_${mergedDuration}j.pdf`,
                       onExport: async () => {
                         const cal = useCalendarStore.getState().getCalendarData()
                         if (!cal.items.length) return
                         const block = strategies.find((s) => s.id === activeStrategyId)
-                        retroPdfExportRef.current = async (filename, documentComment) => {
+                        retroPdfExportRef.current = async (
+                          filename,
+                          documentComment,
+                          clientName,
+                          options,
+                        ) => {
                           const cal2 = useCalendarStore.getState().getCalendarData()
                           if (!cal2.items.length) return
                           await downloadRetroplanningPdf({
                             filename,
                             documentComment: documentComment.trim() || undefined,
                             personName: userName.trim() || userPseudo.trim() || '',
+                            clientName: clientName.trim() || undefined,
                             linkSocial: retroLinkSocial,
                             linkSms: retroLinkSms,
                             smsType,
+                            includeWeekTimeline: options.includeWeekTimeline,
+                            includeMonthGrids: options.includeMonthGrids,
                             strategyLines:
                               retroLinkSocial && block?.items?.length
                                 ? block.items.map((it) => ({
@@ -4317,12 +4475,38 @@ export default function PDV2Page() {
                           })
                         }
                         setRetroPdfFileName(`Retroplanning_${defaultStart}_${mergedDuration}j`)
+                        setRetroPdfClientName('')
                         setRetroPdfComment('')
+                        setRetroPdfIncludeWeekView(true)
+                        setRetroPdfIncludeMonthView(true)
                         setRetroPdfDialogOpen(true)
                       },
                     }}
                     onSave={handleSave}
+                    autoPersist
                     onPlatformStartDateChange={(entryKey, startDate) => {
+                      const sub = entryKey.match(/^(.*)::p(\d+)$/)
+                      if (sub && strategyPlatformKeys.has(entryKey)) {
+                        const parentLine = sub[1]!
+                        const idx = parseInt(sub[2]!, 10)
+                        const block = strategies.find((s) => s.id === activeStrategyId)
+                        const row = block?.items.find(
+                          (it) => retroStrategyLineKey(it.platform, it.objective) === parentLine,
+                        )
+                        const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                        const totalDays = Math.max(1, row?.days ?? stratDur)
+                        const raw =
+                          retroSocialLineSplits[parentLine] &&
+                          retroSocialLineSplits[parentLine]!.length > 0
+                            ? retroSocialLineSplits[parentLine]!
+                            : [{ name: row?.objective ?? 'Phase', days: totalDays }]
+                        const segs = rebalanceRetroSocialSegments(raw, totalDays)
+                        let offset = 0
+                        for (let i = 0; i < idx && i < segs.length; i++) offset += segs[i]!.days
+                        const parentDate = addCalendarDays(startDate, -offset)
+                        setDefineDatesPerPlatform((prev) => ({ ...prev, [parentLine]: parentDate }))
+                        return
+                      }
                       if (strategyPlatformKeys.has(entryKey)) {
                         setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
                       }
@@ -4330,6 +4514,32 @@ export default function PDV2Page() {
                     onPlatformDaysChange={
                       retroLinkSocial && activeStrategyId
                         ? (entryKey, days) => {
+                            const sub = entryKey.match(/^(.*)::p(\d+)$/)
+                            if (sub && strategyPlatformKeys.has(entryKey)) {
+                              const parentLine = sub[1]!
+                              const idx = parseInt(sub[2]!, 10)
+                              setRetroSocialLineSplits((prev) => {
+                                const block = strategies.find((s) => s.id === activeStrategyId)
+                                const row = block?.items.find(
+                                  (it) => retroStrategyLineKey(it.platform, it.objective) === parentLine,
+                                )
+                                if (!row) return prev
+                                const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                                const totalDays = Math.max(1, row.days ?? stratDur)
+                                const raw =
+                                  prev[parentLine] && prev[parentLine]!.length > 0
+                                    ? prev[parentLine]!
+                                    : [{ name: row.objective, days: totalDays }]
+                                const segs = [...rebalanceRetroSocialSegments(raw, totalDays)]
+                                if (idx < 0 || idx >= segs.length) return prev
+                                segs[idx] = { ...segs[idx]!, days: Math.max(1, days) }
+                                return {
+                                  ...prev,
+                                  [parentLine]: rebalanceRetroSocialSegments(segs, totalDays),
+                                }
+                              })
+                              return
+                            }
                             if (!strategyPlatformKeys.has(entryKey)) return
                             setStrategies((prev) =>
                               prev.map((s) =>
@@ -4357,19 +4567,333 @@ export default function PDV2Page() {
                         : undefined
                     }
                   />
-                </>
               )
             })()}
-                  </>
+                  </div>
                 )}
               </>
             )}
           </div>
         )}
+
+        {pdvSection === 'kpiMax' && (
+          <div className="mt-6 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5" aria-hidden />
+                  Kpis max
+                </CardTitle>
+                <CardDescription>
+                  Module autonome : paramètres et lignes sont saisis uniquement ici, sans lien avec Social media, SMS
+                  ni Rétroplanning.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                  <p className="text-sm font-medium text-foreground">Paramètres (demande de potentiel)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="kpi-max-jours-diffusion">Nombre de jours de diffusion</Label>
+                      <EditableInput
+                        id="kpi-max-jours-diffusion"
+                        type="number"
+                        min={1}
+                        placeholder="Ex : 14"
+                        value={kpiMaxDiffusionDays}
+                        onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
+                      />
+                      {(() => {
+                        const j = Math.max(1, Math.floor(parseFloat(kpiMaxDiffusionDays) || 14))
+                        const rep = diffusionRepetitionMonths(j)
+                        return (
+                          <p className="text-sm font-medium text-foreground rounded-md border bg-background px-3 py-2">
+                            Répétition :{' '}
+                            <span className="tabular-nums text-[#E94C16]">{rep}</span>
+                            <span className="font-normal text-muted-foreground">
+                              {' '}
+                              — équivalent nombre de mois (30 j. / tranche, arrondi au-dessus, min. 1)
+                            </span>
+                          </p>
+                        )
+                      })()}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="kpi-max-comptes-dispo">Nombre de comptes disponibles</Label>
+                      <EditableInput
+                        id="kpi-max-comptes-dispo"
+                        type="number"
+                        min={1}
+                        placeholder="Ex : 1"
+                        value={kpiMaxComptesDispo}
+                        onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Cela dépend du potentiel donné par les TM dans le cadre de leur étude.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Lignes de campagne</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ajoutez ici les lignes à analyser (données locales à cet onglet).
+                    </p>
+                  </div>
+                  <div className="max-w-md space-y-2">
+                    <Label htmlFor="kpi-max-add-objective">Objectif</Label>
+                    <Select value={kpiMaxAddObjective} onValueChange={setKpiMaxAddObjective}>
+                      <SelectTrigger id="kpi-max-add-objective">
+                        <SelectValue placeholder="Objectif" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {kpiMaxAllObjectivesSorted().map((o) => (
+                          <SelectItem key={o} value={o}>
+                            {o}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="button"
+                    className="bg-[#E94C16] hover:bg-[#d14414]"
+                    onClick={() => {
+                      const opts = kpiMaxAllObjectivesSorted()
+                      if (!kpiMaxAddObjective || !opts.includes(kpiMaxAddObjective)) return
+                      const line: KpiMaxLine = {
+                        id: `kpi-max-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                        platform: '—',
+                        objective: kpiMaxAddObjective,
+                        budget: 0,
+                        estimatedKPIs: 0,
+                        days: 0,
+                      }
+                      setKpiMaxLines((prev) => [...prev, line])
+                    }}
+                  >
+                    Ajouter la ligne
+                  </Button>
+                </div>
+
+                {kpiMaxLines.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>Aucune ligne</AlertTitle>
+                    <AlertDescription className="text-sm">
+                      Utilisez le formulaire ci-dessus pour créer au moins une ligne (objectif).
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  (() => {
+                    const briefDays = Math.max(1, Math.floor(parseFloat(kpiMaxDiffusionDays) || 14))
+                    const comptesN = Math.max(1, Math.floor(parseFloat(kpiMaxComptesDispo) || 1))
+                    const repetition = diffusionRepetitionMonths(briefDays)
+                    const filtered = kpiMaxLines.filter((item) =>
+                      kpiMaxStrategyMode === 'ideal'
+                        ? !isMaxObjective(item.objective)
+                        : isMaxObjective(item.objective),
+                    )
+                    const totals = new Map<string, number>()
+                    for (const item of filtered) {
+                      const lineDays = Math.max(1, item.days > 0 ? item.days : briefDays)
+                      const joursRatio = briefDays / lineDays
+                      if (item.estimatedKPIs <= 0) continue
+                      const potentiel = item.estimatedKPIs * joursRatio * comptesN
+                      const unit = getKpiUnitLabel(item.objective)
+                      totals.set(unit, (totals.get(unit) ?? 0) + potentiel)
+                    }
+                    const sortedTotals = [...totals.entries()].sort(
+                      (a, b) => kpiMaxUnitSortRank(a[0]) - kpiMaxUnitSortRank(b[0]),
+                    )
+                    const modeLabel = kpiMaxStrategyMode === 'ideal' ? 'idéale' : 'maximale'
+                    const modeDescription =
+                      kpiMaxStrategyMode === 'ideal'
+                        ? 'Discours vendable prudent : objectifs volume et notoriété (hors leads, conversions et likes).'
+                        : 'Plafond d’engagement vendable : objectifs performance (leads, conversions, likes).'
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          <Label className="text-base">Stratégie pour l’objectif vendable</Label>
+                          <RadioGroup
+                            value={kpiMaxStrategyMode}
+                            onValueChange={(v) => setKpiMaxStrategyMode(v as 'ideal' | 'maximal')}
+                            className="grid gap-3 sm:grid-cols-2"
+                          >
+                            <div className="flex gap-3 rounded-lg border bg-background p-3 shadow-sm">
+                              <RadioGroupItem value="ideal" id="kpi-max-mode-ideal" className="mt-1 shrink-0" />
+                              <div className="space-y-0.5 min-w-0">
+                                <Label
+                                  htmlFor="kpi-max-mode-ideal"
+                                  className="cursor-pointer font-medium leading-snug"
+                                >
+                                  Stratégie idéale
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Impressions, clics, etc. — hors leads, conversions et likes.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-3 rounded-lg border bg-background p-3 shadow-sm">
+                              <RadioGroupItem value="maximal" id="kpi-max-mode-maximal" className="mt-1 shrink-0" />
+                              <div className="space-y-0.5 min-w-0">
+                                <Label
+                                  htmlFor="kpi-max-mode-maximal"
+                                  className="cursor-pointer font-medium leading-snug"
+                                >
+                                  Stratégie maximale
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Leads, conversions, likes — engagements les plus exigeants.
+                                </p>
+                              </div>
+                            </div>
+                          </RadioGroup>
+                        </div>
+
+                        {filtered.length === 0 ? (
+                          <Alert className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/25 dark:border-amber-900/50">
+                            <AlertTitle>Aucune ligne pour la stratégie {modeLabel}</AlertTitle>
+                            <AlertDescription className="text-sm">
+                              {kpiMaxStrategyMode === 'ideal'
+                                ? 'Ajoutez des lignes avec des objectifs volume (ex. impressions, clics) ou basculez en stratégie maximale.'
+                                : 'Ajoutez des lignes avec des objectifs leads, conversions ou likes — ou repassez en stratégie idéale.'}
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <>
+                            <Alert className="border-[#E94C16]/35 bg-[#E94C16]/6">
+                              <AlertTitle>Objectif vendable — stratégie {modeLabel}</AlertTitle>
+                              <AlertDescription className="space-y-2 text-foreground">
+                                <p className="text-sm">{modeDescription}</p>
+                                {sortedTotals.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground">
+                                    Aucun volume chiffré : les lignes n’ont pas encore d’estimation KPI numérique.
+                                  </p>
+                                ) : (
+                                  <ul className="list-disc space-y-1 pl-5 text-sm">
+                                    {sortedTotals.map(([unit, sum]) => (
+                                      <li key={unit}>
+                                        Portez un engagement jusqu’à{' '}
+                                        <strong className="tabular-nums">
+                                          {formatNumber(Math.round(sum))}
+                                        </strong>{' '}
+                                        {unit}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                                <p className="text-xs text-muted-foreground border-t border-border/60 pt-2 mt-2">
+                                  Synthèse basée sur le potentiel (brief) : {briefDays} jour
+                                  {briefDays > 1 ? 's' : ''} de diffusion, {comptesN} compte
+                                  {comptesN > 1 ? 's' : ''}, répétition {repetition}.
+                                </p>
+                              </AlertDescription>
+                            </Alert>
+
+                            <div className="overflow-x-auto rounded-md border">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Objectif</TableHead>
+                                    <TableHead>KPI max</TableHead>
+                                    <TableHead className="text-right">Estimation</TableHead>
+                                    <TableHead className="text-right">Potentiel (brief)</TableHead>
+                                    <TableHead className="w-[52px]" />
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {kpiMaxLines.map((item) => {
+                                    const inMode =
+                                      kpiMaxStrategyMode === 'ideal'
+                                        ? !isMaxObjective(item.objective)
+                                        : isMaxObjective(item.objective)
+                                    const lineDays = Math.max(1, item.days > 0 ? item.days : briefDays)
+                                    const joursRatio = briefDays / lineDays
+                                    const hasNumericKpi = item.estimatedKPIs > 0
+                                    const potentiel =
+                                      hasNumericKpi
+                                        ? item.estimatedKPIs * joursRatio * comptesN
+                                        : null
+                                    return (
+                                      <TableRow
+                                        key={item.id}
+                                        className={inMode ? undefined : 'opacity-40 bg-muted/30'}
+                                      >
+                                        <TableCell className="text-muted-foreground">{item.objective}</TableCell>
+                                        <TableCell className="font-medium">{getMaxKpiLabel(item.objective)}</TableCell>
+                                        <TableCell className="text-right tabular-nums">
+                                          {item.estimatedKPIs > 0
+                                            ? `${formatNumber(item.estimatedKPIs)} ${getKpiUnitLabel(item.objective)}`
+                                            : '—'}
+                                        </TableCell>
+                                        <TableCell className="text-right tabular-nums">
+                                          {potentiel != null
+                                            ? `${formatNumber(potentiel)} ${getKpiUnitLabel(item.objective)}`
+                                            : '—'}
+                                        </TableCell>
+                                        <TableCell className="p-1">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive"
+                                            onClick={() =>
+                                              setKpiMaxLines((prev) => prev.filter((l) => l.id !== item.id))
+                                            }
+                                            aria-label="Supprimer la ligne"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    )
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Répétition = nombre de tranches de 30 jours couvertes par les jours de diffusion (arrondi au
+                              mois supérieur), minimum 1 — ex. 15 j → 1, 31 j → 2, 60 j → 2. Potentiel (brief) = estimation
+                              numérique × (jours de diffusion ÷ jours de la ligne) × nombre de comptes ; ici les lignes
+                              sans durée propre utilisent les jours de diffusion du brief. Hypothèse linéaire. Filtre idéal
+                              / maximal : seules les lignes non atténuées
+                              entrent dans l’objectif vendable ; toutes les lignes saisies restent listées.
+                            </p>
+                          </>
+                        )}
+                      </>
+                    )
+                  })()
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Modale Calendrier de diffusion */}
-      <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null); setCalendarPhasesMenuPlatform(null) }}>
+      <Dialog
+        open={calendarDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            const sid = calendarStrategyId
+            if (sid) {
+              const st = useCalendarStore.getState()
+              if (st.validate()) {
+                const data = st.getCalendarData()
+                setStrategies((prev) =>
+                  prev.map((s) => (s.id === sid ? { ...s, calendar: data } : s)),
+                )
+              }
+            }
+            setCalendarStrategyId(null)
+            setCalendarPhasesMenuPlatform(null)
+          }
+          setCalendarDialogOpen(open)
+        }}
+      >
         <DialogContent className="max-w-5xl w-full">
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
@@ -4457,18 +4981,13 @@ export default function PDV2Page() {
                       )
                     }}
                     calendarWarnings={getCalendarWarningsForBlock(block)}
-                    onSave={(data) => {
-                      setStrategies((prev) => prev.map((s) => s.id === calendarStrategyId ? { ...s, calendar: data } : s))
-                      setCalendarDialogOpen(false)
-                      setCalendarStrategyId(null)
-                    }}
                   />
                 </>
                 )
               )
             })()}
           </div>
-          {/* Pas de bouton Annuler : fermer via Enregistrer le calendrier ou la croix de la modale */}
+          {/* La fermeture de la modale enregistre le calendrier dans la stratégie si la validation passe. */}
         </DialogContent>
       </Dialog>
 
@@ -4573,7 +5092,10 @@ export default function PDV2Page() {
           setRetroPdfDialogOpen(open)
           if (!open) {
             setRetroPdfFileName('')
+            setRetroPdfClientName('')
             setRetroPdfComment('')
+            setRetroPdfIncludeWeekView(true)
+            setRetroPdfIncludeMonthView(true)
             retroPdfExportRef.current = null
           }
         }}
@@ -4582,10 +5104,58 @@ export default function PDV2Page() {
           <DialogHeader>
             <DialogTitle>Télécharger le rétroplanning en PDF</DialogTitle>
             <DialogDescription>
-              Indiquez le nom du fichier et, si vous le souhaitez, un commentaire affiché sous le titre du document.
+              Choisissez les vues à inclure (frise en semaines et / ou calendrier par mois), puis renseignez le client,
+              le fichier et un commentaire optionnel pour l’en-tête. Le document est entièrement en paysage ; la vue
+              mois affiche deux mois côte à côte par page.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+              <p className="text-sm font-medium">Contenu du PDF</p>
+              <p className="text-xs text-muted-foreground">
+                Cochez une ou les deux vues. Au moins une option doit rester cochée.
+              </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="retro-pdf-view-week"
+                  checked={retroPdfIncludeWeekView}
+                  onCheckedChange={(c) => {
+                    const next = c === true
+                    if (!next && !retroPdfIncludeMonthView) return
+                    setRetroPdfIncludeWeekView(next)
+                  }}
+                />
+                <Label htmlFor="retro-pdf-view-week" className="text-sm font-normal cursor-pointer">
+                  Vue semaines (frise type Gantt)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="retro-pdf-view-month"
+                  checked={retroPdfIncludeMonthView}
+                  onCheckedChange={(c) => {
+                    const next = c === true
+                    if (!next && !retroPdfIncludeWeekView) return
+                    setRetroPdfIncludeMonthView(next)
+                  }}
+                />
+                <Label htmlFor="retro-pdf-view-month" className="text-sm font-normal cursor-pointer">
+                  Vue mois (2 mois par page, pastilles par phase)
+                </Label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-client">Nom du client *</Label>
+              <EditableInput
+                id="retro-pdf-client"
+                placeholder="Ex : Entreprise ABC"
+                value={retroPdfClientName}
+                onChange={(e) => setRetroPdfClientName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Sera affiché dans le titre « Planning de diffusion » du diagramme.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="retro-pdf-filename">Nom du fichier *</Label>
               <EditableInput
@@ -4604,7 +5174,7 @@ export default function PDV2Page() {
                 onChange={(e) => setRetroPdfComment(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Ce commentaire apparaît sous le titre principal du PDF.
+                Affiché sous le nom en tête de la première page exportée (frise ou calendrier).
               </p>
             </div>
           </div>
@@ -4614,7 +5184,10 @@ export default function PDV2Page() {
               onClick={() => {
                 setRetroPdfDialogOpen(false)
                 setRetroPdfFileName('')
+                setRetroPdfClientName('')
                 setRetroPdfComment('')
+                setRetroPdfIncludeWeekView(true)
+                setRetroPdfIncludeMonthView(true)
                 retroPdfExportRef.current = null
               }}
             >
@@ -4622,7 +5195,11 @@ export default function PDV2Page() {
             </Button>
             <Button
               onClick={handleConfirmRetroPdf}
-              disabled={!retroPdfFileName.trim()}
+              disabled={
+                !retroPdfFileName.trim() ||
+                !retroPdfClientName.trim() ||
+                (!retroPdfIncludeWeekView && !retroPdfIncludeMonthView)
+              }
               className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
             >
               <Download className="h-4 w-4 mr-2" />

@@ -115,7 +115,7 @@ export default function HomePage() {
   // Sections principales du site
   const mainSections = [
     {
-      title: "PDV",
+      title: "Vente",
       description: "Calculateur de budget et KPIs pour vos campagnes social media et SMS",
       icon: Calculator,
       href: "/pdv",
@@ -182,7 +182,7 @@ export default function HomePage() {
               Accès rapide
             </h1>
             <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-              Choisissez directement l&apos;outil dont vous avez besoin : calculateur PDV, Studio de créations, documentation et ressources.
+              Choisissez directement l&apos;outil dont vous avez besoin : calculateur Vente, Studio de créations, documentation et ressources.
             </p>
           </div>
         </div>

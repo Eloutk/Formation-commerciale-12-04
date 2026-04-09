@@ -922,9 +922,6 @@ export default function PDVPage() {
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
   const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
-  const [timelineExportDialogOpen, setTimelineExportDialogOpen] = useState(false)
-  const [timelineExportStrategyId, setTimelineExportStrategyId] = useState<string | null>(null)
-  const [timelineExportFileName, setTimelineExportFileName] = useState('')
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -1455,378 +1452,6 @@ export default function PDVPage() {
     setPdfClientComment('')
   }
 
-  const buildTimelineFileName = (strategyName: string) =>
-    `frise-${strategyName.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || 'strategie'}`
-
-  const handleOpenTimelineExportDialog = (strategyId: string) => {
-    const block = strategies.find((s) => s.id === strategyId)
-    if (!block) return
-    setTimelineExportStrategyId(strategyId)
-    setTimelineExportFileName(buildTimelineFileName(block.name))
-    setTimelineExportDialogOpen(true)
-  }
-
-  const handleDownloadTimelineImage = async (strategyId: string, requestedFileName?: string) => {
-    const block = strategies.find((s) => s.id === strategyId)
-    if (!block || block.items.length === 0) {
-      alert('Ajoutez au moins une ligne à cette stratégie pour générer la frise.')
-      return
-    }
-
-    const safeBaseName = (requestedFileName?.trim() || buildTimelineFileName(block.name))
-      .replace(/[\\/:*?"<>|]+/g, '-')
-      .replace(/\.(png|jpg|jpeg)$/i, '')
-
-    const buildCalendarDataForBlock = (target: StrategyBlock): StrategyCalendarData => {
-      const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-      const daysBetween = (a: string, b: string) =>
-        Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
-      const starts = target.items.map((it) => {
-        const key = `${it.platform}::${it.objective}`
-        return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
-      })
-      const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
-      let globalEndDay = 0
-      const items = target.items.map((item) => {
-        const key = `${item.platform}::${item.objective}`
-        const startDate = defineDatesPerPlatform[key] ?? globalStart
-        const startDay = Math.max(0, daysBetween(globalStart, startDate))
-        const length = Math.max(1, item.days ?? duration)
-        globalEndDay = Math.max(globalEndDay, startDay + length)
-        return {
-          platform: item.platform,
-          startDay,
-          length,
-          budget: item.budget,
-          kpiLabel: item.customKpiLabel,
-          objective: item.objective,
-        }
-      })
-      return {
-        startDate: globalStart,
-        duration: Math.max(globalEndDay, duration),
-        items,
-      }
-    }
-
-    const storeData =
-      calendarDialogOpen && calendarStrategyId === strategyId
-        ? useCalendarStore.getState().getCalendarData()
-        : null
-
-    const calendarData =
-      storeData && storeData.items.length > 0
-        ? storeData
-        : isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
-          ? block.calendar
-          : buildCalendarDataForBlock(block)
-
-    if (!calendarData.items.length) {
-      alert('Placez d’abord les plateformes dans le calendrier avant de télécharger la frise.')
-      return
-    }
-
-    const width = 1800
-    const height = 1000
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const loadImage = (src: string) =>
-      new Promise<HTMLImageElement | null>((resolve) => {
-        const img = new window.Image()
-        img.onload = () => resolve(img)
-        img.onerror = () => resolve(null)
-        img.src = src
-      })
-
-    const backgroundImage = await loadImage('/images/base-presentation.jpg')
-    if (backgroundImage) {
-      ctx.drawImage(backgroundImage, 0, 0, width, height)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.82)'
-      ctx.fillRect(0, 0, width, height)
-    } else {
-      ctx.fillStyle = '#f7f4f1'
-      ctx.fillRect(0, 0, width, height)
-    }
-
-    const title = safeBaseName
-    ctx.fillStyle = '#161616'
-    ctx.font = 'bold 54px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText(title, width / 2, 110)
-
-    const groupedByStart = new Map<number, {
-      label: string
-      entries: Array<{ platform: string; label: string; durationLabel: string }>
-    }>()
-    const sortedItems = [...calendarData.items].sort((a, b) => a.startDay - b.startDay)
-    sortedItems.forEach((item) => {
-      const date = new Date(calendarData.startDate + 'T12:00:00')
-      date.setDate(date.getDate() + item.startDay)
-      const month = date.toLocaleDateString('fr-FR', { month: 'long' })
-      const dayLabel = date.getDate() === 1 ? `1er ${month}` : `${date.getDate()} ${month}`
-      const key = item.startDay
-      const label = item.objective ? `${item.platform} - ${item.objective}` : item.platform
-      const durationLabel = `${item.length} jour${item.length > 1 ? 's' : ''}`
-      if (!groupedByStart.has(key)) {
-        groupedByStart.set(key, {
-          label: dayLabel,
-          entries: [{ platform: item.platform, label, durationLabel }],
-        })
-      } else {
-        const existing = groupedByStart.get(key)!
-        existing.entries.push({ platform: item.platform, label, durationLabel })
-      }
-    })
-
-    const groups = Array.from(groupedByStart.entries())
-      .map(([startDay, value]) => ({ startDay, ...value }))
-      .sort((a, b) => a.startDay - b.startDay)
-
-    const totalSpan = Math.max(1, ...sortedItems.map((item) => item.startDay + item.length - 1))
-    const startX = 170
-    const endX = width - 170
-    const lineY = 480
-    const usableWidth = endX - startX
-    const baseXForDay = (day: number) => startX + (day / totalSpan) * usableWidth
-
-    ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 6
-    ctx.beginPath()
-    ctx.moveTo(startX, lineY)
-    ctx.lineTo(endX, lineY)
-    ctx.stroke()
-
-    const drawCircle = (x: number, y: number, r: number, color: string) => {
-      ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fillStyle = color
-      ctx.fill()
-    }
-
-    drawCircle(startX, lineY, 14, '#111111')
-    drawCircle(endX, lineY, 14, '#111111')
-
-    const wrapText = (text: string, maxWidth: number) => {
-      const words = text.split(' ')
-      const lines: string[] = []
-      let current = ''
-      for (const word of words) {
-        const candidate = current ? `${current} ${word}` : word
-        if (ctx.measureText(candidate).width <= maxWidth || !current) {
-          current = candidate
-        } else {
-          lines.push(current)
-          current = word
-        }
-      }
-      if (current) lines.push(current)
-      return lines
-    }
-
-    const logoCache = new Map<string, HTMLImageElement | null>()
-    await Promise.all(
-      Array.from(new Set(sortedItems.map((item) => item.platform))).map(async (platform) => {
-        const src = PLATFORM_LOGOS[platform as keyof typeof PLATFORM_LOGOS]
-        logoCache.set(platform, src ? await loadImage(src) : null)
-      }),
-    )
-
-    const cardWidth = 280
-    const cardPaddingX = 18
-    const cardPaddingY = 16
-    const cardGapFromLine = 34
-    const layerSpacing = 30
-    const titleSafeTop = 150
-    const placedRects: Array<{ left: number; top: number; right: number; bottom: number }> = []
-
-    const rectsOverlap = (
-      a: { left: number; top: number; right: number; bottom: number },
-      b: { left: number; top: number; right: number; bottom: number },
-      gap = 16,
-    ) =>
-      a.left < b.right + gap &&
-      a.right > b.left - gap &&
-      a.top < b.bottom + gap &&
-      a.bottom > b.top - gap
-
-    const drawRoundedRect = (x: number, y: number, w: number, h: number, r: number) => {
-      ctx.beginPath()
-      ctx.moveTo(x + r, y)
-      ctx.lineTo(x + w - r, y)
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-      ctx.lineTo(x + w, y + h - r)
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-      ctx.lineTo(x + r, y + h)
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-      ctx.lineTo(x, y + r)
-      ctx.quadraticCurveTo(x, y, x + r, y)
-      ctx.closePath()
-    }
-
-    const measuredGroups = groups.map((group) => {
-      ctx.font = 'bold 24px Arial'
-      const entryMetrics = group.entries.map((entry) => {
-        const logo = logoCache.get(entry.platform) ?? null
-        const textWidth = cardWidth - cardPaddingX * 2 - (logo ? 32 : 0)
-        const labelLines = wrapText(entry.label, textWidth)
-        const entryHeight = labelLines.length * 24 + 30
-        return { entry, logo, labelLines, entryHeight }
-      })
-      const contentHeight = entryMetrics.reduce((sum, metric) => sum + metric.entryHeight, 0)
-      const cardHeight = cardPaddingY * 2 + 34 + contentHeight
-      return {
-        ...group,
-        pointX: baseXForDay(group.startDay),
-        entryMetrics,
-        cardHeight,
-      }
-    })
-
-    const placedGroups = measuredGroups.map((group, index) => {
-      const candidateAnchors = [
-        { align: 'center' as const, left: group.pointX - cardWidth / 2, pointerX: group.pointX },
-        { align: 'left' as const, left: group.pointX - 26, pointerX: group.pointX },
-        { align: 'right' as const, left: group.pointX - cardWidth + 26, pointerX: group.pointX },
-      ]
-      let bestCandidate: {
-        side: 'above' | 'below'
-        left: number
-        top: number
-        rect: { left: number; top: number; right: number; bottom: number }
-        connectorX: number
-        penalty: number
-      } | null = null
-
-      for (let layer = 0; layer < 5; layer += 1) {
-        const sides: Array<'below' | 'above'> = index % 2 === 0 ? ['below', 'above'] : ['above', 'below']
-        for (const side of sides) {
-          for (const anchor of candidateAnchors) {
-            const left = Math.max(startX, Math.min(anchor.left, endX - cardWidth))
-            const top =
-              side === 'below'
-                ? lineY + cardGapFromLine + layer * (group.cardHeight + layerSpacing)
-                : lineY - cardGapFromLine - group.cardHeight - layer * (group.cardHeight + layerSpacing)
-
-            if (top < titleSafeTop || top + group.cardHeight > height - 80) continue
-
-            const rect = {
-              left,
-              top,
-              right: left + cardWidth,
-              bottom: top + group.cardHeight,
-            }
-
-            if (placedRects.some((placed) => rectsOverlap(rect, placed))) continue
-
-            const connectorX = Math.max(left + 28, Math.min(anchor.pointerX, left + cardWidth - 28))
-            const distancePenalty = Math.abs((left + cardWidth / 2) - group.pointX)
-            const sidePenalty = side === 'above' ? 6 : 0
-            const penalty = layer * 100 + distancePenalty + sidePenalty
-
-            if (!bestCandidate || penalty < bestCandidate.penalty) {
-              bestCandidate = { side, left, top, rect, connectorX, penalty }
-            }
-          }
-        }
-        if (bestCandidate) break
-      }
-
-      if (!bestCandidate) {
-        const fallbackLeft = Math.max(startX, Math.min(group.pointX - cardWidth / 2, endX - cardWidth))
-        const fallbackTop = lineY + cardGapFromLine + placedRects.length * 12
-        bestCandidate = {
-          side: 'below',
-          left: fallbackLeft,
-          top: fallbackTop,
-          rect: {
-            left: fallbackLeft,
-            top: fallbackTop,
-            right: fallbackLeft + cardWidth,
-            bottom: fallbackTop + group.cardHeight,
-          },
-          connectorX: Math.max(fallbackLeft + 28, Math.min(group.pointX, fallbackLeft + cardWidth - 28)),
-          penalty: Number.MAX_SAFE_INTEGER,
-        }
-      }
-
-      placedRects.push(bestCandidate.rect)
-
-      return {
-        ...group,
-        side: bestCandidate.side,
-        leftX: bestCandidate.left,
-        topY: bestCandidate.top,
-        connectorX: bestCandidate.connectorX,
-      }
-    })
-
-    placedGroups.forEach((group) => {
-      drawCircle(group.pointX, lineY, 12, '#E96B2C')
-
-      ctx.strokeStyle = 'rgba(17, 17, 17, 0.22)'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(group.pointX, group.side === 'above' ? lineY - 12 : lineY + 12)
-      ctx.lineTo(group.connectorX, group.side === 'above' ? group.topY + group.cardHeight : group.topY)
-      ctx.stroke()
-
-      drawRoundedRect(group.leftX, group.topY, cardWidth, group.cardHeight, 18)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)'
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(17, 17, 17, 0.08)'
-      ctx.lineWidth = 1
-      ctx.stroke()
-
-      ctx.fillStyle = '#1a1a1a'
-      ctx.font = 'bold 24px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText(group.label, group.leftX + cardWidth / 2, group.topY + 30)
-
-      let currentY = group.topY + cardPaddingY + 34
-      group.entryMetrics.forEach(({ entry, logo, labelLines, entryHeight }) => {
-        const logoX = group.leftX + cardPaddingX
-        const textX = logoX + (logo ? 30 : 0)
-
-        if (logo) {
-          ctx.drawImage(logo, logoX, currentY - 12, 18, 18)
-        }
-
-        ctx.fillStyle = '#222222'
-        ctx.font = 'bold 22px Arial'
-        ctx.textAlign = 'left'
-        labelLines.forEach((line, lineIndex) => {
-          ctx.fillText(line, textX, currentY + lineIndex * 24)
-        })
-
-        ctx.fillStyle = '#5b5b5b'
-        ctx.font = '19px Arial'
-        ctx.fillText(entry.durationLabel, textX, currentY + labelLines.length * 24)
-
-        currentY += entryHeight
-      })
-    })
-
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png', 1))
-    if (!blob) {
-      alert("Impossible de générer l'image de la frise.")
-      return
-    }
-
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${safeBaseName}.png`
-    link.click()
-    URL.revokeObjectURL(url)
-    setTimelineExportDialogOpen(false)
-    setTimelineExportStrategyId(null)
-    setTimelineExportFileName('')
-  }
-
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
   const handleValidationTM = async () => {
     if (!validationMessage.trim()) return
@@ -2005,7 +1630,7 @@ export default function PDVPage() {
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-3">Calculateur PDV</h1>
+          <h1 className="text-4xl font-bold mb-3">Calculateur Vente</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Calculez vos prix de vente selon la plateforme, l'objectif et votre budget. Unifiez vos simulations en un seul endroit.
           </p>
@@ -3383,7 +3008,25 @@ export default function PDVPage() {
         )}
       </div>
 
-      <Dialog open={calendarDialogOpen} onOpenChange={(open) => { setCalendarDialogOpen(open); if (!open) setCalendarStrategyId(null) }}>
+      <Dialog
+        open={calendarDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            const sid = calendarStrategyId
+            if (sid) {
+              const st = useCalendarStore.getState()
+              if (st.validate()) {
+                const data = st.getCalendarData()
+                setStrategies((prev) =>
+                  prev.map((s) => (s.id === sid ? { ...s, calendar: data } : s)),
+                )
+              }
+            }
+            setCalendarStrategyId(null)
+          }
+          setCalendarDialogOpen(open)
+        }}
+      >
         <DialogContent className="max-w-5xl w-full">
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
@@ -3439,20 +3082,12 @@ export default function PDVPage() {
                   <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
                 ) : (
                   <>
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <p className="text-sm text-muted-foreground">
-                        Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de début en cliquant sur un jour. Les pastilles et la couleur dans la stratégie se mettent à jour.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="shrink-0"
-                        onClick={() => handleOpenTimelineExportDialog(block.id)}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Télécharger la frise
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de
+                      début en cliquant sur un jour, et modifier le nombre de jours de diffusion dans le champ « Jours ».
+                      Les pastilles et la couleur dans la stratégie se mettent à jour (rouge / orange si les règles ne
+                      sont pas respectées).
+                    </p>
                     <StrategyCalendarBuilder
                       key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
                       platformSources={platformSources}
@@ -3486,79 +3121,12 @@ export default function PDVPage() {
                         )
                       }}
                       calendarWarnings={getCalendarWarningsForBlock(block)}
-                      onSave={(data) => {
-                        setStrategies((prev) =>
-                          prev.map((s) => (s.id === calendarStrategyId ? { ...s, calendar: data } : s)),
-                        )
-                        setCalendarDialogOpen(false)
-                        setCalendarStrategyId(null)
-                      }}
                     />
                   </>
                 )
               )
             })()}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={timelineExportDialogOpen}
-        onOpenChange={(open) => {
-          setTimelineExportDialogOpen(open)
-          if (!open) {
-            setTimelineExportStrategyId(null)
-            setTimelineExportFileName('')
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Télécharger la frise</DialogTitle>
-            <DialogDescription>
-              Choisissez le nom du fichier PNG avant de lancer le téléchargement.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="timeline-file-name">Nom du fichier</Label>
-              <Input
-                id="timeline-file-name"
-                placeholder="frise-strategie"
-                value={timelineExportFileName}
-                onChange={(e) => setTimelineExportFileName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && timelineExportStrategyId) {
-                    handleDownloadTimelineImage(timelineExportStrategyId, timelineExportFileName)
-                  }
-                }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">L’extension `.png` sera ajoutée automatiquement.</p>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setTimelineExportDialogOpen(false)
-                setTimelineExportStrategyId(null)
-                setTimelineExportFileName('')
-              }}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="button"
-              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-              onClick={() => {
-                if (!timelineExportStrategyId) return
-                handleDownloadTimelineImage(timelineExportStrategyId, timelineExportFileName)
-              }}
-            >
-              Télécharger
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

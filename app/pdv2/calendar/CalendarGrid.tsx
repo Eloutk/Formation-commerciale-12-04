@@ -98,7 +98,7 @@ export function CalendarGrid() {
         handleDrop: (periodIndex: number, platform: string) => moveItem(platform, periodIndex),
       }
     }
-    if (timeGranularity === 'week') {
+    if (timeGranularity === 'week' || timeGranularity === 'frise') {
       const numWeeks = Math.ceil(duration / 7)
       const byPeriod: Record<number, { item: import('./types').CalendarItem; color: string }[]> = {}
       for (let w = 0; w < numWeeks; w++) byPeriod[w] = []
@@ -171,12 +171,13 @@ export function CalendarGrid() {
   }
 
   const columnWidth =
-    timeGranularity === 'week'
+    timeGranularity === 'week' || timeGranularity === 'frise'
       ? COLUMN_WIDTH_WEEK
       : timeGranularity === 'month'
         ? COLUMN_WIDTH_MONTH
         : COLUMN_WIDTH_DAY
-  const headerWrap = timeGranularity === 'week' || timeGranularity === 'month'
+  const headerWrap =
+    timeGranularity === 'week' || timeGranularity === 'frise' || timeGranularity === 'month'
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
