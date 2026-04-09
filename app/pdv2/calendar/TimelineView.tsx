@@ -154,7 +154,8 @@ export function TimelineView({
         onPlatformDaysChange={onPlatformDaysChange}
         calendarWarnings={calendarWarnings}
         twoMonths={twoMonths}
-        showLegend={!twoMonths}
+        /** Légende obligatoire pour la vue mois : choisir une entrée puis cliquer un jour (rétro 2 mois inclus). */
+        showLegend
       />
     )
   }

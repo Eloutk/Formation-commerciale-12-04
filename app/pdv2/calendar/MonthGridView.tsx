@@ -91,8 +91,12 @@ export function MonthGridView({
     : currentMonthGrid.label
   const gridsToShow = twoMonths ? [currentMonthGrid, nextMonthGrid] : [currentMonthGrid]
 
-  const makeItemKey = (item: CalendarItem): string =>
-    `${item.platform}::${(item.objective || '').trim()}`
+  /** Même identifiant que `moveItem` / `resizeItem` dans le store (clé entrée calendrier). */
+  const itemScheduleKey = (item: CalendarItem): string => {
+    const obj = (item.objective ?? '').trim()
+    if (item.platform.includes('::')) return item.platform
+    return obj ? `${item.platform}::${obj}` : item.platform
+  }
 
   const phaseIndexMap = useMemo(() => getPhaseIndexByPlatformKey(items), [items])
 
@@ -166,8 +170,12 @@ export function MonthGridView({
                               isPlatformActiveOnDay(item, slot.dayIndex, duration),
                             )
                           : []
+                      const inPlanningRange =
+                        slot.day != null &&
+                        slot.dayIndex >= 0 &&
+                        slot.dayIndex < duration
                       const isDayClickable =
-                        slot.day != null && !!selectedPlatformKey && !!onPlatformStartDateSet
+                        inPlanningRange && !!selectedPlatformKey && !!onPlatformStartDateSet
                       return (
                         <div
                           key={i}
@@ -181,7 +189,16 @@ export function MonthGridView({
                                 }
                               : undefined
                           }
-                          title={isDayClickable ? 'Cliquer pour définir la date de début de la phase sélectionnée' : undefined}
+                          title={
+                            isDayClickable
+                              ? 'Cliquer pour définir la date de début de la phase sélectionnée'
+                              : slot.day != null &&
+                                  selectedPlatformKey &&
+                                  onPlatformStartDateSet &&
+                                  !inPlanningRange
+                                ? 'Jour hors de la période du rétroplanning'
+                                : undefined
+                          }
                           className={`min-w-0 min-h-[40px] sm:min-h-[44px] flex flex-col items-center justify-center gap-0.5 rounded-md text-sm px-0.5 ${
                             slot.day == null
                               ? 'bg-transparent text-muted-foreground/40'
@@ -218,11 +235,11 @@ export function MonthGridView({
           {showLegend && items.length > 0 && (
             <div className="flex-[2] min-w-[220px] max-w-sm border-l pl-4 py-1 space-y-3">
               <div className="flex flex-col gap-1.5">
-                {items.map((item) => {
-                  const key = makeItemKey(item)
+                {items.map((item, itemIdx) => {
+                  const key = itemScheduleKey(item)
                   const isSelected = selectedPlatformKey === key
                   return (
-                    <div key={item.platform} className="flex flex-col gap-1">
+                    <div key={`${key}-${itemIdx}`} className="flex flex-col gap-1">
                       <button
                         type="button"
                         onClick={() => setSelectedPlatform(isSelected ? null : key)}

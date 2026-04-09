@@ -24,7 +24,11 @@ import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
 import { RetroPlanningPanel } from '@/app/pdv2/calendar/RetroPlanningPanel'
 import { useCalendarStore } from '@/app/pdv2/calendar/store'
-import { syncManualRetroPlatformPhasesFromItems } from '@/app/pdv2/calendar/syncManualRetroFromStore'
+import {
+  desiredLengthFromRetroPhases,
+  syncManualRetroItemLengthsFromPhases,
+  syncManualRetroPlatformPhasesFromItems,
+} from '@/app/pdv2/calendar/syncManualRetroFromStore'
 import { downloadRetroplanningPdf } from '@/app/pdv2/calendar/RetroplanningPdfDocument'
 import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/pdv2/calendar/types'
 import { getPlatformColor } from '@/app/pdv2/calendar/colors'
@@ -4185,7 +4189,32 @@ export default function PDV2Page() {
                 }
               }
 
+              if (
+                retroSourceChoice === 'none' &&
+                retroPlatformPhases.length > 0 &&
+                items.length > 0
+              ) {
+                const fallback = Math.max(baseDuration, retroDurationDays, duration)
+                const horizonForSync = Math.max(
+                  fallback,
+                  ...items.map((it) => {
+                    const w = desiredLengthFromRetroPhases(
+                      it.platform,
+                      retroPlatformPhases,
+                      fallback,
+                    )
+                    return it.startDay + (w ?? it.length)
+                  }),
+                )
+                items = syncManualRetroItemLengthsFromPhases(
+                  items,
+                  retroPlatformPhases,
+                  horizonForSync,
+                )
+              }
+
               const mergedDuration = Math.max(
+                retroDurationDays,
                 duration,
                 ...items.map((i) => i.startDay + i.length),
               )
@@ -4293,8 +4322,40 @@ export default function PDV2Page() {
                       },
                     }}
                     onSave={handleSave}
-                    onPlatformStartDateChange={undefined}
-                    onPlatformDaysChange={undefined}
+                    onPlatformStartDateChange={(entryKey, startDate) => {
+                      if (strategyPlatformKeys.has(entryKey)) {
+                        setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                      }
+                    }}
+                    onPlatformDaysChange={
+                      retroLinkSocial && activeStrategyId
+                        ? (entryKey, days) => {
+                            if (!strategyPlatformKeys.has(entryKey)) return
+                            setStrategies((prev) =>
+                              prev.map((s) =>
+                                s.id !== activeStrategyId
+                                  ? s
+                                  : {
+                                      ...s,
+                                      items: s.items.map((it) =>
+                                        `${it.platform}::${it.objective}` !== entryKey
+                                          ? it
+                                          : {
+                                              ...it,
+                                              days,
+                                              dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
+                                              aeCheckValue:
+                                                it.platform === 'Spotify'
+                                                  ? it.budget * (it.aePercentage / 100)
+                                                  : (it.budget * (it.aePercentage / 100)) / days,
+                                            },
+                                      ),
+                                    },
+                              ),
+                            )
+                          }
+                        : undefined
+                    }
                   />
                 </>
               )

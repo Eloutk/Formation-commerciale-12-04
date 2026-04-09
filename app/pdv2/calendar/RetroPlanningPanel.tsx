@@ -206,21 +206,25 @@ export function RetroPlanningPanel({
     <div className="rounded-xl border bg-background p-4 shadow-sm space-y-4">
       <h3 className="text-sm font-semibold text-foreground">Paramétrage du rétroplanning</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="retro-start-date">Date de début</Label>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Label htmlFor="retro-start-date" className="text-xs text-muted-foreground font-normal shrink-0 whitespace-nowrap">
+            Début
+          </Label>
           <Input
             id="retro-start-date"
             type="date"
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
-            className="w-full"
+            className="h-8 w-[9.5rem] min-w-0 text-sm py-0 shrink-0"
             disabled={!paramsEditable}
             title={!paramsEditable ? 'Modifiable uniquement en « Partir de 0 »' : undefined}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="retro-duration">Durée (jours)</Label>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Label htmlFor="retro-duration" className="text-xs text-muted-foreground font-normal shrink-0 whitespace-nowrap">
+            Durée
+          </Label>
           <Input
             id="retro-duration"
             type="number"
@@ -229,10 +233,17 @@ export function RetroPlanningPanel({
             value={durationDays}
             onChange={(e) => onDurationDaysChange(Math.max(1, Math.min(730, Math.floor(Number(e.target.value) || 1))))}
             placeholder="90"
+            className="h-8 w-16 text-sm text-center tabular-nums py-0 px-1"
             disabled={!paramsEditable}
-            title={!paramsEditable ? 'Modifiable uniquement en « Partir de 0 »' : undefined}
+            title={
+              !paramsEditable
+                ? 'Modifiable uniquement en « Partir de 0 »'
+                : 'Nombre de jours (ex. 90 ≈ 3 mois, 365 = 1 an)'
+            }
           />
-          <p className="text-xs text-muted-foreground">Ex. 90 pour environ 3 mois, 365 pour un an</p>
+          <span className="text-xs text-muted-foreground shrink-0" aria-hidden>
+            j
+          </span>
         </div>
       </div>
 

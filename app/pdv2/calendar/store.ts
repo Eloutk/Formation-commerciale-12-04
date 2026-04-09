@@ -3,6 +3,7 @@ import type { CalendarItem, StrategyCalendarData, CalendarViewMode, CalendarTime
 import {
   getDatesFromStart,
   autoDistribute,
+  ensureItemsForAllPlatformSources,
   validateItems,
   itemsOverlap,
   clampItem,
@@ -93,11 +94,13 @@ export const useCalendarStore = create<CalendarState & CalendarActions>((set, ge
     const calDuration = existing?.duration ?? duration
     let items: CalendarItem[]
     if (existing?.items?.length) {
+      const d = Math.max(1, calDuration)
       items = existing.items.map((i) => ({
         ...i,
-        startDay: Math.max(0, Math.min(i.startDay, calDuration - 1)),
-        length: Math.max(1, Math.min(i.length, calDuration)),
+        startDay: Math.max(0, Math.min(i.startDay, d - 1)),
+        length: Math.max(1, Math.min(i.length, d)),
       }))
+      items = ensureItemsForAllPlatformSources(items, sources, d)
     } else {
       items = autoDistribute(sources, duration)
     }

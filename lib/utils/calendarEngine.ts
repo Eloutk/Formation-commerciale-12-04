@@ -46,8 +46,10 @@ export function autoDistribute(
   const minShare = Math.ceil(duration / n)
   const canEqualSplit = platforms.every((p) => p.maxDays >= minShare)
 
+  let items: CalendarItem[]
+
   if (canEqualSplit) {
-    const items: CalendarItem[] = []
+    items = []
     const base = Math.floor(duration / n)
     let rem = duration % n
     let cursor = 0
@@ -66,26 +68,59 @@ export function autoDistribute(
         cursor += len
       }
     }
-    return items
+  } else {
+    items = []
+    let cursor = 0
+    for (const p of platforms) {
+      const length = Math.min(p.maxDays, Math.max(0, duration - cursor))
+      if (length > 0) {
+        items.push({
+          platform: p.platform,
+          startDay: cursor,
+          length,
+          budget: p.budget,
+          kpiLabel: p.kpiLabel,
+        })
+        cursor += length
+      }
+      if (cursor >= duration) break
+    }
   }
 
-  const items: CalendarItem[] = []
-  let cursor = 0
+  return ensureItemsForAllPlatformSources(items, platforms, duration)
+}
+
+/** Complète les items pour que chaque entrée de `platforms` ait une ligne (légende, placement mois). */
+export function ensureItemsForAllPlatformSources(
+  items: CalendarItem[],
+  platforms: CalendarPlatformSource[],
+  duration: number,
+): CalendarItem[] {
+  if (duration < 1 || platforms.length === 0) return items.slice()
+  const byPlatform = new Set(items.map((i) => i.platform))
+  const extra: CalendarItem[] = []
+  let occupyEnd = items.reduce((max, it) => Math.max(max, it.startDay + it.length), 0)
+
   for (const p of platforms) {
-    const length = Math.min(p.maxDays, Math.max(0, duration - cursor))
-    if (length > 0) {
-      items.push({
-        platform: p.platform,
-        startDay: cursor,
-        length,
-        budget: p.budget,
-        kpiLabel: p.kpiLabel,
-      })
-      cursor += length
+    if (byPlatform.has(p.platform)) continue
+    const length = Math.max(1, Math.min(p.maxDays, duration))
+    let startDay = Math.min(occupyEnd, Math.max(0, duration - length))
+    if (startDay + length > duration) {
+      startDay = Math.max(0, duration - length)
     }
-    if (cursor >= duration) break
+    const lenClamped = Math.min(length, duration - startDay)
+    extra.push({
+      platform: p.platform,
+      startDay,
+      length: Math.max(1, lenClamped),
+      budget: p.budget,
+      kpiLabel: p.kpiLabel,
+    })
+    byPlatform.add(p.platform)
+    occupyEnd = Math.max(occupyEnd, startDay + Math.max(1, lenClamped))
   }
-  return items
+
+  return extra.length ? [...items, ...extra] : items
 }
 
 /**
