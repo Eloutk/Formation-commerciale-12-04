@@ -4724,10 +4724,7 @@ export default function VentePage() {
                                   {slot.title}
                                 </h3>
                                 <div className="mt-auto space-y-2">
-                                  <div className="space-y-0.5">
-                                    <p className="text-xs text-muted-foreground">Objectif affiché</p>
-                                    <p className="text-sm font-medium text-foreground">{kpiMaxBriefObjective}</p>
-                                  </div>
+                                  <p className="text-sm font-medium text-foreground">{kpiMaxBriefObjective}</p>
                                   {belowCommitThreshold ? (
                                     <p className="text-3xl font-semibold tracking-tight text-foreground">Max</p>
                                   ) : (
