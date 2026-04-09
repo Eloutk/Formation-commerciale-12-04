@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -640,6 +640,9 @@ function kpiMaxHighlightedMetric(objective: string): 'impressions' | 'clics' {
 }
 
 const KPI_MAX_BRIEF_OBJECTIVES = ['Impressions', 'Clics'] as const
+
+/** En dessous de ce nombre de comptes : les deux colonnes affichent « Max » sans chiffre (pas d’engagement KPI). */
+const KPI_MAX_COMMIT_MIN_COMPTES = 50_000
 
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
 function isMaxObjective(objective: string): boolean {
@@ -2347,7 +2350,7 @@ export default function PDV2Page() {
                 value="kpiMax"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
               >
-                Kpis max
+                KPIs max
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -4564,16 +4567,21 @@ export default function PDV2Page() {
         )}
 
         {pdvSection === 'kpiMax' && (
-          <div className="mt-6 mx-auto max-w-4xl">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Kpis max</CardTitle>
-                <CardDescription>
-                  Indicateur informatif uniquement. Renseignez les paramètres : les encarts se mettent à jour en direct.
-                  Choisissez l’objectif du brief pour mettre en avant impressions ou clics.
+          <div className="mt-6 mx-auto max-w-4xl px-0">
+            <Card className="overflow-hidden border-border/80 shadow-sm">
+              <CardHeader className="space-y-2 border-b bg-muted/20 pb-5">
+                <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
+                    <BarChart2 className="h-5 w-5" aria-hidden />
+                  </span>
+                  KPIs max
+                </CardTitle>
+                <CardDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  Estimation indicative à partir de vos paramètres. Les volumes se mettent à jour automatiquement selon
+                  l’objectif du brief (impressions ou clics).
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8 pt-6">
                 {(() => {
                   const jStr = kpiMaxDiffusionDays.trim()
                   const cStr = kpiMaxComptesDispo.trim()
@@ -4587,136 +4595,180 @@ export default function PDV2Page() {
                   const r = daysOk ? diffusionRepetitionMonths(j) : 1
                   const v = showVolumes ? kpiMaxQuantitesAVendre(c, r) : null
                   const highlight = kpiMaxHighlightedMetric(kpiMaxBriefObjective)
-                  const primaryLabel = highlight === 'impressions' ? 'impressions' : 'clics'
+                  const belowCommitThreshold =
+                    comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+                  const primaryLabel =
+                    highlight === 'impressions' ? 'impressions' : 'clics'
                   return (
                     <>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="kpi-max-jours-diffusion">Jours de diffusion</Label>
-                          <EditableInput
-                            id="kpi-max-jours-diffusion"
-                            type="number"
-                            min={1}
-                            placeholder="14"
-                            value={kpiMaxDiffusionDays}
-                            onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
-                          />
-                          <p className="text-xs text-muted-foreground tabular-nums">
-                            {daysOk ? (
-                              <>
-                                Répétition : {r} mois (30 j.)
-                              </>
-                            ) : (
-                              'Saisissez les jours pour calculer la répétition.'
-                            )}
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="kpi-max-comptes-dispo">Comptes</Label>
-                          <EditableInput
-                            id="kpi-max-comptes-dispo"
-                            type="number"
-                            min={1}
-                            placeholder="1"
-                            value={kpiMaxComptesDispo}
-                            onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
-                          />
-                          <p className="text-xs text-muted-foreground">Selon le potentiel TM.</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 max-w-md">
-                        <Label htmlFor="kpi-max-objectif-brief">Objectif du brief</Label>
-                        <Select
-                          value={kpiMaxBriefObjective}
-                          onValueChange={setKpiMaxBriefObjective}
+                      <section className="space-y-3" aria-labelledby="kpi-max-params-heading">
+                        <h2
+                          id="kpi-max-params-heading"
+                          className="text-sm font-medium text-foreground"
                         >
-                          <SelectTrigger id="kpi-max-objectif-brief" className="w-full">
-                            <SelectValue placeholder="Objectif" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {KPI_MAX_BRIEF_OBJECTIVES.map((obj) => (
-                              <SelectItem key={obj} value={obj}>
-                                {obj}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          Paramètres
+                        </h2>
+                        <div className="rounded-xl border border-border/60 bg-muted/15 p-4 sm:p-5">
+                          <div className="grid gap-5 sm:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="kpi-max-jours-diffusion" className="text-foreground">
+                                Jours de diffusion
+                              </Label>
+                              <EditableInput
+                                id="kpi-max-jours-diffusion"
+                                type="number"
+                                min={1}
+                                placeholder="ex. 14"
+                                value={kpiMaxDiffusionDays}
+                                onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
+                                className="bg-background"
+                              />
+                              <p className="text-xs text-muted-foreground tabular-nums">
+                                {daysOk
+                                  ? `Répétition : ${r} mois (tranches 30 j.)`
+                                  : 'Indiquez la durée pour calculer la répétition.'}
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="kpi-max-comptes-dispo" className="text-foreground">
+                                Nombre de comptes
+                              </Label>
+                              <EditableInput
+                                id="kpi-max-comptes-dispo"
+                                type="number"
+                                min={1}
+                                placeholder="ex. 1"
+                                value={kpiMaxComptesDispo}
+                                onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
+                                className="bg-background"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Selon le potentiel indiqué par les TM.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-5 space-y-2 sm:max-w-xs">
+                            <Label htmlFor="kpi-max-objectif-brief" className="text-foreground">
+                              Objectif du brief
+                            </Label>
+                            <Select
+                              value={kpiMaxBriefObjective}
+                              onValueChange={setKpiMaxBriefObjective}
+                            >
+                              <SelectTrigger id="kpi-max-objectif-brief" className="w-full bg-background">
+                                <SelectValue placeholder="Choisir…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {KPI_MAX_BRIEF_OBJECTIVES.map((obj) => (
+                                  <SelectItem key={obj} value={obj}>
+                                    {obj}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </section>
 
                       {showVolumes && v ? (
-                        <>
+                        <section
+                          className="space-y-4"
+                          aria-labelledby="kpi-max-results-heading"
+                          aria-live="polite"
+                        >
+                          <h2
+                            id="kpi-max-results-heading"
+                            className="text-sm font-medium text-foreground"
+                          >
+                            Résultat
+                          </h2>
+
+                          {belowCommitThreshold && (
+                            <Alert className="border-amber-200/90 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/25 [&_svg]:text-amber-700 dark:[&_svg]:text-amber-400">
+                              <Info className="h-4 w-4 shrink-0" aria-hidden />
+                              <AlertTitle className="text-sm font-medium text-foreground">
+                                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes
+                              </AlertTitle>
+                              <AlertDescription className="text-sm leading-relaxed text-muted-foreground">
+                                Aucun volume chiffré n&apos;est affiché. Les scénarios idéal et max indiquent « Max » à
+                                titre indicatif — pas d&apos;engagement sur les KPIs pour ce palier volumétrique.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
                           <div className="grid gap-4 sm:grid-cols-2">
                             {(
                               [
                                 {
                                   key: 'ideal' as const,
                                   title: 'Stratégie idéale',
-                                  borderClass: 'border-emerald-600/25 bg-emerald-500/5',
+                                  cardClass:
+                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
                                 },
                                 {
                                   key: 'max' as const,
                                   title: 'Stratégie max',
-                                  borderClass: 'border-[#E94C16]/35 bg-[#E94C16]/5',
+                                  cardClass:
+                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
                                 },
                               ] as const
-                            ).map((slot) => {
-                              const block = v[slot.key]
-                              const ideal = slot.key === 'ideal'
-                              const primary =
-                                highlight === 'impressions'
-                                  ? {
-                                      value: Math.round(block.impressions),
-                                      decimals: 0 as const,
-                                      label: primaryLabel,
-                                    }
-                                  : {
-                                      value: Math.round(block.clics),
-                                      decimals: 0 as const,
-                                      label: primaryLabel,
-                                    }
-                              const comptesWord = c > 1 ? 'comptes' : 'compte'
-                              const calcDetail =
-                                highlight === 'impressions'
-                                  ? ideal
-                                    ? `70 % × ${c} ${comptesWord} × ${r} mois (répétition)`
-                                    : `80 % × ${c} ${comptesWord} × ${r} mois (répétition)`
-                                  : ideal
-                                    ? `1 % × ${c} ${comptesWord} × ${r} mois (répétition)`
-                                    : `1,5 % × ${c} ${comptesWord} × ${r} mois (répétition)`
-                              return (
-                                <div
-                                  key={slot.key}
-                                  className={cn(
-                                    'rounded-xl border-2 p-4 sm:p-5 flex flex-col gap-3',
-                                    slot.borderClass,
+                            ).map((slot) => (
+                              <div
+                                key={slot.key}
+                                className={cn(
+                                  'flex min-h-[148px] flex-col gap-4 rounded-xl border border-border/70 p-5 shadow-sm',
+                                  slot.cardClass,
+                                )}
+                              >
+                                <h3 className="text-sm font-semibold leading-none text-foreground">
+                                  {slot.title}
+                                </h3>
+                                <div className="mt-auto space-y-2">
+                                  <div className="space-y-0.5">
+                                    <p className="text-xs text-muted-foreground">Objectif affiché</p>
+                                    <p className="text-sm font-medium text-foreground">{kpiMaxBriefObjective}</p>
+                                  </div>
+                                  {belowCommitThreshold ? (
+                                    <p className="text-3xl font-semibold tracking-tight text-foreground">Max</p>
+                                  ) : (
+                                    <>
+                                      <p className="break-words text-3xl font-bold tabular-nums tracking-tight text-foreground sm:text-4xl">
+                                        {formatNumber(
+                                          highlight === 'impressions'
+                                            ? Math.round(v[slot.key].impressions)
+                                            : Math.round(v[slot.key].clics),
+                                          0,
+                                        )}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">{primaryLabel}</p>
+                                    </>
                                   )}
-                                >
-                                  <div>
-                                    <h3 className="font-semibold text-base">{slot.title}</h3>
-                                  </div>
-                                  <div className="pt-1">
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                      {kpiMaxBriefObjective}
-                                    </p>
-                                    <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-foreground">
-                                      {formatNumber(primary.value, primary.decimals)}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground mt-0.5">{primary.label}</p>
-                                    <p className="text-xs text-muted-foreground mt-2 leading-snug tabular-nums">
-                                      {calcDetail}
-                                    </p>
-                                  </div>
                                 </div>
-                              )
-                            })}
+                              </div>
+                            ))}
                           </div>
-                        </>
+                        </section>
                       ) : (
-                        <p className="text-sm text-muted-foreground text-center py-8 px-4 rounded-lg border border-dashed bg-muted/20">
-                          Complétez les jours de diffusion et le nombre de comptes pour afficher les deux stratégies
-                          côte à côte.
-                        </p>
+                        <div
+                          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/10 px-6 py-12 text-center"
+                          role="status"
+                        >
+                          <BarChart2
+                            className="h-10 w-10 text-muted-foreground/45"
+                            strokeWidth={1.25}
+                            aria-hidden
+                          />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              Saisissez jours de diffusion et nombre de comptes
+                            </p>
+                            <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">
+                              Les colonnes <span className="text-foreground/90">Stratégie idéale</span> et{' '}
+                              <span className="text-foreground/90">Stratégie max</span> apparaîtront ici avec
+                              l&apos;estimation correspondant à votre objectif.
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </>
                   )
