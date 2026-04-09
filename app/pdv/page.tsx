@@ -19,9 +19,9 @@ import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle }
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { cn } from '@/lib/utils'
-import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
-import type { CalendarPlatformSource, StrategyCalendarData } from '@/app/pdv2/calendar/types'
-import { useCalendarStore } from '@/app/pdv2/calendar/store'
+import { StrategyCalendarBuilder } from '@/app/vente/calendar/StrategyCalendarBuilder'
+import type { CalendarPlatformSource, StrategyCalendarData } from '@/app/vente/calendar/types'
+import { useCalendarStore } from '@/app/vente/calendar/store'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = [

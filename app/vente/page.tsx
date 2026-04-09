@@ -21,28 +21,28 @@ import * as XLSX from 'xlsx'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
-import { StrategyCalendarBuilder } from '@/app/pdv2/calendar/StrategyCalendarBuilder'
-import { RetroPlanningPanel } from '@/app/pdv2/calendar/RetroPlanningPanel'
-import { useCalendarStore } from '@/app/pdv2/calendar/store'
+import { StrategyCalendarBuilder } from '@/app/vente/calendar/StrategyCalendarBuilder'
+import { RetroPlanningPanel } from '@/app/vente/calendar/RetroPlanningPanel'
+import { useCalendarStore } from '@/app/vente/calendar/store'
 import {
   desiredLengthFromRetroPhases,
   syncManualRetroItemLengthsFromPhases,
   syncManualRetroPlatformPhasesFromItems,
-} from '@/app/pdv2/calendar/syncManualRetroFromStore'
+} from '@/app/vente/calendar/syncManualRetroFromStore'
 import {
   downloadRetroplanningPdf,
   type RetroplanningPdfExportOptions,
-} from '@/app/pdv2/calendar/RetroplanningPdfDocument'
-import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/pdv2/calendar/types'
-import { getPlatformColor } from '@/app/pdv2/calendar/colors'
+} from '@/app/vente/calendar/RetroplanningPdfDocument'
+import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/vente/calendar/types'
+import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
-import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/pdv2/calendar/smsSalesConditions'
+import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/vente/calendar/smsSalesConditions'
 import {
   rebalanceRetroSocialSegments,
   retroStrategyLineKey,
   retroStrategySubPlatformKey,
-} from '@/app/pdv2/calendar/retroSocialSplits'
+} from '@/app/vente/calendar/retroSocialSplits'
 
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = [
@@ -516,7 +516,7 @@ export interface StrategyCalendar {
 }
 
 // Calendrier stratégique (module Kanban/Timeline)
-export type StrategyCalendarData = import('@/app/pdv2/calendar/types').StrategyCalendarData
+export type StrategyCalendarData = import('@/app/vente/calendar/types').StrategyCalendarData
 
 /** Plateforme SMS/RCS dans le rétroplanning (hors réseaux sociaux) */
 function isSmsRetroPlatform(p: string): boolean {
@@ -1386,7 +1386,7 @@ const SMSRCSPDFDocument = ({
   )
 }
 
-export default function PDV2Page() {
+export default function VentePage() {
   const router = useRouter()
   const [adminChecked, setAdminChecked] = useState(false)
 
@@ -2378,12 +2378,12 @@ export default function PDV2Page() {
                 {(userRole === 'direction' || userRole === 'admin' || userRole === 'super_admin') && (
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="tarifs-direction-pdv2"
+                      id="tarifs-direction-vente"
                       checked={tarifsDirection}
                       onCheckedChange={(checked) => setTarifsDirection(checked === true)}
                     />
                     <label
-                      htmlFor="tarifs-direction-pdv2"
+                      htmlFor="tarifs-direction-vente"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
                       Appliquer les tarifs direction

@@ -9,6 +9,9 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  async redirects() {
+    return [{ source: '/pdv2', destination: '/vente', permanent: true }]
+  },
   images: {
     domains: [
       'hebbkxlanhila5yf.public.blob.vercel-storage.com',

@@ -1,5 +1,5 @@
-import type { CalendarItem, StrategyCalendarData } from '@/app/pdv2/calendar/types'
-import type { CalendarPlatformSource } from '@/app/pdv2/calendar/types'
+import type { CalendarItem, StrategyCalendarData } from '@/app/vente/calendar/types'
+import type { CalendarPlatformSource } from '@/app/vente/calendar/types'
 
 /**
  * Index du jour (0, 1, 2, …) pour une date YYYY-MM-DD par rapport à la date de début.
