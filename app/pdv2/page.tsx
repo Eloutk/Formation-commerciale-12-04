@@ -8,12 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2 } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
@@ -494,36 +493,6 @@ interface StrategyItem extends TableRowData {
   tarifsDirection?: boolean
 }
 
-/** Ligne du module « Kpis max » uniquement (aucune donnée partagée avec Social / SMS / Rétroplanning) */
-interface KpiMaxLine {
-  id: string
-  platform: string
-  objective: string
-  budget: number
-  estimatedKPIs: number
-  days: number
-}
-
-function kpiMaxObjectivesForPlatform(platform: string): string[] {
-  if (platform === 'META') {
-    return [...META_CUSTOM_OBJECTIVES, 'conversion'] as string[]
-  }
-  const key = platform as (typeof PLATFORMS_ORDER)[number]
-  const list = CUSTOM_OBJECTIVES[key]
-  return list ? [...list] : [...DEFAULT_CUSTOM_OBJECTIVES]
-}
-
-/** Liste unique de tous les objectifs (Kpis max, sans choix de plateforme) */
-function kpiMaxAllObjectivesSorted(): string[] {
-  const set = new Set<string>()
-  for (const p of PLATFORMS_ORDER) {
-    for (const o of kpiMaxObjectivesForPlatform(p)) {
-      set.add(o)
-    }
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }))
-}
-
 // Phase posée sur la frise (vue mois)
 export interface CalendarRange {
   id: string
@@ -647,16 +616,35 @@ function diffusionRepetitionMonths(briefDays: number): number {
   return Math.max(1, Math.ceil(d / 30))
 }
 
+/** KPIs à vendre : idéale 70 % / 1 % × c × r ; max 80 % / 1,5 % × c × r (impressions et clics × répétition). */
+function kpiMaxQuantitesAVendre(comptes: number, repetition: number) {
+  const c = Math.max(1, Math.floor(comptes))
+  const r = Math.max(1, repetition)
+  return {
+    ideal: {
+      impressions: 0.7 * c * r,
+      clics: 0.01 * c * r,
+    },
+    max: {
+      impressions: 0.8 * c * r,
+      clics: 0.015 * c * r,
+    },
+  }
+}
+
+/** Métrique mise en avant dans les encarts selon l’objectif du brief (le reste en secondaire). */
+function kpiMaxHighlightedMetric(objective: string): 'impressions' | 'clics' {
+  const o = objective.trim().toLowerCase()
+  if (o.includes('impression')) return 'impressions'
+  return 'clics'
+}
+
+const KPI_MAX_BRIEF_OBJECTIVES = ['Impressions', 'Clics'] as const
+
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
 function isMaxObjective(objective: string): boolean {
   const o = objective.trim().toLowerCase()
   return o === 'conversion' || o === 'leads' || o === 'likes'
-}
-
-const KPI_MAX_UNIT_SORT_ORDER = ['impressions', 'clics', 'leads', 'conversions', 'KPIs'] as const
-function kpiMaxUnitSortRank(unit: string): number {
-  const i = KPI_MAX_UNIT_SORT_ORDER.indexOf(unit as (typeof KPI_MAX_UNIT_SORT_ORDER)[number])
-  return i === -1 ? 100 : i
 }
 
 // Styles pour le PDF
@@ -1417,12 +1405,10 @@ export default function PDV2Page() {
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
   /** Nombre de comptes annonceur dispo — aligné sur la demande de potentiel (vue Kpis max) */
   const [kpiMaxComptesDispo, setKpiMaxComptesDispo] = useState<string>('1')
-  /** Idéal = volume / notoriété ; maximal = leads, conversions, likes */
-  const [kpiMaxStrategyMode, setKpiMaxStrategyMode] = useState<'ideal' | 'maximal'>('ideal')
   /** Onglet Kpis max : jours de diffusion propres (non liés au calculateur Social) */
   const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
-  const [kpiMaxLines, setKpiMaxLines] = useState<KpiMaxLine[]>([])
-  const [kpiMaxAddObjective, setKpiMaxAddObjective] = useState<string>('Impressions')
+  /** Objectif du brief pour l’encart principal (impressions vs clics) */
+  const [kpiMaxBriefObjective, setKpiMaxBriefObjective] = useState<string>('Impressions')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
@@ -2327,7 +2313,8 @@ export default function PDV2Page() {
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-3">Calculateur Vente 2</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Calculez vos prix de vente selon la plateforme, l'objectif et votre budget. Unifiez vos simulations en un seul endroit.
+            Outil à titre informatif : estimez prix, volumes et planning pour la lecture d’une brief — sans valeur
+            contractuelle.
           </p>
         </div>
         {/* Sous-onglets PDV */}
@@ -4577,296 +4564,163 @@ export default function PDV2Page() {
         )}
 
         {pdvSection === 'kpiMax' && (
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 mx-auto max-w-4xl">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5" aria-hidden />
-                  Kpis max
-                </CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle>Kpis max</CardTitle>
                 <CardDescription>
-                  Module autonome : paramètres et lignes sont saisis uniquement ici, sans lien avec Social media, SMS
-                  ni Rétroplanning.
+                  Indicateur informatif uniquement. Renseignez les paramètres : les encarts se mettent à jour en direct.
+                  Choisissez l’objectif du brief pour mettre en avant impressions ou clics.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
-                  <p className="text-sm font-medium text-foreground">Paramètres (demande de potentiel)</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="kpi-max-jours-diffusion">Nombre de jours de diffusion</Label>
-                      <EditableInput
-                        id="kpi-max-jours-diffusion"
-                        type="number"
-                        min={1}
-                        placeholder="Ex : 14"
-                        value={kpiMaxDiffusionDays}
-                        onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
-                      />
-                      {(() => {
-                        const j = Math.max(1, Math.floor(parseFloat(kpiMaxDiffusionDays) || 14))
-                        const rep = diffusionRepetitionMonths(j)
-                        return (
-                          <p className="text-sm font-medium text-foreground rounded-md border bg-background px-3 py-2">
-                            Répétition :{' '}
-                            <span className="tabular-nums text-[#E94C16]">{rep}</span>
-                            <span className="font-normal text-muted-foreground">
-                              {' '}
-                              — équivalent nombre de mois (30 j. / tranche, arrondi au-dessus, min. 1)
-                            </span>
+                {(() => {
+                  const jStr = kpiMaxDiffusionDays.trim()
+                  const cStr = kpiMaxComptesDispo.trim()
+                  const jNum = parseFloat(jStr.replace(',', '.'))
+                  const cNum = parseFloat(cStr.replace(',', '.'))
+                  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
+                  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
+                  const showVolumes = daysOk && comptesOk
+                  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
+                  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
+                  const r = daysOk ? diffusionRepetitionMonths(j) : 1
+                  const v = showVolumes ? kpiMaxQuantitesAVendre(c, r) : null
+                  const highlight = kpiMaxHighlightedMetric(kpiMaxBriefObjective)
+                  const primaryLabel = highlight === 'impressions' ? 'impressions' : 'clics'
+                  return (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="kpi-max-jours-diffusion">Jours de diffusion</Label>
+                          <EditableInput
+                            id="kpi-max-jours-diffusion"
+                            type="number"
+                            min={1}
+                            placeholder="14"
+                            value={kpiMaxDiffusionDays}
+                            onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground tabular-nums">
+                            {daysOk ? (
+                              <>
+                                Répétition : {r} mois (30 j.)
+                              </>
+                            ) : (
+                              'Saisissez les jours pour calculer la répétition.'
+                            )}
                           </p>
-                        )
-                      })()}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="kpi-max-comptes-dispo">Nombre de comptes disponibles</Label>
-                      <EditableInput
-                        id="kpi-max-comptes-dispo"
-                        type="number"
-                        min={1}
-                        placeholder="Ex : 1"
-                        value={kpiMaxComptesDispo}
-                        onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Cela dépend du potentiel donné par les TM dans le cadre de leur étude.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border p-4 space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Lignes de campagne</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Ajoutez ici les lignes à analyser (données locales à cet onglet).
-                    </p>
-                  </div>
-                  <div className="max-w-md space-y-2">
-                    <Label htmlFor="kpi-max-add-objective">Objectif</Label>
-                    <Select value={kpiMaxAddObjective} onValueChange={setKpiMaxAddObjective}>
-                      <SelectTrigger id="kpi-max-add-objective">
-                        <SelectValue placeholder="Objectif" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {kpiMaxAllObjectivesSorted().map((o) => (
-                          <SelectItem key={o} value={o}>
-                            {o}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    type="button"
-                    className="bg-[#E94C16] hover:bg-[#d14414]"
-                    onClick={() => {
-                      const opts = kpiMaxAllObjectivesSorted()
-                      if (!kpiMaxAddObjective || !opts.includes(kpiMaxAddObjective)) return
-                      const line: KpiMaxLine = {
-                        id: `kpi-max-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-                        platform: '—',
-                        objective: kpiMaxAddObjective,
-                        budget: 0,
-                        estimatedKPIs: 0,
-                        days: 0,
-                      }
-                      setKpiMaxLines((prev) => [...prev, line])
-                    }}
-                  >
-                    Ajouter la ligne
-                  </Button>
-                </div>
-
-                {kpiMaxLines.length === 0 ? (
-                  <Alert>
-                    <AlertTitle>Aucune ligne</AlertTitle>
-                    <AlertDescription className="text-sm">
-                      Utilisez le formulaire ci-dessus pour créer au moins une ligne (objectif).
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  (() => {
-                    const briefDays = Math.max(1, Math.floor(parseFloat(kpiMaxDiffusionDays) || 14))
-                    const comptesN = Math.max(1, Math.floor(parseFloat(kpiMaxComptesDispo) || 1))
-                    const repetition = diffusionRepetitionMonths(briefDays)
-                    const filtered = kpiMaxLines.filter((item) =>
-                      kpiMaxStrategyMode === 'ideal'
-                        ? !isMaxObjective(item.objective)
-                        : isMaxObjective(item.objective),
-                    )
-                    const totals = new Map<string, number>()
-                    for (const item of filtered) {
-                      const lineDays = Math.max(1, item.days > 0 ? item.days : briefDays)
-                      const joursRatio = briefDays / lineDays
-                      if (item.estimatedKPIs <= 0) continue
-                      const potentiel = item.estimatedKPIs * joursRatio * comptesN
-                      const unit = getKpiUnitLabel(item.objective)
-                      totals.set(unit, (totals.get(unit) ?? 0) + potentiel)
-                    }
-                    const sortedTotals = [...totals.entries()].sort(
-                      (a, b) => kpiMaxUnitSortRank(a[0]) - kpiMaxUnitSortRank(b[0]),
-                    )
-                    const modeLabel = kpiMaxStrategyMode === 'ideal' ? 'idéale' : 'maximale'
-                    const modeDescription =
-                      kpiMaxStrategyMode === 'ideal'
-                        ? 'Discours vendable prudent : objectifs volume et notoriété (hors leads, conversions et likes).'
-                        : 'Plafond d’engagement vendable : objectifs performance (leads, conversions, likes).'
-                    return (
-                      <>
-                        <div className="space-y-3">
-                          <Label className="text-base">Stratégie pour l’objectif vendable</Label>
-                          <RadioGroup
-                            value={kpiMaxStrategyMode}
-                            onValueChange={(v) => setKpiMaxStrategyMode(v as 'ideal' | 'maximal')}
-                            className="grid gap-3 sm:grid-cols-2"
-                          >
-                            <div className="flex gap-3 rounded-lg border bg-background p-3 shadow-sm">
-                              <RadioGroupItem value="ideal" id="kpi-max-mode-ideal" className="mt-1 shrink-0" />
-                              <div className="space-y-0.5 min-w-0">
-                                <Label
-                                  htmlFor="kpi-max-mode-ideal"
-                                  className="cursor-pointer font-medium leading-snug"
-                                >
-                                  Stratégie idéale
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Impressions, clics, etc. — hors leads, conversions et likes.
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-3 rounded-lg border bg-background p-3 shadow-sm">
-                              <RadioGroupItem value="maximal" id="kpi-max-mode-maximal" className="mt-1 shrink-0" />
-                              <div className="space-y-0.5 min-w-0">
-                                <Label
-                                  htmlFor="kpi-max-mode-maximal"
-                                  className="cursor-pointer font-medium leading-snug"
-                                >
-                                  Stratégie maximale
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Leads, conversions, likes — engagements les plus exigeants.
-                                </p>
-                              </div>
-                            </div>
-                          </RadioGroup>
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="kpi-max-comptes-dispo">Comptes</Label>
+                          <EditableInput
+                            id="kpi-max-comptes-dispo"
+                            type="number"
+                            min={1}
+                            placeholder="1"
+                            value={kpiMaxComptesDispo}
+                            onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">Selon le potentiel TM.</p>
+                        </div>
+                      </div>
 
-                        {filtered.length === 0 ? (
-                          <Alert className="border-amber-200 bg-amber-50/90 dark:bg-amber-950/25 dark:border-amber-900/50">
-                            <AlertTitle>Aucune ligne pour la stratégie {modeLabel}</AlertTitle>
-                            <AlertDescription className="text-sm">
-                              {kpiMaxStrategyMode === 'ideal'
-                                ? 'Ajoutez des lignes avec des objectifs volume (ex. impressions, clics) ou basculez en stratégie maximale.'
-                                : 'Ajoutez des lignes avec des objectifs leads, conversions ou likes — ou repassez en stratégie idéale.'}
-                            </AlertDescription>
-                          </Alert>
-                        ) : (
-                          <>
-                            <Alert className="border-[#E94C16]/35 bg-[#E94C16]/6">
-                              <AlertTitle>Objectif vendable — stratégie {modeLabel}</AlertTitle>
-                              <AlertDescription className="space-y-2 text-foreground">
-                                <p className="text-sm">{modeDescription}</p>
-                                {sortedTotals.length === 0 ? (
-                                  <p className="text-sm text-muted-foreground">
-                                    Aucun volume chiffré : les lignes n’ont pas encore d’estimation KPI numérique.
-                                  </p>
-                                ) : (
-                                  <ul className="list-disc space-y-1 pl-5 text-sm">
-                                    {sortedTotals.map(([unit, sum]) => (
-                                      <li key={unit}>
-                                        Portez un engagement jusqu’à{' '}
-                                        <strong className="tabular-nums">
-                                          {formatNumber(Math.round(sum))}
-                                        </strong>{' '}
-                                        {unit}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                                <p className="text-xs text-muted-foreground border-t border-border/60 pt-2 mt-2">
-                                  Synthèse basée sur le potentiel (brief) : {briefDays} jour
-                                  {briefDays > 1 ? 's' : ''} de diffusion, {comptesN} compte
-                                  {comptesN > 1 ? 's' : ''}, répétition {repetition}.
-                                </p>
-                              </AlertDescription>
-                            </Alert>
+                      <div className="space-y-2 max-w-md">
+                        <Label htmlFor="kpi-max-objectif-brief">Objectif du brief</Label>
+                        <Select
+                          value={kpiMaxBriefObjective}
+                          onValueChange={setKpiMaxBriefObjective}
+                        >
+                          <SelectTrigger id="kpi-max-objectif-brief" className="w-full">
+                            <SelectValue placeholder="Objectif" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {KPI_MAX_BRIEF_OBJECTIVES.map((obj) => (
+                              <SelectItem key={obj} value={obj}>
+                                {obj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                            <div className="overflow-x-auto rounded-md border">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Objectif</TableHead>
-                                    <TableHead>KPI max</TableHead>
-                                    <TableHead className="text-right">Estimation</TableHead>
-                                    <TableHead className="text-right">Potentiel (brief)</TableHead>
-                                    <TableHead className="w-[52px]" />
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {kpiMaxLines.map((item) => {
-                                    const inMode =
-                                      kpiMaxStrategyMode === 'ideal'
-                                        ? !isMaxObjective(item.objective)
-                                        : isMaxObjective(item.objective)
-                                    const lineDays = Math.max(1, item.days > 0 ? item.days : briefDays)
-                                    const joursRatio = briefDays / lineDays
-                                    const hasNumericKpi = item.estimatedKPIs > 0
-                                    const potentiel =
-                                      hasNumericKpi
-                                        ? item.estimatedKPIs * joursRatio * comptesN
-                                        : null
-                                    return (
-                                      <TableRow
-                                        key={item.id}
-                                        className={inMode ? undefined : 'opacity-40 bg-muted/30'}
-                                      >
-                                        <TableCell className="text-muted-foreground">{item.objective}</TableCell>
-                                        <TableCell className="font-medium">{getMaxKpiLabel(item.objective)}</TableCell>
-                                        <TableCell className="text-right tabular-nums">
-                                          {item.estimatedKPIs > 0
-                                            ? `${formatNumber(item.estimatedKPIs)} ${getKpiUnitLabel(item.objective)}`
-                                            : '—'}
-                                        </TableCell>
-                                        <TableCell className="text-right tabular-nums">
-                                          {potentiel != null
-                                            ? `${formatNumber(potentiel)} ${getKpiUnitLabel(item.objective)}`
-                                            : '—'}
-                                        </TableCell>
-                                        <TableCell className="p-1">
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive"
-                                            onClick={() =>
-                                              setKpiMaxLines((prev) => prev.filter((l) => l.id !== item.id))
-                                            }
-                                            aria-label="Supprimer la ligne"
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </TableCell>
-                                      </TableRow>
-                                    )
-                                  })}
-                                </TableBody>
-                              </Table>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Répétition = nombre de tranches de 30 jours couvertes par les jours de diffusion (arrondi au
-                              mois supérieur), minimum 1 — ex. 15 j → 1, 31 j → 2, 60 j → 2. Potentiel (brief) = estimation
-                              numérique × (jours de diffusion ÷ jours de la ligne) × nombre de comptes ; ici les lignes
-                              sans durée propre utilisent les jours de diffusion du brief. Hypothèse linéaire. Filtre idéal
-                              / maximal : seules les lignes non atténuées
-                              entrent dans l’objectif vendable ; toutes les lignes saisies restent listées.
-                            </p>
-                          </>
-                        )}
-                      </>
-                    )
-                  })()
-                )}
+                      {showVolumes && v ? (
+                        <>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {(
+                              [
+                                {
+                                  key: 'ideal' as const,
+                                  title: 'Stratégie idéale',
+                                  borderClass: 'border-emerald-600/25 bg-emerald-500/5',
+                                },
+                                {
+                                  key: 'max' as const,
+                                  title: 'Stratégie max',
+                                  borderClass: 'border-[#E94C16]/35 bg-[#E94C16]/5',
+                                },
+                              ] as const
+                            ).map((slot) => {
+                              const block = v[slot.key]
+                              const ideal = slot.key === 'ideal'
+                              const primary =
+                                highlight === 'impressions'
+                                  ? {
+                                      value: Math.round(block.impressions),
+                                      decimals: 0 as const,
+                                      label: primaryLabel,
+                                    }
+                                  : {
+                                      value: Math.round(block.clics),
+                                      decimals: 0 as const,
+                                      label: primaryLabel,
+                                    }
+                              const comptesWord = c > 1 ? 'comptes' : 'compte'
+                              const calcDetail =
+                                highlight === 'impressions'
+                                  ? ideal
+                                    ? `70 % × ${c} ${comptesWord} × ${r} mois (répétition)`
+                                    : `80 % × ${c} ${comptesWord} × ${r} mois (répétition)`
+                                  : ideal
+                                    ? `1 % × ${c} ${comptesWord} × ${r} mois (répétition)`
+                                    : `1,5 % × ${c} ${comptesWord} × ${r} mois (répétition)`
+                              return (
+                                <div
+                                  key={slot.key}
+                                  className={cn(
+                                    'rounded-xl border-2 p-4 sm:p-5 flex flex-col gap-3',
+                                    slot.borderClass,
+                                  )}
+                                >
+                                  <div>
+                                    <h3 className="font-semibold text-base">{slot.title}</h3>
+                                  </div>
+                                  <div className="pt-1">
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                      {kpiMaxBriefObjective}
+                                    </p>
+                                    <p className="text-3xl sm:text-4xl font-bold tabular-nums tracking-tight text-foreground">
+                                      {formatNumber(primary.value, primary.decimals)}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground mt-0.5">{primary.label}</p>
+                                    <p className="text-xs text-muted-foreground mt-2 leading-snug tabular-nums">
+                                      {calcDetail}
+                                    </p>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8 px-4 rounded-lg border border-dashed bg-muted/20">
+                          Complétez les jours de diffusion et le nombre de comptes pour afficher les deux stratégies
+                          côte à côte.
+                        </p>
+                      )}
+                    </>
+                  )
+                })()}
               </CardContent>
             </Card>
           </div>
