@@ -658,43 +658,41 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     backgroundColor: '#fafafa',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 8,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexGrow: 1,
-    flexShrink: 1,
-  },
-  logo: {
-    width: 34,
-    height: 34,
-    objectFit: 'contain',
-  },
   title: {
     fontSize: 22,
-    marginBottom: 8,
+    marginBottom: 14,
     fontWeight: 'bold',
     color: '#1a1a1a',
+    lineHeight: 1.35,
+    width: '100%',
   },
   clientName: {
     fontSize: 18,
-    marginTop: 4,
-    marginBottom: 18,
+    marginTop: 0,
+    marginBottom: 14,
     color: '#E94C16',
     fontWeight: 'bold',
+    lineHeight: 1.3,
+    width: '100%',
   },
   clientComment: {
     fontSize: 12,
-    marginTop: 2,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 12,
     color: '#666666',
+    lineHeight: 1.45,
+    width: '100%',
+  },
+  /** Page de garde : tout en colonne (évite chevauchements flex row logo + titre dans Yoga/react-pdf). */
+  pdfCoverRoot: {
+    width: '100%',
+    flexDirection: 'column',
+  },
+  pdfCoverLogo: {
+    width: 40,
+    height: 40,
+    marginBottom: 12,
+    objectFit: 'contain',
   },
   summary: {
     marginBottom: 15,
@@ -703,6 +701,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#E94C16',
+    width: '100%',
   },
   summaryText: {
     fontSize: 14,
@@ -715,25 +714,67 @@ const styles = StyleSheet.create({
     color: '#E94C16',
     marginTop: 5,
   },
+  /** Lignes PDF : une balise <Text> par ligne (pas de \\n) — hauteur correcte + pagination. */
+  pdfBlockText: {
+    fontSize: 10,
+    color: '#111827',
+    lineHeight: 1.5,
+    width: '100%',
+  },
+  pdfSummaryBlockText: {
+    fontSize: 11,
+    color: '#374151',
+    lineHeight: 1.5,
+    width: '100%',
+  },
+  pdfStrategyTitleLine: {
+    fontSize: 11,
+    color: '#374151',
+    marginBottom: 6,
+    lineHeight: 1.45,
+    width: '100%',
+  },
+  pdfLegendLine: {
+    fontSize: 10,
+    color: '#111827',
+    marginBottom: 5,
+    lineHeight: 1.5,
+    width: '100%',
+  },
+  pdfItemPlatform: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 5,
+    lineHeight: 1.35,
+    width: '100%',
+  },
+  pdfItemObjective: {
+    fontSize: 10,
+    color: '#4b5563',
+    marginBottom: 10,
+    lineHeight: 1.4,
+    width: '100%',
+  },
+  pdfItemDetailLine: {
+    fontSize: 10,
+    color: '#111827',
+    marginBottom: 4,
+    lineHeight: 1.5,
+    width: '100%',
+  },
   itemCard: {
-    marginBottom: 14,
+    marginBottom: 16,
     padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e5e5e5',
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
-  itemPlatform: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#1a1a1a',
-  },
-  itemObjective: {
-    fontSize: 11,
-    marginBottom: 6,
-    color: '#666666',
-  },
+  /** Conservé pour le PDF SMS / RCS (devis) qui utilise encore des lignes label | valeur en row. */
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -750,18 +791,40 @@ const styles = StyleSheet.create({
   },
   chartsRow: {
     marginTop: 10,
-    marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    marginBottom: 16,
+    flexDirection: 'column',
+    width: '100%',
   },
   chartBox: {
-    flex: 1,
+    width: '100%',
+    marginBottom: 12,
     padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e5e5e5',
+  },
+  pdfStrategySheetTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#E94C16',
+    marginBottom: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  pdfPlatformDetailSubtitle: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 12,
+    width: '100%',
+  },
+  pdfCoverHint: {
+    fontSize: 11,
+    color: '#666666',
+    marginTop: 8,
+    lineHeight: 1.55,
+    width: '100%',
   },
   chartTitle: {
     fontSize: 14,
@@ -783,22 +846,9 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   legend: {
-    marginTop: 4,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  legendColor: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendLabel: {
-    fontSize: 10,
-    color: '#374151',
+    marginTop: 6,
+    width: '100%',
+    flexDirection: 'column',
   },
   total: {
     fontSize: 18,
@@ -841,6 +891,18 @@ const styles = StyleSheet.create({
 
 // Couleurs pour le graphique PDF (mêmes que dans l'interface)
 const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
+
+/** Nombre maximum d’encarts plateforme (lignes de campagne) par page de détail PDF. */
+const PDF_STRATEGY_DETAIL_CHUNK = 4
+
+function chunkItemsForPdf<T>(items: T[], chunkSize: number): T[][] {
+  if (chunkSize <= 0) return [items]
+  const out: T[][] = []
+  for (let i = 0; i < items.length; i += chunkSize) {
+    out.push(items.slice(i, i + chunkSize))
+  }
+  return out
+}
 
 type PdfChartDatum = {
   name: string
@@ -939,12 +1001,262 @@ function PdfDonutChart({
   )
 }
 
-// Composant PDF multi-stratégies
+/** Une stratégie est exportable PDF si elle a des lignes OU un calendrier renseigné. */
+function strategyBlockHasPdfContent(block: StrategyBlock): boolean {
+  const hasItems = block.items.length > 0
+  const cal = block.calendar
+  const hasCalendar = !!cal?.startDate && (
+    isStrategyCalendarData(cal)
+      ? cal.duration > 0 || cal.items.length > 0
+      : !!(cal as StrategyCalendar).endDate
+  )
+  return hasItems || hasCalendar
+}
+
+function formatIsoToPdfDate(iso: string) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
+}
+
+/** Dates de diffusion par plateforme (PDF) — extrait pour pages séparées par campagne. */
+function getPdfStrategyPlatformDates(
+  block: StrategyBlock,
+  platform: string,
+): { start: string; end: string } | null {
+  const c = block.calendar
+  if (!c) return null
+  if (isStrategyCalendarData(c)) {
+    if (!c.startDate || !c.items?.length) return null
+    const calItem = c.items.find((i) => i.platform === platform)
+    if (!calItem) return null
+    const base = new Date(c.startDate + 'T12:00:00')
+    const start = new Date(base)
+    start.setDate(start.getDate() + calItem.startDay)
+    const end = new Date(base)
+    end.setDate(end.getDate() + calItem.startDay + Math.max(1, calItem.length) - 1)
+    return {
+      start: formatIsoToPdfDate(start.toISOString().slice(0, 10)),
+      end: formatIsoToPdfDate(end.toISOString().slice(0, 10)),
+    }
+  }
+  const legacy = c as StrategyCalendar
+  if ((legacy.ranges ?? []).length > 0) {
+    const r = legacy.ranges!.find(
+      (x) =>
+        x.platform === platform ||
+        (x.phaseName && `${x.platform} (${x.phaseName})` === platform),
+    )
+    if (r) return { start: formatIsoToPdfDate(r.startDate), end: formatIsoToPdfDate(r.endDate) }
+    return null
+  }
+  if (!legacy.startDate || !legacy.endDate || !legacy.days) return null
+  const entryKeys = Object.entries(legacy.days).filter(([, arr]) =>
+    (arr ?? []).some((e) => e === platform || e.startsWith(platform + '::')),
+  )
+  if (entryKeys.length === 0) return null
+  const dates = entryKeys.map(([d]) => d).sort()
+  return { start: formatIsoToPdfDate(dates[0]!), end: formatIsoToPdfDate(dates[dates.length - 1]!) }
+}
+
+/** Une campagne / plateforme : une ligne <Text> par champ (évite chevauchement Yoga sur blocs multilignes). */
+function StrategyPdfCampaignItem({
+  item,
+  platformDates,
+}: {
+  item: StrategyItem
+  platformDates: { start: string; end: string } | null
+}) {
+  const kpiDisplay = item.customKpiLabel
+    ? item.customKpiLabel
+    : item.estimatedKPIs > 0
+      ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+          item.objective === 'Leads' ? ' (estimation)' : ''
+        }`
+      : `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (estimation)' : ''}`
+
+  return (
+    <View style={styles.itemCard}>
+      <Text style={styles.pdfItemPlatform} wrap>
+        {item.platform}
+      </Text>
+      <Text style={styles.pdfItemObjective} wrap>
+        {item.objective}
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        Budget : {formatNumber(item.budget, 0)} €
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        KPIs estimés : {kpiDisplay}
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        Budget quotidien : {formatNumber(item.dailyBudget, 1)} €
+      </Text>
+      {item.days > 0 && (
+        <Text style={styles.pdfItemDetailLine} wrap>
+          Diffusion : {item.days} jour{item.days > 1 ? 's' : ''}
+        </Text>
+      )}
+      {platformDates && (
+        <Text style={styles.pdfItemDetailLine} wrap>
+          Dates de diffusion : du {platformDates.start} au {platformDates.end}
+        </Text>
+      )}
+      {item.tarifsDirection && (
+        <Text
+          style={[
+            styles.pdfItemDetailLine,
+            { fontStyle: 'italic', color: '#1d4ed8', marginBottom: 0 },
+          ]}
+          wrap
+        >
+          Tarifs direction appliqués
+        </Text>
+      )}
+    </View>
+  )
+}
+
+/**
+ * Résumé + graphiques uniquement (pas le détail par plateforme).
+ * Le détail est sur des pages séparées avec wrap={false} pour éviter les chevauchements du moteur
+ * de pagination react-pdf/Yoga (voir issues diegomura/react-pdf #2129, #3298).
+ */
+function StrategyPdfStrategyOverview({
+  block,
+  strategyIdx,
+}: {
+  block: StrategyBlock
+  strategyIdx: number
+}) {
+  const hasItems = block.items.length > 0
+  const cal = block.calendar
+  const hasCalendar = !!cal?.startDate && (
+    isStrategyCalendarData(cal)
+      ? cal.duration > 0 || cal.items.length > 0
+      : !!(cal as StrategyCalendar).endDate
+  )
+  if (!hasItems && !hasCalendar) return null
+
+  const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
+
+  const platformTotals: Record<string, number> = {}
+  block.items.forEach((item) => {
+    if (!platformTotals[item.platform]) {
+      platformTotals[item.platform] = 0
+    }
+    platformTotals[item.platform] += item.budget
+  })
+
+  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total) * 100 : 0,
+    color: PDF_COLORS[idx % PDF_COLORS.length],
+  }))
+
+  const objectiveTotals: Record<string, number> = {}
+  block.items.forEach((item) => {
+    if (!objectiveTotals[item.objective]) {
+      objectiveTotals[item.objective] = 0
+    }
+    objectiveTotals[item.objective] += item.budget
+  })
+
+  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total) * 100 : 0,
+    color: PDF_COLORS[idx % PDF_COLORS.length],
+  }))
+
+  const strategyAe = block.items.length > 0 ? block.items[0].aePercentage : 0
+
+  return (
+    <View style={{ width: '100%', flexDirection: 'column' }}>
+      <View style={[styles.summary, { marginTop: 0 }]}>
+        <Text style={styles.pdfStrategyTitleLine} wrap>
+          Stratégie {strategyIdx + 1} : {block.name}
+        </Text>
+        {hasItems && (
+          <>
+            <Text style={[styles.summaryTotal, { marginTop: 4 }]} wrap>
+              Total : {formatNumber(total, 0)} €
+            </Text>
+            <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
+              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
+            </Text>
+            {block.items.some((it) => it.tarifsDirection) && (
+              <Text
+                style={[
+                  styles.pdfSummaryBlockText,
+                  { marginTop: 8, fontStyle: 'italic', color: '#1d4ed8' },
+                ]}
+                wrap
+              >
+                Tarifs direction : certaines plateformes
+              </Text>
+            )}
+          </>
+        )}
+        {!hasItems && hasCalendar && (
+          <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
+            Calendrier de diffusion
+          </Text>
+        )}
+      </View>
+
+      {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
+        <View style={styles.chartsRow}>
+          {chartDataPlatform.length > 0 && (
+            <View style={styles.chartBox}>
+              <Text style={styles.chartTitle}>Répartition par plateforme</Text>
+              <View style={styles.pieCircle}>
+                <PdfDonutChart data={chartDataPlatform} />
+              </View>
+              <View style={styles.legend}>
+                {chartDataPlatform.map((row, idx) => (
+                  <Text key={idx} style={styles.pdfLegendLine} wrap>
+                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+          {chartDataObjective.length > 0 && (
+            <View style={styles.chartBox}>
+              <Text style={styles.chartTitle}>Répartition par objectif</Text>
+              <View style={styles.pieCircle}>
+                <PdfDonutChart data={chartDataObjective} />
+              </View>
+              <View style={styles.legend}>
+                {chartDataObjective.map((row, idx) => (
+                  <Text key={idx} style={styles.pdfLegendLine} wrap>
+                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {hasItems && (
+        <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
+          Le détail des lignes de campagne figure sur les pages suivantes (au plus {PDF_STRATEGY_DETAIL_CHUNK} encarts par
+          page).
+        </Text>
+      )}
+    </View>
+  )
+}
+
+// Composant PDF multi-stratégies — page de garde + par stratégie : récap puis pages de détail (≤4 encarts / page)
 const PDFDocument = ({
   strategies,
   clientName,
   userName,
-  aePercentage,
+  aePercentage: _aePercentage,
   comment,
   logoDataUrl,
 }: {
@@ -955,262 +1267,67 @@ const PDFDocument = ({
   comment?: string
   logoDataUrl?: string | null
 }) => {
+  const strategyPages = strategies
+    .map((block, strategyIdx) => ({ block, strategyIdx }))
+    .filter(({ block }) => strategyBlockHasPdfContent(block))
+
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            {!!logoDataUrl && <Image src={logoDataUrl} style={styles.logo} />}
-            <Text style={styles.title}>
-              {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
+      <Page size="A4" style={styles.page} wrap>
+        <View style={styles.pdfCoverRoot}>
+          {!!logoDataUrl && <Image src={logoDataUrl} style={styles.pdfCoverLogo} />}
+          <Text style={styles.title} wrap>
+            {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
+          </Text>
+          <Text style={styles.clientName} wrap>
+            Client : {clientName}
+          </Text>
+          {!!comment?.trim() && (
+            <Text style={styles.clientComment} wrap>
+              {comment.trim()}
             </Text>
-          </View>
+          )}
+          {strategyPages.length === 0 ? (
+            <Text style={[styles.pdfCoverHint, { marginTop: 12 }]} wrap>
+              Aucune stratégie avec lignes de campagne ou calendrier de diffusion à inclure dans l&apos;export.
+            </Text>
+          ) : (
+            <Text style={[styles.pdfCoverHint, { marginTop: comment?.trim() ? 4 : 8 }]} wrap>
+              Ce document comporte {strategyPages.length} stratégie{strategyPages.length > 1 ? 's' : ''}. Chaque stratégie
+              commence par une page récapitulative (graphiques), puis des pages de détail avec au plus{' '}
+              {PDF_STRATEGY_DETAIL_CHUNK} encarts plateformes par page.
+            </Text>
+          )}
         </View>
-        <Text style={styles.clientName}>Client : {clientName}</Text>
-        {!!comment?.trim() && (
-          <Text style={styles.clientComment}>{comment.trim()}</Text>
-        )}
-
-        {strategies.map((block, index) => {
-          const hasItems = block.items.length > 0
-          const cal = block.calendar
-          const hasCalendar = !!cal?.startDate && (
-            isStrategyCalendarData(cal) ? (cal.duration > 0 || cal.items.length > 0) : !!(cal as StrategyCalendar).endDate
-          )
-          if (!hasItems && !hasCalendar) return null
-
-          const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
-
-          const platformTotals: Record<string, number> = {}
-          block.items.forEach((item) => {
-            if (!platformTotals[item.platform]) {
-              platformTotals[item.platform] = 0
-            }
-            platformTotals[item.platform] += item.budget
-          })
-
-          const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
-            name,
-            value: Math.round(value),
-            percentage: total > 0 ? (value / total * 100) : 0,
-            color: PDF_COLORS[idx % PDF_COLORS.length],
-          }))
-
-          const objectiveTotals: Record<string, number> = {}
-          block.items.forEach((item) => {
-            if (!objectiveTotals[item.objective]) {
-              objectiveTotals[item.objective] = 0
-            }
-            objectiveTotals[item.objective] += item.budget
-          })
-
-          const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
-            name,
-            value: Math.round(value),
-            percentage: total > 0 ? (value / total * 100) : 0,
-            color: PDF_COLORS[idx % PDF_COLORS.length],
-          }))
-
-          return (
-            <View key={block.id} wrap={true}>
-              {/* Résumé par stratégie */}
-              <View style={[styles.summary, { marginTop: index === 0 ? 10 : 20 }]}>
-                {(() => {
-                  const strategyAe =
-                    block.items.length > 0 ? block.items[0].aePercentage : 0
-                  return (
-                    <>
-                      <Text style={styles.summaryText}>
-                        Stratégie {index + 1} : {block.name}
-                      </Text>
-                      {hasItems && (
-                        <>
-                          <Text style={styles.summaryTotal}>
-                            Total : {formatNumber(total, 0)} €
-                          </Text>
-                          <Text style={[styles.summaryText, { marginTop: 4 }]}>
-                            AE :{' '}
-                            {strategyAe > 0
-                              ? `${formatNumber(strategyAe, 0)} %`
-                              : '-'}
-                          </Text>
-                          {block.items.some((it) => it.tarifsDirection) && (
-                            <Text
-                              style={[
-                                styles.summaryText,
-                                { marginTop: 4, fontStyle: 'italic', color: '#1d4ed8' },
-                              ]}
-                            >
-                              Tarifs direction : certaines plateformes
-                            </Text>
-                          )}
-                        </>
-                      )}
-                      {!hasItems && hasCalendar && (
-                        <Text style={[styles.summaryText, { marginTop: 4 }]}>Calendrier de diffusion</Text>
-                      )}
-                    </>
-                  )
-                })()}
-              </View>
-
-              {/* Diagrammes circulaires (2 colonnes) */}
-              {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
-                <View style={styles.chartsRow}>
-                  {/* Par plateforme */}
-                  {chartDataPlatform.length > 0 && (
-                    <View style={styles.chartBox}>
-                      <Text style={styles.chartTitle}>Répartition par plateforme</Text>
-                      <View style={styles.pieCircle}>
-                        <PdfDonutChart data={chartDataPlatform} />
-                      </View>
-                      <View style={styles.legend}>
-                        {chartDataPlatform.map((item, idx) => (
-                          <View key={idx} style={styles.legendItem}>
-                            <View
-                              style={[
-                                styles.legendColor,
-                                { backgroundColor: item.color },
-                              ]}
-                            />
-                            <Text style={styles.legendLabel}>
-                              {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Par objectif */}
-                  {chartDataObjective.length > 0 && (
-                    <View style={styles.chartBox}>
-                      <Text style={styles.chartTitle}>Répartition par objectif</Text>
-                      <View style={styles.pieCircle}>
-                        <PdfDonutChart data={chartDataObjective} />
-                      </View>
-                      <View style={styles.legend}>
-                        {chartDataObjective.map((item, idx) => (
-                          <View key={idx} style={styles.legendItem}>
-                            <View
-                              style={[
-                                styles.legendColor,
-                                { backgroundColor: item.color },
-                              ]}
-                            />
-                            <Text style={styles.legendLabel}>
-                              {item.name} — {item.percentage.toFixed(1)}% ({formatNumber(item.value, 0)} €)
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* Détail de la stratégie */}
-              {hasItems && (() => {
-                const formatIsoToPdf = (iso: string) => {
-                  if (!iso) return ''
-                  const [y, m, d] = iso.split('-')
-                  return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
-                }
-                const getPlatformDates = (platform: string): { start: string; end: string } | null => {
-                  const cal = block.calendar
-                  if (!cal) return null
-                  if (isStrategyCalendarData(cal)) {
-                    if (!cal.startDate || !cal.items?.length) return null
-                    const calItem = cal.items.find((i) => i.platform === platform)
-                    if (!calItem) return null
-                    const base = new Date(cal.startDate + 'T12:00:00')
-                    const start = new Date(base)
-                    start.setDate(start.getDate() + calItem.startDay)
-                    const end = new Date(base)
-                    end.setDate(end.getDate() + calItem.startDay + Math.max(1, calItem.length) - 1)
-                    return {
-                      start: formatIsoToPdf(start.toISOString().slice(0, 10)),
-                      end: formatIsoToPdf(end.toISOString().slice(0, 10)),
-                    }
-                  }
-                  const legacy = cal as StrategyCalendar
-                  if ((legacy.ranges ?? []).length > 0) {
-                    const r = legacy.ranges!.find((x) => x.platform === platform || (x.phaseName && `${x.platform} (${x.phaseName})` === platform))
-                    if (r) return { start: formatIsoToPdf(r.startDate), end: formatIsoToPdf(r.endDate) }
-                    return null
-                  }
-                  if (!legacy.startDate || !legacy.endDate || !legacy.days) return null
-                  const entryKeys = Object.entries(legacy.days).filter(([, arr]) => (arr ?? []).some((e) => e === platform || e.startsWith(platform + '::')))
-                  if (entryKeys.length === 0) return null
-                  const dates = entryKeys.map(([d]) => d).sort()
-                  return { start: formatIsoToPdf(dates[0]!), end: formatIsoToPdf(dates[dates.length - 1]!) }
-                }
-                return (
-                  <View>
-                    <Text style={[styles.chartTitle, { marginTop: 20, marginBottom: 10 }]}>
-                      Détail de la stratégie {index + 1}
-                    </Text>
-                    {block.items.map((item) => {
-                      const platformDates = getPlatformDates(item.platform)
-                      return (
-                        <View key={item.id} style={styles.itemCard}>
-                          <Text style={styles.itemPlatform}>{item.platform}</Text>
-                          <Text style={styles.itemObjective}>{item.objective}</Text>
-                          <View style={styles.itemRow}>
-                            <Text style={styles.itemLabel}>Budget :</Text>
-                            <Text style={styles.itemValue}>{formatNumber(item.budget, 0)} €</Text>
-                          </View>
-                          <View style={styles.itemRow}>
-                            <Text style={styles.itemLabel}>KPIs estimés :</Text>
-                            <Text style={styles.itemValue}>
-                              {item.customKpiLabel
-                                ? item.customKpiLabel
-                                : item.estimatedKPIs > 0
-                                  ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
-                                      item.objective === 'Leads' ? ' (estimation)' : ''
-                                    }`
-                                  : `${getMaxKpiLabel(item.objective)}${
-                                      item.objective === 'Leads' ? ' (estimation)' : ''
-                                    }`}
-                            </Text>
-                          </View>
-                          <View style={styles.itemRow}>
-                            <Text style={styles.itemLabel}>Budget quotidien :</Text>
-                            <Text style={styles.itemValue}>{formatNumber(item.dailyBudget, 1)} €</Text>
-                          </View>
-                          {item.days > 0 && (
-                            <View style={styles.itemRow}>
-                              <Text style={styles.itemLabel}>Diffusion :</Text>
-                              <Text style={styles.itemValue}>
-                                {item.days} jour{item.days > 1 ? 's' : ''}
-                              </Text>
-                            </View>
-                          )}
-                          {platformDates && (
-                            <View style={styles.itemRow}>
-                              <Text style={styles.itemLabel}>Dates de diffusion :</Text>
-                              <Text style={styles.itemValue}>
-                                du {platformDates.start} au {platformDates.end}
-                              </Text>
-                            </View>
-                          )}
-                          {item.tarifsDirection && (
-                            <View style={styles.itemRow}>
-                              <Text style={[styles.itemLabel, { fontStyle: 'italic', color: '#1d4ed8' }]}>
-                                Tarifs direction appliqués
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )
-                    })}
-                  </View>
-                )
-              })()}
-            </View>
-          )
-        })}
       </Page>
+
+      {strategyPages.map(({ block, strategyIdx }) => (
+        <React.Fragment key={block.id}>
+          <Page size="A4" style={styles.page} wrap>
+            <Text style={styles.pdfStrategySheetTitle} wrap>
+              Stratégie {strategyIdx + 1} · {block.name}
+            </Text>
+            <StrategyPdfStrategyOverview block={block} strategyIdx={strategyIdx} />
+          </Page>
+          {chunkItemsForPdf(block.items, PDF_STRATEGY_DETAIL_CHUNK).map((chunk, chunkIdx) => (
+            <Page key={`${block.id}-detail-${chunkIdx}`} size="A4" style={styles.page} wrap={false}>
+              <Text style={styles.pdfStrategySheetTitle} wrap>
+                Stratégie {strategyIdx + 1} · {block.name}
+              </Text>
+              <Text style={styles.pdfPlatformDetailSubtitle} wrap>
+                Détail des campagnes
+              </Text>
+              {chunk.map((item) => (
+                <StrategyPdfCampaignItem
+                  key={item.id}
+                  item={item}
+                  platformDates={getPdfStrategyPlatformDates(block, item.platform)}
+                />
+              ))}
+            </Page>
+          ))}
+        </React.Fragment>
+      ))}
     </Document>
   )
 }

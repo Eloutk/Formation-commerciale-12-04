@@ -10,7 +10,11 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   async redirects() {
-    return [{ source: '/pdv2', destination: '/vente', permanent: true }]
+    return [
+      // Ancienne route « Vente » : le PDF et l’UI à jour sont sur /vente uniquement
+      { source: '/pdv', destination: '/vente', permanent: false },
+      { source: '/pdv2', destination: '/vente', permanent: true },
+    ]
   },
   images: {
     domains: [

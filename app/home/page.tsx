@@ -118,7 +118,7 @@ export default function HomePage() {
       title: "Vente",
       description: "Calculateur de budget et KPIs pour vos campagnes social media et SMS",
       icon: Calculator,
-      href: "/pdv",
+      href: "/vente",
       color: "text-blue-500",
       bgColor: "bg-blue-50",
     },

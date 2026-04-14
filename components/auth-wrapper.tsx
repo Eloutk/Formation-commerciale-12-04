@@ -393,10 +393,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Link href="/diffusion" className="hover:underline">Diffusion</Link>
               <Link href="/chefferie" className="hover:underline">Chefferie de projet</Link>
               <Link href="/studio" className="hover:underline">Studio</Link>
-              <Link href="/pdv" className="hover:underline">Vente</Link>
-              {isAdmin && (
-                <Link href="/vente" className="hover:underline text-orange-600">Vente 2</Link>
-              )}
+              <Link href="/vente" className="hover:underline">Vente</Link>
               <Link href="/documents" className="hover:underline">Document</Link>
               <Link href="/glossaire" className="hover:underline">Glossaire</Link>
               <Link href="/faq" className="hover:underline">FAQ</Link>
