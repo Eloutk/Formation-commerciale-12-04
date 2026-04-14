@@ -11,9 +11,9 @@ const nextConfig = {
   swcMinify: true,
   async redirects() {
     return [
-      // Ancienne route « Vente » : le PDF et l’UI à jour sont sur /vente uniquement
+      // /vente = calculateur historique ; /vente2 = dernière version (admin)
       { source: '/pdv', destination: '/vente', permanent: false },
-      { source: '/pdv2', destination: '/vente', permanent: true },
+      { source: '/pdv2', destination: '/vente2', permanent: true },
     ]
   },
   images: {

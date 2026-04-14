@@ -58,7 +58,7 @@ export function MobileNav({
                 Vente
               </Link>
               {isAdmin && (
-                <Link href="/vente" className="text-sm hover:underline text-orange-600" onClick={handleNav}>
+                <Link href="/vente2" className="text-sm hover:underline text-orange-600" onClick={handleNav}>
                   Vente 2
                 </Link>
               )}

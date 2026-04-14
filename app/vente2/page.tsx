@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -18,16 +18,34 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
+import JSZip from 'jszip'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/vente/calendar/StrategyCalendarBuilder'
+import { RetroPlanningPanel } from '@/app/vente/calendar/RetroPlanningPanel'
 import { useCalendarStore } from '@/app/vente/calendar/store'
-import type { CalendarPlatformSource } from '@/app/vente/calendar/types'
+import {
+  desiredLengthFromRetroPhases,
+  syncManualRetroItemLengthsFromPhases,
+  syncManualRetroPlatformPhasesFromItems,
+} from '@/app/vente/calendar/syncManualRetroFromStore'
+import {
+  downloadRetroplanningPdf,
+  getRetroplanningPdfBlob,
+  type RetroplanningPdfExportOptions,
+} from '@/app/vente/calendar/RetroplanningPdfDocument'
+import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/vente/calendar/types'
 import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
 import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/vente/calendar/smsSalesConditions'
+import {
+  rebalanceRetroSocialSegments,
+  retroStrategyLineKey,
+  retroStrategySubPlatformKey,
+} from '@/app/vente/calendar/retroSocialSplits'
+
 // Liste des plateformes dans l'ordre souhaité
 const PLATFORMS_ORDER = [
   'META',
@@ -439,7 +457,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 }
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
-type PdvSection = 'social' | 'sms'
+type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax'
 type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
@@ -502,6 +520,74 @@ export interface StrategyCalendar {
 // Calendrier stratégique (module Kanban/Timeline)
 export type StrategyCalendarData = import('@/app/vente/calendar/types').StrategyCalendarData
 
+/** Plateforme SMS/RCS dans le rétroplanning (hors réseaux sociaux) */
+function isSmsRetroPlatform(p: string): boolean {
+  return p === 'SMS' || p === 'RCS' || p.startsWith('SMS::') || p.startsWith('RCS::')
+}
+
+/** Adapte le calendrier déjà enregistré au mode Social / SMS / les deux / partir de 0 */
+function filterRetroCalendarDataForSourceChoice(
+  data: StrategyCalendarData | null,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): StrategyCalendarData | null {
+  if (!data) return data
+  if (choice === 'none') return null
+  const raw = data.items ?? []
+  if (choice === 'both') return data
+  const items =
+    choice === 'social'
+      ? raw.filter((i) => !isSmsRetroPlatform(i.platform))
+      : raw.filter((i) => isSmsRetroPlatform(i.platform))
+  const extent = items.length
+    ? Math.max(...items.map((i) => (i.startDay ?? 0) + (i.length ?? 0)))
+    : 0
+  const duration = items.length > 0 ? Math.max(data.duration, extent) : Math.max(1, data.duration)
+  return { ...data, items, duration }
+}
+
+function filterDefineDatesForSourceChoice(
+  prev: Record<string, string>,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): Record<string, string> {
+  if (choice === 'both') return prev
+  if (choice === 'none') return {}
+  const entries = Object.entries(prev).filter(([k]) =>
+    choice === 'social' ? !isSmsRetroPlatform(k) : isSmsRetroPlatform(k),
+  )
+  return Object.fromEntries(entries)
+}
+
+/** Filtre les dates par stratégie (clé = id stratégie) selon le mode rétro. */
+function filterDefineDatesPerStrategyMap(
+  prev: Record<string, Record<string, string>>,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  for (const [sid, inner] of Object.entries(prev)) {
+    out[sid] = filterDefineDatesForSourceChoice(inner, choice)
+  }
+  return out
+}
+
+/** Rétroplanning lié au Social : une entrée par stratégie (plusieurs stratégies Social media). */
+interface RetroSocialState {
+  startDate: string
+  durationDays: number
+  platformPhases: RetroPlatformPhase[]
+  socialLineSplits: Record<string, { name: string; days: number }[]>
+  calendarData: StrategyCalendarData | null
+}
+
+function defaultRetroSocialState(): RetroSocialState {
+  return {
+    startDate: new Date().toISOString().slice(0, 10),
+    durationDays: 90,
+    platformPhases: [],
+    socialLineSplits: {},
+    calendarData: null,
+  }
+}
+
 function isStrategyCalendarData(cal: StrategyCalendar | StrategyCalendarData | null | undefined): cal is StrategyCalendarData {
   return !!cal && 'duration' in cal && 'items' in cal && Array.isArray((cal as StrategyCalendarData).items)
 }
@@ -557,6 +643,67 @@ const formatNumber = (num: number, decimals: number = 0): string => {
   return decimalPart ? `${formatted},${decimalPart}` : formatted
 }
 
+const VENTE_SOCIAL_PDF_LOGO_PATH = '/Logo Link Vertical (Orange).png'
+
+/** Logo pour le PDF Stratégies Social media — même fichier pour téléchargement, pack ZIP et Validation TM. */
+async function fetchVenteSocialPdfLogoDataUrl(timeoutMs = 2000): Promise<string | null> {
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    const res = await fetch(VENTE_SOCIAL_PDF_LOGO_PATH, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    return await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+      reader.onerror = () => resolve(null)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
+}
+
+/** Nombre de tranches de 30 j. (min. 1) — ex. 15 j → 1, 60 j → 2 */
+function kpiMaxTranches30j(briefDays: number): number {
+  const d = Math.max(1, Math.floor(briefDays))
+  return Math.max(1, Math.ceil(d / 30))
+}
+
+/** Répétition stratégie idéale : 1,5 × chaque tranche de 30 j. (ex. 1 tranche → 1,5). */
+function kpiMaxRepetitionIdeal(briefDays: number): number {
+  return kpiMaxTranches30j(briefDays) * 1.5
+}
+
+/** Répétition stratégie max : 2 × chaque tranche de 30 j. (ex. 1 tranche → 2). */
+function kpiMaxRepetitionMax(briefDays: number): number {
+  return kpiMaxTranches30j(briefDays) * 2
+}
+
+/**
+ * KPIs à vendre : idéale 70 % / 1 % × c × r_idéal ; max 80 % / 1,5 % × c × r_max
+ * (r_idéal et r_max diffèrent selon la règle de répétition par tranche de 30 j.).
+ */
+function kpiMaxQuantitesAVendre(comptes: number, briefDays: number) {
+  const c = Math.max(1, Math.floor(comptes))
+  const rIdeal = kpiMaxRepetitionIdeal(briefDays)
+  const rMax = kpiMaxRepetitionMax(briefDays)
+  return {
+    ideal: {
+      impressions: 0.7 * c * rIdeal,
+      clics: 0.01 * c * rIdeal,
+    },
+    max: {
+      impressions: 0.8 * c * rMax,
+      clics: 0.015 * c * rMax,
+    },
+  }
+}
+
+/** En dessous de ce nombre de comptes : les quatre encarts affichent « Max » sans chiffre (pas d’engagement KPI). */
+const KPI_MAX_COMMIT_MIN_COMPTES = 50_000
+
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
 function isMaxObjective(objective: string): boolean {
   const o = objective.trim().toLowerCase()
@@ -571,44 +718,32 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     backgroundColor: '#fafafa',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 8,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexGrow: 1,
-    flexShrink: 1,
-  },
-  logo: {
-    width: 34,
-    height: 34,
-    objectFit: 'contain',
-  },
   title: {
     fontSize: 22,
-    marginBottom: 8,
+    marginBottom: 14,
     fontWeight: 'bold',
     color: '#1a1a1a',
+    lineHeight: 1.35,
+    width: '100%',
   },
   clientName: {
     fontSize: 18,
-    marginTop: 4,
-    marginBottom: 18,
+    marginTop: 0,
+    marginBottom: 14,
     color: '#E94C16',
     fontWeight: 'bold',
+    lineHeight: 1.3,
+    width: '100%',
   },
   clientComment: {
     fontSize: 12,
-    marginTop: 2,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 12,
     color: '#666666',
+    lineHeight: 1.45,
+    width: '100%',
   },
+  /** Page de garde : tout en colonne (évite chevauchements flex row logo + titre dans Yoga/react-pdf). */
   pdfCoverRoot: {
     width: '100%',
     flexDirection: 'column',
@@ -619,26 +754,37 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     objectFit: 'contain',
   },
-  pdfCoverHint: {
-    fontSize: 11,
-    color: '#666666',
-    marginTop: 8,
-    lineHeight: 1.55,
+  summary: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E94C16',
     width: '100%',
   },
-  pdfStrategySheetTitle: {
+  summaryText: {
     fontSize: 14,
+    marginBottom: 5,
+    color: '#666666',
+  },
+  summaryTotal: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#E94C16',
-    marginBottom: 14,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    marginTop: 5,
   },
-  pdfPlatformDetailSubtitle: {
+  /** Lignes PDF : une balise <Text> par ligne (pas de \\n) — hauteur correcte + pagination. */
+  pdfBlockText: {
+    fontSize: 10,
+    color: '#111827',
+    lineHeight: 1.5,
+    width: '100%',
+  },
+  pdfSummaryBlockText: {
     fontSize: 11,
-    color: '#6b7280',
-    marginBottom: 12,
+    color: '#374151',
+    lineHeight: 1.5,
     width: '100%',
   },
   pdfStrategyTitleLine: {
@@ -646,12 +792,6 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 6,
     lineHeight: 1.45,
-    width: '100%',
-  },
-  pdfSummaryBlockText: {
-    fontSize: 11,
-    color: '#374151',
-    lineHeight: 1.5,
     width: '100%',
   },
   pdfLegendLine: {
@@ -683,41 +823,6 @@ const styles = StyleSheet.create({
     lineHeight: 1.5,
     width: '100%',
   },
-  pdfChartsRow: {
-    marginTop: 10,
-    marginBottom: 16,
-    flexDirection: 'column',
-    width: '100%',
-  },
-  pdfChartBox: {
-    width: '100%',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-  },
-  summary: {
-    marginBottom: 15,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E94C16',
-    width: '100%',
-  },
-  summaryText: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#666666',
-  },
-  summaryTotal: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#E94C16',
-    marginTop: 5,
-  },
   itemCard: {
     marginBottom: 16,
     padding: 12,
@@ -729,17 +834,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
-  itemPlatform: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#1a1a1a',
-  },
-  itemObjective: {
-    fontSize: 11,
-    marginBottom: 6,
-    color: '#666666',
-  },
+  /** Conservé pour le PDF SMS / RCS (devis) qui utilise encore des lignes label | valeur en row. */
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -756,18 +851,40 @@ const styles = StyleSheet.create({
   },
   chartsRow: {
     marginTop: 10,
-    marginBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    marginBottom: 16,
+    flexDirection: 'column',
+    width: '100%',
   },
   chartBox: {
-    flex: 1,
+    width: '100%',
+    marginBottom: 12,
     padding: 12,
     backgroundColor: '#ffffff',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e5e5e5',
+  },
+  pdfStrategySheetTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#E94C16',
+    marginBottom: 14,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  pdfPlatformDetailSubtitle: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 12,
+    width: '100%',
+  },
+  pdfCoverHint: {
+    fontSize: 11,
+    color: '#666666',
+    marginTop: 8,
+    lineHeight: 1.55,
+    width: '100%',
   },
   chartTitle: {
     fontSize: 14,
@@ -789,22 +906,9 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   legend: {
-    marginTop: 4,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  legendColor: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  legendLabel: {
-    fontSize: 10,
-    color: '#374151',
+    marginTop: 6,
+    width: '100%',
+    flexDirection: 'column',
   },
   total: {
     fontSize: 18,
@@ -848,7 +952,7 @@ const styles = StyleSheet.create({
 // Couleurs pour le graphique PDF (mêmes que dans l'interface)
 const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
 
-/** Nombre maximum d'encarts plateforme (lignes de campagne) par page de détail PDF. */
+/** Nombre maximum d’encarts plateforme (lignes de campagne) par page de détail PDF. */
 const PDF_STRATEGY_DETAIL_CHUNK = 4
 
 function chunkItemsForPdf<T>(items: T[], chunkSize: number): T[][] {
@@ -858,248 +962,6 @@ function chunkItemsForPdf<T>(items: T[], chunkSize: number): T[][] {
     out.push(items.slice(i, i + chunkSize))
   }
   return out
-}
-
-function strategyBlockHasPdfContent(block: StrategyBlock): boolean {
-  const hasItems = block.items.length > 0
-  const cal = block.calendar
-  const hasCalendar =
-    !!cal?.startDate &&
-    (isStrategyCalendarData(cal)
-      ? cal.duration > 0 || cal.items.length > 0
-      : !!(cal as StrategyCalendar).endDate)
-  return hasItems || hasCalendar
-}
-
-function formatIsoToPdfDate(iso: string) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-')
-  return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
-}
-
-function getPdfStrategyPlatformDates(
-  block: StrategyBlock,
-  platform: string,
-): { start: string; end: string } | null {
-  const c = block.calendar
-  if (!c) return null
-  if (isStrategyCalendarData(c)) {
-    if (!c.startDate || !c.items?.length) return null
-    const calItem = c.items.find((i) => i.platform === platform)
-    if (!calItem) return null
-    const base = new Date(c.startDate + 'T12:00:00')
-    const start = new Date(base)
-    start.setDate(start.getDate() + calItem.startDay)
-    const end = new Date(base)
-    end.setDate(end.getDate() + calItem.startDay + Math.max(1, calItem.length) - 1)
-    return {
-      start: formatIsoToPdfDate(start.toISOString().slice(0, 10)),
-      end: formatIsoToPdfDate(end.toISOString().slice(0, 10)),
-    }
-  }
-  const legacy = c as StrategyCalendar
-  if ((legacy.ranges ?? []).length > 0) {
-    const r = legacy.ranges!.find(
-      (x) =>
-        x.platform === platform ||
-        (x.phaseName && `${x.platform} (${x.phaseName})` === platform),
-    )
-    if (r) return { start: formatIsoToPdfDate(r.startDate), end: formatIsoToPdfDate(r.endDate) }
-    return null
-  }
-  if (!legacy.startDate || !legacy.endDate || !legacy.days) return null
-  const entryKeys = Object.entries(legacy.days).filter(([, arr]) =>
-    (arr ?? []).some((e) => e === platform || e.startsWith(platform + '::')),
-  )
-  if (entryKeys.length === 0) return null
-  const dates = entryKeys.map(([d]) => d).sort()
-  return { start: formatIsoToPdfDate(dates[0]!), end: formatIsoToPdfDate(dates[dates.length - 1]!) }
-}
-
-function StrategyPdfCampaignItem({
-  item,
-  platformDates,
-}: {
-  item: StrategyItem
-  platformDates: { start: string; end: string } | null
-}) {
-  const kpiDisplay = item.customKpiLabel
-    ? item.customKpiLabel
-    : item.estimatedKPIs > 0
-      ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
-          item.objective === 'Leads' ? ' (estimation)' : ''
-        }`
-      : `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (estimation)' : ''}`
-
-  return (
-    <View style={styles.itemCard}>
-      <Text style={styles.pdfItemPlatform} wrap>
-        {item.platform}
-      </Text>
-      <Text style={styles.pdfItemObjective} wrap>
-        {item.objective}
-      </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        Budget : {formatNumber(item.budget, 0)} €
-      </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        KPIs estimés : {kpiDisplay}
-      </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        Budget quotidien : {formatNumber(item.dailyBudget, 1)} €
-      </Text>
-      {item.days > 0 && (
-        <Text style={styles.pdfItemDetailLine} wrap>
-          Diffusion : {item.days} jour{item.days > 1 ? 's' : ''}
-        </Text>
-      )}
-      {platformDates && (
-        <Text style={styles.pdfItemDetailLine} wrap>
-          Dates de diffusion : du {platformDates.start} au {platformDates.end}
-        </Text>
-      )}
-      {item.tarifsDirection && (
-        <Text
-          style={[
-            styles.pdfItemDetailLine,
-            { fontStyle: 'italic', color: '#1d4ed8', marginBottom: 0 },
-          ]}
-          wrap
-        >
-          Tarifs direction appliqués
-        </Text>
-      )}
-    </View>
-  )
-}
-
-function StrategyPdfStrategyOverview({
-  block,
-  strategyIdx,
-}: {
-  block: StrategyBlock
-  strategyIdx: number
-}) {
-  const hasItems = block.items.length > 0
-  const cal = block.calendar
-  const hasCalendar =
-    !!cal?.startDate &&
-    (isStrategyCalendarData(cal)
-      ? cal.duration > 0 || cal.items.length > 0
-      : !!(cal as StrategyCalendar).endDate)
-  if (!hasItems && !hasCalendar) return null
-
-  const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
-
-  const platformTotals: Record<string, number> = {}
-  block.items.forEach((item) => {
-    if (!platformTotals[item.platform]) {
-      platformTotals[item.platform] = 0
-    }
-    platformTotals[item.platform] += item.budget
-  })
-
-  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
-    name,
-    value: Math.round(value),
-    percentage: total > 0 ? (value / total) * 100 : 0,
-    color: PDF_COLORS[idx % PDF_COLORS.length],
-  }))
-
-  const objectiveTotals: Record<string, number> = {}
-  block.items.forEach((item) => {
-    if (!objectiveTotals[item.objective]) {
-      objectiveTotals[item.objective] = 0
-    }
-    objectiveTotals[item.objective] += item.budget
-  })
-
-  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
-    name,
-    value: Math.round(value),
-    percentage: total > 0 ? (value / total) * 100 : 0,
-    color: PDF_COLORS[idx % PDF_COLORS.length],
-  }))
-
-  const strategyAe = block.items.length > 0 ? block.items[0].aePercentage : 0
-
-  return (
-    <View style={{ width: '100%', flexDirection: 'column' }}>
-      <View style={[styles.summary, { marginTop: 0 }]}>
-        <Text style={styles.pdfStrategyTitleLine} wrap>
-          Stratégie {strategyIdx + 1} : {block.name}
-        </Text>
-        {hasItems && (
-          <>
-            <Text style={[styles.summaryTotal, { marginTop: 4 }]} wrap>
-              Total : {formatNumber(total, 0)} €
-            </Text>
-            <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
-              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
-            </Text>
-            {block.items.some((it) => it.tarifsDirection) && (
-              <Text
-                style={[
-                  styles.pdfSummaryBlockText,
-                  { marginTop: 8, fontStyle: 'italic', color: '#1d4ed8' },
-                ]}
-                wrap
-              >
-                Tarifs direction : certaines plateformes
-              </Text>
-            )}
-          </>
-        )}
-        {!hasItems && hasCalendar && (
-          <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
-            Calendrier de diffusion
-          </Text>
-        )}
-      </View>
-
-      {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
-        <View style={styles.pdfChartsRow}>
-          {chartDataPlatform.length > 0 && (
-            <View style={styles.pdfChartBox}>
-              <Text style={styles.chartTitle}>Répartition par plateforme</Text>
-              <View style={styles.pieCircle}>
-                <PdfDonutChart data={chartDataPlatform} />
-              </View>
-              <View style={styles.legend}>
-                {chartDataPlatform.map((row, idx) => (
-                  <Text key={idx} style={styles.pdfLegendLine} wrap>
-                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-          {chartDataObjective.length > 0 && (
-            <View style={styles.pdfChartBox}>
-              <Text style={styles.chartTitle}>Répartition par objectif</Text>
-              <View style={styles.pieCircle}>
-                <PdfDonutChart data={chartDataObjective} />
-              </View>
-              <View style={styles.legend}>
-                {chartDataObjective.map((row, idx) => (
-                  <Text key={idx} style={styles.pdfLegendLine} wrap>
-                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-      )}
-
-      {hasItems && (
-        <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
-          Le détail des lignes de campagne figure sur les pages suivantes (au plus {PDF_STRATEGY_DETAIL_CHUNK} encarts par
-          page).
-        </Text>
-      )}
-    </View>
-  )
 }
 
 type PdfChartDatum = {
@@ -1196,6 +1058,256 @@ function PdfDonutChart({
         return <Path key={idx} d={d} fill={s.color} />
       })}
     </Svg>
+  )
+}
+
+/** Une stratégie est exportable PDF si elle a des lignes OU un calendrier renseigné. */
+function strategyBlockHasPdfContent(block: StrategyBlock): boolean {
+  const hasItems = block.items.length > 0
+  const cal = block.calendar
+  const hasCalendar = !!cal?.startDate && (
+    isStrategyCalendarData(cal)
+      ? cal.duration > 0 || cal.items.length > 0
+      : !!(cal as StrategyCalendar).endDate
+  )
+  return hasItems || hasCalendar
+}
+
+function formatIsoToPdfDate(iso: string) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d ?? ''}/${m ?? ''}/${y ?? ''}`
+}
+
+/** Dates de diffusion par plateforme (PDF) — extrait pour pages séparées par campagne. */
+function getPdfStrategyPlatformDates(
+  block: StrategyBlock,
+  platform: string,
+): { start: string; end: string } | null {
+  const c = block.calendar
+  if (!c) return null
+  if (isStrategyCalendarData(c)) {
+    if (!c.startDate || !c.items?.length) return null
+    const calItem = c.items.find((i) => i.platform === platform)
+    if (!calItem) return null
+    const base = new Date(c.startDate + 'T12:00:00')
+    const start = new Date(base)
+    start.setDate(start.getDate() + calItem.startDay)
+    const end = new Date(base)
+    end.setDate(end.getDate() + calItem.startDay + Math.max(1, calItem.length) - 1)
+    return {
+      start: formatIsoToPdfDate(start.toISOString().slice(0, 10)),
+      end: formatIsoToPdfDate(end.toISOString().slice(0, 10)),
+    }
+  }
+  const legacy = c as StrategyCalendar
+  if ((legacy.ranges ?? []).length > 0) {
+    const r = legacy.ranges!.find(
+      (x) =>
+        x.platform === platform ||
+        (x.phaseName && `${x.platform} (${x.phaseName})` === platform),
+    )
+    if (r) return { start: formatIsoToPdfDate(r.startDate), end: formatIsoToPdfDate(r.endDate) }
+    return null
+  }
+  if (!legacy.startDate || !legacy.endDate || !legacy.days) return null
+  const entryKeys = Object.entries(legacy.days).filter(([, arr]) =>
+    (arr ?? []).some((e) => e === platform || e.startsWith(platform + '::')),
+  )
+  if (entryKeys.length === 0) return null
+  const dates = entryKeys.map(([d]) => d).sort()
+  return { start: formatIsoToPdfDate(dates[0]!), end: formatIsoToPdfDate(dates[dates.length - 1]!) }
+}
+
+/** Une campagne / plateforme : une ligne <Text> par champ (évite chevauchement Yoga sur blocs multilignes). */
+function StrategyPdfCampaignItem({
+  item,
+  platformDates,
+}: {
+  item: StrategyItem
+  platformDates: { start: string; end: string } | null
+}) {
+  const kpiDisplay = item.customKpiLabel
+    ? item.customKpiLabel
+    : item.estimatedKPIs > 0
+      ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+          item.objective === 'Leads' ? ' (estimation)' : ''
+        }`
+      : `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (estimation)' : ''}`
+
+  return (
+    <View style={styles.itemCard}>
+      <Text style={styles.pdfItemPlatform} wrap>
+        {item.platform}
+      </Text>
+      <Text style={styles.pdfItemObjective} wrap>
+        {item.objective}
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        Budget : {formatNumber(item.budget, 0)} €
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        KPIs estimés : {kpiDisplay}
+      </Text>
+      <Text style={styles.pdfItemDetailLine} wrap>
+        Budget quotidien : {formatNumber(item.dailyBudget, 1)} €
+      </Text>
+      {item.days > 0 && (
+        <Text style={styles.pdfItemDetailLine} wrap>
+          Diffusion : {item.days} jour{item.days > 1 ? 's' : ''}
+        </Text>
+      )}
+      {platformDates && (
+        <Text style={styles.pdfItemDetailLine} wrap>
+          Dates de diffusion : du {platformDates.start} au {platformDates.end}
+        </Text>
+      )}
+      {item.tarifsDirection && (
+        <Text
+          style={[
+            styles.pdfItemDetailLine,
+            { fontStyle: 'italic', color: '#1d4ed8', marginBottom: 0 },
+          ]}
+          wrap
+        >
+          Tarifs direction appliqués
+        </Text>
+      )}
+    </View>
+  )
+}
+
+/**
+ * Résumé + graphiques uniquement (pas le détail par plateforme).
+ * Le détail est sur des pages séparées avec wrap={false} pour éviter les chevauchements du moteur
+ * de pagination react-pdf/Yoga (voir issues diegomura/react-pdf #2129, #3298).
+ */
+function StrategyPdfStrategyOverview({
+  block,
+  strategyIdx,
+}: {
+  block: StrategyBlock
+  strategyIdx: number
+}) {
+  const hasItems = block.items.length > 0
+  const cal = block.calendar
+  const hasCalendar = !!cal?.startDate && (
+    isStrategyCalendarData(cal)
+      ? cal.duration > 0 || cal.items.length > 0
+      : !!(cal as StrategyCalendar).endDate
+  )
+  if (!hasItems && !hasCalendar) return null
+
+  const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
+
+  const platformTotals: Record<string, number> = {}
+  block.items.forEach((item) => {
+    if (!platformTotals[item.platform]) {
+      platformTotals[item.platform] = 0
+    }
+    platformTotals[item.platform] += item.budget
+  })
+
+  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total) * 100 : 0,
+    color: PDF_COLORS[idx % PDF_COLORS.length],
+  }))
+
+  const objectiveTotals: Record<string, number> = {}
+  block.items.forEach((item) => {
+    if (!objectiveTotals[item.objective]) {
+      objectiveTotals[item.objective] = 0
+    }
+    objectiveTotals[item.objective] += item.budget
+  })
+
+  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
+    name,
+    value: Math.round(value),
+    percentage: total > 0 ? (value / total) * 100 : 0,
+    color: PDF_COLORS[idx % PDF_COLORS.length],
+  }))
+
+  const strategyAe = block.items.length > 0 ? block.items[0].aePercentage : 0
+
+  return (
+    <View style={{ width: '100%', flexDirection: 'column' }}>
+      <View style={[styles.summary, { marginTop: 0 }]}>
+        <Text style={styles.pdfStrategyTitleLine} wrap>
+          Stratégie {strategyIdx + 1} : {block.name}
+        </Text>
+        {hasItems && (
+          <>
+            <Text style={[styles.summaryTotal, { marginTop: 4 }]} wrap>
+              Total : {formatNumber(total, 0)} €
+            </Text>
+            <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
+              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
+            </Text>
+            {block.items.some((it) => it.tarifsDirection) && (
+              <Text
+                style={[
+                  styles.pdfSummaryBlockText,
+                  { marginTop: 8, fontStyle: 'italic', color: '#1d4ed8' },
+                ]}
+                wrap
+              >
+                Tarifs direction : certaines plateformes
+              </Text>
+            )}
+          </>
+        )}
+        {!hasItems && hasCalendar && (
+          <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
+            Calendrier de diffusion
+          </Text>
+        )}
+      </View>
+
+      {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
+        <View style={styles.chartsRow}>
+          {chartDataPlatform.length > 0 && (
+            <View style={styles.chartBox}>
+              <Text style={styles.chartTitle}>Répartition par plateforme</Text>
+              <View style={styles.pieCircle}>
+                <PdfDonutChart data={chartDataPlatform} />
+              </View>
+              <View style={styles.legend}>
+                {chartDataPlatform.map((row, idx) => (
+                  <Text key={idx} style={styles.pdfLegendLine} wrap>
+                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+          {chartDataObjective.length > 0 && (
+            <View style={styles.chartBox}>
+              <Text style={styles.chartTitle}>Répartition par objectif</Text>
+              <View style={styles.pieCircle}>
+                <PdfDonutChart data={chartDataObjective} />
+              </View>
+              <View style={styles.legend}>
+                {chartDataObjective.map((row, idx) => (
+                  <Text key={idx} style={styles.pdfLegendLine} wrap>
+                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {hasItems && (
+        <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
+          Le détail des lignes de campagne figure sur les pages suivantes (au plus {PDF_STRATEGY_DETAIL_CHUNK} encarts par
+          page).
+        </Text>
+      )}
+    </View>
   )
 }
 
@@ -1451,6 +1563,108 @@ const SMSRCSPDFDocument = ({
   )
 }
 
+/** PDF synthèse onglet KPIs max (paramètres + 4 volumes : impressions / clics × idéal / max). */
+const KpiMaxPdfDocument = ({
+  clientName,
+  userName,
+  diffusionDaysStr,
+  comptesStr,
+}: {
+  clientName: string
+  userName: string
+  diffusionDaysStr: string
+  comptesStr: string
+}) => {
+  const jStr = diffusionDaysStr.trim()
+  const cStr = comptesStr.trim()
+  const jNum = parseFloat(jStr.replace(',', '.'))
+  const cNum = parseFloat(cStr.replace(',', '.'))
+  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
+  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
+  const showVolumes = daysOk && comptesOk
+  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
+  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
+  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
+  const belowCommitThreshold = comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+
+  const kpiBox = (title: string, subtitle: string, borderColor: string, value: number, unit: string) => (
+    <View
+      style={[
+        styles.summary,
+        {
+          borderColor,
+          width: '48%',
+          marginBottom: 10,
+          minHeight: 100,
+        },
+      ]}
+    >
+      <Text style={[styles.chartTitle, { marginBottom: 4, fontSize: 11 }]}>{title}</Text>
+      <Text style={{ fontSize: 9, color: '#64748b', marginBottom: 8 }}>{subtitle}</Text>
+      {belowCommitThreshold ? (
+        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Max</Text>
+      ) : (
+        <>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{formatNumber(Math.round(value), 0)}</Text>
+          <Text style={[styles.itemLabel, { marginTop: 4, fontSize: 9 }]}>{unit}</Text>
+        </>
+      )}
+    </View>
+  )
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>KPIs max</Text>
+        <Text style={[styles.summaryText, { marginBottom: 6, fontSize: 12 }]}>
+          {userName ? `Commercial : ${userName}` : 'Export KPIs max'}
+        </Text>
+        {clientName.trim() ? (
+          <Text style={[styles.clientName, { fontSize: 14, marginBottom: 10 }]}>Client : {clientName.trim()}</Text>
+        ) : null}
+        <Text style={[styles.summaryText, { marginBottom: 12 }]}>{new Date().toLocaleDateString('fr-FR')}</Text>
+
+        <View style={styles.summary}>
+          <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Paramètres</Text>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Jours de diffusion</Text>
+            <Text style={styles.itemValue}>{jStr || '—'}</Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Nombre de comptes</Text>
+            <Text style={styles.itemValue}>{cStr || '—'}</Text>
+          </View>
+        </View>
+
+        {!showVolumes ? (
+          <Text style={{ marginTop: 16, lineHeight: 1.45 }} wrap>
+            Indiquez des jours de diffusion et un nombre de comptes valides pour afficher les volumes estimés.
+          </Text>
+        ) : (
+          <View style={{ marginTop: 16 }}>
+            {belowCommitThreshold && (
+              <Text style={{ fontSize: 10, color: '#b45309', marginBottom: 8 }} wrap>
+                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes : volumes non chiffrés (affichage « Max »
+                côté écran).
+              </Text>
+            )}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {v ? (
+                <>
+                  {kpiBox('Impressions', 'Stratégie idéale', '#10b981', v.ideal.impressions, 'impressions')}
+                  {kpiBox('Impressions', 'Stratégie max', '#E94C16', v.max.impressions, 'impressions')}
+                  {kpiBox('Clics', 'Stratégie idéale', '#10b981', v.ideal.clics, 'clics')}
+                  {kpiBox('Clics', 'Stratégie max', '#E94C16', v.max.clics, 'clics')}
+                </>
+              ) : null}
+            </View>
+          </View>
+        )}
+      </Page>
+    </Document>
+  )
+}
+
 export default function VentePage() {
   const router = useRouter()
   const [adminChecked, setAdminChecked] = useState(false)
@@ -1471,6 +1685,10 @@ export default function VentePage() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
+  /** Nombre de comptes annonceur dispo — aligné sur la demande de potentiel (vue Kpis max) */
+  const [kpiMaxComptesDispo, setKpiMaxComptesDispo] = useState<string>('1')
+  /** Onglet Kpis max : jours de diffusion propres (non liés au calculateur Social) */
+  const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
@@ -1499,8 +1717,99 @@ export default function VentePage() {
   const [newStrategyName, setNewStrategyName] = useState('')
   const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
   const [renamingStrategyName, setRenamingStrategyName] = useState('')
-  // Dates de début par plateforme (popup Calendrier stratégique)
-  const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
+  // Rétroplanning : calendrier « partir de 0 » / SMS (global) ; Social = une entrée par stratégie Social media
+  const [retroCalendarData, setRetroCalendarData] = useState<StrategyCalendarData | null>(null)
+  const [retroStartDate, setRetroStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [retroDurationDays, setRetroDurationDays] = useState(90)
+  const [retroPlatformPhases, setRetroPlatformPhases] = useState<RetroPlatformPhase[]>([])
+  const [retroSmsPhases, setRetroSmsPhases] = useState<RetroPhase[]>([])
+  const [retroLinkSocial, setRetroLinkSocial] = useState(false)
+  const [retroLinkSms, setRetroLinkSms] = useState(false)
+  /** Rétro Social lié à chaque stratégie (phases, dates, découpe lignes, calendrier manuel résiduel). */
+  const [retroSocialByStrategy, setRetroSocialByStrategy] = useState<Record<string, RetroSocialState>>({})
+  /** null = modale de choix de source à afficher ; défini une fois l’utilisateur a choisi */
+  const [retroSourceChoice, setRetroSourceChoice] = useState<'social' | 'sms' | 'both' | 'none' | null>(null)
+  useEffect(() => {
+    if (pdvSection !== 'calendar') {
+      setRetroSourceChoice(null)
+    }
+  }, [pdvSection])
+
+  /** Dates de début par ligne (clé platform::objectif), indexées par id de stratégie (évite les collisions entre stratégies). */
+  const [defineDatesPerStrategy, setDefineDatesPerStrategy] = useState<
+    Record<string, Record<string, string>>
+  >({})
+
+  useEffect(() => {
+    setRetroSocialByStrategy((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const s of strategies) {
+        if (!next[s.id]) {
+          next[s.id] = defaultRetroSocialState()
+          changed = true
+        }
+      }
+      for (const id of Object.keys(next)) {
+        if (!strategies.some((s) => s.id === id)) {
+          delete next[id]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [strategies])
+
+  const patchRetroSocial = useCallback((strategyId: string, patch: Partial<RetroSocialState>) => {
+    setRetroSocialByStrategy((prev) => ({
+      ...prev,
+      [strategyId]: { ...(prev[strategyId] ?? defaultRetroSocialState()), ...patch },
+    }))
+  }, [])
+
+  const applyRetroSourceChoice = useCallback((choice: 'social' | 'sms' | 'both' | 'none') => {
+    setRetroLinkSocial(choice === 'social' || choice === 'both')
+    setRetroLinkSms(choice === 'sms' || choice === 'both')
+    setRetroSourceChoice(choice)
+    setRetroCalendarData((prev) => filterRetroCalendarDataForSourceChoice(prev, choice))
+    setRetroPlatformPhases((phases) => (choice === 'sms' || choice === 'none' ? [] : phases))
+    setRetroSmsPhases((phases) => (choice === 'social' || choice === 'none' ? [] : phases))
+    setDefineDatesPerStrategy((prev) => filterDefineDatesPerStrategyMap(prev, choice))
+    if (choice === 'sms' || choice === 'none') {
+      setRetroSocialByStrategy((prev) => {
+        const next = { ...prev }
+        for (const id of Object.keys(next)) {
+          next[id] = { ...next[id]!, socialLineSplits: {} }
+        }
+        return next
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!retroLinkSocial) return
+    setRetroSocialByStrategy((prev) => {
+      let anyChanged = false
+      const next = { ...prev }
+      for (const s of strategies) {
+        const bundle = next[s.id] ?? defaultRetroSocialState()
+        const valid = new Set(s.items.map((it) => retroStrategyLineKey(it.platform, it.objective)))
+        const splits = { ...bundle.socialLineSplits }
+        let spChanged = false
+        for (const k of Object.keys(splits)) {
+          if (!valid.has(k)) {
+            delete splits[k]
+            spChanged = true
+          }
+        }
+        if (spChanged) {
+          next[s.id] = { ...bundle, socialLineSplits: splits }
+          anyChanged = true
+        }
+      }
+      return anyChanged ? next : prev
+    })
+  }, [retroLinkSocial, strategies])
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
@@ -1539,12 +1848,31 @@ export default function VentePage() {
   const [smsPdfFileName, setSmsPdfFileName] = useState('')
   const [smsPdfComment, setSmsPdfComment] = useState('')
   const [smsPdfImage, setSmsPdfImage] = useState<string | null>(null)
+  const [retroPdfDialogOpen, setRetroPdfDialogOpen] = useState(false)
+  const [retroPdfFileName, setRetroPdfFileName] = useState('')
+  const [retroPdfClientName, setRetroPdfClientName] = useState('')
+  const [retroPdfComment, setRetroPdfComment] = useState('')
+  const [retroPdfIncludeWeekView, setRetroPdfIncludeWeekView] = useState(true)
+  const [retroPdfIncludeMonthView, setRetroPdfIncludeMonthView] = useState(true)
+  const retroPdfExportRef = useRef<
+    | ((
+        filename: string,
+        documentComment: string,
+        clientName: string,
+        options: RetroplanningPdfExportOptions,
+      ) => Promise<void>)
+    | null
+  >(null)
   const [currentSmsType, setCurrentSmsType] = useState<'sms' | 'rcs'>('sms')
   
   // État pour la modale Validation TM
   const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
   const [validationMessage, setValidationMessage] = useState('')
   const [sendingToSlack, setSendingToSlack] = useState(false)
+  const [globalPackDialogOpen, setGlobalPackDialogOpen] = useState(false)
+  const [globalPackClientName, setGlobalPackClientName] = useState('')
+  const [globalPackComment, setGlobalPackComment] = useState('')
+  const [globalPackExporting, setGlobalPackExporting] = useState(false)
   const [userPseudo, setUserPseudo] = useState<string>('')
   
   // État pour le sélecteur de graphique
@@ -1636,6 +1964,53 @@ export default function VentePage() {
     }
     return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
+  /**
+   * Mêmes critères que les boutons « Télécharger le devis SMS / RCS en PDF »
+   * (handleOpenSMSPDFDialog / handleOpenRCSPDFDialog).
+   */
+  const smsDevisPdfEligible =
+    smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
+  const rcsDevisPdfEligible =
+    smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
+
+  /** Au moins une ligne dans la stratégie Social active (pour rétroplanning lié) */
+  const activeStrategyHasLines = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return (b?.items?.length ?? 0) > 0
+  }, [strategies, activeStrategyId])
+
+  const activeStrategyName = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return b?.name?.trim() || 'Stratégie active'
+  }, [strategies, activeStrategyId])
+
+  const socialLineCount = useMemo(() => {
+    const b = strategies.find((s) => s.id === activeStrategyId)
+    return b?.items?.length ?? 0
+  }, [strategies, activeStrategyId])
+
+  /** Campagne SMS/RCS exploitable pour le rétroplanning lié (mêmes critères que les boutons PDF SMS) */
+  const smsCampaignReadyForRetro = useMemo(() => {
+    if (smsType === 'sms') {
+      return smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
+    }
+    return smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
+  }, [smsType, smsVolumeNumber, smsUnitPrice, smsTotalPrice, rcsBasePU, rcsTotalPrice])
+
+  const retroPlanningMissingLinkedData = useMemo(
+    () =>
+      retroSourceChoice !== null &&
+      retroSourceChoice !== 'none' &&
+      ((retroLinkSocial && !activeStrategyHasLines) || (retroLinkSms && !smsCampaignReadyForRetro)),
+    [
+      retroSourceChoice,
+      retroLinkSocial,
+      retroLinkSms,
+      activeStrategyHasLines,
+      smsCampaignReadyForRetro,
+    ],
+  )
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -1813,6 +2188,7 @@ export default function VentePage() {
 
   // Stratégie active (pour les interactions / +)
   const activeStrategy = strategies.find((s) => s.id === activeStrategyId) ?? strategies[0]
+  const activeRetroSocial = retroSocialByStrategy[activeStrategyId] ?? defaultRetroSocialState()
   const strategy = activeStrategy?.items ?? []
 
   // Calculer le total de la stratégie active (mise à jour automatique)
@@ -2015,26 +2391,7 @@ export default function VentePage() {
   const handleExportPDF = async () => {
     if (!clientName.trim()) return
 
-    const fetchAsDataUrl = async (url: string, timeoutMs: number): Promise<string | null> => {
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
-        const res = await fetch(url, { signal: controller.signal })
-        clearTimeout(timeoutId)
-        if (!res.ok) return null
-        const blob = await res.blob()
-        return await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
-          reader.onerror = () => resolve(null)
-          reader.readAsDataURL(blob)
-        })
-      } catch {
-        return null
-      }
-    }
-
-    const logoDataUrl = await fetchAsDataUrl('/Logo Link Vertical (Orange).png', 2000)
+    const logoDataUrl = await fetchVenteSocialPdfLogoDataUrl()
 
     const doc = (
       <PDFDocument
@@ -2064,13 +2421,16 @@ export default function VentePage() {
     
     setSendingToSlack(true)
     try {
-      // 1) Générer le PDF (toutes les stratégies)
+      // 1) Même PDF Social que « Télécharger le PDF » (logo + commentaire optionnel)
+      const logoDataUrl = await fetchVenteSocialPdfLogoDataUrl()
       const doc = (
         <PDFDocument
           strategies={strategies}
           clientName={clientName || 'Client'}
           userName={userName}
           aePercentage={parseFloat(aePercentage) || 0}
+          comment={pdfClientComment}
+          logoDataUrl={logoDataUrl}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -2231,6 +2591,230 @@ export default function VentePage() {
     setSmsPdfImage(null)
   }
 
+  const handleConfirmRetroPdf = async () => {
+    const raw = retroPdfFileName.trim()
+    if (!raw) {
+      alert('Veuillez renseigner un nom de fichier.')
+      return
+    }
+    if (!retroPdfClientName.trim()) {
+      alert('Veuillez renseigner le nom du client.')
+      return
+    }
+    const filename = raw.toLowerCase().endsWith('.pdf') ? raw : `${raw}.pdf`
+    try {
+      await retroPdfExportRef.current?.(filename, retroPdfComment, retroPdfClientName.trim(), {
+        includeWeekTimeline: retroPdfIncludeWeekView,
+        includeMonthGrids: retroPdfIncludeMonthView,
+      })
+    } finally {
+      setRetroPdfDialogOpen(false)
+      setRetroPdfFileName('')
+      setRetroPdfClientName('')
+      setRetroPdfComment('')
+      setRetroPdfIncludeWeekView(true)
+      setRetroPdfIncludeMonthView(true)
+      retroPdfExportRef.current = null
+    }
+  }
+
+  const handleGlobalPackExport = async () => {
+    const clientLabel = globalPackClientName.trim()
+    if (!clientLabel) {
+      alert('Veuillez renseigner le nom du client.')
+      return
+    }
+
+    setGlobalPackExporting(true)
+    try {
+      const zip = new JSZip()
+      const readmeLines: string[] = [
+        'Pack export — Calculateur Vente 2',
+        `Client : ${clientLabel}`,
+        `Date : ${new Date().toLocaleString('fr-FR')}`,
+        '',
+        'Fichiers :',
+        '',
+      ]
+
+      const logoDataUrl = await fetchVenteSocialPdfLogoDataUrl()
+      const socialBlob = await pdf(
+        <PDFDocument
+          strategies={strategies}
+          clientName={clientLabel}
+          userName={userName}
+          aePercentage={parseFloat(aePercentage) || 0}
+          comment={globalPackComment}
+          logoDataUrl={logoDataUrl}
+        />,
+      ).toBlob()
+      zip.file('01-strategies-social-media.pdf', socialBlob)
+      readmeLines.push('• 01-strategies-social-media.pdf — Stratégies Social media')
+
+      /** Aligné sur handleConfirmSMSRCSPDF (mêmes props que la modale devis). */
+      if (smsDevisPdfEligible) {
+        const smsBlob = await pdf(
+          <SMSRCSPDFDocument
+            type="sms"
+            volume={smsVolumeNumber}
+            unitPrice={smsUnitPrice}
+            totalPrice={smsTotalPrice}
+            options={{
+              ciblage: smsOptions.ciblage,
+              richSms: smsOptions.richSms,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
+            }}
+            salesConditions={SMS_SALES_CONDITIONS}
+            userName={userPseudo || userName}
+            tarifIntermarche={smsOptions.tarifIntermarche}
+            campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
+            comment={smsPdfComment || undefined}
+            imageBase64={smsPdfImage}
+          />,
+        ).toBlob()
+        zip.file('02-devis-sms.pdf', smsBlob)
+        readmeLines.push('• 02-devis-sms.pdf — Devis SMS')
+      } else {
+        readmeLines.push(
+          '— Devis SMS : non inclus (mêmes prérequis que l’export seul — « Veuillez configurer une campagne SMS valide avant de télécharger le PDF. »).',
+        )
+      }
+
+      if (rcsDevisPdfEligible) {
+        const rcsBlob = await pdf(
+          <SMSRCSPDFDocument
+            type="rcs"
+            volume={smsVolumeNumber}
+            unitPrice={rcsBasePU}
+            totalPrice={rcsTotalPrice}
+            options={{
+              agent: smsOptions.agent,
+              creaByLink: smsOptions.creaByLink,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
+            }}
+            salesConditions={RCS_SALES_CONDITIONS}
+            userName={userPseudo || userName}
+            tarifIntermarche={smsOptions.tarifIntermarche}
+            campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
+            creaByLinkCount={creaByLinkCountNumber}
+            comment={smsPdfComment || undefined}
+            imageBase64={smsPdfImage}
+          />,
+        ).toBlob()
+        zip.file('03-devis-rcs.pdf', rcsBlob)
+        readmeLines.push('• 03-devis-rcs.pdf — Devis RCS')
+      } else {
+        readmeLines.push(
+          '— Devis RCS : non inclus (mêmes prérequis que l’export seul — campagne RCS valide et volume minimum 10 000).',
+        )
+      }
+
+      const retroHeaderComment =
+        retroPdfComment.trim() || globalPackComment.trim() || undefined
+      const retroClientLabel = retroPdfClientName.trim() || clientLabel
+
+      const cal2 = useCalendarStore.getState().getCalendarData()
+      const retroViewsOk = retroPdfIncludeWeekView || retroPdfIncludeMonthView
+      if (cal2.items.length > 0 && retroViewsOk) {
+        const block = strategies.find((s) => s.id === activeStrategyId)
+        const retroBlob = await getRetroplanningPdfBlob({
+          filename: 'retroplanning.pdf',
+          documentComment: retroHeaderComment,
+          personName: userName.trim() || userPseudo.trim() || '',
+          clientName: retroClientLabel,
+          linkSocial: retroLinkSocial,
+          linkSms: retroLinkSms,
+          smsType,
+          includeWeekTimeline: retroPdfIncludeWeekView,
+          includeMonthGrids: retroPdfIncludeMonthView,
+          strategyLines:
+            retroLinkSocial && block?.items?.length
+              ? block.items.map((it) => ({
+                  platform: it.platform,
+                  objective: it.objective,
+                  budget: it.budget,
+                  estimatedKPIs: it.estimatedKPIs,
+                  days: it.days,
+                  aePercentage: it.aePercentage,
+                  customKpiLabel: it.customKpiLabel,
+                  dailyBudget: it.dailyBudget,
+                }))
+              : undefined,
+          smsQuoteDetail: retroLinkSms
+            ? {
+                volume: smsVolumeNumber,
+                unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
+                options:
+                  smsType === 'sms'
+                    ? {
+                        ciblage: smsOptions.ciblage,
+                        richSms: smsOptions.richSms,
+                        tarifIntermarche: smsOptions.tarifIntermarche,
+                        duplicateCampaign: smsOptions.duplicateCampaign,
+                      }
+                    : {
+                        agent: smsOptions.agent,
+                        creaByLink: smsOptions.creaByLink,
+                        tarifIntermarche: smsOptions.tarifIntermarche,
+                        duplicateCampaign: smsOptions.duplicateCampaign,
+                      },
+                campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
+                creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
+                comment: smsPdfComment.trim() || undefined,
+                imageBase64: smsPdfImage ?? undefined,
+              }
+            : undefined,
+          calendarData: cal2,
+        })
+        zip.file('04-retroplanning.pdf', retroBlob)
+        readmeLines.push('• 04-retroplanning.pdf — Rétroplanning (vues comme dans la modale d’export rétro)')
+      } else {
+        readmeLines.push(
+          cal2.items.length === 0
+            ? '— Rétroplanning : non inclus (aucune ligne dans le calendrier — même règle que l’export depuis l’onglet).'
+            : '— Rétroplanning : non inclus (aucune vue PDF cochée — cochez au moins frise et/ou mois dans la modale rétro).',
+        )
+      }
+
+      const kpiBlob = await pdf(
+        <KpiMaxPdfDocument
+          clientName={clientLabel}
+          userName={userPseudo || userName}
+          diffusionDaysStr={kpiMaxDiffusionDays}
+          comptesStr={kpiMaxComptesDispo}
+        />,
+      ).toBlob()
+      zip.file('05-kpis-max.pdf', kpiBlob)
+      readmeLines.push('• 05-kpis-max.pdf — KPIs max')
+
+      readmeLines.push(
+        '',
+        'Les exclusions suivent les mêmes règles que les boutons d’export PDF de chaque onglet (voir les libellés ci-dessus).',
+      )
+      zip.file('LISEZMOI.txt', readmeLines.join('\n'))
+
+      const safe = clientLabel.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').slice(0, 80)
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `pack-vente-${safe}-${new Date().toISOString().split('T')[0]}.zip`
+      link.click()
+      URL.revokeObjectURL(url)
+      setGlobalPackDialogOpen(false)
+      setGlobalPackClientName('')
+      setGlobalPackComment('')
+    } catch (e) {
+      console.error(e)
+      alert('Erreur lors de la génération du pack. Réessayez ou vérifiez la console.')
+    } finally {
+      setGlobalPackExporting(false)
+    }
+  }
+
   if (!adminChecked) {
     return (
       <div className="container mx-auto px-4 py-24 flex items-center justify-center">
@@ -2244,20 +2828,44 @@ export default function VentePage() {
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-3">Calculateur Vente</h1>
+          <h1 className="text-4xl font-bold mb-3">Calculateur Vente 2</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Outil à titre informatif : estimez prix, volumes et planning pour la lecture d’une brief — sans valeur
             contractuelle.
           </p>
         </div>
-        {/* Sous-onglets PDV */}
-        <div className="mb-6">
+        {/* Sous-onglets PDV + pack global */}
+        <div className="mb-6 space-y-4">
+          <div className="flex justify-center px-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setGlobalPackClientName(clientName)
+                setGlobalPackComment(pdfClientComment)
+                setGlobalPackDialogOpen(true)
+              }}
+              disabled={globalPackExporting}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white shadow-sm"
+            >
+              {globalPackExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Génération du pack…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger le pack complet (ZIP)
+                </>
+              )}
+            </Button>
+          </div>
           <Tabs
             value={pdvSection}
             onValueChange={(value) => setPdvSection(value as PdvSection)}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 border-2 border-gray-300 gap-1">
+            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 sm:grid-cols-4 border-2 border-gray-300 gap-1">
               <TabsTrigger
                 value="social"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -2269,6 +2877,18 @@ export default function VentePage() {
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
               >
                 SMS
+              </TabsTrigger>
+              <TabsTrigger
+                value="calendar"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                Rétroplanning
+              </TabsTrigger>
+              <TabsTrigger
+                value="kpiMax"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                KPIs max
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -2948,7 +3568,10 @@ export default function VentePage() {
                                       d.setDate(d.getDate() + prevLen)
                                       perPlatform[key] = d.toISOString().slice(0, 10)
                                     })
-                                    setDefineDatesPerPlatform(perPlatform)
+                                    setDefineDatesPerStrategy((prev) => ({
+                                      ...prev,
+                                      [block.id]: perPlatform,
+                                    }))
                                     setCalendarDialogOpen(true)
                                   }}
                                 >
@@ -3679,6 +4302,1101 @@ export default function VentePage() {
           </div>
         )}
 
+        {pdvSection === 'calendar' && (
+          <div className="mt-6 space-y-6">
+            <Dialog open={retroSourceChoice === null} onOpenChange={() => {}}>
+              <DialogContent
+                className="sm:max-w-xl [&>button.absolute]:hidden"
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+              >
+                <DialogHeader className="space-y-2 text-left">
+                  <DialogTitle className="text-xl font-bold tracking-tight text-[#E94C16]">Rétroplanning</DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground">Vert</span> : option utilisable d’un clic.{' '}
+                    <span className="font-medium text-red-700 dark:text-red-400">Rouge</span> : prérequis manquants —
+                    complétez l’onglet concerné, l’option deviendra verte automatiquement.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => applyRetroSourceChoice('none')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2',
+                      'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45',
+                    )}
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-800 dark:text-emerald-200">
+                      <LayoutGrid className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-emerald-950 dark:text-emerald-50">Partir de 0</span>
+                        <Badge variant="secondary" className="border-emerald-600/30 bg-emerald-500/15 text-[10px] font-normal text-emerald-900 dark:text-emerald-100">
+                          Sans liaison
+                        </Badge>
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-100/85">
+                        Vous cochez les plateformes et créez les phases vous-même. Aucune donnée n’est importée depuis
+                        les onglets Social ou SMS.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                        >
+                          Toujours disponible
+                        </Badge>
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!activeStrategyHasLines}
+                    onClick={() => applyRetroSourceChoice('social')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      activeStrategyHasLines
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        activeStrategyHasLines
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <Share2 className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            activeStrategyHasLines
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Partir de la stratégie Social media
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          activeStrategyHasLines
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Reprend les lignes de la stratégie active (plateformes, objectifs, durées) comme base du
+                        calendrier.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        {activeStrategyHasLines ? (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Prêt · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''} · « {activeStrategyName} »
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Non disponible · Ajoutez au moins une ligne dans l’onglet Social media
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!smsCampaignReadyForRetro}
+                    onClick={() => applyRetroSourceChoice('sms')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      smsCampaignReadyForRetro
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        smsCampaignReadyForRetro
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <MessageSquare className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            smsCampaignReadyForRetro
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Partir de la stratégie SMS / RCS
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          smsCampaignReadyForRetro
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Intègre une campagne {smsType === 'sms' ? 'SMS' : 'RCS'} (volume, options) dans le même document
+                        de rétroplanning.
+                      </span>
+                      <span className="mt-2 inline-flex flex-wrap gap-2">
+                        {smsCampaignReadyForRetro ? (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Prêt · campagne {smsType === 'sms' ? 'SMS' : 'RCS'} renseignée
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Non disponible · Volume et barème dans l’onglet SMS / RCS
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!(activeStrategyHasLines && smsCampaignReadyForRetro)}
+                    onClick={() => applyRetroSourceChoice('both')}
+                    className={cn(
+                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
+                      activeStrategyHasLines && smsCampaignReadyForRetro
+                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
+                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
+                        activeStrategyHasLines && smsCampaignReadyForRetro
+                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
+                      )}
+                    >
+                      <Layers className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            activeStrategyHasLines && smsCampaignReadyForRetro
+                              ? 'text-emerald-950 dark:text-emerald-50'
+                              : 'text-red-950 dark:text-red-100',
+                          )}
+                        >
+                          Social media + SMS / RCS
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-[10px] font-normal',
+                            activeStrategyHasLines && smsCampaignReadyForRetro
+                              ? 'border-emerald-600/30 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100'
+                              : 'border-red-600/30 bg-red-500/15 text-red-900 dark:text-red-100',
+                          )}
+                        >
+                          Combiné
+                        </Badge>
+                      </span>
+                      <span
+                        className={cn(
+                          'mt-1 block text-xs leading-relaxed',
+                          activeStrategyHasLines && smsCampaignReadyForRetro
+                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
+                            : 'text-red-900/90 dark:text-red-100/85',
+                        )}
+                      >
+                        Un seul PDF avec la stratégie Social, le détail SMS / RCS et le planning : les deux sources doivent
+                        être prêtes pour un rendu complet.
+                      </span>
+                      <span className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center">
+                        {activeStrategyHasLines ? (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            Social · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            Social · manquant
+                          </Badge>
+                        )}
+                        {smsCampaignReadyForRetro ? (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
+                          >
+                            SMS / RCS · prêt
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
+                          >
+                            SMS / RCS · manquant
+                          </Badge>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {retroSourceChoice !== null && (
+              <>
+                {retroPlanningMissingLinkedData ? (
+                  <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-4 shadow-sm">
+                    <Alert className="border-orange-500 bg-orange-50 text-orange-950 dark:bg-orange-950/20 dark:border-orange-600 dark:text-orange-100">
+                      <AlertTitle>Aucune stratégie prête pour cette option</AlertTitle>
+                      <AlertDescription className="space-y-3 text-sm">
+                        <p>
+                          Vous avez choisi de partir d’une stratégie Social media et/ou SMS / RCS, mais il n’y a pas encore
+                          assez d’éléments en place pour construire le rétroplanning à partir de ces sources.
+                        </p>
+                        <ul className="list-disc pl-5 space-y-2">
+                          {retroLinkSocial && !activeStrategyHasLines && (
+                            <li>
+                              <strong>Social media :</strong> la stratégie active ne contient aucune ligne (aucune
+                              plateforme avec objectif et budget). Ouvrez l’onglet Social media, ajoutez au moins une
+                              ligne à votre stratégie, puis revenez ici — ou choisissez une autre base ci-dessous.
+                            </li>
+                          )}
+                          {retroLinkSms && !smsCampaignReadyForRetro && (
+                            <li>
+                              <strong>SMS / RCS :</strong> la campagne n’est pas encore exploitable (volume manquant ou
+                              hors barème, selon le type). Complétez l’onglet SMS / RCS avec un volume valide, puis
+                              revenez — ou repartez de zéro.
+                            </li>
+                          )}
+                        </ul>
+                        <p className="font-medium leading-relaxed">
+                          En résumé : remplissez d’abord la ou les stratégies dans les onglets concernés, ou utilisez
+                          « Choisir une autre base » pour revenir au choix initial et sélectionner « Partir de 0 » afin de
+                          construire votre calendrier sans lier une stratégie existante.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => setRetroSourceChoice(null)}
+                        className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                      >
+                        Choisir une autre base
+                      </Button>
+                      {retroLinkSocial && !activeStrategyHasLines && (
+                        <Button type="button" variant="outline" onClick={() => setPdvSection('social')}>
+                          Aller à l’onglet Social media
+                        </Button>
+                      )}
+                      {retroLinkSms && !smsCampaignReadyForRetro && (
+                        <Button type="button" variant="outline" onClick={() => setPdvSection('sms')}>
+                          Aller à l’onglet SMS / RCS
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {retroLinkSocial && strategies.length > 1 && (
+                      <p className="text-sm text-muted-foreground rounded-md border border-border/80 bg-muted/30 px-3 py-2">
+                        Rétroplanning Social lié à la stratégie active :{' '}
+                        <span className="font-medium text-foreground">{activeStrategy?.name ?? '—'}</span>. Changez de
+                        stratégie via l’onglet Social media (sélecteur en haut des cartes).
+                      </p>
+                    )}
+                    <RetroPlanningPanel
+              availablePlatforms={PLATFORMS_ORDER}
+              startDate={retroLinkSocial ? activeRetroSocial.startDate : retroStartDate}
+              onStartDateChange={(d) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { startDate: d })
+                else setRetroStartDate(d)
+              }}
+              durationDays={retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays}
+              onDurationDaysChange={(d) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { durationDays: d })
+                else setRetroDurationDays(d)
+              }}
+              platformPhases={retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases}
+              onPlatformPhasesChange={(ph) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { platformPhases: ph })
+                else setRetroPlatformPhases(ph)
+              }}
+              fromScratchRetro={retroSourceChoice === 'none'}
+              linkSocial={retroLinkSocial}
+              strategyItems={
+                retroLinkSocial
+                  ? (strategies.find((s) => s.id === activeStrategyId)?.items ?? []).map((it) => ({
+                      platform: it.platform,
+                      objective: it.objective,
+                      days: it.days,
+                    }))
+                  : []
+              }
+              linkSms={retroLinkSms}
+              smsType={smsType}
+              smsPhases={retroSmsPhases}
+              onSmsPhasesChange={setRetroSmsPhases}
+              linkedSocialLineSplits={retroLinkSocial ? activeRetroSocial.socialLineSplits : {}}
+              onLinkedSocialLineSplitsChange={(lineKey, segments) => {
+                if (!retroLinkSocial) return
+                setRetroSocialByStrategy((prev) => {
+                  const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
+                  return {
+                    ...prev,
+                    [activeStrategyId]: {
+                      ...bundle,
+                      socialLineSplits: { ...bundle.socialLineSplits, [lineKey]: segments },
+                    },
+                  }
+                })
+              }}
+              strategyDaysFallback={Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))}
+              smsCampaignTotalDays={
+                retroLinkSms ? Math.max(30, campaignMonthsNumber * 30) : undefined
+              }
+              onApplyDistribution={() => {
+                const duration = Math.max(
+                  1,
+                  retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+                )
+                const phases = retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases
+                const start = retroLinkSocial ? activeRetroSocial.startDate : retroStartDate
+                const sources: CalendarPlatformSource[] = phases.flatMap(({ platform, phases: phs }) => {
+                  if (phs.length === 0) {
+                    return [{ platform, budget: 0, kpiLabel: '', maxDays: duration }]
+                  }
+                  return phs.map((ph) => ({
+                    platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
+                    budget: 0,
+                    kpiLabel: '',
+                    maxDays: Math.max(1, ph.defaultDays ?? duration),
+                  }))
+                })
+                if (sources.length === 0) return
+                const items = autoDistribute(sources, duration)
+                const nextCal: StrategyCalendarData = {
+                  startDate: start,
+                  duration,
+                  items: items.map((i) => ({
+                    ...i,
+                    objective: i.platform.includes('::') ? i.platform.split('::')[1] : undefined,
+                  })),
+                }
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { calendarData: nextCal })
+                else setRetroCalendarData(nextCal)
+              }}
+            />
+            {(() => {
+              const scratchCal = retroLinkSocial ? activeRetroSocial.calendarData : retroCalendarData
+              const scratchPhases = retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases
+              const baseDuration = Math.max(
+                1,
+                retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+              )
+              const defaultStart =
+                (retroLinkSocial ? activeRetroSocial.startDate : retroStartDate) ||
+                new Date().toISOString().slice(0, 10)
+              const daysBetween = (a: string, b: string) =>
+                Math.round(
+                  (new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) /
+                    (24 * 60 * 60 * 1000),
+                )
+
+              let items: StrategyCalendarData['items'] = scratchCal?.items ?? []
+              if (!scratchCal?.items?.length && scratchPhases.length > 0) {
+                items = []
+              } else if (scratchCal?.items?.length) {
+                items = [...scratchCal.items]
+              }
+
+              const durationFromItems =
+                items.length > 0
+                  ? items.reduce((max, it) => Math.max(max, (it.startDay ?? 0) + (it.length ?? 0)), 0)
+                  : 0
+              const duration = Math.max(baseDuration, durationFromItems || baseDuration)
+
+              let platformSources: CalendarPlatformSource[] =
+                scratchPhases.length > 0
+                  ? scratchPhases.flatMap(({ platform, phases, singleLineDays }) => {
+                      if (phases.length === 0) {
+                        return [
+                          {
+                            platform,
+                            budget: 0,
+                            kpiLabel: '',
+                            maxDays: Math.max(1, singleLineDays ?? duration),
+                          },
+                        ]
+                      }
+                      return phases.map((ph) => ({
+                        platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
+                        budget: 0,
+                        kpiLabel: '',
+                        maxDays: Math.max(1, ph.defaultDays ?? duration),
+                      }))
+                    })
+                  : items.length
+                    ? items.map((item) => ({
+                        platform: item.objective ? `${item.platform}::${item.objective}` : item.platform,
+                        budget: item.budget ?? 0,
+                        kpiLabel: item.kpiLabel ?? '',
+                        maxDays: Math.max(1, item.length || duration),
+                      }))
+                    : []
+
+              const strategyPlatformKeys = new Set<string>()
+              const datesForActiveStrategy = defineDatesPerStrategy[activeStrategyId] ?? {}
+
+              if (retroLinkSocial) {
+                const block = strategies.find((s) => s.id === activeStrategyId)
+                if (block?.items?.length) {
+                  const stratDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                  const stratStart = block.items
+                    .map((it) => {
+                      const lk = retroStrategyLineKey(it.platform, it.objective)
+                      return datesForActiveStrategy[lk] ?? defaultStart
+                    })
+                    .reduce((min, d) => (d < min ? d : min), defaultStart)
+
+                  const stratSources: CalendarPlatformSource[] = []
+                  const stratItemsMerged: StrategyCalendarData['items'] = []
+
+                  for (const item of block.items) {
+                    const lineKey = retroStrategyLineKey(item.platform, item.objective)
+                    const totalDays = Math.max(1, item.days ?? stratDuration)
+                    const rawSegs =
+                      activeRetroSocial.socialLineSplits[lineKey] &&
+                      activeRetroSocial.socialLineSplits[lineKey]!.length > 0
+                        ? activeRetroSocial.socialLineSplits[lineKey]!
+                        : [{ name: item.objective, days: totalDays }]
+                    const segments = rebalanceRetroSocialSegments(rawSegs, totalDays)
+                    const startDateLine = datesForActiveStrategy[lineKey] ?? stratStart
+                    let cursorDay = Math.max(0, daysBetween(defaultStart, startDateLine))
+                    const budget = item.budget ?? 0
+                    const nSeg = segments.length
+
+                    segments.forEach((seg, idx) => {
+                      const subKey = retroStrategySubPlatformKey(lineKey, idx)
+                      strategyPlatformKeys.add(subKey)
+                      const len = seg.days
+                      const share = nSeg > 0 ? budget / nSeg : budget
+                      stratSources.push({
+                        platform: subKey,
+                        budget: share,
+                        kpiLabel: item.customKpiLabel ?? '',
+                        maxDays: Math.max(1, len),
+                      })
+                      stratItemsMerged.push({
+                        platform: subKey,
+                        startDay: cursorDay,
+                        length: len,
+                        budget: share,
+                        kpiLabel: item.customKpiLabel,
+                        objective: seg.name,
+                      })
+                      cursorDay += len
+                    })
+                  }
+
+                  platformSources = [...platformSources, ...stratSources]
+                  items = [...items, ...stratItemsMerged]
+                } else if (block?.calendar && isStrategyCalendarData(block.calendar)) {
+                  const cal = block.calendar
+                  const offset = daysBetween(defaultStart, cal.startDate)
+                  const calItems = cal.items.map((item) => {
+                    const key = item.objective ? `${item.platform}::${item.objective}` : item.platform
+                    strategyPlatformKeys.add(key)
+                    return {
+                      ...item,
+                      platform: key,
+                      startDay: Math.max(0, offset + item.startDay),
+                      length: item.length,
+                    }
+                  })
+                  items = [...items, ...calItems]
+                  platformSources = [
+                    ...platformSources,
+                    ...cal.items.map((item) => ({
+                      platform: item.objective ? `${item.platform}::${item.objective}` : item.platform,
+                      budget: item.budget ?? 0,
+                      kpiLabel: item.kpiLabel ?? '',
+                      maxDays: Math.max(1, item.length ?? duration),
+                    })),
+                  ]
+                }
+              }
+
+              if (retroLinkSms) {
+                const smsPlatform = smsType === 'sms' ? 'SMS' : 'RCS'
+                const smsLength = Math.max(30, campaignMonthsNumber * 30)
+
+                if (retroSmsPhases.length > 0) {
+                  retroSmsPhases.forEach((phase, idx) => {
+                    const phaseName = phase.name?.trim() || `Phase ${idx + 1}`
+                    const key = `${smsPlatform}::${phaseName}`
+                    const phaseLength =
+                      Math.max(1, phase.defaultDays ?? Math.floor(smsLength / retroSmsPhases.length))
+
+                    strategyPlatformKeys.add(key)
+                    platformSources = [
+                      ...platformSources,
+                      {
+                        platform: key,
+                        budget: 0,
+                        kpiLabel: '',
+                        maxDays: Math.max(1, phaseLength),
+                      },
+                    ]
+                    items = [
+                      ...items,
+                      {
+                        platform: key,
+                        startDay: 0,
+                        length: Math.min(phaseLength, duration),
+                        budget: 0,
+                        kpiLabel: '',
+                      },
+                    ]
+                  })
+                } else {
+                  strategyPlatformKeys.add(smsPlatform)
+                  platformSources = [
+                    ...platformSources,
+                    { platform: smsPlatform, budget: 0, kpiLabel: '', maxDays: smsLength },
+                  ]
+                  items = [
+                    ...items,
+                    {
+                      platform: smsPlatform,
+                      startDay: 0,
+                      length: Math.min(smsLength, duration),
+                      budget: 0,
+                      kpiLabel: '',
+                    },
+                  ]
+                }
+              }
+
+              if (
+                retroSourceChoice === 'none' &&
+                scratchPhases.length > 0 &&
+                items.length > 0
+              ) {
+                const fallback = Math.max(
+                  baseDuration,
+                  retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+                  duration,
+                )
+                const horizonForSync = Math.max(
+                  fallback,
+                  ...items.map((it) => {
+                    const w = desiredLengthFromRetroPhases(
+                      it.platform,
+                      scratchPhases,
+                      fallback,
+                    )
+                    return it.startDay + (w ?? it.length)
+                  }),
+                )
+                items = syncManualRetroItemLengthsFromPhases(
+                  items,
+                  scratchPhases,
+                  horizonForSync,
+                )
+              }
+
+              const mergedDuration = Math.max(
+                retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+                duration,
+                ...items.map((i) => i.startDay + i.length),
+              )
+              const existingFromForm: StrategyCalendarData = {
+                startDate: defaultStart,
+                duration: mergedDuration,
+                items,
+              }
+
+              const hasItems = items.length > 0
+
+              const handleSave = (data: StrategyCalendarData) => {
+                const isSmsPlatform = (p: string) =>
+                  p === 'SMS' ||
+                  p === 'RCS' ||
+                  p.startsWith('SMS::') ||
+                  p.startsWith('RCS::')
+
+                const retroItems = data.items.filter(
+                  (i) => !strategyPlatformKeys.has(i.platform) && !isSmsPlatform(i.platform),
+                )
+                const saved: StrategyCalendarData = { ...data, items: retroItems, duration: data.duration }
+                if (retroLinkSocial) {
+                  patchRetroSocial(activeStrategyId, { calendarData: saved })
+                } else {
+                  setRetroCalendarData(saved)
+                }
+                if (retroSourceChoice === 'none' && retroItems.length > 0) {
+                  if (retroLinkSocial) {
+                    setRetroSocialByStrategy((prev) => {
+                      const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
+                      return {
+                        ...prev,
+                        [activeStrategyId]: {
+                          ...bundle,
+                          platformPhases: syncManualRetroPlatformPhasesFromItems(
+                            bundle.platformPhases,
+                            retroItems,
+                          ),
+                        },
+                      }
+                    })
+                  } else {
+                    setRetroPlatformPhases((prev) =>
+                      syncManualRetroPlatformPhasesFromItems(prev, retroItems),
+                    )
+                  }
+                }
+              }
+
+              return (
+                  <StrategyCalendarBuilder
+                    key={`retro-${existingFromForm.startDate}-${existingFromForm.duration}-${retroLinkSocial}-${retroLinkSms}-${retroLinkSocial ? activeStrategyId : 'na'}`}
+                    platformSources={platformSources}
+                    duration={existingFromForm.duration}
+                    existing={existingFromForm}
+                    fullWidth
+                    twoMonths={mergedDuration <= 120}
+                    forceTimeGranularity={mergedDuration > 120 ? 'week' : undefined}
+                    headerTitle="Calendrier du rétroplanning"
+                    headerDescription={
+                      hasItems
+                        ? 'Mois : légende + clic sur un jour. Semaines : barres à faire glisser ; vue jour : poignée droite pour la durée. Frise : une ligne de temps avec traits début/fin par plateforme. Tout s’enregistre automatiquement.'
+                        : 'Configurez le paramétrage ci-dessus puis cliquez sur « Répartir sur le calendrier ». Vous pourrez ensuite ajuster les phases comme indiqué.'
+                    }
+                    exportPdf={{
+                      filename: `Retroplanning_${defaultStart}_${mergedDuration}j.pdf`,
+                      onExport: async () => {
+                        const cal = useCalendarStore.getState().getCalendarData()
+                        if (!cal.items.length) return
+                        const block = strategies.find((s) => s.id === activeStrategyId)
+                        retroPdfExportRef.current = async (
+                          filename,
+                          documentComment,
+                          clientName,
+                          options,
+                        ) => {
+                          const cal2 = useCalendarStore.getState().getCalendarData()
+                          if (!cal2.items.length) return
+                          await downloadRetroplanningPdf({
+                            filename,
+                            documentComment: documentComment.trim() || undefined,
+                            personName: userName.trim() || userPseudo.trim() || '',
+                            clientName: clientName.trim() || undefined,
+                            linkSocial: retroLinkSocial,
+                            linkSms: retroLinkSms,
+                            smsType,
+                            includeWeekTimeline: options.includeWeekTimeline,
+                            includeMonthGrids: options.includeMonthGrids,
+                            strategyLines:
+                              retroLinkSocial && block?.items?.length
+                                ? block.items.map((it) => ({
+                                    platform: it.platform,
+                                    objective: it.objective,
+                                    budget: it.budget,
+                                    estimatedKPIs: it.estimatedKPIs,
+                                    days: it.days,
+                                    aePercentage: it.aePercentage,
+                                    customKpiLabel: it.customKpiLabel,
+                                    dailyBudget: it.dailyBudget,
+                                  }))
+                                : undefined,
+                            smsQuoteDetail: retroLinkSms
+                              ? {
+                                  volume: smsVolumeNumber,
+                                  unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                                  totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
+                                  options:
+                                    smsType === 'sms'
+                                      ? {
+                                          ciblage: smsOptions.ciblage,
+                                          richSms: smsOptions.richSms,
+                                          tarifIntermarche: smsOptions.tarifIntermarche,
+                                          duplicateCampaign: smsOptions.duplicateCampaign,
+                                        }
+                                      : {
+                                          agent: smsOptions.agent,
+                                          creaByLink: smsOptions.creaByLink,
+                                          tarifIntermarche: smsOptions.tarifIntermarche,
+                                          duplicateCampaign: smsOptions.duplicateCampaign,
+                                        },
+                                  campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
+                                  creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
+                                  comment: smsPdfComment.trim() || undefined,
+                                  imageBase64: smsPdfImage ?? undefined,
+                                }
+                              : undefined,
+                            calendarData: cal2,
+                          })
+                        }
+                        setRetroPdfFileName(`Retroplanning_${defaultStart}_${mergedDuration}j`)
+                        setRetroPdfClientName('')
+                        setRetroPdfComment('')
+                        setRetroPdfIncludeWeekView(true)
+                        setRetroPdfIncludeMonthView(true)
+                        setRetroPdfDialogOpen(true)
+                      },
+                    }}
+                    onSave={handleSave}
+                    autoPersist
+                    onPlatformStartDateChange={(entryKey, startDate) => {
+                      const patchStrategyDates = (lineKey: string, date: string) => {
+                        setDefineDatesPerStrategy((prev) => ({
+                          ...prev,
+                          [activeStrategyId]: {
+                            ...(prev[activeStrategyId] ?? {}),
+                            [lineKey]: date,
+                          },
+                        }))
+                      }
+                      const sub = entryKey.match(/^(.*)::p(\d+)$/)
+                      if (sub && strategyPlatformKeys.has(entryKey)) {
+                        const parentLine = sub[1]!
+                        const idx = parseInt(sub[2]!, 10)
+                        const block = strategies.find((s) => s.id === activeStrategyId)
+                        const row = block?.items.find(
+                          (it) => retroStrategyLineKey(it.platform, it.objective) === parentLine,
+                        )
+                        const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                        const totalDays = Math.max(1, row?.days ?? stratDur)
+                        const splits = activeRetroSocial.socialLineSplits
+                        const raw =
+                          splits[parentLine] && splits[parentLine]!.length > 0
+                            ? splits[parentLine]!
+                            : [{ name: row?.objective ?? 'Phase', days: totalDays }]
+                        const segs = rebalanceRetroSocialSegments(raw, totalDays)
+                        let offset = 0
+                        for (let i = 0; i < idx && i < segs.length; i++) offset += segs[i]!.days
+                        const parentDate = addCalendarDays(startDate, -offset)
+                        patchStrategyDates(parentLine, parentDate)
+                        return
+                      }
+                      if (strategyPlatformKeys.has(entryKey)) {
+                        patchStrategyDates(entryKey, startDate)
+                      }
+                    }}
+                    onPlatformDaysChange={
+                      retroLinkSocial && activeStrategyId
+                        ? (entryKey, days) => {
+                            const sub = entryKey.match(/^(.*)::p(\d+)$/)
+                            if (sub && strategyPlatformKeys.has(entryKey)) {
+                              const parentLine = sub[1]!
+                              const idx = parseInt(sub[2]!, 10)
+                              setRetroSocialByStrategy((prev) => {
+                                const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
+                                const block = strategies.find((s) => s.id === activeStrategyId)
+                                const row = block?.items.find(
+                                  (it) => retroStrategyLineKey(it.platform, it.objective) === parentLine,
+                                )
+                                if (!row) return prev
+                                const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+                                const totalDays = Math.max(1, row.days ?? stratDur)
+                                const prevSplits = bundle.socialLineSplits
+                                const raw =
+                                  prevSplits[parentLine] && prevSplits[parentLine]!.length > 0
+                                    ? prevSplits[parentLine]!
+                                    : [{ name: row.objective, days: totalDays }]
+                                const segs = [...rebalanceRetroSocialSegments(raw, totalDays)]
+                                if (idx < 0 || idx >= segs.length) return prev
+                                segs[idx] = { ...segs[idx]!, days: Math.max(1, days) }
+                                return {
+                                  ...prev,
+                                  [activeStrategyId]: {
+                                    ...bundle,
+                                    socialLineSplits: {
+                                      ...bundle.socialLineSplits,
+                                      [parentLine]: rebalanceRetroSocialSegments(segs, totalDays),
+                                    },
+                                  },
+                                }
+                              })
+                              return
+                            }
+                            if (!strategyPlatformKeys.has(entryKey)) return
+                            setStrategies((prev) =>
+                              prev.map((s) =>
+                                s.id !== activeStrategyId
+                                  ? s
+                                  : {
+                                      ...s,
+                                      items: s.items.map((it) =>
+                                        `${it.platform}::${it.objective}` !== entryKey
+                                          ? it
+                                          : {
+                                              ...it,
+                                              days,
+                                              dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
+                                              aeCheckValue:
+                                                it.platform === 'Spotify'
+                                                  ? it.budget * (it.aePercentage / 100)
+                                                  : (it.budget * (it.aePercentage / 100)) / days,
+                                            },
+                                      ),
+                                    },
+                              ),
+                            )
+                          }
+                        : undefined
+                    }
+                  />
+              )
+            })()}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {pdvSection === 'kpiMax' && (
+          <div className="mt-6 mx-auto max-w-4xl px-0">
+            <Card className="overflow-hidden border-border/80 shadow-sm">
+              <CardHeader className="space-y-2 border-b bg-muted/20 pb-5">
+                <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
+                    <BarChart2 className="h-5 w-5" aria-hidden />
+                  </span>
+                  KPIs max
+                </CardTitle>
+                <CardDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                  Estimation indicative : impressions et clics pour les scénarios idéal et max, selon jours de diffusion et
+                  nombre de comptes.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 pt-6">
+                {(() => {
+                  const jStr = kpiMaxDiffusionDays.trim()
+                  const cStr = kpiMaxComptesDispo.trim()
+                  const jNum = parseFloat(jStr.replace(',', '.'))
+                  const cNum = parseFloat(cStr.replace(',', '.'))
+                  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
+                  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
+                  const showVolumes = daysOk && comptesOk
+                  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
+                  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
+                  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
+                  const belowCommitThreshold =
+                    comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+                  return (
+                    <>
+                      <section className="space-y-3" aria-labelledby="kpi-max-params-heading">
+                        <h2
+                          id="kpi-max-params-heading"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Paramètres
+                        </h2>
+                        <div className="rounded-xl border border-border/60 bg-muted/15 p-4 sm:p-5">
+                          <div className="grid gap-5 sm:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="kpi-max-jours-diffusion" className="text-foreground">
+                                Jours de diffusion
+                              </Label>
+                              <EditableInput
+                                id="kpi-max-jours-diffusion"
+                                type="number"
+                                min={1}
+                                placeholder="ex. 14"
+                                value={kpiMaxDiffusionDays}
+                                onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
+                                className="bg-background"
+                              />
+                              {!daysOk && (
+                                <p className="text-xs text-muted-foreground tabular-nums leading-relaxed">
+                                  Indiquez la durée pour calculer la répétition.
+                                </p>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="kpi-max-comptes-dispo" className="text-foreground">
+                                Nombre de comptes
+                              </Label>
+                              <EditableInput
+                                id="kpi-max-comptes-dispo"
+                                type="number"
+                                min={1}
+                                placeholder="ex. 1"
+                                value={kpiMaxComptesDispo}
+                                onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
+                                className="bg-background"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Selon le potentiel indiqué par les TM.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      {showVolumes && v ? (
+                        <section
+                          className="space-y-4"
+                          aria-labelledby="kpi-max-results-heading"
+                          aria-live="polite"
+                        >
+                          <h2
+                            id="kpi-max-results-heading"
+                            className="text-sm font-medium text-foreground"
+                          >
+                            Résultat
+                          </h2>
+
+                          {belowCommitThreshold && (
+                            <Alert className="border-amber-200/90 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/25 [&_svg]:text-amber-700 dark:[&_svg]:text-amber-400">
+                              <Info className="h-4 w-4 shrink-0" aria-hidden />
+                              <AlertTitle className="text-sm font-medium text-foreground">
+                                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes
+                              </AlertTitle>
+                              <AlertDescription className="text-sm leading-relaxed text-muted-foreground">
+                                Aucun volume chiffré n&apos;est affiché. Les quatre encarts indiquent « Max » à titre
+                                indicatif — pas d&apos;engagement sur les KPIs pour ce palier volumétrique.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            {(
+                              [
+                                {
+                                  key: 'imp-ideal',
+                                  metric: 'impressions' as const,
+                                  scenario: 'ideal' as const,
+                                  title: 'Impressions',
+                                  subtitle: 'Stratégie idéale',
+                                  cardClass:
+                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
+                                },
+                                {
+                                  key: 'imp-max',
+                                  metric: 'impressions' as const,
+                                  scenario: 'max' as const,
+                                  title: 'Impressions',
+                                  subtitle: 'Stratégie max',
+                                  cardClass:
+                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
+                                },
+                                {
+                                  key: 'clk-ideal',
+                                  metric: 'clics' as const,
+                                  scenario: 'ideal' as const,
+                                  title: 'Clics',
+                                  subtitle: 'Stratégie idéale',
+                                  cardClass:
+                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
+                                },
+                                {
+                                  key: 'clk-max',
+                                  metric: 'clics' as const,
+                                  scenario: 'max' as const,
+                                  title: 'Clics',
+                                  subtitle: 'Stratégie max',
+                                  cardClass:
+                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
+                                },
+                              ] as const
+                            ).map((slot) => (
+                              <div
+                                key={slot.key}
+                                className={cn(
+                                  'flex min-h-[132px] flex-col gap-3 rounded-xl border border-border/70 p-5 shadow-sm',
+                                  slot.cardClass,
+                                )}
+                              >
+                                <div>
+                                  <h3 className="text-sm font-semibold leading-none text-foreground">{slot.title}</h3>
+                                  <p className="mt-1 text-xs text-muted-foreground">{slot.subtitle}</p>
+                                </div>
+                                <div className="mt-auto space-y-1">
+                                  {belowCommitThreshold ? (
+                                    <p className="text-3xl font-semibold tracking-tight text-foreground">Max</p>
+                                  ) : (
+                                    <>
+                                      <p className="break-words text-3xl font-bold tabular-nums tracking-tight text-foreground sm:text-4xl">
+                                        {formatNumber(
+                                          Math.round(v[slot.scenario][slot.metric]),
+                                          0,
+                                        )}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {slot.metric === 'impressions' ? 'impressions' : 'clics'}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      ) : (
+                        <div
+                          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/10 px-6 py-12 text-center"
+                          role="status"
+                        >
+                          <BarChart2
+                            className="h-10 w-10 text-muted-foreground/45"
+                            strokeWidth={1.25}
+                            aria-hidden
+                          />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              Saisissez jours de diffusion et nombre de comptes
+                            </p>
+                            <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">
+                              Les quatre encarts (impressions et clics × idéal et max) s&apos;afficheront ici.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Modale Calendrier de diffusion */}
@@ -3713,6 +5431,7 @@ export default function VentePage() {
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               if (!block) return null
+              const datesForCalDialog = defineDatesPerStrategy[calendarStrategyId] ?? {}
               const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
               const daysBetween = (a: string, b: string) =>
                 Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
@@ -3728,13 +5447,13 @@ export default function VentePage() {
               }))
               const starts = block.items.map((it) => {
                 const key = `${it.platform}::${it.objective}`
-                return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+                return datesForCalDialog[key] ?? new Date().toISOString().slice(0, 10)
               })
               const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
               let globalEndDay = 0
               const computedItems = block.items.map((item, i) => {
                 const key = `${item.platform}::${item.objective}`
-                const startDate = defineDatesPerPlatform[key] ?? globalStart
+                const startDate = datesForCalDialog[key] ?? globalStart
                 const startDay = Math.max(0, daysBetween(globalStart, startDate))
                 const length = Math.max(1, item.days ?? duration)
                 globalEndDay = Math.max(globalEndDay, startDay + length)
@@ -3762,7 +5481,13 @@ export default function VentePage() {
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
                     onPlatformStartDateChange={(entryKey, startDate) =>
-                      setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                      setDefineDatesPerStrategy((prev) => ({
+                        ...prev,
+                        [calendarStrategyId]: {
+                          ...(prev[calendarStrategyId] ?? {}),
+                          [entryKey]: startDate,
+                        },
+                      }))
                     }
                     onPlatformDaysChange={(entryKey, days) => {
                       setStrategies((prev) =>
@@ -3849,6 +5574,81 @@ export default function VentePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Modale pack ZIP global (Social + SMS/RCS + Rétro + KPIs max) */}
+      <Dialog
+        open={globalPackDialogOpen}
+        onOpenChange={(open) => {
+          setGlobalPackDialogOpen(open)
+          if (!open && !globalPackExporting) {
+            setGlobalPackClientName('')
+            setGlobalPackComment('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le pack complet (ZIP)</DialogTitle>
+            <DialogDescription>
+              Chaque PDF suit les mêmes règles que les exports unitaires : stratégies Social (nom et commentaire comme
+              pour « Télécharger le PDF »), devis SMS/RCS seulement si les conditions des boutons de l’onglet SMS sont
+              remplies, rétroplanning avec les vues et libellés de la modale d’export rétro (nom client rétro prioritaire
+              s’il est renseigné), KPIs max. Les exclusions sont détaillées dans LISEZMOI.txt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="global-pack-client">Nom du client *</Label>
+              <EditableInput
+                id="global-pack-client"
+                placeholder="Ex: Entreprise ABC"
+                value={globalPackClientName}
+                onChange={(e) => setGlobalPackClientName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && globalPackClientName.trim() && !globalPackExporting) {
+                    void handleGlobalPackExport()
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="global-pack-comment">Commentaire (optionnel)</Label>
+              <EditableInput
+                id="global-pack-comment"
+                placeholder="Ex: Brief Q1 2026"
+                value={globalPackComment}
+                onChange={(e) => setGlobalPackComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setGlobalPackDialogOpen(false)}
+              disabled={globalPackExporting}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleGlobalPackExport()}
+              disabled={!globalPackClientName.trim() || globalPackExporting}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {globalPackExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Génération…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger le ZIP
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Modale pour Validation TM */}
       <Dialog open={validationTMDialogOpen} onOpenChange={setValidationTMDialogOpen}>
         <DialogContent>
@@ -3893,6 +5693,129 @@ export default function VentePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Modale export PDF rétroplanning */}
+      <Dialog
+        open={retroPdfDialogOpen}
+        onOpenChange={(open) => {
+          setRetroPdfDialogOpen(open)
+          if (!open) {
+            setRetroPdfFileName('')
+            setRetroPdfClientName('')
+            setRetroPdfComment('')
+            setRetroPdfIncludeWeekView(true)
+            setRetroPdfIncludeMonthView(true)
+            retroPdfExportRef.current = null
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le rétroplanning en PDF</DialogTitle>
+            <DialogDescription>
+              Choisissez les vues à inclure (frise en semaines et / ou calendrier par mois), puis renseignez le client,
+              le fichier et un commentaire optionnel pour l’en-tête. Le document est entièrement en paysage ; la vue
+              mois affiche deux mois côte à côte par page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+              <p className="text-sm font-medium">Contenu du PDF</p>
+              <p className="text-xs text-muted-foreground">
+                Cochez une ou les deux vues. Au moins une option doit rester cochée.
+              </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="retro-pdf-view-week"
+                  checked={retroPdfIncludeWeekView}
+                  onCheckedChange={(c) => {
+                    const next = c === true
+                    if (!next && !retroPdfIncludeMonthView) return
+                    setRetroPdfIncludeWeekView(next)
+                  }}
+                />
+                <Label htmlFor="retro-pdf-view-week" className="text-sm font-normal cursor-pointer">
+                  Vue semaines (frise type Gantt)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="retro-pdf-view-month"
+                  checked={retroPdfIncludeMonthView}
+                  onCheckedChange={(c) => {
+                    const next = c === true
+                    if (!next && !retroPdfIncludeWeekView) return
+                    setRetroPdfIncludeMonthView(next)
+                  }}
+                />
+                <Label htmlFor="retro-pdf-view-month" className="text-sm font-normal cursor-pointer">
+                  Vue mois (2 mois par page, pastilles par phase)
+                </Label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-client">Nom du client *</Label>
+              <EditableInput
+                id="retro-pdf-client"
+                placeholder="Ex : Entreprise ABC"
+                value={retroPdfClientName}
+                onChange={(e) => setRetroPdfClientName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Sera affiché dans le titre « Planning de diffusion » du diagramme.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-filename">Nom du fichier *</Label>
+              <EditableInput
+                id="retro-pdf-filename"
+                placeholder="Ex: Retroplanning-client"
+                value={retroPdfFileName}
+                onChange={(e) => setRetroPdfFileName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="retro-pdf-comment">Commentaire (optionnel)</Label>
+              <EditableInput
+                id="retro-pdf-comment"
+                placeholder="Ex: Campagne Q1 2026"
+                value={retroPdfComment}
+                onChange={(e) => setRetroPdfComment(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Affiché sous le nom en tête de la première page exportée (frise ou calendrier).
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRetroPdfDialogOpen(false)
+                setRetroPdfFileName('')
+                setRetroPdfClientName('')
+                setRetroPdfComment('')
+                setRetroPdfIncludeWeekView(true)
+                setRetroPdfIncludeMonthView(true)
+                retroPdfExportRef.current = null
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleConfirmRetroPdf}
+              disabled={
+                !retroPdfFileName.trim() ||
+                !retroPdfClientName.trim() ||
+                (!retroPdfIncludeWeekView && !retroPdfIncludeMonthView)
+              }
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modale pour export PDF SMS/RCS */}
       <Dialog open={smsPdfDialogOpen} onOpenChange={setSmsPdfDialogOpen}>
