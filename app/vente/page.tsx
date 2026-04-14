@@ -555,6 +555,37 @@ function filterDefineDatesForSourceChoice(
   return Object.fromEntries(entries)
 }
 
+/** Filtre les dates par stratégie (clé = id stratégie) selon le mode rétro. */
+function filterDefineDatesPerStrategyMap(
+  prev: Record<string, Record<string, string>>,
+  choice: 'social' | 'sms' | 'both' | 'none',
+): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  for (const [sid, inner] of Object.entries(prev)) {
+    out[sid] = filterDefineDatesForSourceChoice(inner, choice)
+  }
+  return out
+}
+
+/** Rétroplanning lié au Social : une entrée par stratégie (plusieurs stratégies Social media). */
+interface RetroSocialState {
+  startDate: string
+  durationDays: number
+  platformPhases: RetroPlatformPhase[]
+  socialLineSplits: Record<string, { name: string; days: number }[]>
+  calendarData: StrategyCalendarData | null
+}
+
+function defaultRetroSocialState(): RetroSocialState {
+  return {
+    startDate: new Date().toISOString().slice(0, 10),
+    durationDays: 90,
+    platformPhases: [],
+    socialLineSplits: {},
+    calendarData: null,
+  }
+}
+
 function isStrategyCalendarData(cal: StrategyCalendar | StrategyCalendarData | null | undefined): cal is StrategyCalendarData {
   return !!cal && 'duration' in cal && 'items' in cal && Array.isArray((cal as StrategyCalendarData).items)
 }
@@ -1557,7 +1588,7 @@ export default function VentePage() {
   const [newStrategyName, setNewStrategyName] = useState('')
   const [renamingStrategyId, setRenamingStrategyId] = useState<string | null>(null)
   const [renamingStrategyName, setRenamingStrategyName] = useState('')
-  // Rétroplanning (onglet dédié, indépendant des stratégies)
+  // Rétroplanning : calendrier « partir de 0 » / SMS (global) ; Social = une entrée par stratégie Social media
   const [retroCalendarData, setRetroCalendarData] = useState<StrategyCalendarData | null>(null)
   const [retroStartDate, setRetroStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [retroDurationDays, setRetroDurationDays] = useState(90)
@@ -1565,10 +1596,8 @@ export default function VentePage() {
   const [retroSmsPhases, setRetroSmsPhases] = useState<RetroPhase[]>([])
   const [retroLinkSocial, setRetroLinkSocial] = useState(false)
   const [retroLinkSms, setRetroLinkSms] = useState(false)
-  /** Découpe rétro par ligne Social (clé platform::objectif) : somme des jours = jours de la ligne stratégie */
-  const [retroSocialLineSplits, setRetroSocialLineSplits] = useState<
-    Record<string, { name: string; days: number }[]>
-  >({})
+  /** Rétro Social lié à chaque stratégie (phases, dates, découpe lignes, calendrier manuel résiduel). */
+  const [retroSocialByStrategy, setRetroSocialByStrategy] = useState<Record<string, RetroSocialState>>({})
   /** null = modale de choix de source à afficher ; défini une fois l’utilisateur a choisi */
   const [retroSourceChoice, setRetroSourceChoice] = useState<'social' | 'sms' | 'both' | 'none' | null>(null)
   useEffect(() => {
@@ -1577,8 +1606,38 @@ export default function VentePage() {
     }
   }, [pdvSection])
 
-  // Dates de début par plateforme (utilisées dans le popup Calendrier)
-  const [defineDatesPerPlatform, setDefineDatesPerPlatform] = useState<Record<string, string>>({})
+  /** Dates de début par ligne (clé platform::objectif), indexées par id de stratégie (évite les collisions entre stratégies). */
+  const [defineDatesPerStrategy, setDefineDatesPerStrategy] = useState<
+    Record<string, Record<string, string>>
+  >({})
+
+  useEffect(() => {
+    setRetroSocialByStrategy((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const s of strategies) {
+        if (!next[s.id]) {
+          next[s.id] = defaultRetroSocialState()
+          changed = true
+        }
+      }
+      for (const id of Object.keys(next)) {
+        if (!strategies.some((s) => s.id === id)) {
+          delete next[id]
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [strategies])
+
+  const patchRetroSocial = useCallback((strategyId: string, patch: Partial<RetroSocialState>) => {
+    setRetroSocialByStrategy((prev) => ({
+      ...prev,
+      [strategyId]: { ...(prev[strategyId] ?? defaultRetroSocialState()), ...patch },
+    }))
+  }, [])
+
   const applyRetroSourceChoice = useCallback((choice: 'social' | 'sms' | 'both' | 'none') => {
     setRetroLinkSocial(choice === 'social' || choice === 'both')
     setRetroLinkSms(choice === 'sms' || choice === 'both')
@@ -1586,28 +1645,42 @@ export default function VentePage() {
     setRetroCalendarData((prev) => filterRetroCalendarDataForSourceChoice(prev, choice))
     setRetroPlatformPhases((phases) => (choice === 'sms' || choice === 'none' ? [] : phases))
     setRetroSmsPhases((phases) => (choice === 'social' || choice === 'none' ? [] : phases))
-    setDefineDatesPerPlatform((prev) => filterDefineDatesForSourceChoice(prev, choice))
-    if (choice === 'sms' || choice === 'none') setRetroSocialLineSplits({})
+    setDefineDatesPerStrategy((prev) => filterDefineDatesPerStrategyMap(prev, choice))
+    if (choice === 'sms' || choice === 'none') {
+      setRetroSocialByStrategy((prev) => {
+        const next = { ...prev }
+        for (const id of Object.keys(next)) {
+          next[id] = { ...next[id]!, socialLineSplits: {} }
+        }
+        return next
+      })
+    }
   }, [])
 
   useEffect(() => {
-    if (!retroLinkSocial || !activeStrategyId) return
-    const block = strategies.find((s) => s.id === activeStrategyId)
-    const valid = new Set(
-      (block?.items ?? []).map((it) => retroStrategyLineKey(it.platform, it.objective)),
-    )
-    setRetroSocialLineSplits((prev) => {
+    if (!retroLinkSocial) return
+    setRetroSocialByStrategy((prev) => {
+      let anyChanged = false
       const next = { ...prev }
-      let changed = false
-      for (const k of Object.keys(next)) {
-        if (!valid.has(k)) {
-          delete next[k]
-          changed = true
+      for (const s of strategies) {
+        const bundle = next[s.id] ?? defaultRetroSocialState()
+        const valid = new Set(s.items.map((it) => retroStrategyLineKey(it.platform, it.objective)))
+        const splits = { ...bundle.socialLineSplits }
+        let spChanged = false
+        for (const k of Object.keys(splits)) {
+          if (!valid.has(k)) {
+            delete splits[k]
+            spChanged = true
+          }
+        }
+        if (spChanged) {
+          next[s.id] = { ...bundle, socialLineSplits: splits }
+          anyChanged = true
         }
       }
-      return changed ? next : prev
+      return anyChanged ? next : prev
     })
-  }, [retroLinkSocial, activeStrategyId, strategies])
+  }, [retroLinkSocial, strategies])
   // Calendrier de diffusion : stratégie en cours d'édition
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false)
   const [calendarStrategyId, setCalendarStrategyId] = useState<string | null>(null)
@@ -1973,6 +2046,7 @@ export default function VentePage() {
 
   // Stratégie active (pour les interactions / +)
   const activeStrategy = strategies.find((s) => s.id === activeStrategyId) ?? strategies[0]
+  const activeRetroSocial = retroSocialByStrategy[activeStrategyId] ?? defaultRetroSocialState()
   const strategy = activeStrategy?.items ?? []
 
   // Calculer le total de la stratégie active (mise à jour automatique)
@@ -3147,7 +3221,10 @@ export default function VentePage() {
                                       d.setDate(d.getDate() + prevLen)
                                       perPlatform[key] = d.toISOString().slice(0, 10)
                                     })
-                                    setDefineDatesPerPlatform(perPlatform)
+                                    setDefineDatesPerStrategy((prev) => ({
+                                      ...prev,
+                                      [block.id]: perPlatform,
+                                    }))
                                     setCalendarDialogOpen(true)
                                   }}
                                 >
@@ -4208,14 +4285,30 @@ export default function VentePage() {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {retroLinkSocial && strategies.length > 1 && (
+                      <p className="text-sm text-muted-foreground rounded-md border border-border/80 bg-muted/30 px-3 py-2">
+                        Rétroplanning Social lié à la stratégie active :{' '}
+                        <span className="font-medium text-foreground">{activeStrategy?.name ?? '—'}</span>. Changez de
+                        stratégie via l’onglet Social media (sélecteur en haut des cartes).
+                      </p>
+                    )}
                     <RetroPlanningPanel
               availablePlatforms={PLATFORMS_ORDER}
-              startDate={retroStartDate}
-              onStartDateChange={setRetroStartDate}
-              durationDays={retroDurationDays}
-              onDurationDaysChange={setRetroDurationDays}
-              platformPhases={retroPlatformPhases}
-              onPlatformPhasesChange={setRetroPlatformPhases}
+              startDate={retroLinkSocial ? activeRetroSocial.startDate : retroStartDate}
+              onStartDateChange={(d) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { startDate: d })
+                else setRetroStartDate(d)
+              }}
+              durationDays={retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays}
+              onDurationDaysChange={(d) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { durationDays: d })
+                else setRetroDurationDays(d)
+              }}
+              platformPhases={retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases}
+              onPlatformPhasesChange={(ph) => {
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { platformPhases: ph })
+                else setRetroPlatformPhases(ph)
+              }}
               fromScratchRetro={retroSourceChoice === 'none'}
               linkSocial={retroLinkSocial}
               strategyItems={
@@ -4231,21 +4324,36 @@ export default function VentePage() {
               smsType={smsType}
               smsPhases={retroSmsPhases}
               onSmsPhasesChange={setRetroSmsPhases}
-              linkedSocialLineSplits={retroSocialLineSplits}
-              onLinkedSocialLineSplitsChange={(lineKey, segments) =>
-                setRetroSocialLineSplits((prev) => ({ ...prev, [lineKey]: segments }))
-              }
+              linkedSocialLineSplits={retroLinkSocial ? activeRetroSocial.socialLineSplits : {}}
+              onLinkedSocialLineSplitsChange={(lineKey, segments) => {
+                if (!retroLinkSocial) return
+                setRetroSocialByStrategy((prev) => {
+                  const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
+                  return {
+                    ...prev,
+                    [activeStrategyId]: {
+                      ...bundle,
+                      socialLineSplits: { ...bundle.socialLineSplits, [lineKey]: segments },
+                    },
+                  }
+                })
+              }}
               strategyDaysFallback={Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))}
               smsCampaignTotalDays={
                 retroLinkSms ? Math.max(30, campaignMonthsNumber * 30) : undefined
               }
               onApplyDistribution={() => {
-                const duration = Math.max(1, retroDurationDays)
-                const sources: CalendarPlatformSource[] = retroPlatformPhases.flatMap(({ platform, phases }) => {
-                  if (phases.length === 0) {
+                const duration = Math.max(
+                  1,
+                  retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+                )
+                const phases = retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases
+                const start = retroLinkSocial ? activeRetroSocial.startDate : retroStartDate
+                const sources: CalendarPlatformSource[] = phases.flatMap(({ platform, phases: phs }) => {
+                  if (phs.length === 0) {
                     return [{ platform, budget: 0, kpiLabel: '', maxDays: duration }]
                   }
-                  return phases.map((ph) => ({
+                  return phs.map((ph) => ({
                     platform: ph.name === platform ? platform : `${platform}::${ph.name}`,
                     budget: 0,
                     kpiLabel: '',
@@ -4254,30 +4362,39 @@ export default function VentePage() {
                 })
                 if (sources.length === 0) return
                 const items = autoDistribute(sources, duration)
-                setRetroCalendarData({
-                  startDate: retroStartDate,
+                const nextCal: StrategyCalendarData = {
+                  startDate: start,
                   duration,
                   items: items.map((i) => ({
                     ...i,
                     objective: i.platform.includes('::') ? i.platform.split('::')[1] : undefined,
                   })),
-                })
+                }
+                if (retroLinkSocial) patchRetroSocial(activeStrategyId, { calendarData: nextCal })
+                else setRetroCalendarData(nextCal)
               }}
             />
             {(() => {
-              const baseDuration = Math.max(1, retroDurationDays)
-              const defaultStart = retroStartDate || new Date().toISOString().slice(0, 10)
+              const scratchCal = retroLinkSocial ? activeRetroSocial.calendarData : retroCalendarData
+              const scratchPhases = retroLinkSocial ? activeRetroSocial.platformPhases : retroPlatformPhases
+              const baseDuration = Math.max(
+                1,
+                retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+              )
+              const defaultStart =
+                (retroLinkSocial ? activeRetroSocial.startDate : retroStartDate) ||
+                new Date().toISOString().slice(0, 10)
               const daysBetween = (a: string, b: string) =>
                 Math.round(
                   (new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) /
                     (24 * 60 * 60 * 1000),
                 )
 
-              let items: StrategyCalendarData['items'] = retroCalendarData?.items ?? []
-              if (!retroCalendarData?.items?.length && retroPlatformPhases.length > 0) {
+              let items: StrategyCalendarData['items'] = scratchCal?.items ?? []
+              if (!scratchCal?.items?.length && scratchPhases.length > 0) {
                 items = []
-              } else if (retroCalendarData?.items?.length) {
-                items = [...retroCalendarData.items]
+              } else if (scratchCal?.items?.length) {
+                items = [...scratchCal.items]
               }
 
               const durationFromItems =
@@ -4287,8 +4404,8 @@ export default function VentePage() {
               const duration = Math.max(baseDuration, durationFromItems || baseDuration)
 
               let platformSources: CalendarPlatformSource[] =
-                retroPlatformPhases.length > 0
-                  ? retroPlatformPhases.flatMap(({ platform, phases, singleLineDays }) => {
+                scratchPhases.length > 0
+                  ? scratchPhases.flatMap(({ platform, phases, singleLineDays }) => {
                       if (phases.length === 0) {
                         return [
                           {
@@ -4316,6 +4433,7 @@ export default function VentePage() {
                     : []
 
               const strategyPlatformKeys = new Set<string>()
+              const datesForActiveStrategy = defineDatesPerStrategy[activeStrategyId] ?? {}
 
               if (retroLinkSocial) {
                 const block = strategies.find((s) => s.id === activeStrategyId)
@@ -4324,7 +4442,7 @@ export default function VentePage() {
                   const stratStart = block.items
                     .map((it) => {
                       const lk = retroStrategyLineKey(it.platform, it.objective)
-                      return defineDatesPerPlatform[lk] ?? defaultStart
+                      return datesForActiveStrategy[lk] ?? defaultStart
                     })
                     .reduce((min, d) => (d < min ? d : min), defaultStart)
 
@@ -4335,11 +4453,12 @@ export default function VentePage() {
                     const lineKey = retroStrategyLineKey(item.platform, item.objective)
                     const totalDays = Math.max(1, item.days ?? stratDuration)
                     const rawSegs =
-                      retroSocialLineSplits[lineKey] && retroSocialLineSplits[lineKey]!.length > 0
-                        ? retroSocialLineSplits[lineKey]!
+                      activeRetroSocial.socialLineSplits[lineKey] &&
+                      activeRetroSocial.socialLineSplits[lineKey]!.length > 0
+                        ? activeRetroSocial.socialLineSplits[lineKey]!
                         : [{ name: item.objective, days: totalDays }]
                     const segments = rebalanceRetroSocialSegments(rawSegs, totalDays)
-                    const startDateLine = defineDatesPerPlatform[lineKey] ?? stratStart
+                    const startDateLine = datesForActiveStrategy[lineKey] ?? stratStart
                     let cursorDay = Math.max(0, daysBetween(defaultStart, startDateLine))
                     const budget = item.budget ?? 0
                     const nSeg = segments.length
@@ -4448,16 +4567,20 @@ export default function VentePage() {
 
               if (
                 retroSourceChoice === 'none' &&
-                retroPlatformPhases.length > 0 &&
+                scratchPhases.length > 0 &&
                 items.length > 0
               ) {
-                const fallback = Math.max(baseDuration, retroDurationDays, duration)
+                const fallback = Math.max(
+                  baseDuration,
+                  retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
+                  duration,
+                )
                 const horizonForSync = Math.max(
                   fallback,
                   ...items.map((it) => {
                     const w = desiredLengthFromRetroPhases(
                       it.platform,
-                      retroPlatformPhases,
+                      scratchPhases,
                       fallback,
                     )
                     return it.startDay + (w ?? it.length)
@@ -4465,13 +4588,13 @@ export default function VentePage() {
                 )
                 items = syncManualRetroItemLengthsFromPhases(
                   items,
-                  retroPlatformPhases,
+                  scratchPhases,
                   horizonForSync,
                 )
               }
 
               const mergedDuration = Math.max(
-                retroDurationDays,
+                retroLinkSocial ? activeRetroSocial.durationDays : retroDurationDays,
                 duration,
                 ...items.map((i) => i.startDay + i.length),
               )
@@ -4493,17 +4616,38 @@ export default function VentePage() {
                 const retroItems = data.items.filter(
                   (i) => !strategyPlatformKeys.has(i.platform) && !isSmsPlatform(i.platform),
                 )
-                setRetroCalendarData({ ...data, items: retroItems, duration: data.duration })
+                const saved: StrategyCalendarData = { ...data, items: retroItems, duration: data.duration }
+                if (retroLinkSocial) {
+                  patchRetroSocial(activeStrategyId, { calendarData: saved })
+                } else {
+                  setRetroCalendarData(saved)
+                }
                 if (retroSourceChoice === 'none' && retroItems.length > 0) {
-                  setRetroPlatformPhases((prev) =>
-                    syncManualRetroPlatformPhasesFromItems(prev, retroItems),
-                  )
+                  if (retroLinkSocial) {
+                    setRetroSocialByStrategy((prev) => {
+                      const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
+                      return {
+                        ...prev,
+                        [activeStrategyId]: {
+                          ...bundle,
+                          platformPhases: syncManualRetroPlatformPhasesFromItems(
+                            bundle.platformPhases,
+                            retroItems,
+                          ),
+                        },
+                      }
+                    })
+                  } else {
+                    setRetroPlatformPhases((prev) =>
+                      syncManualRetroPlatformPhasesFromItems(prev, retroItems),
+                    )
+                  }
                 }
               }
 
               return (
                   <StrategyCalendarBuilder
-                    key={`retro-${existingFromForm.startDate}-${existingFromForm.duration}-${retroLinkSocial}-${retroLinkSms}`}
+                    key={`retro-${existingFromForm.startDate}-${existingFromForm.duration}-${retroLinkSocial}-${retroLinkSms}-${retroLinkSocial ? activeStrategyId : 'na'}`}
                     platformSources={platformSources}
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
@@ -4592,6 +4736,15 @@ export default function VentePage() {
                     onSave={handleSave}
                     autoPersist
                     onPlatformStartDateChange={(entryKey, startDate) => {
+                      const patchStrategyDates = (lineKey: string, date: string) => {
+                        setDefineDatesPerStrategy((prev) => ({
+                          ...prev,
+                          [activeStrategyId]: {
+                            ...(prev[activeStrategyId] ?? {}),
+                            [lineKey]: date,
+                          },
+                        }))
+                      }
                       const sub = entryKey.match(/^(.*)::p(\d+)$/)
                       if (sub && strategyPlatformKeys.has(entryKey)) {
                         const parentLine = sub[1]!
@@ -4602,20 +4755,20 @@ export default function VentePage() {
                         )
                         const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
                         const totalDays = Math.max(1, row?.days ?? stratDur)
+                        const splits = activeRetroSocial.socialLineSplits
                         const raw =
-                          retroSocialLineSplits[parentLine] &&
-                          retroSocialLineSplits[parentLine]!.length > 0
-                            ? retroSocialLineSplits[parentLine]!
+                          splits[parentLine] && splits[parentLine]!.length > 0
+                            ? splits[parentLine]!
                             : [{ name: row?.objective ?? 'Phase', days: totalDays }]
                         const segs = rebalanceRetroSocialSegments(raw, totalDays)
                         let offset = 0
                         for (let i = 0; i < idx && i < segs.length; i++) offset += segs[i]!.days
                         const parentDate = addCalendarDays(startDate, -offset)
-                        setDefineDatesPerPlatform((prev) => ({ ...prev, [parentLine]: parentDate }))
+                        patchStrategyDates(parentLine, parentDate)
                         return
                       }
                       if (strategyPlatformKeys.has(entryKey)) {
-                        setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                        patchStrategyDates(entryKey, startDate)
                       }
                     }}
                     onPlatformDaysChange={
@@ -4625,7 +4778,8 @@ export default function VentePage() {
                             if (sub && strategyPlatformKeys.has(entryKey)) {
                               const parentLine = sub[1]!
                               const idx = parseInt(sub[2]!, 10)
-                              setRetroSocialLineSplits((prev) => {
+                              setRetroSocialByStrategy((prev) => {
+                                const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
                                 const block = strategies.find((s) => s.id === activeStrategyId)
                                 const row = block?.items.find(
                                   (it) => retroStrategyLineKey(it.platform, it.objective) === parentLine,
@@ -4633,16 +4787,23 @@ export default function VentePage() {
                                 if (!row) return prev
                                 const stratDur = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
                                 const totalDays = Math.max(1, row.days ?? stratDur)
+                                const prevSplits = bundle.socialLineSplits
                                 const raw =
-                                  prev[parentLine] && prev[parentLine]!.length > 0
-                                    ? prev[parentLine]!
+                                  prevSplits[parentLine] && prevSplits[parentLine]!.length > 0
+                                    ? prevSplits[parentLine]!
                                     : [{ name: row.objective, days: totalDays }]
                                 const segs = [...rebalanceRetroSocialSegments(raw, totalDays)]
                                 if (idx < 0 || idx >= segs.length) return prev
                                 segs[idx] = { ...segs[idx]!, days: Math.max(1, days) }
                                 return {
                                   ...prev,
-                                  [parentLine]: rebalanceRetroSocialSegments(segs, totalDays),
+                                  [activeStrategyId]: {
+                                    ...bundle,
+                                    socialLineSplits: {
+                                      ...bundle.socialLineSplits,
+                                      [parentLine]: rebalanceRetroSocialSegments(segs, totalDays),
+                                    },
+                                  },
                                 }
                               })
                               return
@@ -4925,6 +5086,7 @@ export default function VentePage() {
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               if (!block) return null
+              const datesForCalDialog = defineDatesPerStrategy[calendarStrategyId] ?? {}
               const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
               const daysBetween = (a: string, b: string) =>
                 Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
@@ -4940,13 +5102,13 @@ export default function VentePage() {
               }))
               const starts = block.items.map((it) => {
                 const key = `${it.platform}::${it.objective}`
-                return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+                return datesForCalDialog[key] ?? new Date().toISOString().slice(0, 10)
               })
               const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
               let globalEndDay = 0
               const computedItems = block.items.map((item, i) => {
                 const key = `${item.platform}::${item.objective}`
-                const startDate = defineDatesPerPlatform[key] ?? globalStart
+                const startDate = datesForCalDialog[key] ?? globalStart
                 const startDay = Math.max(0, daysBetween(globalStart, startDate))
                 const length = Math.max(1, item.days ?? duration)
                 globalEndDay = Math.max(globalEndDay, startDay + length)
@@ -4974,7 +5136,13 @@ export default function VentePage() {
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
                     onPlatformStartDateChange={(entryKey, startDate) =>
-                      setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
+                      setDefineDatesPerStrategy((prev) => ({
+                        ...prev,
+                        [calendarStrategyId]: {
+                          ...(prev[calendarStrategyId] ?? {}),
+                          [entryKey]: startDate,
+                        },
+                      }))
                     }
                     onPlatformDaysChange={(entryKey, days) => {
                       setStrategies((prev) =>
