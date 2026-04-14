@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1452,20 +1450,6 @@ const SMSRCSPDFDocument = ({
 }
 
 export default function VentePage() {
-  const router = useRouter()
-  const [adminChecked, setAdminChecked] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const ok = await checkIsAdmin()
-      if (cancelled) return
-      setAdminChecked(true)
-      if (!ok) router.replace('/home')
-    })()
-    return () => { cancelled = true }
-  }, [router])
-
   // État du formulaire
   const [calculationMode, setCalculationMode] = useState<CalculationMode>('budget-to-kpis')
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
@@ -2229,14 +2213,6 @@ export default function VentePage() {
     setSmsPdfFileName('')
     setSmsPdfComment('')
     setSmsPdfImage(null)
-  }
-
-  if (!adminChecked) {
-    return (
-      <div className="container mx-auto px-4 py-24 flex items-center justify-center">
-        Chargement...
-      </div>
-    )
   }
 
   return (
