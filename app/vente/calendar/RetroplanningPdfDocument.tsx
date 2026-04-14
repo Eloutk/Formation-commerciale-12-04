@@ -894,8 +894,12 @@ export function RetroplanningPdfDocument(payload: RetroplanningPdfPayload) {
   )
 }
 
+export async function getRetroplanningPdfBlob(payload: RetroplanningPdfPayload): Promise<Blob> {
+  return pdf(<RetroplanningPdfDocument {...payload} />).toBlob()
+}
+
 export async function downloadRetroplanningPdf(payload: RetroplanningPdfPayload): Promise<void> {
-  const blob = await pdf(<RetroplanningPdfDocument {...payload} />).toBlob()
+  const blob = await getRetroplanningPdfBlob(payload)
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

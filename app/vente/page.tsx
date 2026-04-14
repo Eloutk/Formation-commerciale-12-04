@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
+import JSZip from 'jszip'
 import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
@@ -31,6 +32,7 @@ import {
 } from '@/app/vente/calendar/syncManualRetroFromStore'
 import {
   downloadRetroplanningPdf,
+  getRetroplanningPdfBlob,
   type RetroplanningPdfExportOptions,
 } from '@/app/vente/calendar/RetroplanningPdfDocument'
 import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/app/vente/calendar/types'
@@ -641,38 +643,43 @@ const formatNumber = (num: number, decimals: number = 0): string => {
   return decimalPart ? `${formatted},${decimalPart}` : formatted
 }
 
-/** Mois de diffusion (tranches de 30 j) : ceil(jours/30), min. 1 — ex. 15 j → 1, 60 j → 2 */
-function diffusionRepetitionMonths(briefDays: number): number {
+/** Nombre de tranches de 30 j. (min. 1) — ex. 15 j → 1, 60 j → 2 */
+function kpiMaxTranches30j(briefDays: number): number {
   const d = Math.max(1, Math.floor(briefDays))
   return Math.max(1, Math.ceil(d / 30))
 }
 
-/** KPIs à vendre : idéale 70 % / 1 % × c × r ; max 80 % / 1,5 % × c × r (impressions et clics × répétition). */
-function kpiMaxQuantitesAVendre(comptes: number, repetition: number) {
+/** Répétition stratégie idéale : 1,5 × chaque tranche de 30 j. (ex. 1 tranche → 1,5). */
+function kpiMaxRepetitionIdeal(briefDays: number): number {
+  return kpiMaxTranches30j(briefDays) * 1.5
+}
+
+/** Répétition stratégie max : 2 × chaque tranche de 30 j. (ex. 1 tranche → 2). */
+function kpiMaxRepetitionMax(briefDays: number): number {
+  return kpiMaxTranches30j(briefDays) * 2
+}
+
+/**
+ * KPIs à vendre : idéale 70 % / 1 % × c × r_idéal ; max 80 % / 1,5 % × c × r_max
+ * (r_idéal et r_max diffèrent selon la règle de répétition par tranche de 30 j.).
+ */
+function kpiMaxQuantitesAVendre(comptes: number, briefDays: number) {
   const c = Math.max(1, Math.floor(comptes))
-  const r = Math.max(1, repetition)
+  const rIdeal = kpiMaxRepetitionIdeal(briefDays)
+  const rMax = kpiMaxRepetitionMax(briefDays)
   return {
     ideal: {
-      impressions: 0.7 * c * r,
-      clics: 0.01 * c * r,
+      impressions: 0.7 * c * rIdeal,
+      clics: 0.01 * c * rIdeal,
     },
     max: {
-      impressions: 0.8 * c * r,
-      clics: 0.015 * c * r,
+      impressions: 0.8 * c * rMax,
+      clics: 0.015 * c * rMax,
     },
   }
 }
 
-/** Métrique mise en avant dans les encarts selon l’objectif du brief (le reste en secondaire). */
-function kpiMaxHighlightedMetric(objective: string): 'impressions' | 'clics' {
-  const o = objective.trim().toLowerCase()
-  if (o.includes('impression')) return 'impressions'
-  return 'clics'
-}
-
-const KPI_MAX_BRIEF_OBJECTIVES = ['Impressions', 'Clics'] as const
-
-/** En dessous de ce nombre de comptes : les deux colonnes affichent « Max » sans chiffre (pas d’engagement KPI). */
+/** En dessous de ce nombre de comptes : les quatre encarts affichent « Max » sans chiffre (pas d’engagement KPI). */
 const KPI_MAX_COMMIT_MIN_COMPTES = 50_000
 
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
@@ -1534,6 +1541,117 @@ const SMSRCSPDFDocument = ({
   )
 }
 
+/** PDF synthèse onglet KPIs max (paramètres + 4 volumes : impressions / clics × idéal / max). */
+const KpiMaxPdfDocument = ({
+  clientName,
+  userName,
+  diffusionDaysStr,
+  comptesStr,
+}: {
+  clientName: string
+  userName: string
+  diffusionDaysStr: string
+  comptesStr: string
+}) => {
+  const jStr = diffusionDaysStr.trim()
+  const cStr = comptesStr.trim()
+  const jNum = parseFloat(jStr.replace(',', '.'))
+  const cNum = parseFloat(cStr.replace(',', '.'))
+  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
+  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
+  const showVolumes = daysOk && comptesOk
+  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
+  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
+  const tranches30 = daysOk ? kpiMaxTranches30j(j) : 1
+  const coeffIdeal = daysOk ? kpiMaxRepetitionIdeal(j) : 1.5
+  const coeffMax = daysOk ? kpiMaxRepetitionMax(j) : 2
+  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
+  const belowCommitThreshold = comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+
+  const kpiBox = (title: string, subtitle: string, borderColor: string, value: number, unit: string) => (
+    <View
+      style={[
+        styles.summary,
+        {
+          borderColor,
+          width: '48%',
+          marginBottom: 10,
+          minHeight: 100,
+        },
+      ]}
+    >
+      <Text style={[styles.chartTitle, { marginBottom: 4, fontSize: 11 }]}>{title}</Text>
+      <Text style={{ fontSize: 9, color: '#64748b', marginBottom: 8 }}>{subtitle}</Text>
+      {belowCommitThreshold ? (
+        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Max</Text>
+      ) : (
+        <>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{formatNumber(Math.round(value), 0)}</Text>
+          <Text style={[styles.itemLabel, { marginTop: 4, fontSize: 9 }]}>{unit}</Text>
+        </>
+      )}
+    </View>
+  )
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <Text style={styles.title}>KPIs max</Text>
+        <Text style={[styles.summaryText, { marginBottom: 6, fontSize: 12 }]}>
+          {userName ? `Commercial : ${userName}` : 'Export KPIs max'}
+        </Text>
+        {clientName.trim() ? (
+          <Text style={[styles.clientName, { fontSize: 14, marginBottom: 10 }]}>Client : {clientName.trim()}</Text>
+        ) : null}
+        <Text style={[styles.summaryText, { marginBottom: 12 }]}>{new Date().toLocaleDateString('fr-FR')}</Text>
+
+        <View style={styles.summary}>
+          <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Paramètres</Text>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Jours de diffusion</Text>
+            <Text style={styles.itemValue}>{jStr || '—'}</Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Nombre de comptes</Text>
+            <Text style={styles.itemValue}>{cStr || '—'}</Text>
+          </View>
+          {daysOk && (
+            <Text style={[styles.itemLabel, { marginTop: 8, fontSize: 9, color: '#64748b' }]} wrap>
+              Tranches 30 j. : {tranches30} — coeff. idéal ×{coeffIdeal.toString().replace('.', ',')} (1,5/tranche) · coeff.
+              max ×{coeffMax} (2/tranche)
+            </Text>
+          )}
+        </View>
+
+        {!showVolumes ? (
+          <Text style={{ marginTop: 16, lineHeight: 1.45 }} wrap>
+            Indiquez des jours de diffusion et un nombre de comptes valides pour afficher les volumes estimés.
+          </Text>
+        ) : (
+          <View style={{ marginTop: 16 }}>
+            {belowCommitThreshold && (
+              <Text style={{ fontSize: 10, color: '#b45309', marginBottom: 8 }} wrap>
+                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes : volumes non chiffrés (affichage « Max »
+                côté écran).
+              </Text>
+            )}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              {v ? (
+                <>
+                  {kpiBox('Impressions', 'Stratégie idéale', '#10b981', v.ideal.impressions, 'impressions')}
+                  {kpiBox('Impressions', 'Stratégie max', '#E94C16', v.max.impressions, 'impressions')}
+                  {kpiBox('Clics', 'Stratégie idéale', '#10b981', v.ideal.clics, 'clics')}
+                  {kpiBox('Clics', 'Stratégie max', '#E94C16', v.max.clics, 'clics')}
+                </>
+              ) : null}
+            </View>
+          </View>
+        )}
+      </Page>
+    </Document>
+  )
+}
+
 export default function VentePage() {
   const router = useRouter()
   const [adminChecked, setAdminChecked] = useState(false)
@@ -1558,8 +1676,6 @@ export default function VentePage() {
   const [kpiMaxComptesDispo, setKpiMaxComptesDispo] = useState<string>('1')
   /** Onglet Kpis max : jours de diffusion propres (non liés au calculateur Social) */
   const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
-  /** Objectif du brief pour l’encart principal (impressions vs clics) */
-  const [kpiMaxBriefObjective, setKpiMaxBriefObjective] = useState<string>('Impressions')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
@@ -1740,6 +1856,10 @@ export default function VentePage() {
   const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
   const [validationMessage, setValidationMessage] = useState('')
   const [sendingToSlack, setSendingToSlack] = useState(false)
+  const [globalPackDialogOpen, setGlobalPackDialogOpen] = useState(false)
+  const [globalPackClientName, setGlobalPackClientName] = useState('')
+  const [globalPackComment, setGlobalPackComment] = useState('')
+  const [globalPackExporting, setGlobalPackExporting] = useState(false)
   const [userPseudo, setUserPseudo] = useState<string>('')
   
   // État pour le sélecteur de graphique
@@ -1831,6 +1951,15 @@ export default function VentePage() {
     }
     return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
+  /**
+   * Mêmes critères que les boutons « Télécharger le devis SMS / RCS en PDF »
+   * (handleOpenSMSPDFDialog / handleOpenRCSPDFDialog).
+   */
+  const smsDevisPdfEligible =
+    smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
+  const rcsDevisPdfEligible =
+    smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
 
   /** Au moins une ligne dans la stratégie Social active (pour rétroplanning lié) */
   const activeStrategyHasLines = useMemo(() => {
@@ -2492,6 +2621,222 @@ export default function VentePage() {
     }
   }
 
+  const handleGlobalPackExport = async () => {
+    const clientLabel = globalPackClientName.trim()
+    if (!clientLabel) {
+      alert('Veuillez renseigner le nom du client.')
+      return
+    }
+
+    const fetchAsDataUrl = async (url: string, timeoutMs: number): Promise<string | null> => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        if (!res.ok) return null
+        const blob = await res.blob()
+        return await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null)
+          reader.onerror = () => resolve(null)
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        return null
+      }
+    }
+
+    setGlobalPackExporting(true)
+    try {
+      const zip = new JSZip()
+      const readmeLines: string[] = [
+        'Pack export — Calculateur Vente 2',
+        `Client : ${clientLabel}`,
+        `Date : ${new Date().toLocaleString('fr-FR')}`,
+        '',
+        'Fichiers :',
+        '',
+      ]
+
+      const logoDataUrl = await fetchAsDataUrl('/Logo Link Vertical (Orange).png', 2000)
+      const socialBlob = await pdf(
+        <PDFDocument
+          strategies={strategies}
+          clientName={clientLabel}
+          userName={userName}
+          aePercentage={parseFloat(aePercentage) || 0}
+          comment={globalPackComment}
+          logoDataUrl={logoDataUrl}
+        />,
+      ).toBlob()
+      zip.file('01-strategies-social-media.pdf', socialBlob)
+      readmeLines.push('• 01-strategies-social-media.pdf — Stratégies Social media')
+
+      /** Aligné sur handleConfirmSMSRCSPDF (mêmes props que la modale devis). */
+      if (smsDevisPdfEligible) {
+        const smsBlob = await pdf(
+          <SMSRCSPDFDocument
+            type="sms"
+            volume={smsVolumeNumber}
+            unitPrice={smsUnitPrice}
+            totalPrice={smsTotalPrice}
+            options={{
+              ciblage: smsOptions.ciblage,
+              richSms: smsOptions.richSms,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
+            }}
+            salesConditions={SMS_SALES_CONDITIONS}
+            userName={userPseudo || userName}
+            tarifIntermarche={smsOptions.tarifIntermarche}
+            campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
+            comment={smsPdfComment || undefined}
+            imageBase64={smsPdfImage}
+          />,
+        ).toBlob()
+        zip.file('02-devis-sms.pdf', smsBlob)
+        readmeLines.push('• 02-devis-sms.pdf — Devis SMS')
+      } else {
+        readmeLines.push(
+          '— Devis SMS : non inclus (mêmes prérequis que l’export seul — « Veuillez configurer une campagne SMS valide avant de télécharger le PDF. »).',
+        )
+      }
+
+      if (rcsDevisPdfEligible) {
+        const rcsBlob = await pdf(
+          <SMSRCSPDFDocument
+            type="rcs"
+            volume={smsVolumeNumber}
+            unitPrice={rcsBasePU}
+            totalPrice={rcsTotalPrice}
+            options={{
+              agent: smsOptions.agent,
+              creaByLink: smsOptions.creaByLink,
+              tarifIntermarche: smsOptions.tarifIntermarche,
+              duplicateCampaign: smsOptions.duplicateCampaign,
+            }}
+            salesConditions={RCS_SALES_CONDITIONS}
+            userName={userPseudo || userName}
+            tarifIntermarche={smsOptions.tarifIntermarche}
+            campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
+            creaByLinkCount={creaByLinkCountNumber}
+            comment={smsPdfComment || undefined}
+            imageBase64={smsPdfImage}
+          />,
+        ).toBlob()
+        zip.file('03-devis-rcs.pdf', rcsBlob)
+        readmeLines.push('• 03-devis-rcs.pdf — Devis RCS')
+      } else {
+        readmeLines.push(
+          '— Devis RCS : non inclus (mêmes prérequis que l’export seul — campagne RCS valide et volume minimum 10 000).',
+        )
+      }
+
+      const retroHeaderComment =
+        retroPdfComment.trim() || globalPackComment.trim() || undefined
+      const retroClientLabel = retroPdfClientName.trim() || clientLabel
+
+      const cal2 = useCalendarStore.getState().getCalendarData()
+      const retroViewsOk = retroPdfIncludeWeekView || retroPdfIncludeMonthView
+      if (cal2.items.length > 0 && retroViewsOk) {
+        const block = strategies.find((s) => s.id === activeStrategyId)
+        const retroBlob = await getRetroplanningPdfBlob({
+          filename: 'retroplanning.pdf',
+          documentComment: retroHeaderComment,
+          personName: userName.trim() || userPseudo.trim() || '',
+          clientName: retroClientLabel,
+          linkSocial: retroLinkSocial,
+          linkSms: retroLinkSms,
+          smsType,
+          includeWeekTimeline: retroPdfIncludeWeekView,
+          includeMonthGrids: retroPdfIncludeMonthView,
+          strategyLines:
+            retroLinkSocial && block?.items?.length
+              ? block.items.map((it) => ({
+                  platform: it.platform,
+                  objective: it.objective,
+                  budget: it.budget,
+                  estimatedKPIs: it.estimatedKPIs,
+                  days: it.days,
+                  aePercentage: it.aePercentage,
+                  customKpiLabel: it.customKpiLabel,
+                  dailyBudget: it.dailyBudget,
+                }))
+              : undefined,
+          smsQuoteDetail: retroLinkSms
+            ? {
+                volume: smsVolumeNumber,
+                unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
+                options:
+                  smsType === 'sms'
+                    ? {
+                        ciblage: smsOptions.ciblage,
+                        richSms: smsOptions.richSms,
+                        tarifIntermarche: smsOptions.tarifIntermarche,
+                        duplicateCampaign: smsOptions.duplicateCampaign,
+                      }
+                    : {
+                        agent: smsOptions.agent,
+                        creaByLink: smsOptions.creaByLink,
+                        tarifIntermarche: smsOptions.tarifIntermarche,
+                        duplicateCampaign: smsOptions.duplicateCampaign,
+                      },
+                campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
+                creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
+                comment: smsPdfComment.trim() || undefined,
+                imageBase64: smsPdfImage ?? undefined,
+              }
+            : undefined,
+          calendarData: cal2,
+        })
+        zip.file('04-retroplanning.pdf', retroBlob)
+        readmeLines.push('• 04-retroplanning.pdf — Rétroplanning (vues comme dans la modale d’export rétro)')
+      } else {
+        readmeLines.push(
+          cal2.items.length === 0
+            ? '— Rétroplanning : non inclus (aucune ligne dans le calendrier — même règle que l’export depuis l’onglet).'
+            : '— Rétroplanning : non inclus (aucune vue PDF cochée — cochez au moins frise et/ou mois dans la modale rétro).',
+        )
+      }
+
+      const kpiBlob = await pdf(
+        <KpiMaxPdfDocument
+          clientName={clientLabel}
+          userName={userPseudo || userName}
+          diffusionDaysStr={kpiMaxDiffusionDays}
+          comptesStr={kpiMaxComptesDispo}
+        />,
+      ).toBlob()
+      zip.file('05-kpis-max.pdf', kpiBlob)
+      readmeLines.push('• 05-kpis-max.pdf — KPIs max')
+
+      readmeLines.push(
+        '',
+        'Les exclusions suivent les mêmes règles que les boutons d’export PDF de chaque onglet (voir les libellés ci-dessus).',
+      )
+      zip.file('LISEZMOI.txt', readmeLines.join('\n'))
+
+      const safe = clientLabel.replace(/[^\w\-]+/g, '_').replace(/_+/g, '_').slice(0, 80)
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `pack-vente-${safe}-${new Date().toISOString().split('T')[0]}.zip`
+      link.click()
+      URL.revokeObjectURL(url)
+      setGlobalPackDialogOpen(false)
+      setGlobalPackClientName('')
+      setGlobalPackComment('')
+    } catch (e) {
+      console.error(e)
+      alert('Erreur lors de la génération du pack. Réessayez ou vérifiez la console.')
+    } finally {
+      setGlobalPackExporting(false)
+    }
+  }
+
   if (!adminChecked) {
     return (
       <div className="container mx-auto px-4 py-24 flex items-center justify-center">
@@ -2511,8 +2856,32 @@ export default function VentePage() {
             contractuelle.
           </p>
         </div>
-        {/* Sous-onglets PDV */}
-        <div className="mb-6">
+        {/* Sous-onglets PDV + pack global */}
+        <div className="mb-6 space-y-4">
+          <div className="flex justify-center px-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setGlobalPackClientName(clientName)
+                setGlobalPackComment(pdfClientComment)
+                setGlobalPackDialogOpen(true)
+              }}
+              disabled={globalPackExporting}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white shadow-sm"
+            >
+              {globalPackExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Génération du pack…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger le pack complet (ZIP)
+                </>
+              )}
+            </Button>
+          </div>
           <Tabs
             value={pdvSection}
             onValueChange={(value) => setPdvSection(value as PdvSection)}
@@ -4855,8 +5224,8 @@ export default function VentePage() {
                   KPIs max
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Estimation indicative à partir de vos paramètres. Les volumes se mettent à jour automatiquement selon
-                  l’objectif du brief (impressions ou clics).
+                  Estimation indicative : impressions et clics pour les scénarios idéal et max, selon jours de diffusion et
+                  nombre de comptes.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8 pt-6">
@@ -4870,13 +5239,12 @@ export default function VentePage() {
                   const showVolumes = daysOk && comptesOk
                   const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
                   const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
-                  const r = daysOk ? diffusionRepetitionMonths(j) : 1
-                  const v = showVolumes ? kpiMaxQuantitesAVendre(c, r) : null
-                  const highlight = kpiMaxHighlightedMetric(kpiMaxBriefObjective)
+                  const tranches30 = daysOk ? kpiMaxTranches30j(j) : 1
+                  const coeffIdeal = daysOk ? kpiMaxRepetitionIdeal(j) : 1.5
+                  const coeffMax = daysOk ? kpiMaxRepetitionMax(j) : 2
+                  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
                   const belowCommitThreshold =
                     comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
-                  const primaryLabel =
-                    highlight === 'impressions' ? 'impressions' : 'clics'
                   return (
                     <>
                       <section className="space-y-3" aria-labelledby="kpi-max-params-heading">
@@ -4901,9 +5269,9 @@ export default function VentePage() {
                                 onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
                                 className="bg-background"
                               />
-                              <p className="text-xs text-muted-foreground tabular-nums">
+                              <p className="text-xs text-muted-foreground tabular-nums leading-relaxed">
                                 {daysOk
-                                  ? `Répétition : ${r} mois (tranches 30 j.)`
+                                  ? `Tranches 30 j. : ${tranches30} — idéal ×${coeffIdeal.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} (1,5 par tranche) · max ×${coeffMax.toLocaleString('fr-FR')} (2 par tranche)`
                                   : 'Indiquez la durée pour calculer la répétition.'}
                               </p>
                             </div>
@@ -4924,26 +5292,6 @@ export default function VentePage() {
                                 Selon le potentiel indiqué par les TM.
                               </p>
                             </div>
-                          </div>
-                          <div className="mt-5 space-y-2 sm:max-w-xs">
-                            <Label htmlFor="kpi-max-objectif-brief" className="text-foreground">
-                              Objectif du brief
-                            </Label>
-                            <Select
-                              value={kpiMaxBriefObjective}
-                              onValueChange={setKpiMaxBriefObjective}
-                            >
-                              <SelectTrigger id="kpi-max-objectif-brief" className="w-full bg-background">
-                                <SelectValue placeholder="Choisir…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {KPI_MAX_BRIEF_OBJECTIVES.map((obj) => (
-                                  <SelectItem key={obj} value={obj}>
-                                    {obj}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                           </div>
                         </div>
                       </section>
@@ -4968,24 +5316,48 @@ export default function VentePage() {
                                 Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes
                               </AlertTitle>
                               <AlertDescription className="text-sm leading-relaxed text-muted-foreground">
-                                Aucun volume chiffré n&apos;est affiché. Les scénarios idéal et max indiquent « Max » à
-                                titre indicatif — pas d&apos;engagement sur les KPIs pour ce palier volumétrique.
+                                Aucun volume chiffré n&apos;est affiché. Les quatre encarts indiquent « Max » à titre
+                                indicatif — pas d&apos;engagement sur les KPIs pour ce palier volumétrique.
                               </AlertDescription>
                             </Alert>
                           )}
 
-                          <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {(
                               [
                                 {
-                                  key: 'ideal' as const,
-                                  title: 'Stratégie idéale',
+                                  key: 'imp-ideal',
+                                  metric: 'impressions' as const,
+                                  scenario: 'ideal' as const,
+                                  title: 'Impressions',
+                                  subtitle: 'Stratégie idéale',
                                   cardClass:
                                     'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
                                 },
                                 {
-                                  key: 'max' as const,
-                                  title: 'Stratégie max',
+                                  key: 'imp-max',
+                                  metric: 'impressions' as const,
+                                  scenario: 'max' as const,
+                                  title: 'Impressions',
+                                  subtitle: 'Stratégie max',
+                                  cardClass:
+                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
+                                },
+                                {
+                                  key: 'clk-ideal',
+                                  metric: 'clics' as const,
+                                  scenario: 'ideal' as const,
+                                  title: 'Clics',
+                                  subtitle: 'Stratégie idéale',
+                                  cardClass:
+                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
+                                },
+                                {
+                                  key: 'clk-max',
+                                  metric: 'clics' as const,
+                                  scenario: 'max' as const,
+                                  title: 'Clics',
+                                  subtitle: 'Stratégie max',
                                   cardClass:
                                     'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
                                 },
@@ -4994,28 +5366,28 @@ export default function VentePage() {
                               <div
                                 key={slot.key}
                                 className={cn(
-                                  'flex min-h-[148px] flex-col gap-4 rounded-xl border border-border/70 p-5 shadow-sm',
+                                  'flex min-h-[132px] flex-col gap-3 rounded-xl border border-border/70 p-5 shadow-sm',
                                   slot.cardClass,
                                 )}
                               >
-                                <h3 className="text-sm font-semibold leading-none text-foreground">
-                                  {slot.title}
-                                </h3>
-                                <div className="mt-auto space-y-2">
-                                  <p className="text-sm font-medium text-foreground">{kpiMaxBriefObjective}</p>
+                                <div>
+                                  <h3 className="text-sm font-semibold leading-none text-foreground">{slot.title}</h3>
+                                  <p className="mt-1 text-xs text-muted-foreground">{slot.subtitle}</p>
+                                </div>
+                                <div className="mt-auto space-y-1">
                                   {belowCommitThreshold ? (
                                     <p className="text-3xl font-semibold tracking-tight text-foreground">Max</p>
                                   ) : (
                                     <>
                                       <p className="break-words text-3xl font-bold tabular-nums tracking-tight text-foreground sm:text-4xl">
                                         {formatNumber(
-                                          highlight === 'impressions'
-                                            ? Math.round(v[slot.key].impressions)
-                                            : Math.round(v[slot.key].clics),
+                                          Math.round(v[slot.scenario][slot.metric]),
                                           0,
                                         )}
                                       </p>
-                                      <p className="text-sm text-muted-foreground">{primaryLabel}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {slot.metric === 'impressions' ? 'impressions' : 'clics'}
+                                      </p>
                                     </>
                                   )}
                                 </div>
@@ -5038,9 +5410,7 @@ export default function VentePage() {
                               Saisissez jours de diffusion et nombre de comptes
                             </p>
                             <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">
-                              Les colonnes <span className="text-foreground/90">Stratégie idéale</span> et{' '}
-                              <span className="text-foreground/90">Stratégie max</span> apparaîtront ici avec
-                              l&apos;estimation correspondant à votre objectif.
+                              Les quatre encarts (impressions et clics × idéal et max) s&apos;afficheront ici.
                             </p>
                           </div>
                         </div>
@@ -5224,6 +5594,81 @@ export default function VentePage() {
             >
               <Download className="h-4 w-4 mr-2" />
               Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale pack ZIP global (Social + SMS/RCS + Rétro + KPIs max) */}
+      <Dialog
+        open={globalPackDialogOpen}
+        onOpenChange={(open) => {
+          setGlobalPackDialogOpen(open)
+          if (!open && !globalPackExporting) {
+            setGlobalPackClientName('')
+            setGlobalPackComment('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le pack complet (ZIP)</DialogTitle>
+            <DialogDescription>
+              Chaque PDF suit les mêmes règles que les exports unitaires : stratégies Social (nom et commentaire comme
+              pour « Télécharger le PDF »), devis SMS/RCS seulement si les conditions des boutons de l’onglet SMS sont
+              remplies, rétroplanning avec les vues et libellés de la modale d’export rétro (nom client rétro prioritaire
+              s’il est renseigné), KPIs max. Les exclusions sont détaillées dans LISEZMOI.txt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="global-pack-client">Nom du client *</Label>
+              <EditableInput
+                id="global-pack-client"
+                placeholder="Ex: Entreprise ABC"
+                value={globalPackClientName}
+                onChange={(e) => setGlobalPackClientName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && globalPackClientName.trim() && !globalPackExporting) {
+                    void handleGlobalPackExport()
+                  }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="global-pack-comment">Commentaire (optionnel)</Label>
+              <EditableInput
+                id="global-pack-comment"
+                placeholder="Ex: Brief Q1 2026"
+                value={globalPackComment}
+                onChange={(e) => setGlobalPackComment(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setGlobalPackDialogOpen(false)}
+              disabled={globalPackExporting}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleGlobalPackExport()}
+              disabled={!globalPackClientName.trim() || globalPackExporting}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {globalPackExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Génération…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger le ZIP
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
