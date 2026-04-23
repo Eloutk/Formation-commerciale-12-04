@@ -11,9 +11,10 @@ const nextConfig = {
   swcMinify: true,
   async redirects() {
     return [
-      // /vente = calculateur historique ; /vente2 = dernière version (admin)
+      // /vente = calculateur historique ; /calculateur-vente-2 = version complète (admin)
       { source: '/pdv', destination: '/vente', permanent: false },
-      { source: '/pdv2', destination: '/vente2', permanent: true },
+      { source: '/pdv2', destination: '/calculateur-vente-2', permanent: true },
+      { source: '/vente2', destination: '/calculateur-vente-2', permanent: true },
     ]
   },
   images: {

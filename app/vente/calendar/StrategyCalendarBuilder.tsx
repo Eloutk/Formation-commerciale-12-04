@@ -33,6 +33,8 @@ export interface StrategyCalendarBuilderProps {
   children?: React.ReactNode
   /** Export PDF (ex. document structuré rétroplanning) : fichier + callback */
   exportPdf?: { filename: string; onExport: () => Promise<void> }
+  /** Affiche le sélecteur Mois / Semaines (ex. modale stratégie Vente) */
+  showGranularitySelector?: boolean
   /** Affichage large (onglet Rétroplanning plein écran) */
   fullWidth?: boolean
   /** Afficher 2 mois côte à côte (onglet Rétroplanning). false = 1 mois (modale stratégie) */
@@ -72,6 +74,7 @@ export function StrategyCalendarBuilder({
   calendarWarnings,
   children,
   exportPdf,
+  showGranularitySelector: showGranularitySelectorProp,
   fullWidth,
   twoMonths = false,
   forceTimeGranularity,
@@ -88,7 +91,13 @@ export function StrategyCalendarBuilder({
   const moveItem = useCalendarStore((s) => s.moveItem)
   const resizeItem = useCalendarStore((s) => s.resizeItem)
 
-  const itemsSignature = existing?.items?.map((i) => `${i.platform}-${i.startDay}-${i.length}`).join('|') ?? ''
+  const itemsSignature =
+    existing?.items
+      ?.map(
+        (i) =>
+          `${i.platform}-${i.startDay}-${i.length}-${i.budget ?? 0}-${(i.kpiLabel ?? '').slice(0, 48)}-${i.objective ?? ''}`,
+      )
+      .join('|') ?? ''
   useEffect(() => {
     initFromStrategy(platformSources, duration, existing)
   }, [platformSources, duration, existing?.startDate, existing?.duration, itemsSignature, initFromStrategy])
@@ -179,8 +188,10 @@ export function StrategyCalendarBuilder({
       <div className="w-full flex flex-col gap-4 min-h-0 p-4 sm:p-5">
         <div className="flex justify-center w-full">
           <div className={`w-full ${maxWidthClass} flex flex-col gap-3`}>
-            <CalendarToolbar showGranularitySelector={fullWidth} />
             {children}
+            <CalendarToolbar
+              showGranularitySelector={showGranularitySelectorProp ?? !!fullWidth}
+            />
           </div>
         </div>
 

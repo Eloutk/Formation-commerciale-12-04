@@ -701,6 +701,23 @@ function kpiMaxQuantitesAVendre(comptes: number, briefDays: number) {
   }
 }
 
+/**
+ * Taux de pénétration (%) par scénario — formules à brancher (paramètres : comptes, jours de diffusion).
+ * Retourner un nombre (ex. 12.5 pour 12,5 %) ou null tant que le calcul n’est pas défini.
+ */
+function kpiMaxTauxPenetrationPct(
+  _comptes: number,
+  _briefDays: number,
+  _scenario: 'ideal' | 'max',
+): number | null {
+  return null
+}
+
+function formatKpiMaxPenetrationPct(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return '—'
+  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
+}
+
 /** En dessous de ce nombre de comptes : les quatre encarts affichent « Max » sans chiffre (pas d’engagement KPI). */
 const KPI_MAX_COMMIT_MIN_COMPTES = 50_000
 
@@ -1633,6 +1650,26 @@ const KpiMaxPdfDocument = ({
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>Nombre de comptes</Text>
             <Text style={styles.itemValue}>{cStr || '—'}</Text>
+          </View>
+        </View>
+
+        <View style={[styles.summary, { marginTop: 12, borderColor: '#e5e5e5', borderWidth: 1 }]}>
+          <Text style={[styles.chartTitle, { marginBottom: 8, fontSize: 12 }]}>Taux de pénétration</Text>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Stratégie idéale</Text>
+            <Text style={styles.itemValue}>
+              {formatKpiMaxPenetrationPct(
+                showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'ideal') : null,
+              )}
+            </Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Stratégie max</Text>
+            <Text style={styles.itemValue}>
+              {formatKpiMaxPenetrationPct(
+                showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'max') : null,
+              )}
+            </Text>
           </View>
         </View>
 
@@ -5202,8 +5239,8 @@ export default function VentePage() {
                   KPIs max
                 </CardTitle>
                 <CardDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Estimation indicative : impressions et clics pour les scénarios idéal et max, selon jours de diffusion et
-                  nombre de comptes.
+                  Estimation indicative : impressions, clics et taux de pénétration (idéal / max) selon jours de diffusion et
+                  nombre de comptes. Les formules de pénétration seront branchées sur les champs ci-dessous.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8 pt-6">
@@ -5218,6 +5255,8 @@ export default function VentePage() {
                   const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
                   const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
                   const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
+                  const penIdeal = showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'ideal') : null
+                  const penMax = showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'max') : null
                   const belowCommitThreshold =
                     comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
                   return (
@@ -5296,6 +5335,36 @@ export default function VentePage() {
                               </AlertDescription>
                             </Alert>
                           )}
+
+                          <div
+                            className="rounded-xl border border-border/60 bg-muted/10 p-4 sm:p-5"
+                            aria-labelledby="kpi-max-penetration-heading"
+                          >
+                            <h3
+                              id="kpi-max-penetration-heading"
+                              className="text-sm font-medium text-foreground"
+                            >
+                              Taux de pénétration
+                            </h3>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                              <div className="flex items-baseline justify-between gap-4 rounded-lg border border-border/50 bg-background/80 px-4 py-3">
+                                <span className="text-sm text-muted-foreground">Stratégie idéale</span>
+                                <span className="text-lg font-semibold tabular-nums text-foreground">
+                                  {formatKpiMaxPenetrationPct(penIdeal)}
+                                </span>
+                              </div>
+                              <div className="flex items-baseline justify-between gap-4 rounded-lg border border-border/50 bg-background/80 px-4 py-3">
+                                <span className="text-sm text-muted-foreground">Stratégie max</span>
+                                <span className="text-lg font-semibold tabular-nums text-foreground">
+                                  {formatKpiMaxPenetrationPct(penMax)}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+                              Les pourcentages s&apos;afficheront ici une fois les formules renseignées (mêmes entrées : jours
+                              de diffusion et nombre de comptes).
+                            </p>
+                          </div>
 
                           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {(
@@ -5385,7 +5454,8 @@ export default function VentePage() {
                               Saisissez jours de diffusion et nombre de comptes
                             </p>
                             <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">
-                              Les quatre encarts (impressions et clics × idéal et max) s&apos;afficheront ici.
+                              Les indicateurs (taux de pénétration, puis impressions et clics × idéal et max) s&apos;afficheront
+                              ici.
                             </p>
                           </div>
                         </div>

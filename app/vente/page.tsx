@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -511,6 +511,50 @@ interface StrategyBlock {
   calendar?: StrategyCalendar | StrategyCalendarData | null
 }
 
+/**
+ * Recalcule budget / KPIs / AE quotidien quand la durée (calendrier) change.
+ * — Budget → KPIs : budget média inchangé, KPIs ajustés ~proportionnellement à la durée.
+ * — KPIs → Budget : KPIs ajustés pareil, prix (budget) recalculé via le barème.
+ */
+function applyStrategyItemDaysChange(
+  it: StrategyItem,
+  newDays: number,
+  calculationMode: CalculationMode,
+  useTarifsDirection: boolean,
+): StrategyItem {
+  const days = Math.max(1, Math.floor(newDays))
+  const prevDays = Math.max(1, it.days)
+  const ratio = days / prevDays
+  const aeFactor = it.aePercentage / 100
+
+  let budget = it.budget
+  let estimatedKPIs = it.estimatedKPIs
+  if (estimatedKPIs > 0) {
+    estimatedKPIs = Math.max(1, Math.round(estimatedKPIs * ratio))
+  }
+
+  if (calculationMode === 'kpis-to-budget' && estimatedKPIs > 0) {
+    try {
+      const r = useTarifsDirection
+        ? calculatePriceForKPIsDirection(it.platform, it.objective, it.aePercentage, estimatedKPIs)
+        : calculatePriceForKPIs(it.platform, it.objective, it.aePercentage, estimatedKPIs)
+      budget = Math.round(r.price || 0)
+    } catch {
+      budget = it.budget
+    }
+  }
+
+  const dailyBudget = budget > 0 ? (budget * aeFactor) / days : 0
+  const aeCheckValue =
+    budget > 0
+      ? it.platform === 'Spotify'
+        ? budget * aeFactor
+        : (budget * aeFactor) / days
+      : 0
+
+  return { ...it, days, budget, estimatedKPIs, dailyBudget, aeCheckValue }
+}
+
 interface CustomRowState {
   objective: string
   budget: string
@@ -534,6 +578,74 @@ const getKpiUnitLabel = (objective: string): string => {
   if (o.includes('conversion')) return 'conversions'
   if (o.includes('clic')) return 'clics'
   return 'KPIs'
+}
+
+function daysBetweenIso(a: string, b: string): number {
+  return Math.round(
+    (new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) /
+      (24 * 60 * 60 * 1000),
+  )
+}
+
+/** Items + sources calendrier stratégique (modale Vente), alignés sur une date de début de frise. */
+function computeVenteStrategyCalendarItems(
+  block: StrategyBlock,
+  defineDatesPerPlatform: Record<string, string>,
+  diffusionDaysStr: string,
+  timelineStart: string,
+): {
+  platformSources: CalendarPlatformSource[]
+  items: StrategyCalendarData['items']
+  contentSpan: number
+  globalStart: string
+  timelineStartResolved: string
+} {
+  const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDaysStr) || 14))
+  const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
+    platform: `${item.platform}::${item.objective}`,
+    budget: item.budget,
+    kpiLabel: item.customKpiLabel
+      ? item.customKpiLabel
+      : item.estimatedKPIs > 0
+        ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
+        : getMaxKpiLabel(item.objective),
+    maxDays: Math.max(1, item.days ?? diffusionDuration),
+  }))
+  const savedCal =
+    block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
+      ? block.calendar
+      : null
+  const starts = block.items.map((it) => {
+    const key = `${it.platform}::${it.objective}`
+    return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+  })
+  const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+  const tsCandidate = timelineStart.trim() || globalStart
+  const ts = tsCandidate > globalStart ? globalStart : tsCandidate
+  const computedItems = block.items.map((item, i) => {
+    const key = `${item.platform}::${item.objective}`
+    const composite = `${item.platform}::${item.objective}`
+    const savedRow = savedCal?.items.find(
+      (it) =>
+        it.platform === composite ||
+        (!String(it.platform).includes('::') &&
+          it.platform === item.platform &&
+          (it.objective ?? '') === item.objective),
+    )
+    const startDate = defineDatesPerPlatform[key] ?? globalStart
+    const startDay = Math.max(0, daysBetweenIso(ts, startDate))
+    const length = Math.max(1, item.days ?? savedRow?.length ?? diffusionDuration)
+    return {
+      platform: composite,
+      startDay,
+      length,
+      budget: item.budget,
+      kpiLabel: platformSources[i]!.kpiLabel,
+      objective: item.objective,
+    }
+  })
+  const contentSpan = computedItems.reduce((m, it) => Math.max(m, it.startDay + it.length), 1)
+  return { platformSources, items: computedItems, contentSpan, globalStart, timelineStartResolved: ts }
 }
 
 // Fonction pour formater les nombres avec espaces classiques (pour PDF)
@@ -878,12 +990,16 @@ function formatIsoToPdfDate(iso: string) {
 function getPdfStrategyPlatformDates(
   block: StrategyBlock,
   platform: string,
+  objective?: string,
 ): { start: string; end: string } | null {
   const c = block.calendar
   if (!c) return null
   if (isStrategyCalendarData(c)) {
     if (!c.startDate || !c.items?.length) return null
-    const calItem = c.items.find((i) => i.platform === platform)
+    const composite = objective ? `${platform}::${objective}` : platform
+    const calItem = c.items.find(
+      (i) => i.platform === composite || i.platform === platform,
+    )
     if (!calItem) return null
     const base = new Date(c.startDate + 'T12:00:00')
     const start = new Date(base)
@@ -917,9 +1033,11 @@ function getPdfStrategyPlatformDates(
 function StrategyPdfCampaignItem({
   item,
   platformDates,
+  showAe,
 }: {
   item: StrategyItem
   platformDates: { start: string; end: string } | null
+  showAe: boolean
 }) {
   const kpiDisplay = item.customKpiLabel
     ? item.customKpiLabel
@@ -940,6 +1058,11 @@ function StrategyPdfCampaignItem({
       <Text style={styles.pdfItemDetailLine} wrap>
         Budget : {formatNumber(item.budget, 0)} €
       </Text>
+      {showAe && (
+        <Text style={styles.pdfItemDetailLine} wrap>
+          % AE : {item.aePercentage > 0 ? `${formatNumber(item.aePercentage, 0)} %` : '—'}
+        </Text>
+      )}
       <Text style={styles.pdfItemDetailLine} wrap>
         KPIs estimés : {kpiDisplay}
       </Text>
@@ -974,9 +1097,11 @@ function StrategyPdfCampaignItem({
 function StrategyPdfStrategyOverview({
   block,
   strategyIdx,
+  showAe,
 }: {
   block: StrategyBlock
   strategyIdx: number
+  showAe: boolean
 }) {
   const hasItems = block.items.length > 0
   const cal = block.calendar
@@ -1032,9 +1157,11 @@ function StrategyPdfStrategyOverview({
             <Text style={[styles.summaryTotal, { marginTop: 4 }]} wrap>
               Total : {formatNumber(total, 0)} €
             </Text>
-            <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
-              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
-            </Text>
+            {showAe && (
+              <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
+                AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
+              </Text>
+            )}
             {block.items.some((it) => it.tarifsDirection) && (
               <Text
                 style={[
@@ -1205,6 +1332,7 @@ const PDFDocument = ({
   aePercentage: _aePercentage,
   comment,
   logoDataUrl,
+  includeAeInPdf,
 }: {
   strategies: StrategyBlock[]
   clientName: string
@@ -1212,6 +1340,7 @@ const PDFDocument = ({
   aePercentage: number
   comment?: string
   logoDataUrl?: string | null
+  includeAeInPdf: boolean
 }) => {
   const strategyPages = strategies
     .map((block, strategyIdx) => ({ block, strategyIdx }))
@@ -1253,7 +1382,11 @@ const PDFDocument = ({
             <Text style={styles.pdfStrategySheetTitle} wrap>
               Stratégie {strategyIdx + 1} · {block.name}
             </Text>
-            <StrategyPdfStrategyOverview block={block} strategyIdx={strategyIdx} />
+            <StrategyPdfStrategyOverview
+              block={block}
+              strategyIdx={strategyIdx}
+              showAe={includeAeInPdf}
+            />
           </Page>
           {chunkItemsForPdf(block.items, PDF_STRATEGY_DETAIL_CHUNK).map((chunk, chunkIdx) => (
             <Page key={`${block.id}-detail-${chunkIdx}`} size="A4" style={styles.page} wrap={false}>
@@ -1267,7 +1400,8 @@ const PDFDocument = ({
                 <StrategyPdfCampaignItem
                   key={item.id}
                   item={item}
-                  platformDates={getPdfStrategyPlatformDates(block, item.platform)}
+                  platformDates={getPdfStrategyPlatformDates(block, item.platform, item.objective)}
+                  showAe={includeAeInPdf}
                 />
               ))}
             </Page>
@@ -1499,6 +1633,10 @@ export default function VentePage() {
   const [calendarPhasesMenuPlatform, setCalendarPhasesMenuPlatform] = useState<string | null>(null)
   const [calendarDragging, setCalendarDragging] = useState(false)
   const [calendarNewPhaseName, setCalendarNewPhaseName] = useState('')
+  /** Plage d’affichage du calendrier stratégique (modale), comme le rétroplanning Vente 2 */
+  const [calendarDisplayStart, setCalendarDisplayStart] = useState('')
+  const [calendarDisplayDuration, setCalendarDisplayDuration] = useState(90)
+  const strategyCalendarModalInitRef = useRef(false)
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -1517,6 +1655,8 @@ export default function VentePage() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [clientName, setClientName] = useState('')
   const [pdfClientComment, setPdfClientComment] = useState('')
+  /** Inclure les % AE dans l’export PDF (récap stratégie + détail par ligne). */
+  const [pdfIncludeAe, setPdfIncludeAe] = useState(true)
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -1620,6 +1760,41 @@ export default function VentePage() {
     }
     return setupFee + variablePerCampaign * campaignMonthsNumber
   }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
+  useEffect(() => {
+    if (!calendarDialogOpen) {
+      strategyCalendarModalInitRef.current = false
+      return
+    }
+    if (!calendarStrategyId || strategyCalendarModalInitRef.current) return
+    const block = strategies.find((s) => s.id === calendarStrategyId)
+    if (!block?.items.length) {
+      strategyCalendarModalInitRef.current = true
+      return
+    }
+    strategyCalendarModalInitRef.current = true
+    const savedCal =
+      block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
+        ? block.calendar
+        : null
+    const starts = block.items.map((it) => {
+      const key = `${it.platform}::${it.objective}`
+      return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+    })
+    const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+    const rawStart = savedCal?.startDate ?? globalStart
+    const safeStart = rawStart > globalStart ? globalStart : rawStart
+    const { contentSpan } = computeVenteStrategyCalendarItems(
+      block,
+      defineDatesPerPlatform,
+      diffusionDays,
+      safeStart,
+    )
+    const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+    const initialDur = Math.max(savedCal?.duration ?? 0, contentSpan, diffusionDuration)
+    setCalendarDisplayStart(safeStart)
+    setCalendarDisplayDuration(initialDur)
+  }, [calendarDialogOpen, calendarStrategyId, strategies, defineDatesPerPlatform, diffusionDays])
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -2028,6 +2203,7 @@ export default function VentePage() {
         aePercentage={parseFloat(aePercentage) || 0}
         comment={pdfClientComment}
         logoDataUrl={logoDataUrl}
+        includeAeInPdf={pdfIncludeAe}
       />
     )
     const blob = await pdf(doc).toBlob()
@@ -2055,6 +2231,7 @@ export default function VentePage() {
           clientName={clientName || 'Client'}
           userName={userName}
           aePercentage={parseFloat(aePercentage) || 0}
+          includeAeInPdf={pdfIncludeAe}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -2905,8 +3082,14 @@ export default function VentePage() {
                                       cal.items.forEach((it) => {
                                         const d = new Date(cal.startDate + 'T12:00:00')
                                         d.setDate(d.getDate() + it.startDay)
-                                        const key = `${it.platform}::${it.objective ?? ''}`
-                                        perPlatform[key] = d.toISOString().slice(0, 10)
+                                        const y = d.getFullYear()
+                                        const m = String(d.getMonth() + 1).padStart(2, '0')
+                                        const day = String(d.getDate()).padStart(2, '0')
+                                        const isoLocal = `${y}-${m}-${day}`
+                                        const key = it.platform.includes('::')
+                                          ? it.platform
+                                          : `${it.platform}::${(it.objective ?? '').trim()}`
+                                        perPlatform[key] = isoLocal
                                       })
                                     }
                                     block.items.forEach((item, i) => {
@@ -3153,12 +3336,12 @@ export default function VentePage() {
 
                           {/* Boutons d'export pour la stratégie active */}
                           {isActive && (
-                            <div className="flex gap-2 flex-shrink-0">
+                            <div className="flex gap-2 flex-shrink-0 flex-wrap">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setValidationTMDialogOpen(true)}
-                                className="flex-1"
+                                className="flex-1 min-w-[120px]"
                                 disabled={strategy.length === 0}
                               >
                                 Validation TM
@@ -3167,7 +3350,8 @@ export default function VentePage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setPdfDialogOpen(true)}
-                                className="flex-1"
+                                className="flex-1 min-w-[120px]"
+                                disabled={strategy.length === 0}
                               >
                                 <Download className="h-4 w-4 mr-2" />
                                 PDF
@@ -3674,6 +3858,8 @@ export default function VentePage() {
             }
             setCalendarStrategyId(null)
             setCalendarPhasesMenuPlatform(null)
+            setCalendarDisplayStart('')
+            setCalendarDisplayDuration(90)
           }
           setCalendarDialogOpen(open)
         }}
@@ -3682,92 +3868,157 @@ export default function VentePage() {
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
             <DialogDescription>
-              Cliquez sur une plateforme dans la légende puis sur un jour du calendrier pour définir sa date de début. Les pastilles affichent les jours de diffusion.
+              Définissez d’abord la <strong>plage du calendrier</strong> (date de début + nombre de jours), puis la vue Mois ou Semaines. Dans la légende, le champ « Jours » ou la poignée sur la frise met à jour la stratégie, le budget et les KPIs.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               if (!block) return null
-              const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-              const daysBetween = (a: string, b: string) =>
-                Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
-              const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
-                platform: `${item.platform}::${item.objective}`,
-                budget: item.budget,
-                kpiLabel: item.customKpiLabel
-                  ? item.customKpiLabel
-                  : item.estimatedKPIs > 0
-                    ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
-                    : getMaxKpiLabel(item.objective),
-                maxDays: Math.max(1, item.days ?? duration),
-              }))
-              const starts = block.items.map((it) => {
-                const key = `${it.platform}::${it.objective}`
-                return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
-              })
-              const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
-              let globalEndDay = 0
-              const computedItems = block.items.map((item, i) => {
-                const key = `${item.platform}::${item.objective}`
-                const startDate = defineDatesPerPlatform[key] ?? globalStart
-                const startDay = Math.max(0, daysBetween(globalStart, startDate))
-                const length = Math.max(1, item.days ?? duration)
-                globalEndDay = Math.max(globalEndDay, startDay + length)
-                return {
-                  platform: item.platform,
-                  startDay,
-                  length,
-                  budget: item.budget,
-                  kpiLabel: platformSources[i]!.kpiLabel,
-                  objective: item.objective,
-                }
-              })
-              const existingFromForm: StrategyCalendarData = { startDate: globalStart, duration: globalEndDay, items: computedItems }
+              if (block.items.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.
+                  </p>
+                )
+              }
+              const { platformSources, items, contentSpan, globalStart, timelineStartResolved } =
+                computeVenteStrategyCalendarItems(
+                  block,
+                  defineDatesPerPlatform,
+                  diffusionDays,
+                  calendarDisplayStart,
+                )
+              const effectiveDuration = Math.max(
+                Math.max(1, Math.floor(Number(calendarDisplayDuration)) || 1),
+                contentSpan,
+              )
+              const existingFromForm: StrategyCalendarData = {
+                startDate: timelineStartResolved,
+                duration: effectiveDuration,
+                items,
+              }
+              const firstDiffusionLabel = new Date(globalStart + 'T12:00:00').toLocaleDateString('fr-FR')
+              const displayEndIso = addCalendarDays(timelineStartResolved, effectiveDuration - 1)
+              const displayEndLabel = new Date(displayEndIso + 'T12:00:00').toLocaleDateString('fr-FR')
               return (
-                block.items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
-                ) : (
                 <>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de début en cliquant sur un jour, et modifier le nombre de jours de diffusion dans le champ « Jours ». Les pastilles et la couleur dans la stratégie se mettent à jour (rouge / orange si les règles ne sont pas respectées).
+                  <p className="text-sm text-muted-foreground">
+                    Première diffusion de la stratégie :{' '}
+                    <span className="font-medium text-foreground">{firstDiffusionLabel}</span>. La date de début de
+                    plage ne peut pas être après cette date ; vous pouvez la <strong>reculer</strong> (date plus tôt)
+                    pour afficher des jours avant le début des diffusions.
                   </p>
                   <StrategyCalendarBuilder
-                    key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
+                    key={`${calendarStrategyId}-${timelineStartResolved}-${effectiveDuration}`}
+                    showGranularitySelector
                     platformSources={platformSources}
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
+                    children={
+                      <div className="rounded-xl border-2 border-[#E94C16]/25 bg-[#E94C16]/5 px-3 py-3 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+                          <CalendarRange className="h-3.5 w-3.5 text-[#E94C16]" aria-hidden />
+                          Plage affichée sur le calendrier
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Période visible (grille mois + frise) :{' '}
+                          <span className="font-medium text-foreground tabular-nums">
+                            {new Date(timelineStartResolved + 'T12:00:00').toLocaleDateString('fr-FR')} →{' '}
+                            {displayEndLabel}
+                          </span>{' '}
+                          — <span className="tabular-nums">{effectiveDuration} j</span>
+                        </p>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div className="space-y-1.5 min-w-[11rem]">
+                            <Label htmlFor="strategy-cal-start" className="text-xs">
+                              Date de début d’affichage
+                            </Label>
+                            <Input
+                              id="strategy-cal-start"
+                              type="date"
+                              value={timelineStartResolved}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                if (!v) return
+                                setCalendarDisplayStart(v > globalStart ? globalStart : v)
+                              }}
+                              className="h-10 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5 w-[9.5rem]">
+                            <Label htmlFor="strategy-cal-dur" className="text-xs">
+                              Nombre de jours affichés
+                            </Label>
+                            <Input
+                              id="strategy-cal-dur"
+                              type="number"
+                              min={1}
+                              max={730}
+                              value={calendarDisplayDuration}
+                              onChange={(e) => {
+                                const n = Math.max(1, Math.min(730, Math.floor(Number(e.target.value) || 1)))
+                                setCalendarDisplayDuration(n)
+                              }}
+                              className="h-10 text-sm tabular-nums text-center"
+                            />
+                          </div>
+                        </div>
+                        {calendarDisplayDuration < contentSpan ? (
+                          <p className="text-[11px] text-amber-800 dark:text-amber-100/90">
+                            Durée minimale pour couvrir toutes les phases : {contentSpan} jour(s) (la frise utilise au
+                            moins cette valeur).
+                          </p>
+                        ) : null}
+                      </div>
+                    }
                     onPlatformStartDateChange={(entryKey, startDate) =>
                       setDefineDatesPerPlatform((prev) => ({ ...prev, [entryKey]: startDate }))
                     }
                     onPlatformDaysChange={(entryKey, days) => {
                       setStrategies((prev) =>
-                        prev.map((s) =>
-                          s.id !== calendarStrategyId
-                            ? s
-                            : {
-                                ...s,
-                                items: s.items.map((it) =>
-                                  `${it.platform}::${it.objective}` !== entryKey
-                                    ? it
-                                    : {
-                                        ...it,
-                                        days,
-                                        dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
-                                        aeCheckValue:
-                                          it.platform === 'Spotify'
-                                            ? it.budget * (it.aePercentage / 100)
-                                            : (it.budget * (it.aePercentage / 100)) / days,
-                                      }
-                                ),
-                              }
-                        )
+                        prev.map((s) => {
+                          if (s.id !== calendarStrategyId) return s
+                          const td = tarifsDirection
+                          const nextItems = s.items.map((it) =>
+                            `${it.platform}::${it.objective}` !== entryKey
+                              ? it
+                              : applyStrategyItemDaysChange(it, days, calculationMode, it.tarifsDirection ?? td),
+                          )
+                          const updatedLine = nextItems.find(
+                            (it) => `${it.platform}::${it.objective}` === entryKey,
+                          )
+                          const cal = s.calendar
+                          const nextCalendar =
+                            cal && isStrategyCalendarData(cal) && updatedLine
+                              ? {
+                                  ...cal,
+                                  items: cal.items.map((calIt) => {
+                                    const calKey = String(calIt.platform).includes('::')
+                                      ? calIt.platform
+                                      : `${calIt.platform}::${(calIt.objective ?? '').trim()}`
+                                    if (calKey !== entryKey) return calIt
+                                    const kpiLabel = updatedLine.customKpiLabel
+                                      ? updatedLine.customKpiLabel
+                                      : updatedLine.estimatedKPIs > 0
+                                        ? `${updatedLine.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(updatedLine.objective)}`
+                                        : getMaxKpiLabel(updatedLine.objective)
+                                    return {
+                                      ...calIt,
+                                      length: days,
+                                      budget: updatedLine.budget,
+                                      kpiLabel,
+                                    }
+                                  }),
+                                }
+                              : cal
+                          return { ...s, items: nextItems, calendar: nextCalendar }
+                        }),
                       )
                     }}
                     calendarWarnings={getCalendarWarningsForBlock(block)}
                   />
                 </>
-                )
               )
             })()}
           </div>
@@ -3807,6 +4058,24 @@ export default function VentePage() {
                 value={pdfClientComment}
                 onChange={(e) => setPdfClientComment(e.target.value)}
               />
+            </div>
+            <div className="flex items-start space-x-2 pt-1">
+              <Checkbox
+                id="pdf-include-ae"
+                checked={pdfIncludeAe}
+                onCheckedChange={(checked) => setPdfIncludeAe(checked === true)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="pdf-include-ae"
+                  className="text-sm font-medium text-foreground cursor-pointer"
+                >
+                  Afficher l&apos;AE dans le PDF
+                </label>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Récapitulatif (% AE de la stratégie) et % AE par ligne dans le détail. Décochez pour masquer ces éléments.
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>

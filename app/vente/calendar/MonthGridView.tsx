@@ -74,12 +74,15 @@ export function MonthGridView({
     if (Number.isNaN(start.getTime())) return null
     const end = new Date(startDate + 'T12:00:00')
     end.setDate(end.getDate() + dur - 1)
+    const ey = end.getFullYear()
+    const em = String(end.getMonth() + 1).padStart(2, '0')
+    const ed = String(end.getDate()).padStart(2, '0')
     return {
       firstY: start.getFullYear(),
       firstM: start.getMonth() + 1,
       lastY: end.getFullYear(),
       lastM: end.getMonth() + 1,
-      endIso: end.toISOString().slice(0, 10),
+      endIso: `${ey}-${em}-${ed}`,
       dur,
     }
   }, [startDate, duration])
@@ -344,6 +347,35 @@ export function MonthGridView({
                           ) : null}
                         </span>
                       </button>
+                      {onPlatformDaysChange ? (
+                        <div
+                          className="flex items-center gap-1.5 pl-7 mt-1"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <label
+                            htmlFor={`cal-days-${key}-${itemIdx}`}
+                            className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0"
+                          >
+                            Jours
+                          </label>
+                          <input
+                            id={`cal-days-${key}-${itemIdx}`}
+                            type="number"
+                            min={1}
+                            max={durDays}
+                            className="h-7 w-14 rounded-md border border-input bg-background px-1.5 text-xs tabular-nums"
+                            value={item.length}
+                            onChange={(e) => {
+                              const raw = parseInt(e.target.value, 10)
+                              const v = Number.isNaN(raw)
+                                ? 1
+                                : Math.max(1, Math.min(durDays, raw))
+                              onPlatformDaysChange(key, v)
+                            }}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   )
                 })}

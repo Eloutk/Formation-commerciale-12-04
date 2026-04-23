@@ -42,6 +42,12 @@ export function TimelineView({
   const startXRef = useRef(0)
   const startStartDayRef = useRef(0)
   const startLengthRef = useRef(0)
+  const onPlatformDaysChangeRef = useRef(onPlatformDaysChange)
+  const onPlatformStartDateSetRef = useRef(onPlatformStartDateSet)
+  useEffect(() => {
+    onPlatformDaysChangeRef.current = onPlatformDaysChange
+    onPlatformStartDateSetRef.current = onPlatformStartDateSet
+  }, [onPlatformDaysChange, onPlatformStartDateSet])
 
   const baseDayWidth =
     duration > 0 ? Math.min(DAY_WIDTH_DEFAULT, Math.max(12, MAX_TIMELINE_WIDTH / duration)) : DAY_WIDTH_DEFAULT
@@ -117,7 +123,22 @@ export function TimelineView({
       startStartDayRef.current = newStart
       startXRef.current = e.clientX
     }
-    const onUp = () => setDragging(null)
+    const onUp = () => {
+      const key = dragging
+      if (key) {
+        const st = useCalendarStore.getState()
+        const item = st.items.find((i) => i.platform === key)
+        const startDateStr = st.startDate
+        const dur = st.duration
+        const syncStart = onPlatformStartDateSetRef.current
+        if (item && startDateStr && dur > 0 && syncStart) {
+          const dArr = getDatesFromStart(startDateStr, dur)
+          const iso = dArr[item.startDay]
+          if (iso) syncStart(key, iso)
+        }
+      }
+      setDragging(null)
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => {
@@ -128,15 +149,24 @@ export function TimelineView({
 
   useEffect(() => {
     if (!resizing) return
+    const platformKey = resizing
     const onMove = (e: MouseEvent) => {
       const delta = e.clientX - startXRef.current
       const dayDelta = Math.round(delta / dayWidth)
       const newLength = Math.max(1, startLengthRef.current + dayDelta)
-      resizeItem(resizing, newLength)
-      startLengthRef.current = newLength
+      resizeItem(platformKey, newLength)
+      const after = useCalendarStore.getState().items.find((i) => i.platform === platformKey)
+      if (after) startLengthRef.current = after.length
       startXRef.current = e.clientX
     }
-    const onUp = () => setResizing(null)
+    const onUp = () => {
+      const cb = onPlatformDaysChangeRef.current
+      if (cb && platformKey) {
+        const item = useCalendarStore.getState().items.find((i) => i.platform === platformKey)
+        if (item) cb(platformKey, item.length)
+      }
+      setResizing(null)
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
     return () => {
