@@ -11,12 +11,20 @@ const targets = [
 function rmSafe(relPath) {
   const abs = path.join(root, relPath)
   try {
-    fs.rmSync(abs, { recursive: true, force: true })
+    fs.rmSync(abs, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 150,
+    })
     // eslint-disable-next-line no-console
     console.log(`[clean] removed ${relPath}`)
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.log(`[clean] skip ${relPath}: ${e?.message || e}`)
+    console.error(`[clean] failed ${relPath}: ${e?.message || e}`)
+    // eslint-disable-next-line no-console
+    console.error(`[clean] Fermez le serveur Next (npm run dev) puis relancez npm run clean.`)
+    process.exitCode = 1
   }
 }
 

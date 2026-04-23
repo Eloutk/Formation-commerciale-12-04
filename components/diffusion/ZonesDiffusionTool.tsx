@@ -23,7 +23,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Download, Loader2, MapPin, X } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertTriangle, Download, Loader2, MapPin, Users, X } from 'lucide-react'
+import {
+  circleBoundingBox,
+  populationCircleApprox,
+  populationDepartement,
+  populationRegion,
+} from '@/lib/diffusion/zone-population'
 import 'leaflet/dist/leaflet.css'
 
 type ZoneMode = 'city' | 'dept' | 'region'
@@ -44,6 +51,8 @@ type ZonePolygon = {
   kind: 'polygon'
   geometry: GeoJSON.Geometry
   label: string
+  adminType: 'dept' | 'region'
+  adminCode: string
 }
 
 type ZoneLayer = ZoneCircle | ZonePolygon
@@ -80,16 +89,19 @@ function extendBounds(acc: L.LatLngBounds | null, next: L.LatLngBounds | null): 
   return acc.extend(next)
 }
 
-/** Bounds d'un cercle géodésique (rayon en m) sans attacher la couche à une carte — évite l'erreur Leaflet getBounds() / layerPointToLatLng. */
-function latLngBoundsForCircleMeters(center: [number, number], radiusM: number): L.LatLngBounds {
-  const [lat, lng] = center
-  const metersPerDegLat = 111_320
-  const cosLat = Math.cos((lat * Math.PI) / 180)
-  const metersPerDegLng = Math.max(1e-6, 111_320 * cosLat)
-  const dLat = radiusM / metersPerDegLat
-  const dLng = radiusM / metersPerDegLng
-  return L.latLngBounds(L.latLng(lat - dLat, lng - dLng), L.latLng(lat + dLat, lng + dLng))
+/** Cercle → bounds Leaflet (évite d’importer Leaflet dans lib/ pour le SSR). */
+function circleToLatLngBounds(center: [number, number], radiusM: number): L.LatLngBounds {
+  const b = circleBoundingBox(center, radiusM)
+  return L.latLngBounds(L.latLng(b.south, b.west), L.latLng(b.north, b.east))
 }
+
+type PopLine = { label: string; population: number; method: string }
+
+type PopEstimateState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; lines: PopLine[]; total: number }
+  | { status: 'error'; message: string }
 
 export function ZonesDiffusionTool() {
   /** Zone Leaflet seule : capture pour PDF (évite décalages html2canvas sur le bloc titre+carte). */
@@ -110,12 +122,13 @@ export function ZonesDiffusionTool() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [popEstimate, setPopEstimate] = useState<PopEstimateState>({ status: 'idle' })
 
   const bounds = useMemo(() => {
     let b: L.LatLngBounds | null = null
     for (const z of zones) {
       if (z.kind === 'circle') {
-        b = extendBounds(b, latLngBoundsForCircleMeters(z.center, z.radiusM))
+        b = extendBounds(b, circleToLatLngBounds(z.center, z.radiusM))
       } else {
         try {
           const layer = L.geoJSON(z.geometry as GeoJSON.GeoJsonObject)
@@ -243,6 +256,8 @@ export function ZonesDiffusionTool() {
           kind: 'polygon',
           geometry: hit.geometry,
           label: `Dépt. ${nom} (${code})`,
+          adminType: 'dept',
+          adminCode: code,
         }
         setZones((prev) => [...prev, layer])
       } catch (e) {
@@ -274,6 +289,8 @@ export function ZonesDiffusionTool() {
           kind: 'polygon',
           geometry: hit.geometry,
           label: `Région ${nom}`,
+          adminType: 'region',
+          adminCode: code,
         }
         setZones((prev) => [...prev, layer])
       } catch (e) {
@@ -292,7 +309,66 @@ export function ZonesDiffusionTool() {
   const clearAllZones = useCallback(() => {
     setZones([])
     setError(null)
+    setPopEstimate({ status: 'idle' })
   }, [])
+
+  useEffect(() => {
+    if (!zones.length) {
+      setPopEstimate({ status: 'idle' })
+      return
+    }
+    let cancelled = false
+    setPopEstimate({ status: 'loading' })
+    ;(async () => {
+      try {
+        const lines: PopLine[] = []
+        for (const z of zones) {
+          if (cancelled) return
+          if (z.kind === 'polygon') {
+            if (z.adminType === 'dept') {
+              const population = await populationDepartement(z.adminCode)
+              lines.push({
+                label: z.label,
+                population,
+                method:
+                  'Somme des populations communales du département (champ « population » de geo.api.gouv.fr).',
+              })
+            } else {
+              const population = await populationRegion(z.adminCode)
+              lines.push({
+                label: z.label,
+                population,
+                method:
+                  'Somme des populations communales de tous les départements de la région (même source).',
+              })
+            }
+          } else {
+            const fc = await loadDeptFc()
+            if (cancelled) return
+            const population = await populationCircleApprox(z.center, z.radiusM, fc)
+            lines.push({
+              label: z.label,
+              population,
+              method:
+                'Somme des communes dont le centre géographique tombe dans le disque (approximation ; pas de découpe surfacique).',
+            })
+          }
+        }
+        const total = lines.reduce((s, l) => s + l.population, 0)
+        if (!cancelled) setPopEstimate({ status: 'ready', lines, total })
+      } catch (e) {
+        if (!cancelled) {
+          setPopEstimate({
+            status: 'error',
+            message: e instanceof Error ? e.message : "Impossible d'estimer la population.",
+          })
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [zones, loadDeptFc])
 
   const defaultCenter: [number, number] = [46.5, 2.5]
   const fallbackBoundsCenter = bounds?.isValid() ? bounds.getCenter() : null
@@ -362,7 +438,7 @@ export function ZonesDiffusionTool() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-border/80 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MapPin className="h-5 w-5 text-[#E94C16]" />
@@ -403,10 +479,16 @@ export function ZonesDiffusionTool() {
               setError(null)
             }}
           >
-            <TabsList className="grid w-full grid-cols-3 max-w-lg">
-              <TabsTrigger value="city">Ville + rayon</TabsTrigger>
-              <TabsTrigger value="dept">Département</TabsTrigger>
-              <TabsTrigger value="region">Région</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1 sm:max-w-2xl">
+              <TabsTrigger value="city" className="px-2 py-2.5 text-[11px] leading-tight sm:py-2 sm:text-sm">
+                Ville + rayon
+              </TabsTrigger>
+              <TabsTrigger value="dept" className="px-2 py-2.5 text-[11px] leading-tight sm:py-2 sm:text-sm">
+                Département
+              </TabsTrigger>
+              <TabsTrigger value="region" className="px-2 py-2.5 text-[11px] leading-tight sm:py-2 sm:text-sm">
+                Région
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="city" className="space-y-3 pt-4">
@@ -434,7 +516,7 @@ export function ZonesDiffusionTool() {
               </div>
               <Button
                 type="button"
-                className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                className="min-h-10 w-full bg-[#E94C16] text-white hover:bg-[#d43f12] sm:w-auto"
                 onClick={() => void addCityRadius()}
                 disabled={loading}
               >
@@ -466,7 +548,7 @@ export function ZonesDiffusionTool() {
                 </div>
                 <Button
                   type="button"
-                  className="bg-[#E94C16] hover:bg-[#d43f12] text-white sm:mb-0"
+                  className="min-h-10 w-full bg-[#E94C16] text-white hover:bg-[#d43f12] sm:mb-0 sm:w-auto"
                   onClick={() => void addDepartment(deptCode)}
                   disabled={loading || !deptCode}
                 >
@@ -499,7 +581,7 @@ export function ZonesDiffusionTool() {
                 </div>
                 <Button
                   type="button"
-                  className="bg-[#E94C16] hover:bg-[#d43f12] text-white sm:mb-0"
+                  className="min-h-10 w-full bg-[#E94C16] text-white hover:bg-[#d43f12] sm:mb-0 sm:w-auto"
                   onClick={() => void addRegion(regionCode)}
                   disabled={loading || !regionCode}
                 >
@@ -540,30 +622,36 @@ export function ZonesDiffusionTool() {
           ) : null}
 
           {error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
+            <Alert variant="destructive" className="border-destructive/40 py-3">
+              <AlertTriangle className="h-4 w-4" aria-hidden />
+              <AlertTitle className="text-sm">Action impossible</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
         </CardContent>
       </Card>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-md ring-1 ring-black/[0.04]">
         <div className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/60 bg-muted/30">
+          <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5 sm:py-3.5">
             <p className="text-sm font-medium text-foreground">
-              {summaryLabel || 'Aucune zone — ajoutez-en une ou plusieurs ci-dessus.'}
+              {summaryLabel ? (
+                <>Aperçu : {summaryLabel}</>
+              ) : (
+                <>Aucune zone pour l&apos;instant — ajoutez-en une ci-dessus pour voir la carte.</>
+              )}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Les zones se cumulent sur la carte. Représentation indicative — vérifiez le ciblage réel sur les
-              plateformes.
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Les zones se cumulent sur la carte. Représentation indicative ; validez le ciblage sur vos outils
+              métiers.
             </p>
           </div>
-          <div ref={mapOnlyCaptureRef} className="relative h-[min(420px,55vh)] w-full z-0 bg-white">
+          <div ref={mapOnlyCaptureRef} className="relative z-0 h-[min(440px,58vh)] w-full bg-white sm:h-[min(480px,55vh)]">
             {mapMounted ? (
               <MapContainer
                 center={mapCenter}
                 zoom={mapZoom}
-                className="h-full w-full z-0"
+                className="z-0 h-full w-full"
                 scrollWheelZoom
                 attributionControl
               >
@@ -600,28 +688,91 @@ export function ZonesDiffusionTool() {
                 )}
               </MapContainer>
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-muted/40 text-sm text-muted-foreground">
-                Préparation de la carte…
+              <div className="flex h-full min-h-[200px] w-full flex-col items-center justify-center gap-2 bg-muted/40 px-4 text-center text-sm text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin text-[#E94C16]" aria-hidden />
+                <span>Préparation de la carte…</span>
               </div>
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 px-4 py-3 border-t border-border/60 bg-muted/10">
-          <Button type="button" variant="outline" onClick={() => void handleExportPdf()} disabled={exporting || !zones.length}>
+        <div className="flex flex-col gap-3 border-t border-border/60 bg-muted/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-3.5">
+          <p className="text-xs leading-relaxed text-muted-foreground sm:max-w-md">
+            Pour un PDF net, attendez que le fond de carte soit entièrement chargé, puis lancez l&apos;export.
+          </p>
+          <Button
+            type="button"
+            className="w-full shrink-0 border-0 bg-[#E94C16] text-white hover:bg-[#d43f12] sm:w-auto"
+            onClick={() => void handleExportPdf()}
+            disabled={exporting || !zones.length}
+          >
             {exporting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Export…
               </>
             ) : (
               <>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="mr-2 h-4 w-4" />
                 Télécharger le PDF
               </>
             )}
           </Button>
         </div>
       </div>
+
+      {zones.length > 0 ? (
+        <Card className="border-[#E94C16]/25 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="h-5 w-5 text-[#E94C16]" aria-hidden />
+              Population estimée
+            </CardTitle>
+            <CardDescription className="text-xs leading-relaxed">
+              Chiffres issus de l&apos;API géographique officielle (population communale). Si plusieurs zones se
+              chevauchent, la somme peut surestimer le nombre d&apos;habitants — utilisez le total comme ordre de
+              grandeur.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {popEstimate.status === 'loading' ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                Calcul en cours via geo.api.gouv.fr…
+              </p>
+            ) : null}
+            {popEstimate.status === 'error' ? (
+              <Alert variant="destructive" className="border-destructive/40 py-3">
+                <AlertTriangle className="h-4 w-4" aria-hidden />
+                <AlertTitle className="text-sm">Estimation indisponible</AlertTitle>
+                <AlertDescription>{popEstimate.message}</AlertDescription>
+              </Alert>
+            ) : null}
+            {popEstimate.status === 'ready' ? (
+              <div className="space-y-3">
+                <ul className="space-y-2 text-sm">
+                  {popEstimate.lines.map((line, i) => (
+                    <li key={`pop-${i}`} className="rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="font-medium text-foreground">{line.label}</span>
+                        <span className="tabular-nums font-semibold text-[#E94C16]">
+                          {line.population.toLocaleString('fr-FR')} hab.
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{line.method}</p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3 text-sm">
+                  <span className="font-semibold">Total (lignes additionnées)</span>
+                  <span className="tabular-nums text-lg font-bold text-[#E94C16]">
+                    {popEstimate.total.toLocaleString('fr-FR')} hab.
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }

@@ -9,6 +9,18 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  /**
+   * En dev, le cache Webpack des bundles serveur peut parfois référencer des chunks
+   * supprimés (ex. Cannot find module './9276.js' sur une route API). Désactiver le
+   * cache Webpack côté serveur en dev évite cet état incohérent après HMR / redémarrages.
+   * @see https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack
+   */
+  webpack: (config, { dev, isServer }) => {
+    if (dev && isServer) {
+      config.cache = false
+    }
+    return config
+  },
   async redirects() {
     return [
       // /vente = calculateur historique ; /calculateur-vente-2 = version complète (admin)
