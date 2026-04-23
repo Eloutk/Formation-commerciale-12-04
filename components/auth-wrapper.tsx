@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
+import { ChevronDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 // ✅ On utilise uniquement le client Supabase centralisé
 import supabase from "@/utils/supabase/client"
@@ -55,8 +57,14 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   const getStorageKey = () => {
-    const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL as string).hostname.split('.')[0]
-    return `sb-${ref}-auth-token`
+    const raw = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!raw) return 'sb-local-auth-token'
+    try {
+      const ref = new URL(raw).hostname.split('.')[0] || 'local'
+      return `sb-${ref}-auth-token`
+    } catch {
+      return 'sb-local-auth-token'
+    }
   }
 
   const getStoredSession = () => {
@@ -388,20 +396,138 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               Link academy
             </Link>
 
-            <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Link href="/home" className="hover:underline">Home</Link>
-              <Link href="/diffusion" className="hover:underline">Diffusion</Link>
-              <Link href="/chefferie" className="hover:underline">Chefferie de projet</Link>
-              <Link href="/studio" className="hover:underline">Studio</Link>
-              <Link href="/vente" className="hover:underline">Vente</Link>
+            <nav className="hidden md:flex items-center gap-1 text-sm">
+              {/* Ressources — mega menu au survol */}
+              <div className="relative group/mega">
+                <span
+                  className={cn(
+                    'inline-flex cursor-default items-center gap-1 rounded-md px-3 py-2 font-medium',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  )}
+                  tabIndex={0}
+                  role="button"
+                  aria-haspopup="true"
+                >
+                  Ressources
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/mega:rotate-180" aria-hidden />
+                </span>
+                <div
+                  className={cn(
+                    'pointer-events-none invisible absolute left-0 top-full z-50 w-[min(100vw-2rem,20rem)] pt-2',
+                    'opacity-0 transition-[opacity,visibility] duration-150',
+                    'group-hover/mega:pointer-events-auto group-hover/mega:visible group-hover/mega:opacity-100',
+                    'focus-within:pointer-events-auto focus-within:visible focus-within:opacity-100',
+                  )}
+                >
+                  <div className="pointer-events-auto h-2 -translate-y-2" aria-hidden />
+                  <div className="rounded-xl border border-[#E94C16]/20 bg-popover p-4 shadow-lg">
+                    <ul className="space-y-0.5">
+                      <li>
+                        <Link
+                          href="/diffusion"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Diffusion
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/diffusion/zones"
+                          className="block rounded-md py-2 pl-4 pr-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Carte zones
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/chefferie"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Chefferie de projet
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/studio"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Studio
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/vente" className="rounded-md px-3 py-2 font-medium hover:bg-accent hover:text-accent-foreground">
+                Vente
+              </Link>
               {isAdmin && (
-                <Link href="/calculateur-vente-2" className="hover:underline text-orange-600">Vente 2</Link>
+                <Link href="/calculateur-vente-2" className="rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700">
+                  Vente 2
+                </Link>
               )}
-              <Link href="/documents" className="hover:underline">Document</Link>
-              <Link href="/glossaire" className="hover:underline">Glossaire</Link>
-              <Link href="/faq" className="hover:underline">FAQ</Link>
+
+              {/* Aide — mega menu au survol (à gauche de Admin) */}
+              <div className="relative group/mega2">
+                <span
+                  className={cn(
+                    'inline-flex cursor-default items-center gap-1 rounded-md px-3 py-2 font-medium',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  )}
+                  tabIndex={0}
+                  role="button"
+                  aria-haspopup="true"
+                >
+                  Aide
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/mega2:rotate-180" aria-hidden />
+                </span>
+                <div
+                  className={cn(
+                    'pointer-events-none invisible absolute left-0 top-full z-50 w-[min(100vw-2rem,18rem)] pt-2',
+                    'opacity-0 transition-[opacity,visibility] duration-150',
+                    'group-hover/mega2:pointer-events-auto group-hover/mega2:visible group-hover/mega2:opacity-100',
+                    'focus-within:pointer-events-auto focus-within:visible focus-within:opacity-100',
+                  )}
+                >
+                  <div className="pointer-events-auto h-2 -translate-y-2" aria-hidden />
+                  <div className="rounded-xl border border-[#E94C16]/20 bg-popover p-4 shadow-lg">
+                    <ul className="space-y-0.5">
+                      <li>
+                        <Link
+                          href="/documents"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Document
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/glossaire"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Glossaire
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/faq"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          FAQ
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               {isAdmin && (
-                <Link href="/admin" className="hover:underline text-orange-600">Admin</Link>
+                <Link href="/admin" className="rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700">
+                  Admin
+                </Link>
               )}
             </nav>
 

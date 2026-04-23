@@ -18,7 +18,7 @@ import {
   Cake,
   Lightbulb,
   ArrowRight,
-  ChefHat
+  ChefHat,
 } from "lucide-react"
 
 interface MonthlyContent {
@@ -173,7 +173,7 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="container mx-auto px-4 py-6 lg:py-10 max-w-6xl min-h-[80vh] flex items-center">
+    <div className="container mx-auto px-4 py-6 lg:py-10 max-w-6xl min-h-[80vh]">
       <div className="w-full">
         {/* Main Sections Grid */}
         <div className="mb-6 lg:mb-8 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">

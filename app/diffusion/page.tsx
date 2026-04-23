@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { UserCircle, LogIn } from "lucide-react"
+import { MapPin } from "lucide-react"
 import ModuleCard from "@/components/module-card"
 import { getModulesProgress } from "@/lib/progress"
 
@@ -22,6 +22,26 @@ export default function DiffusionPage() {
       </section>
 
       {/* Progress Section removed per UX request */}
+
+      <section className="py-4 md:py-6 max-w-3xl mx-auto">
+        <Card className="border-[#E94C16]/30 bg-gradient-to-br from-[#E94C16]/5 to-background">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MapPin className="h-5 w-5 text-[#E94C16]" />
+              Carte des zones de diffusion
+            </CardTitle>
+            <CardDescription>
+              Ville et rayon, département ou région — aperçu cartographique et export PNG pour vos présentations
+              clients.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white">
+              <Link href="/diffusion/zones">Ouvrir la carte zones</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* Modules Section */}
       <section className="py-4 md:py-8">

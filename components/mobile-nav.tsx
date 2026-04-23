@@ -42,19 +42,38 @@ export function MobileNav({
               Link academy
             </Link>
             <nav className="flex flex-col space-y-3">
-              <Link href="/home" className="text-sm hover:underline" onClick={handleNav}>
-                Home
-              </Link>
-              <Link href="/diffusion" className="text-sm hover:underline" onClick={handleNav}>
-                Diffusion
-              </Link>
-              <Link href="/chefferie" className="text-sm hover:underline" onClick={handleNav}>
-                Chefferie de projet
-              </Link>
-              <Link href="/studio" className="text-sm hover:underline" onClick={handleNav}>
-                Studio
-              </Link>
-              <Link href="/vente" className="text-sm hover:underline" onClick={handleNav}>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ressources</p>
+                <div className="flex flex-col space-y-2 border-l-2 border-[#E94C16]/30 pl-3">
+                  <Link href="/diffusion" className="text-sm hover:underline" onClick={handleNav}>
+                    Diffusion
+                  </Link>
+                  <Link href="/diffusion/zones" className="text-sm text-muted-foreground hover:underline" onClick={handleNav}>
+                    Carte zones
+                  </Link>
+                  <Link href="/chefferie" className="text-sm hover:underline" onClick={handleNav}>
+                    Chefferie de projet
+                  </Link>
+                  <Link href="/studio" className="text-sm hover:underline" onClick={handleNav}>
+                    Studio
+                  </Link>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aide</p>
+                <div className="flex flex-col space-y-2 border-l-2 border-[#E94C16]/30 pl-3">
+                  <Link href="/documents" className="text-sm hover:underline" onClick={handleNav}>
+                    Document
+                  </Link>
+                  <Link href="/glossaire" className="text-sm hover:underline" onClick={handleNav}>
+                    Glossaire
+                  </Link>
+                  <Link href="/faq" className="text-sm hover:underline" onClick={handleNav}>
+                    FAQ
+                  </Link>
+                </div>
+              </div>
+              <Link href="/vente" className="text-sm font-medium hover:underline pt-1" onClick={handleNav}>
                 Vente
               </Link>
               {isAdmin && (
@@ -62,15 +81,6 @@ export function MobileNav({
                   Vente 2
                 </Link>
               )}
-              <Link href="/documents" className="text-sm hover:underline" onClick={handleNav}>
-                Document
-              </Link>
-              <Link href="/glossaire" className="text-sm hover:underline" onClick={handleNav}>
-                Glossaire
-              </Link>
-              <Link href="/faq" className="text-sm hover:underline" onClick={handleNav}>
-                FAQ
-              </Link>
               {isAdmin && (
                 <Link href="/admin" className="text-sm hover:underline text-orange-600" onClick={handleNav}>
                   Admin
