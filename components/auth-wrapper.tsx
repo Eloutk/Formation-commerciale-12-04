@@ -433,14 +433,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                       </li>
                       <li>
                         <Link
-                          href="/diffusion/zones"
-                          className="block rounded-md py-2 pl-4 pr-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Carte zones
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
                           href="/chefferie"
                           className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
                         >
@@ -453,6 +445,14 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                           className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
                         >
                           Studio
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/diffusion/zones"
+                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        >
+                          Carte zones
                         </Link>
                       </li>
                     </ul>

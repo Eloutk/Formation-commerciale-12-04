@@ -599,6 +599,118 @@ interface StrategyBlock {
   calendar?: StrategyCalendar | StrategyCalendarData | null
 }
 
+/**
+ * Recalcule budget / KPIs / AE quotidien quand la durée (calendrier) change.
+ * — Budget → KPIs : budget média inchangé, KPIs ajustés ~proportionnellement à la durée.
+ * — KPIs → Budget : KPIs ajustés pareil, prix (budget) recalculé via le barème.
+ */
+function applyStrategyItemDaysChange(
+  it: StrategyItem,
+  newDays: number,
+  calculationMode: CalculationMode,
+  useTarifsDirection: boolean,
+): StrategyItem {
+  const days = Math.max(1, Math.floor(newDays))
+  const prevDays = Math.max(1, it.days)
+  const ratio = days / prevDays
+  const aeFactor = it.aePercentage / 100
+
+  let budget = it.budget
+  let estimatedKPIs = it.estimatedKPIs
+  if (estimatedKPIs > 0) {
+    estimatedKPIs = Math.max(1, Math.round(estimatedKPIs * ratio))
+  }
+
+  if (calculationMode === 'kpis-to-budget' && estimatedKPIs > 0) {
+    try {
+      const r = useTarifsDirection
+        ? calculatePriceForKPIsDirection(it.platform, it.objective, it.aePercentage, estimatedKPIs)
+        : calculatePriceForKPIs(it.platform, it.objective, it.aePercentage, estimatedKPIs)
+      budget = Math.round(r.price || 0)
+    } catch {
+      budget = it.budget
+    }
+  }
+
+  const dailyBudget = budget > 0 ? (budget * aeFactor) / days : 0
+  const aeCheckValue =
+    budget > 0
+      ? it.platform === 'Spotify'
+        ? budget * aeFactor
+        : (budget * aeFactor) / days
+      : 0
+
+  return { ...it, days, budget, estimatedKPIs, dailyBudget, aeCheckValue }
+}
+
+function daysBetweenIso(a: string, b: string): number {
+  return Math.round(
+    (new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) /
+      (24 * 60 * 60 * 1000),
+  )
+}
+
+/** Items + sources calendrier stratégique (modale), alignés sur une date de début de frise — même logique que /vente. */
+function computeVenteStrategyCalendarItems(
+  block: StrategyBlock,
+  defineDatesPerPlatform: Record<string, string>,
+  diffusionDaysStr: string,
+  timelineStart: string,
+): {
+  platformSources: CalendarPlatformSource[]
+  items: StrategyCalendarData['items']
+  contentSpan: number
+  globalStart: string
+  timelineStartResolved: string
+} {
+  const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDaysStr) || 14))
+  const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
+    platform: `${item.platform}::${item.objective}`,
+    budget: item.budget,
+    kpiLabel: item.customKpiLabel
+      ? item.customKpiLabel
+      : item.estimatedKPIs > 0
+        ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
+        : getMaxKpiLabel(item.objective),
+    maxDays: Math.max(1, item.days ?? diffusionDuration),
+  }))
+  const savedCal =
+    block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
+      ? block.calendar
+      : null
+  const starts = block.items.map((it) => {
+    const key = `${it.platform}::${it.objective}`
+    return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
+  })
+  const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+  const tsCandidate = timelineStart.trim() || globalStart
+  const ts = tsCandidate > globalStart ? globalStart : tsCandidate
+  const computedItems = block.items.map((item, i) => {
+    const key = `${item.platform}::${item.objective}`
+    const composite = `${item.platform}::${item.objective}`
+    const savedRow = savedCal?.items.find(
+      (it) =>
+        it.platform === composite ||
+        (!String(it.platform).includes('::') &&
+          it.platform === item.platform &&
+          (it.objective ?? '') === item.objective),
+    )
+    const startDate = defineDatesPerPlatform[key] ?? globalStart
+    const startDay = Math.max(0, daysBetweenIso(ts, startDate))
+    const length = Math.max(1, item.days ?? savedRow?.length ?? diffusionDuration)
+    return {
+      platform: composite,
+      startDay,
+      length,
+      budget: item.budget,
+      kpiLabel: platformSources[i]!.kpiLabel,
+      objective: item.objective,
+    }
+  })
+  const contentSpan = computedItems.reduce((m, it) => Math.max(m, it.startDay + it.length), 1)
+  return { platformSources, items: computedItems, contentSpan, globalStart, timelineStartResolved: ts }
+}
+
 interface CustomRowState {
   objective: string
   budget: string
@@ -1861,6 +1973,10 @@ export default function VentePage() {
   const [calendarPhasesMenuPlatform, setCalendarPhasesMenuPlatform] = useState<string | null>(null)
   const [calendarDragging, setCalendarDragging] = useState(false)
   const [calendarNewPhaseName, setCalendarNewPhaseName] = useState('')
+  /** Plage d’affichage du calendrier stratégique (modale Social) — aligné sur /vente */
+  const [calendarDisplayStart, setCalendarDisplayStart] = useState('')
+  const [calendarDisplayDuration, setCalendarDisplayDuration] = useState(90)
+  const strategyCalendarModalInitRef = useRef(false)
 
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
@@ -2304,6 +2420,42 @@ export default function VentePage() {
     if (daysClass) return daysClass
     return getAeColorClass(platform, aeCheckValue)
   }
+
+  useEffect(() => {
+    if (!calendarDialogOpen) {
+      strategyCalendarModalInitRef.current = false
+      return
+    }
+    if (!calendarStrategyId || strategyCalendarModalInitRef.current) return
+    const block = strategies.find((s) => s.id === calendarStrategyId)
+    if (!block?.items.length) {
+      strategyCalendarModalInitRef.current = true
+      return
+    }
+    strategyCalendarModalInitRef.current = true
+    const datesMap = defineDatesPerStrategy[calendarStrategyId] ?? {}
+    const savedCal =
+      block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
+        ? block.calendar
+        : null
+    const starts = block.items.map((it) => {
+      const key = `${it.platform}::${it.objective}`
+      return datesMap[key] ?? new Date().toISOString().slice(0, 10)
+    })
+    const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
+    const rawStart = savedCal?.startDate ?? globalStart
+    const safeStart = rawStart > globalStart ? globalStart : rawStart
+    const { contentSpan } = computeVenteStrategyCalendarItems(
+      block,
+      datesMap,
+      diffusionDays,
+      safeStart,
+    )
+    const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
+    const initialDur = Math.max(savedCal?.duration ?? 0, contentSpan, diffusionDuration)
+    setCalendarDisplayStart(safeStart)
+    setCalendarDisplayDuration(initialDur)
+  }, [calendarDialogOpen, calendarStrategyId, strategies, defineDatesPerStrategy, diffusionDays])
 
   // Messages d'avertissement pour le calendrier (règles durée / budget quotidien)
   const getCalendarWarningsForBlock = (b: StrategyBlock): string[] => {
@@ -5469,7 +5621,7 @@ export default function VentePage() {
         )}
       </div>
 
-      {/* Modale Calendrier de diffusion */}
+      {/* Modale Calendrier de diffusion — même UX que /vente (plage affichée, granularité, recalcul budget/KPIs) */}
       <Dialog
         open={calendarDialogOpen}
         onOpenChange={(open) => {
@@ -5486,6 +5638,8 @@ export default function VentePage() {
             }
             setCalendarStrategyId(null)
             setCalendarPhasesMenuPlatform(null)
+            setCalendarDisplayStart('')
+            setCalendarDisplayDuration(90)
           }
           setCalendarDialogOpen(open)
         }}
@@ -5494,99 +5648,167 @@ export default function VentePage() {
           <DialogHeader>
             <DialogTitle>Calendrier stratégique</DialogTitle>
             <DialogDescription>
-              Cliquez sur une plateforme dans la légende puis sur un jour du calendrier pour définir sa date de début. Les pastilles affichent les jours de diffusion.
+              Définissez d’abord la <strong>plage du calendrier</strong> (date de début + nombre de jours), puis la vue
+              Mois ou Semaines. Dans la légende, le champ « Jours » ou la poignée sur la frise met à jour la stratégie,
+              le budget et les KPIs.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {calendarStrategyId && (() => {
               const block = strategies.find((s) => s.id === calendarStrategyId)
               if (!block) return null
-              const datesForCalDialog = defineDatesPerStrategy[calendarStrategyId] ?? {}
-              const duration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-              const daysBetween = (a: string, b: string) =>
-                Math.round((new Date(b + 'T12:00:00').getTime() - new Date(a + 'T12:00:00').getTime()) / (24 * 60 * 60 * 1000))
-              const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
-                platform: `${item.platform}::${item.objective}`,
-                budget: item.budget,
-                kpiLabel: item.customKpiLabel
-                  ? item.customKpiLabel
-                  : item.estimatedKPIs > 0
-                    ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}`
-                    : getMaxKpiLabel(item.objective),
-                maxDays: Math.max(1, item.days ?? duration),
-              }))
-              const starts = block.items.map((it) => {
-                const key = `${it.platform}::${it.objective}`
-                return datesForCalDialog[key] ?? new Date().toISOString().slice(0, 10)
-              })
-              const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
-              let globalEndDay = 0
-              const computedItems = block.items.map((item, i) => {
-                const key = `${item.platform}::${item.objective}`
-                const startDate = datesForCalDialog[key] ?? globalStart
-                const startDay = Math.max(0, daysBetween(globalStart, startDate))
-                const length = Math.max(1, item.days ?? duration)
-                globalEndDay = Math.max(globalEndDay, startDay + length)
-                return {
-                  platform: item.platform,
-                  startDay,
-                  length,
-                  budget: item.budget,
-                  kpiLabel: platformSources[i]!.kpiLabel,
-                  objective: item.objective,
-                }
-              })
-              const existingFromForm: StrategyCalendarData = { startDate: globalStart, duration: globalEndDay, items: computedItems }
+              if (block.items.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.
+                  </p>
+                )
+              }
+              const datesMap = defineDatesPerStrategy[calendarStrategyId] ?? {}
+              const { platformSources, items, contentSpan, globalStart, timelineStartResolved } =
+                computeVenteStrategyCalendarItems(
+                  block,
+                  datesMap,
+                  diffusionDays,
+                  calendarDisplayStart,
+                )
+              const effectiveDuration = Math.max(
+                Math.max(1, Math.floor(Number(calendarDisplayDuration)) || 1),
+                contentSpan,
+              )
+              const existingFromForm: StrategyCalendarData = {
+                startDate: timelineStartResolved,
+                duration: effectiveDuration,
+                items,
+              }
+              const firstDiffusionLabel = new Date(globalStart + 'T12:00:00').toLocaleDateString('fr-FR')
+              const displayEndIso = addCalendarDays(timelineStartResolved, effectiveDuration - 1)
+              const displayEndLabel = new Date(displayEndIso + 'T12:00:00').toLocaleDateString('fr-FR')
+              const sid = calendarStrategyId
               return (
-                block.items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.</p>
-                ) : (
                 <>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Cliquez sur une plateforme dans la légende pour la sélectionner : vous pouvez définir sa date de début en cliquant sur un jour, et modifier le nombre de jours de diffusion dans le champ « Jours ». Les pastilles et la couleur dans la stratégie se mettent à jour (rouge / orange si les règles ne sont pas respectées).
+                  <p className="text-sm text-muted-foreground">
+                    Première diffusion de la stratégie :{' '}
+                    <span className="font-medium text-foreground">{firstDiffusionLabel}</span>. La date de début de
+                    plage ne peut pas être après cette date ; vous pouvez la <strong>reculer</strong> (date plus tôt)
+                    pour afficher des jours avant le début des diffusions.
                   </p>
                   <StrategyCalendarBuilder
-                    key={`${calendarStrategyId}-${globalStart}-${globalEndDay}`}
+                    key={`${calendarStrategyId}-${timelineStartResolved}-${effectiveDuration}`}
+                    showGranularitySelector
                     platformSources={platformSources}
                     duration={existingFromForm.duration}
                     existing={existingFromForm}
+                    children={
+                      <div className="rounded-xl border-2 border-[#E94C16]/25 bg-[#E94C16]/5 px-3 py-3 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+                          <CalendarRange className="h-3.5 w-3.5 text-[#E94C16]" aria-hidden />
+                          Plage affichée sur le calendrier
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Période visible (grille mois + frise) :{' '}
+                          <span className="font-medium text-foreground tabular-nums">
+                            {new Date(timelineStartResolved + 'T12:00:00').toLocaleDateString('fr-FR')} →{' '}
+                            {displayEndLabel}
+                          </span>{' '}
+                          — <span className="tabular-nums">{effectiveDuration} j</span>
+                        </p>
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div className="space-y-1.5 min-w-[11rem]">
+                            <Label htmlFor="strategy-cal-start-v2" className="text-xs">
+                              Date de début d’affichage
+                            </Label>
+                            <Input
+                              id="strategy-cal-start-v2"
+                              type="date"
+                              value={timelineStartResolved}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                if (!v) return
+                                setCalendarDisplayStart(v > globalStart ? globalStart : v)
+                              }}
+                              className="h-10 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5 w-[9.5rem]">
+                            <Label htmlFor="strategy-cal-dur-v2" className="text-xs">
+                              Nombre de jours affichés
+                            </Label>
+                            <Input
+                              id="strategy-cal-dur-v2"
+                              type="number"
+                              min={1}
+                              max={730}
+                              value={calendarDisplayDuration}
+                              onChange={(e) => {
+                                const n = Math.max(1, Math.min(730, Math.floor(Number(e.target.value) || 1)))
+                                setCalendarDisplayDuration(n)
+                              }}
+                              className="h-10 text-sm tabular-nums text-center"
+                            />
+                          </div>
+                        </div>
+                        {calendarDisplayDuration < contentSpan ? (
+                          <p className="text-[11px] text-amber-800 dark:text-amber-100/90">
+                            Durée minimale pour couvrir toutes les phases : {contentSpan} jour(s) (la frise utilise au
+                            moins cette valeur).
+                          </p>
+                        ) : null}
+                      </div>
+                    }
                     onPlatformStartDateChange={(entryKey, startDate) =>
                       setDefineDatesPerStrategy((prev) => ({
                         ...prev,
-                        [calendarStrategyId]: {
-                          ...(prev[calendarStrategyId] ?? {}),
+                        [sid]: {
+                          ...(prev[sid] ?? {}),
                           [entryKey]: startDate,
                         },
                       }))
                     }
                     onPlatformDaysChange={(entryKey, days) => {
                       setStrategies((prev) =>
-                        prev.map((s) =>
-                          s.id !== calendarStrategyId
-                            ? s
-                            : {
-                                ...s,
-                                items: s.items.map((it) =>
-                                  `${it.platform}::${it.objective}` !== entryKey
-                                    ? it
-                                    : {
-                                        ...it,
-                                        days,
-                                        dailyBudget: (it.budget * (it.aePercentage / 100)) / days,
-                                        aeCheckValue:
-                                          it.platform === 'Spotify'
-                                            ? it.budget * (it.aePercentage / 100)
-                                            : (it.budget * (it.aePercentage / 100)) / days,
-                                      }
-                                ),
-                              }
-                        )
+                        prev.map((s) => {
+                          if (s.id !== sid) return s
+                          const td = tarifsDirection
+                          const nextItems = s.items.map((it) =>
+                            `${it.platform}::${it.objective}` !== entryKey
+                              ? it
+                              : applyStrategyItemDaysChange(it, days, calculationMode, it.tarifsDirection ?? td),
+                          )
+                          const updatedLine = nextItems.find(
+                            (it) => `${it.platform}::${it.objective}` === entryKey,
+                          )
+                          const cal = s.calendar
+                          const nextCalendar =
+                            cal && isStrategyCalendarData(cal) && updatedLine
+                              ? {
+                                  ...cal,
+                                  items: cal.items.map((calIt) => {
+                                    const calKey = String(calIt.platform).includes('::')
+                                      ? calIt.platform
+                                      : `${calIt.platform}::${(calIt.objective ?? '').trim()}`
+                                    if (calKey !== entryKey) return calIt
+                                    const kpiLabel = updatedLine.customKpiLabel
+                                      ? updatedLine.customKpiLabel
+                                      : updatedLine.estimatedKPIs > 0
+                                        ? `${updatedLine.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(updatedLine.objective)}`
+                                        : getMaxKpiLabel(updatedLine.objective)
+                                    return {
+                                      ...calIt,
+                                      length: days,
+                                      budget: updatedLine.budget,
+                                      kpiLabel,
+                                    }
+                                  }),
+                                }
+                              : cal
+                          return { ...s, items: nextItems, calendar: nextCalendar }
+                        }),
                       )
                     }}
                     calendarWarnings={getCalendarWarningsForBlock(block)}
                   />
                 </>
-                )
               )
             })()}
           </div>

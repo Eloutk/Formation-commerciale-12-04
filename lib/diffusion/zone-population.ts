@@ -96,14 +96,120 @@ function boxesIntersect(a: LngLatBox, b: LngLatBox): boolean {
 
 type CommunePopRow = {
   code?: string
+  nom?: string
   population?: number
+  codesPostaux?: string[]
   centre?: { type?: string; coordinates?: [number, number] }
+}
+
+/** Nombre max de codes postaux distincts pour un ajout groupé (limite appels API). */
+export const MAX_POSTAL_CODES_BULK = 80
+
+/** Extrait les codes postaux français (5 chiffres) depuis un texte libre. */
+export function parsePostalCodesFromText(raw: string): string[] {
+  const set = new Set<string>()
+  for (const m of raw.matchAll(/\b\d{5}\b/g)) {
+    set.add(m[0])
+  }
+  return [...set]
+}
+
+export type CommunePostalEntry = {
+  code: string
+  nom: string
+  population: number
+  /** [lat, lng] pour Leaflet */
+  center: [number, number]
+  codesPostaux?: string[]
+  /** Polygone / multi-polygone communal (geo.api.gouv.fr, champ contour) */
+  contour?: GeoJSON.Geometry
+}
+
+/**
+ * Pour chaque code postal : communes renvoyées par geo.api.gouv.fr.
+ * Déduplication par code INSEE : une commune n’est comptée qu’une fois pour la population totale.
+ */
+export async function communesFromPostalCodesList(
+  postalCodes: string[],
+): Promise<{ communes: CommunePostalEntry[]; unknownCodes: string[] }> {
+  const byInsee = new Map<string, CommunePostalEntry>()
+  const unknownCodes: string[] = []
+
+  for (const cp of postalCodes) {
+    let rows: CommunePopRow[]
+    try {
+      rows = await fetchJson<CommunePopRow[]>(
+        `https://geo.api.gouv.fr/communes?codePostal=${encodeURIComponent(cp)}&fields=nom,code,population,codesPostaux,centre&limit=50`,
+      )
+    } catch {
+      unknownCodes.push(cp)
+      continue
+    }
+    if (!Array.isArray(rows) || rows.length === 0) {
+      unknownCodes.push(cp)
+      continue
+    }
+    for (const r of rows) {
+      const code = r.code
+      if (!code || byInsee.has(code)) continue
+      const coords = r.centre?.coordinates
+      if (!coords || coords.length < 2) continue
+      const [lon, lat] = coords
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
+      const nom = typeof r.nom === 'string' && r.nom.trim() ? r.nom.trim() : code
+      byInsee.set(code, {
+        code,
+        nom,
+        population: typeof r.population === 'number' ? r.population : 0,
+        center: [lat, lon],
+        codesPostaux: Array.isArray(r.codesPostaux) ? r.codesPostaux : undefined,
+      })
+    }
+  }
+
+  return { communes: [...byInsee.values()], unknownCodes }
+}
+
+export function totalPopulationCommunes(communes: CommunePostalEntry[]): number {
+  return communes.reduce((s, c) => s + c.population, 0)
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`API indisponible (${res.status})`)
   return (await res.json()) as T
+}
+
+const CONCURRENCY_CONTOURS = 6
+
+/**
+ * Ajoute le contour géographique de chaque commune (limite administrative), pour affichage carte.
+ */
+export async function enrichCommunesWithContours(
+  communes: CommunePostalEntry[],
+): Promise<CommunePostalEntry[]> {
+  const result: CommunePostalEntry[] = []
+  for (let i = 0; i < communes.length; i += CONCURRENCY_CONTOURS) {
+    const batch = communes.slice(i, i + CONCURRENCY_CONTOURS)
+    const batchOut = await Promise.all(
+      batch.map(async (c) => {
+        try {
+          const row = await fetchJson<{ contour?: GeoJSON.Geometry }>(
+            `https://geo.api.gouv.fr/communes/${encodeURIComponent(c.code)}?fields=code,contour`,
+          )
+          const g = row.contour
+          if (g && (g.type === 'Polygon' || g.type === 'MultiPolygon')) {
+            return { ...c, contour: g }
+          }
+          return { ...c }
+        } catch {
+          return { ...c }
+        }
+      }),
+    )
+    result.push(...batchOut)
+  }
+  return result
 }
 
 /** Somme des populations communales officielles du département (champ population geo.api.gouv.fr). */

@@ -57,13 +57,6 @@ export function MobileNav({
                     Diffusion
                   </Link>
                   <Link
-                    href="/diffusion/zones"
-                    className="rounded-md px-2 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent/80 hover:text-foreground active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Carte zones
-                  </Link>
-                  <Link
                     href="/chefferie"
                     className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
                     onClick={handleNav}
@@ -76,6 +69,13 @@ export function MobileNav({
                     onClick={handleNav}
                   >
                     Studio
+                  </Link>
+                  <Link
+                    href="/diffusion/zones"
+                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
+                    onClick={handleNav}
+                  >
+                    Carte zones
                   </Link>
                 </div>
               </div>
