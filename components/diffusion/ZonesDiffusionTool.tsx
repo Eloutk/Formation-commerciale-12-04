@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertTriangle, Download, Loader2, MapPin, Users, X } from 'lucide-react'
+import { AlertTriangle, Download, Loader2, MapPin, Sparkles, Users, X } from 'lucide-react'
 import {
   MAX_POSTAL_CODES_BULK,
   circleBoundingBox,
@@ -553,30 +553,7 @@ export function ZonesDiffusionTool() {
             Définir les zones
           </CardTitle>
           <CardDescription>
-            Ajoutez plusieurs zones sur la même carte (régions, départements, cercles, groupes de codes postaux). Communes
-            :{' '}
-            <a
-              href="https://geo.api.gouv.fr"
-              className="underline text-foreground/80"
-              target="_blank"
-              rel="noreferrer"
-            >
-              geo.api.gouv.fr
-            </a>
-            . Contours : jeu simplifié{' '}
-            <a
-              href="https://github.com/gregoiredavid/france-geojson"
-              className="underline text-foreground/80"
-              target="_blank"
-              rel="noreferrer"
-            >
-              france-geojson
-            </a>{' '}
-            (ODbL). Fond ©{' '}
-            <a href="https://www.openstreetmap.org/copyright" className="underline" target="_blank" rel="noreferrer">
-              OpenStreetMap
-            </a>
-            .
+            Ajoutez plusieurs zones sur la même carte (régions, départements, cercles, groupes de codes postaux).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -883,6 +860,22 @@ export function ZonesDiffusionTool() {
               Les zones se cumulent sur la carte. Représentation indicative ; validez le ciblage sur vos outils
               métiers.
             </p>
+            <div
+              className="mt-3 flex gap-3 rounded-xl border border-[#E94C16]/25 bg-gradient-to-br from-[#E94C16]/[0.12] via-background/80 to-background px-3.5 py-3 shadow-[0_1px_0_rgba(233,76,22,0.06)] backdrop-blur-[2px] sm:items-center sm:px-4"
+              role="note"
+            >
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16] text-white shadow-md shadow-[#E94C16]/25 ring-2 ring-white/60 dark:ring-white/10"
+                aria-hidden
+              >
+                <Sparkles className="h-4 w-4" strokeWidth={2.25} />
+              </span>
+              <p className="text-[13px] leading-snug text-foreground sm:text-sm">
+                <span className="font-semibold tracking-tight text-[#E94C16]">Astuce</span>
+                <span className="text-muted-foreground"> — </span>
+                Prends une capture d&apos;écran pour l&apos;intégrer dans tes présentations client.
+              </p>
+            </div>
           </div>
           <div className="relative z-0 h-[min(440px,58vh)] w-full bg-white sm:h-[min(480px,55vh)]">
             {mapMounted ? (

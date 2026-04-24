@@ -78,7 +78,7 @@ export default function DiffusionPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <MapPin className="h-5 w-5 text-[#E94C16]" />
-              Carte des zones de diffusion
+              Cartographie des zones de diffusion
             </CardTitle>
             <CardDescription>
               Ville et rayon, département, région ou codes postaux — aperçu cartographique et estimation de population.
@@ -86,7 +86,7 @@ export default function DiffusionPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white">
-              <Link href="/diffusion/zones">Ouvrir la carte zones</Link>
+              <Link href="/cartographie">Ouvrir la cartographie</Link>
             </Button>
           </CardContent>
         </Card>

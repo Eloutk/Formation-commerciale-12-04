@@ -22,14 +22,14 @@ const ZonesDiffusionTool = dynamic(
         aria-live="polite"
       >
         <Loader2 className="h-9 w-9 animate-spin text-[#E94C16]" aria-hidden />
-        <p className="text-sm font-medium text-foreground">Chargement de l&apos;outil carte…</p>
+        <p className="text-sm font-medium text-foreground">Chargement de l&apos;outil de cartographie…</p>
         <p className="max-w-sm text-xs text-muted-foreground">Quelques secondes selon votre connexion.</p>
       </div>
     ),
   },
 )
 
-export default function CarteZonesPage() {
+export default function CartographiePage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-[#E94C16]/[0.04] via-background to-background">
       <div className="container mx-auto max-w-5xl px-4 py-8 sm:py-10">
@@ -38,7 +38,7 @@ export default function CarteZonesPage() {
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
               <MapPin className="h-6 w-6" aria-hidden />
             </span>
-            Carte zones
+            Cartographie
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
             Composez une ou plusieurs zones (ville et rayon, département, région, codes postaux), consultez l&apos;aperçu

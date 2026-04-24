@@ -71,11 +71,11 @@ export function MobileNav({
                     Studio
                   </Link>
                   <Link
-                    href="/diffusion/zones"
+                    href="/cartographie"
                     className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
                     onClick={handleNav}
                   >
-                    Carte zones
+                    Cartographie
                   </Link>
                 </div>
               </div>

@@ -449,10 +449,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                       </li>
                       <li>
                         <Link
-                          href="/diffusion/zones"
+                          href="/cartographie"
                           className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
                         >
-                          Carte zones
+                          Cartographie
                         </Link>
                       </li>
                     </ul>
