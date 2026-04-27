@@ -15,8 +15,10 @@ const nextConfig = {
    * cache Webpack côté serveur en dev évite cet état incohérent après HMR / redémarrages.
    * @see https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack
    */
-  webpack: (config, { dev, isServer }) => {
-    if (dev && isServer) {
+  webpack: (config, { dev }) => {
+    // Désactiver le cache Webpack en dev (client + serveur) pour éviter ChunkLoadError /
+    // chemins _next/undefined après HMR ou gros changements de chunks dynamiques.
+    if (dev) {
       config.cache = false
     }
     return config

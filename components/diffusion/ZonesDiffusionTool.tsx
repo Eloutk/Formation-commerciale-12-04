@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, Download, Loader2, MapPin, Sparkles, Users, X } from 'lucide-react'
 import {
@@ -118,6 +119,16 @@ type CommuneGeoRow = {
   centre?: { type?: string; coordinates?: [number, number] }
 }
 
+type AddressGeoRow = {
+  label: string
+  lon: number
+  lat: number
+}
+
+type SelectedAddress = { label: string; lat: number; lon: number }
+
+type CityCenterSource = 'commune' | 'adresse'
+
 type PopEstimateState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -136,6 +147,15 @@ export function ZonesDiffusionTool() {
   const [citySuggestHighlight, setCitySuggestHighlight] = useState(0)
   const [cityInputFocused, setCityInputFocused] = useState(false)
   const [selectedCommune, setSelectedCommune] = useState<CommuneGeoRow | null>(null)
+
+  const [cityCenterSource, setCityCenterSource] = useState<CityCenterSource>('commune')
+  const [addressLine, setAddressLine] = useState('')
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressGeoRow[]>([])
+  const [addressSuggestLoading, setAddressSuggestLoading] = useState(false)
+  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false)
+  const [addressSuggestHighlight, setAddressSuggestHighlight] = useState(0)
+  const [addressInputFocused, setAddressInputFocused] = useState(false)
+  const [selectedAddress, setSelectedAddress] = useState<SelectedAddress | null>(null)
 
   const [departments, setDepartments] = useState<DeptRow[]>([])
   const [regions, setRegions] = useState<RegionRow[]>([])
@@ -196,11 +216,27 @@ export function ZonesDiffusionTool() {
     if (mode !== 'city') {
       setCitySuggestions([])
       setCitySuggestOpen(false)
+      setAddressSuggestions([])
+      setAddressSuggestOpen(false)
     }
   }, [mode])
 
   useEffect(() => {
-    if (mode !== 'city' || !cityInputFocused) return
+    setAddressSuggestions([])
+    setAddressSuggestOpen(false)
+    setAddressSuggestHighlight(0)
+    setSelectedAddress(null)
+    if (cityCenterSource === 'commune') {
+      setAddressLine('')
+    } else {
+      setSelectedCommune(null)
+      setCitySuggestOpen(false)
+      setCitySuggestions([])
+    }
+  }, [cityCenterSource])
+
+  useEffect(() => {
+    if (mode !== 'city' || cityCenterSource !== 'commune' || !cityInputFocused) return
     const q = cityName.trim()
     if (q.length < 2) {
       setCitySuggestions([])
@@ -243,7 +279,63 @@ export function ZonesDiffusionTool() {
       ac.abort()
       window.clearTimeout(t)
     }
-  }, [cityName, mode, cityInputFocused])
+  }, [cityName, mode, cityInputFocused, cityCenterSource])
+
+  useEffect(() => {
+    if (mode !== 'city' || cityCenterSource !== 'adresse' || !addressInputFocused) return
+    const q = addressLine.trim()
+    if (q.length < 3) {
+      setAddressSuggestions([])
+      setAddressSuggestLoading(false)
+      setAddressSuggestOpen(false)
+      return
+    }
+    const ac = new AbortController()
+    const t = window.setTimeout(() => {
+      void (async () => {
+        setAddressSuggestLoading(true)
+        try {
+          const res = await fetch(
+            `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=8`,
+            { signal: ac.signal },
+          )
+          if (!res.ok) throw new Error('Erreur API adresse')
+          const data = (await res.json()) as {
+            features?: Array<{
+              geometry?: { coordinates?: [number, number] }
+              properties?: { label?: string }
+            }>
+          }
+          if (ac.signal.aborted) return
+          const feats = data.features ?? []
+          const rows: AddressGeoRow[] = []
+          for (const f of feats) {
+            const c = f.geometry?.coordinates
+            const label = f.properties?.label?.trim()
+            if (!c || c.length < 2 || !label) continue
+            const [lon, lat] = c
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
+            rows.push({ label, lon, lat })
+          }
+          setAddressSuggestions(rows)
+          setAddressSuggestHighlight(0)
+          setAddressSuggestOpen(rows.length > 0)
+        } catch (e) {
+          if ((e as Error).name === 'AbortError') return
+          if (!ac.signal.aborted) {
+            setAddressSuggestions([])
+            setAddressSuggestOpen(false)
+          }
+        } finally {
+          if (!ac.signal.aborted) setAddressSuggestLoading(false)
+        }
+      })()
+    }, 350)
+    return () => {
+      ac.abort()
+      window.clearTimeout(t)
+    }
+  }, [addressLine, mode, cityCenterSource, addressInputFocused])
 
   useEffect(() => {
     let cancelled = false
@@ -299,34 +391,93 @@ export function ZonesDiffusionTool() {
     setCitySuggestions([])
   }, [])
 
+  const applyAddressPick = useCallback((row: AddressGeoRow) => {
+    setAddressLine(row.label)
+    setSelectedAddress({ label: row.label, lat: row.lat, lon: row.lon })
+    setAddressSuggestOpen(false)
+    setAddressSuggestions([])
+  }, [])
+
   const addCityRadius = useCallback(async () => {
     setError(null)
     setLoading(true)
     try {
-      const q = cityName.trim()
-      if (!q) throw new Error('Indiquez un nom de commune ou de ville.')
       const km = Math.max(1, Math.min(500, parseFloat(radiusKm.replace(',', '.')) || 0))
       if (!km) throw new Error('Rayon invalide (1 à 500 km).')
 
-      const qNorm = q.toLowerCase()
-      const fromPick =
-        selectedCommune?.centre?.coordinates &&
-        selectedCommune.nom.trim().toLowerCase() === qNorm
-          ? selectedCommune
-          : null
+      if (cityCenterSource === 'commune') {
+        const q = cityName.trim()
+        if (!q) throw new Error('Indiquez un nom de commune ou de ville.')
 
-      let hit: CommuneGeoRow | null = fromPick
-      if (!hit) {
-        const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(q)}&boost=population&fields=nom,code,codesPostaux,centre&limit=8`
-        const res = await fetch(url)
-        if (!res.ok) throw new Error('Recherche commune échouée.')
-        const rows = (await res.json()) as CommuneGeoRow[]
-        if (!Array.isArray(rows)) throw new Error('Réponse géocodage invalide.')
-        hit = rows.find((r) => r.centre?.coordinates) ?? null
+        const qNorm = q.toLowerCase()
+        const fromPick =
+          selectedCommune?.centre?.coordinates &&
+          selectedCommune.nom.trim().toLowerCase() === qNorm
+            ? selectedCommune
+            : null
+
+        let hit: CommuneGeoRow | null = fromPick
+        if (!hit) {
+          const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(q)}&boost=population&fields=nom,code,codesPostaux,centre&limit=8`
+          const res = await fetch(url)
+          if (!res.ok) throw new Error('Recherche commune échouée.')
+          const rows = (await res.json()) as CommuneGeoRow[]
+          if (!Array.isArray(rows)) throw new Error('Réponse géocodage invalide.')
+          hit = rows.find((r) => r.centre?.coordinates) ?? null
+        }
+        if (!hit?.centre?.coordinates) throw new Error(`Aucune commune trouvée pour « ${q} ».`)
+
+        const [lon, lat] = hit.centre.coordinates
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Coordonnées invalides.')
+
+        const layer: ZoneCircle = {
+          id: newZoneId(),
+          kind: 'circle',
+          center: [lat, lon],
+          radiusM: km * 1000,
+          label: `${hit.nom} — ${km} km`,
+        }
+        setZones((prev) => [...prev, layer])
+        return
       }
-      if (!hit?.centre?.coordinates) throw new Error(`Aucune commune trouvée pour « ${q} ».`)
 
-      const [lon, lat] = hit.centre.coordinates
+      const qAddr = addressLine.trim()
+      if (!qAddr) throw new Error('Indiquez une adresse (numéro, rue, code postal, ville).')
+
+      let lat: number
+      let lon: number
+      let displayLabel: string
+
+      const pickMatches =
+        selectedAddress &&
+        selectedAddress.label.trim().toLowerCase() === qAddr.toLowerCase()
+
+      if (pickMatches) {
+        lat = selectedAddress.lat
+        lon = selectedAddress.lon
+        displayLabel = selectedAddress.label
+      } else {
+        const res = await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(qAddr)}&limit=1`,
+        )
+        if (!res.ok) throw new Error('Géocodage adresse échoué (API Adresse).')
+        const data = (await res.json()) as {
+          features?: Array<{
+            geometry?: { coordinates?: [number, number] }
+            properties?: { label?: string }
+          }>
+        }
+        const feat = data.features?.[0]
+        const coords = feat?.geometry?.coordinates
+        if (!feat || !coords || coords.length < 2) {
+          throw new Error(
+            `Aucune adresse trouvée pour « ${qAddr} ». Précisez le numéro, la rue et le code postal.`,
+          )
+        }
+        ;[lon, lat] = coords
+        displayLabel = feat.properties?.label?.trim() || qAddr
+      }
+
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Coordonnées invalides.')
 
       const layer: ZoneCircle = {
@@ -334,7 +485,7 @@ export function ZonesDiffusionTool() {
         kind: 'circle',
         center: [lat, lon],
         radiusM: km * 1000,
-        label: `${hit.nom} — ${km} km`,
+        label: `${displayLabel} — ${km} km`,
       }
       setZones((prev) => [...prev, layer])
     } catch (e) {
@@ -342,7 +493,14 @@ export function ZonesDiffusionTool() {
     } finally {
       setLoading(false)
     }
-  }, [cityName, radiusKm, selectedCommune])
+  }, [
+    cityCenterSource,
+    cityName,
+    radiusKm,
+    selectedCommune,
+    addressLine,
+    selectedAddress,
+  ])
 
   const addPostalBulk = useCallback(async () => {
     setError(null)
@@ -583,101 +741,218 @@ export function ZonesDiffusionTool() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="city" className="space-y-3 pt-4">
-              <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
-                <div className="space-y-1.5">
-                  <Label htmlFor="zone-city">Commune ou ville</Label>
-                  <div className="relative">
-                    <Input
-                      id="zone-city"
-                      autoComplete="off"
-                      aria-autocomplete="list"
-                      aria-expanded={citySuggestOpen}
-                      aria-controls="zone-city-suggestions"
-                      value={cityName}
-                      onChange={(e) => {
-                        const v = e.target.value
-                        setCityName(v)
-                        if (
-                          !selectedCommune ||
-                          selectedCommune.nom.trim().toLowerCase() !== v.trim().toLowerCase()
-                        ) {
-                          setSelectedCommune(null)
-                        }
-                      }}
-                      onFocus={() => setCityInputFocused(true)}
-                      onBlur={() => {
-                        window.setTimeout(() => {
-                          setCityInputFocused(false)
-                          setCitySuggestOpen(false)
-                        }, 180)
-                      }}
-                      onKeyDown={(e) => {
-                        if (!citySuggestOpen || citySuggestions.length === 0) return
-                        if (e.key === 'ArrowDown') {
-                          e.preventDefault()
-                          setCitySuggestHighlight((i) =>
-                            i + 1 >= citySuggestions.length ? 0 : i + 1,
-                          )
-                        } else if (e.key === 'ArrowUp') {
-                          e.preventDefault()
-                          setCitySuggestHighlight((i) =>
-                            i - 1 < 0 ? citySuggestions.length - 1 : i - 1,
-                          )
-                        } else if (e.key === 'Enter') {
-                          const row = citySuggestions[citySuggestHighlight]
-                          if (row) {
-                            e.preventDefault()
-                            applyCommunePick(row)
-                          }
-                        } else if (e.key === 'Escape') {
-                          setCitySuggestOpen(false)
-                        }
-                      }}
-                      placeholder="Nom ou code postal (5 chiffres)"
-                    />
-                    {citySuggestLoading ? (
-                      <Loader2
-                        className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground"
-                        aria-hidden
-                      />
-                    ) : null}
-                    {citySuggestOpen && citySuggestions.length > 0 ? (
-                      <ul
-                        id="zone-city-suggestions"
-                        role="listbox"
-                        className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover py-1 text-sm shadow-md"
-                      >
-                        {citySuggestions.map((row, i) => {
-                          const cpLine = row.codesPostaux?.length
-                            ? row.codesPostaux.join(', ')
-                            : null
-                          const active = i === citySuggestHighlight
-                          return (
-                            <li key={`${row.code}-${i}`} role="presentation">
-                              <button
-                                type="button"
-                                role="option"
-                                aria-selected={active}
-                                className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent ${
-                                  active ? 'bg-accent' : ''
-                                }`}
-                                onMouseDown={(ev) => ev.preventDefault()}
-                                onMouseEnter={() => setCitySuggestHighlight(i)}
-                                onClick={() => applyCommunePick(row)}
-                              >
-                                <span className="font-medium text-foreground">{row.nom}</span>
-                                <span className="text-xs tabular-nums text-muted-foreground">
-                                  {cpLine ? `Codes postaux : ${cpLine}` : 'Codes postaux non renseignés'}
-                                </span>
-                              </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    ) : null}
+            <TabsContent value="city" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Centre du cercle</Label>
+                <RadioGroup
+                  value={cityCenterSource}
+                  onValueChange={(v) => setCityCenterSource(v as CityCenterSource)}
+                  className="flex flex-wrap gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="commune" id="city-src-commune" />
+                    <Label htmlFor="city-src-commune" className="cursor-pointer font-normal">
+                      Commune ou ville
+                    </Label>
                   </div>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="adresse" id="city-src-adresse" />
+                    <Label htmlFor="city-src-adresse" className="cursor-pointer font-normal">
+                      Adresse exacte
+                    </Label>
+                  </div>
+                </RadioGroup>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {cityCenterSource === 'commune'
+                    ? 'Le centre correspond au point officiel de la commune (API Géo), comme avant.'
+                    : 'Le centre est géolocalisé via la Base Adresse Nationale. L’estimation de population du disque reste indicative (par communes).'}
+                </p>
+              </div>
+
+              <div className="grid max-w-xl gap-3 sm:grid-cols-2">
+                {cityCenterSource === 'commune' ? (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="zone-city">Commune ou ville</Label>
+                    <div className="relative">
+                      <Input
+                        id="zone-city"
+                        autoComplete="off"
+                        aria-autocomplete="list"
+                        aria-expanded={citySuggestOpen}
+                        aria-controls="zone-city-suggestions"
+                        value={cityName}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setCityName(v)
+                          if (
+                            !selectedCommune ||
+                            selectedCommune.nom.trim().toLowerCase() !== v.trim().toLowerCase()
+                          ) {
+                            setSelectedCommune(null)
+                          }
+                        }}
+                        onFocus={() => setCityInputFocused(true)}
+                        onBlur={() => {
+                          window.setTimeout(() => {
+                            setCityInputFocused(false)
+                            setCitySuggestOpen(false)
+                          }, 180)
+                        }}
+                        onKeyDown={(e) => {
+                          if (!citySuggestOpen || citySuggestions.length === 0) return
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault()
+                            setCitySuggestHighlight((i) =>
+                              i + 1 >= citySuggestions.length ? 0 : i + 1,
+                            )
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault()
+                            setCitySuggestHighlight((i) =>
+                              i - 1 < 0 ? citySuggestions.length - 1 : i - 1,
+                            )
+                          } else if (e.key === 'Enter') {
+                            const row = citySuggestions[citySuggestHighlight]
+                            if (row) {
+                              e.preventDefault()
+                              applyCommunePick(row)
+                            }
+                          } else if (e.key === 'Escape') {
+                            setCitySuggestOpen(false)
+                          }
+                        }}
+                        placeholder="Nom ou code postal (5 chiffres)"
+                      />
+                      {citySuggestLoading ? (
+                        <Loader2
+                          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground"
+                          aria-hidden
+                        />
+                      ) : null}
+                      {citySuggestOpen && citySuggestions.length > 0 ? (
+                        <ul
+                          id="zone-city-suggestions"
+                          role="listbox"
+                          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover py-1 text-sm shadow-md"
+                        >
+                          {citySuggestions.map((row, i) => {
+                            const cpLine = row.codesPostaux?.length
+                              ? row.codesPostaux.join(', ')
+                              : null
+                            const active = i === citySuggestHighlight
+                            return (
+                              <li key={`${row.code}-${i}`} role="presentation">
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={active}
+                                  className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent ${
+                                    active ? 'bg-accent' : ''
+                                  }`}
+                                  onMouseDown={(ev) => ev.preventDefault()}
+                                  onMouseEnter={() => setCitySuggestHighlight(i)}
+                                  onClick={() => applyCommunePick(row)}
+                                >
+                                  <span className="font-medium text-foreground">{row.nom}</span>
+                                  <span className="text-xs tabular-nums text-muted-foreground">
+                                    {cpLine ? `Codes postaux : ${cpLine}` : 'Codes postaux non renseignés'}
+                                  </span>
+                                </button>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="zone-address">Adresse</Label>
+                    <div className="relative">
+                      <Input
+                        id="zone-address"
+                        autoComplete="street-address"
+                        aria-autocomplete="list"
+                        aria-expanded={addressSuggestOpen}
+                        aria-controls="zone-address-suggestions"
+                        value={addressLine}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setAddressLine(v)
+                          if (
+                            !selectedAddress ||
+                            selectedAddress.label.trim().toLowerCase() !== v.trim().toLowerCase()
+                          ) {
+                            setSelectedAddress(null)
+                          }
+                        }}
+                        onFocus={() => setAddressInputFocused(true)}
+                        onBlur={() => {
+                          window.setTimeout(() => {
+                            setAddressInputFocused(false)
+                            setAddressSuggestOpen(false)
+                          }, 180)
+                        }}
+                        onKeyDown={(e) => {
+                          if (!addressSuggestOpen || addressSuggestions.length === 0) return
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault()
+                            setAddressSuggestHighlight((i) =>
+                              i + 1 >= addressSuggestions.length ? 0 : i + 1,
+                            )
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault()
+                            setAddressSuggestHighlight((i) =>
+                              i - 1 < 0 ? addressSuggestions.length - 1 : i - 1,
+                            )
+                          } else if (e.key === 'Enter') {
+                            const row = addressSuggestions[addressSuggestHighlight]
+                            if (row) {
+                              e.preventDefault()
+                              applyAddressPick(row)
+                            }
+                          } else if (e.key === 'Escape') {
+                            setAddressSuggestOpen(false)
+                          }
+                        }}
+                        placeholder="Ex. 12 Rue de la République 59000 Lille"
+                      />
+                      {addressSuggestLoading ? (
+                        <Loader2
+                          className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground"
+                          aria-hidden
+                        />
+                      ) : null}
+                      {addressSuggestOpen && addressSuggestions.length > 0 ? (
+                        <ul
+                          id="zone-address-suggestions"
+                          role="listbox"
+                          className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover py-1 text-sm shadow-md"
+                        >
+                          {addressSuggestions.map((row, i) => {
+                            const active = i === addressSuggestHighlight
+                            return (
+                              <li key={`${row.label}-${i}`} role="presentation">
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={active}
+                                  className={`w-full px-3 py-2 text-left text-sm hover:bg-accent ${
+                                    active ? 'bg-accent' : ''
+                                  }`}
+                                  onMouseDown={(ev) => ev.preventDefault()}
+                                  onMouseEnter={() => setAddressSuggestHighlight(i)}
+                                  onClick={() => applyAddressPick(row)}
+                                >
+                                  {row.label}
+                                </button>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="zone-radius">Rayon (km)</Label>
                   <Input
@@ -1019,3 +1294,5 @@ export function ZonesDiffusionTool() {
     </div>
   )
 }
+
+export default ZonesDiffusionTool

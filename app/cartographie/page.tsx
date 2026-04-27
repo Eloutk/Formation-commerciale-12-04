@@ -8,12 +8,7 @@ const MONDAY_DEMANDE_POTENTIEL =
   'https://link599528.monday.com/boards/1397138702/views/28918344'
 const MONDAY_POTENTIELS_AUDIENCE = 'https://link599528.monday.com/boards/5025723216'
 
-const ZonesDiffusionTool = dynamic(
-  () =>
-    import('@/components/diffusion/ZonesDiffusionTool').then((m) => ({
-      default: m.ZonesDiffusionTool,
-    })),
-  {
+const ZonesDiffusionTool = dynamic(() => import('@/components/diffusion/ZonesDiffusionTool'), {
     ssr: false,
     loading: () => (
       <div
