@@ -39,6 +39,17 @@ import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/a
 import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
+import {
+  kpiMaxPenetrationPct,
+  computeKpiMaxRowsForEnabledPlatforms,
+  kpiMaxValidateInputs,
+  KPI_MAX_PLATFORM_ORDER,
+  kpiMaxSelectedToEnabled,
+  KPI_MAX_RADIO_NONE,
+  type KpiMaxPlatformId,
+  type KpiMaxCompteStrings,
+  type KpiMaxComputedRow,
+} from '@/lib/kpi-max-vente2'
 import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/vente/calendar/smsSalesConditions'
 import {
   rebalanceRetroSocialSegments,
@@ -777,61 +788,10 @@ async function fetchVenteSocialPdfLogoDataUrl(timeoutMs = 2000): Promise<string 
   }
 }
 
-/** Nombre de tranches de 30 j. (min. 1) — ex. 15 j → 1, 60 j → 2 */
-function kpiMaxTranches30j(briefDays: number): number {
-  const d = Math.max(1, Math.floor(briefDays))
-  return Math.max(1, Math.ceil(d / 30))
+function formatKpiMaxPenetrationFr(impressions: number, comptes: number): string {
+  const p = kpiMaxPenetrationPct(impressions, comptes)
+  return `${p.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
 }
-
-/** Répétition stratégie idéale : 1,5 × chaque tranche de 30 j. (ex. 1 tranche → 1,5). */
-function kpiMaxRepetitionIdeal(briefDays: number): number {
-  return kpiMaxTranches30j(briefDays) * 1.5
-}
-
-/** Répétition stratégie max : 2 × chaque tranche de 30 j. (ex. 1 tranche → 2). */
-function kpiMaxRepetitionMax(briefDays: number): number {
-  return kpiMaxTranches30j(briefDays) * 2
-}
-
-/**
- * KPIs à vendre : idéale 70 % / 1 % × c × r_idéal ; max 80 % / 1,5 % × c × r_max
- * (r_idéal et r_max diffèrent selon la règle de répétition par tranche de 30 j.).
- */
-function kpiMaxQuantitesAVendre(comptes: number, briefDays: number) {
-  const c = Math.max(1, Math.floor(comptes))
-  const rIdeal = kpiMaxRepetitionIdeal(briefDays)
-  const rMax = kpiMaxRepetitionMax(briefDays)
-  return {
-    ideal: {
-      impressions: 0.7 * c * rIdeal,
-      clics: 0.01 * c * rIdeal,
-    },
-    max: {
-      impressions: 0.8 * c * rMax,
-      clics: 0.015 * c * rMax,
-    },
-  }
-}
-
-/**
- * Taux de pénétration (%) par scénario — formules à brancher (paramètres : comptes, jours de diffusion).
- * Retourner un nombre (ex. 12.5 pour 12,5 %) ou null tant que le calcul n’est pas défini.
- */
-function kpiMaxTauxPenetrationPct(
-  _comptes: number,
-  _briefDays: number,
-  _scenario: 'ideal' | 'max',
-): number | null {
-  return null
-}
-
-function formatKpiMaxPenetrationPct(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—'
-  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
-}
-
-/** En dessous de ce nombre de comptes : les quatre encarts affichent « Max » sans chiffre (pas d’engagement KPI). */
-const KPI_MAX_COMMIT_MIN_COMPTES = 50_000
 
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
 function isMaxObjective(objective: string): boolean {
@@ -1692,54 +1652,62 @@ const SMSRCSPDFDocument = ({
   )
 }
 
-/** PDF synthèse onglet KPIs max (paramètres + 4 volumes : impressions / clics × idéal / max). */
+/** PDF export onglet KPIs max (synthèse). */
 const KpiMaxPdfDocument = ({
   clientName,
   userName,
   diffusionDaysStr,
-  comptesStr,
+  platformsEnabled,
+  compteStrings,
 }: {
   clientName: string
   userName: string
   diffusionDaysStr: string
-  comptesStr: string
+  platformsEnabled: Record<KpiMaxPlatformId, boolean>
+  compteStrings: KpiMaxCompteStrings
 }) => {
-  const jStr = diffusionDaysStr.trim()
-  const cStr = comptesStr.trim()
-  const jNum = parseFloat(jStr.replace(',', '.'))
-  const cNum = parseFloat(cStr.replace(',', '.'))
-  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
-  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
-  const showVolumes = daysOk && comptesOk
-  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
-  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
-  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
-  const belowCommitThreshold = comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+  const valid = kpiMaxValidateInputs(platformsEnabled, diffusionDaysStr, compteStrings)
+  const rows: KpiMaxComputedRow[] =
+    valid.ok && valid.diffusionDays && valid.comptes
+      ? computeKpiMaxRowsForEnabledPlatforms(platformsEnabled, valid.comptes, valid.diffusionDays)
+      : []
 
-  const kpiBox = (title: string, subtitle: string, borderColor: string, value: number, unit: string) => (
-    <View
-      style={[
-        styles.summary,
-        {
-          borderColor,
-          width: '48%',
-          marginBottom: 10,
-          minHeight: 100,
-        },
-      ]}
-    >
-      <Text style={[styles.chartTitle, { marginBottom: 4, fontSize: 11 }]}>{title}</Text>
-      <Text style={{ fontSize: 9, color: '#64748b', marginBottom: 8 }}>{subtitle}</Text>
-      {belowCommitThreshold ? (
-        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Max</Text>
-      ) : (
-        <>
-          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{formatNumber(Math.round(value), 0)}</Text>
-          <Text style={[styles.itemLabel, { marginTop: 4, fontSize: 9 }]}>{unit}</Text>
-        </>
-      )}
-    </View>
-  )
+  const selectedLabels =
+    KPI_MAX_PLATFORM_ORDER.filter(({ id }) => platformsEnabled[id])
+      .map(({ label }) => label)
+      .join(', ') || '—'
+
+  const rowPdfBlock = (scenario: 'ideal' | 'max', row: KpiMaxComputedRow) => {
+    const impressions = scenario === 'ideal' ? row.idealImpressions : row.maxImpressions
+
+    return (
+      <View wrap={false}>
+        <Text style={{ marginBottom: 3, fontSize: 10, lineHeight: 1.45 }} wrap>
+          • {row.label}
+        </Text>
+        <Text style={{ marginBottom: row.showMaxPenetration ? 3 : 8, marginLeft: 12, fontSize: 10, lineHeight: 1.45 }} wrap>
+          {formatNumber(impressions, 0)} impressions
+        </Text>
+        {row.showMaxPenetration ? (
+          <Text
+            style={{
+              marginBottom: 8,
+              marginLeft: 12,
+              fontSize: 9,
+              lineHeight: 1.4,
+              color: scenario === 'ideal' ? '#047857' : '#c2410c',
+            }}
+            wrap
+          >
+            {kpiMaxPenetrationPct(impressions, row.penetrationComptes).toLocaleString('fr-FR', {
+              maximumFractionDigits: 2,
+            })}
+            {' %'}
+          </Text>
+        ) : null}
+      </View>
+    )
+  }
 
   return (
     <Document>
@@ -1754,60 +1722,60 @@ const KpiMaxPdfDocument = ({
         <Text style={[styles.summaryText, { marginBottom: 12 }]}>{new Date().toLocaleDateString('fr-FR')}</Text>
 
         <View style={styles.summary}>
-          <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Paramètres</Text>
+          <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Saisie</Text>
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Jours de diffusion</Text>
-            <Text style={styles.itemValue}>{jStr || '—'}</Text>
+            <Text style={styles.itemLabel}>Plateforme</Text>
+            <Text style={styles.itemValue}>{selectedLabels}</Text>
           </View>
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Nombre de comptes</Text>
-            <Text style={styles.itemValue}>{cStr || '—'}</Text>
+            <Text style={styles.itemLabel}>Durée (jours)</Text>
+            <Text style={styles.itemValue}>{diffusionDaysStr.trim() || '—'}</Text>
           </View>
+          {(platformsEnabled.meta || platformsEnabled.display || platformsEnabled.youtube) ? (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemValue}>{compteStrings.meta.trim() || '—'}</Text>
+            </View>
+          ) : null}
+          {platformsEnabled.linkedin ? (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemValue}>{compteStrings.linkedin.trim() || '—'}</Text>
+            </View>
+          ) : null}
+          {platformsEnabled.snapchat ? (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemValue}>{compteStrings.snapchat.trim() || '—'}</Text>
+            </View>
+          ) : null}
+          {platformsEnabled.tiktok ? (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemValue}>{compteStrings.tiktok.trim() || '—'}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <View style={[styles.summary, { marginTop: 12, borderColor: '#e5e5e5', borderWidth: 1 }]}>
-          <Text style={[styles.chartTitle, { marginBottom: 8, fontSize: 12 }]}>Taux de pénétration</Text>
-          <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Stratégie idéale</Text>
-            <Text style={styles.itemValue}>
-              {formatKpiMaxPenetrationPct(
-                showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'ideal') : null,
-              )}
-            </Text>
-          </View>
-          <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Stratégie max</Text>
-            <Text style={styles.itemValue}>
-              {formatKpiMaxPenetrationPct(
-                showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'max') : null,
-              )}
-            </Text>
-          </View>
-        </View>
-
-        {!showVolumes ? (
-          <Text style={{ marginTop: 16, lineHeight: 1.45 }} wrap>
-            Indiquez des jours de diffusion et un nombre de comptes valides pour afficher les volumes estimés.
+        {!valid.ok ? (
+          <Text style={{ marginTop: 8, fontSize: 11, color: '#b45309' }} wrap>
+            {valid.reason ?? "Complétez les champs requis dans l'outil."}
+          </Text>
+        ) : rows.length === 0 ? (
+          <Text style={{ marginTop: 8 }} wrap>
+            Aucune ligne à afficher.
           </Text>
         ) : (
-          <View style={{ marginTop: 16 }}>
-            {belowCommitThreshold && (
-              <Text style={{ fontSize: 10, color: '#b45309', marginBottom: 8 }} wrap>
-                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes : volumes non chiffrés (affichage « Max »
-                côté écran).
-              </Text>
-            )}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-              {v ? (
-                <>
-                  {kpiBox('Impressions', 'Stratégie idéale', '#10b981', v.ideal.impressions, 'impressions')}
-                  {kpiBox('Impressions', 'Stratégie max', '#E94C16', v.max.impressions, 'impressions')}
-                  {kpiBox('Clics', 'Stratégie idéale', '#10b981', v.ideal.clics, 'clics')}
-                  {kpiBox('Clics', 'Stratégie max', '#E94C16', v.max.clics, 'clics')}
-                </>
-              ) : null}
-            </View>
-          </View>
+          <>
+            <Text style={[styles.chartTitle, { marginTop: 10, marginBottom: 8 }]}>Stratégie idéale</Text>
+            {rows.map((r) => (
+              <View key={`ideal-${r.id}`}>{rowPdfBlock('ideal', r)}</View>
+            ))}
+            <Text style={[styles.chartTitle, { marginTop: 14, marginBottom: 8 }]}>Stratégie max</Text>
+            {rows.map((r) => (
+              <View key={`max-${r.id}`}>{rowPdfBlock('max', r)}</View>
+            ))}
+          </>
         )}
       </Page>
     </Document>
@@ -1834,9 +1802,17 @@ export default function VentePage() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
-  /** Nombre de comptes annonceur dispo — aligné sur la demande de potentiel (vue Kpis max) */
-  const [kpiMaxComptesDispo, setKpiMaxComptesDispo] = useState<string>('1')
-  /** Onglet Kpis max : jours de diffusion propres (non liés au calculateur Social) */
+  /** KPIs max : une plateforme + potentiel + durée */
+  const [kpiMaxPlatformSelected, setKpiMaxPlatformSelected] = useState<KpiMaxPlatformId | null>(null)
+  const kpiMaxPlatformsEnabled = useMemo(
+    () => kpiMaxSelectedToEnabled(kpiMaxPlatformSelected),
+    [kpiMaxPlatformSelected],
+  )
+  const [kpiMaxCompteMeta, setKpiMaxCompteMeta] = useState<string>('')
+  const [kpiMaxCompteLinkedin, setKpiMaxCompteLinkedin] = useState<string>('')
+  const [kpiMaxCompteSnapchat, setKpiMaxCompteSnapchat] = useState<string>('')
+  const [kpiMaxCompteTiktok, setKpiMaxCompteTiktok] = useState<string>('')
+  /** KPIs max : champ durée (jours). */
   const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
@@ -2973,11 +2949,17 @@ export default function VentePage() {
           clientName={clientLabel}
           userName={userPseudo || userName}
           diffusionDaysStr={kpiMaxDiffusionDays}
-          comptesStr={kpiMaxComptesDispo}
+          platformsEnabled={kpiMaxPlatformsEnabled}
+          compteStrings={{
+            meta: kpiMaxCompteMeta,
+            linkedin: kpiMaxCompteLinkedin,
+            snapchat: kpiMaxCompteSnapchat,
+            tiktok: kpiMaxCompteTiktok,
+          }}
         />,
       ).toBlob()
       zip.file('05-kpis-max.pdf', kpiBlob)
-      readmeLines.push('• 05-kpis-max.pdf — KPIs max')
+      readmeLines.push('• 05-kpis-max.pdf — KPIs max (plateformes, impressions strat. idéale / max, pénétration strat. max)')
 
       readmeLines.push(
         '',
@@ -5381,7 +5363,7 @@ export default function VentePage() {
         )}
 
         {pdvSection === 'kpiMax' && (
-          <div className="mt-6 mx-auto max-w-4xl px-0">
+          <div className="mt-6 mx-auto max-w-5xl px-0">
             <Card className="overflow-hidden border-border/80 shadow-sm">
               <CardHeader className="space-y-2 border-b bg-muted/20 pb-5">
                 <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
@@ -5390,42 +5372,148 @@ export default function VentePage() {
                   </span>
                   KPIs max
                 </CardTitle>
-                <CardDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Estimation indicative : impressions, clics et taux de pénétration (idéal / max) selon jours de diffusion et
-                  nombre de comptes. Les formules de pénétration seront branchées sur les champs ci-dessous.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8 pt-6">
                 {(() => {
-                  const jStr = kpiMaxDiffusionDays.trim()
-                  const cStr = kpiMaxComptesDispo.trim()
-                  const jNum = parseFloat(jStr.replace(',', '.'))
-                  const cNum = parseFloat(cStr.replace(',', '.'))
-                  const daysOk = jStr !== '' && !Number.isNaN(jNum) && jNum >= 1
-                  const comptesOk = cStr !== '' && !Number.isNaN(cNum) && cNum >= 1
-                  const showVolumes = daysOk && comptesOk
-                  const j = daysOk ? Math.max(1, Math.floor(jNum)) : 1
-                  const c = comptesOk ? Math.max(1, Math.floor(cNum)) : 1
-                  const v = showVolumes ? kpiMaxQuantitesAVendre(c, j) : null
-                  const penIdeal = showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'ideal') : null
-                  const penMax = showVolumes ? kpiMaxTauxPenetrationPct(c, j, 'max') : null
-                  const belowCommitThreshold =
-                    comptesOk && c < KPI_MAX_COMMIT_MIN_COMPTES
+                  const compteStrings: KpiMaxCompteStrings = {
+                    meta: kpiMaxCompteMeta,
+                    linkedin: kpiMaxCompteLinkedin,
+                    snapchat: kpiMaxCompteSnapchat,
+                    tiktok: kpiMaxCompteTiktok,
+                  }
+                  const valid = kpiMaxValidateInputs(
+                    kpiMaxPlatformsEnabled,
+                    kpiMaxDiffusionDays,
+                    compteStrings,
+                  )
+                  const rows =
+                    valid.ok && valid.diffusionDays && valid.comptes
+                      ? computeKpiMaxRowsForEnabledPlatforms(
+                          kpiMaxPlatformsEnabled,
+                          valid.comptes,
+                          valid.diffusionDays,
+                        )
+                      : []
+
+                  const potentielSel = kpiMaxPlatformSelected
+                  const potentielInline =
+                    potentielSel === null
+                      ? ({
+                          label: 'Potentiel',
+                          fieldId: 'kpi-max-potentiel-inline',
+                          disabled: true,
+                          placeholder: '—',
+                          value: '',
+                          setValue: () => {},
+                        } as const)
+                      : potentielSel === 'meta'
+                        ? ({
+                            label: 'Potentiel',
+                            fieldId: 'kpi-max-potentiel-meta-input',
+                            disabled: false,
+                            placeholder: 'À remplir',
+                            value: kpiMaxCompteMeta,
+                            setValue: setKpiMaxCompteMeta,
+                          } as const)
+                        : potentielSel === 'display' || potentielSel === 'youtube'
+                          ? ({
+                              label: 'Potentiel',
+                              fieldId: 'kpi-max-potentiel-meta-input',
+                              disabled: false,
+                              placeholder: 'À remplir',
+                              value: kpiMaxCompteMeta,
+                              setValue: setKpiMaxCompteMeta,
+                            } as const)
+                          : potentielSel === 'linkedin'
+                            ? ({
+                                label: 'Potentiel',
+                                fieldId: 'kpi-max-potentiel-linkedin',
+                                disabled: false,
+                                placeholder: 'À remplir',
+                                value: kpiMaxCompteLinkedin,
+                                setValue: setKpiMaxCompteLinkedin,
+                              } as const)
+                            : potentielSel === 'snapchat'
+                              ? ({
+                                  label: 'Potentiel',
+                                  fieldId: 'kpi-max-potentiel-snapchat',
+                                  disabled: false,
+                                  placeholder: 'À remplir',
+                                  value: kpiMaxCompteSnapchat,
+                                  setValue: setKpiMaxCompteSnapchat,
+                                } as const)
+                              : ({
+                                  label: 'Potentiel',
+                                  fieldId: 'kpi-max-potentiel-tiktok',
+                                  disabled: false,
+                                  placeholder: 'À remplir',
+                                  value: kpiMaxCompteTiktok,
+                                  setValue: setKpiMaxCompteTiktok,
+                                } as const)
+
                   return (
                     <>
-                      <section className="space-y-3" aria-labelledby="kpi-max-params-heading">
+                      <section className="space-y-4" aria-labelledby="kpi-max-saisie-heading">
                         <h2
-                          id="kpi-max-params-heading"
-                          className="text-sm font-medium text-foreground"
+                          id="kpi-max-saisie-heading"
+                          className="text-sm font-medium text-[#E94C16]"
                         >
-                          Paramètres
+                          Saisie
                         </h2>
                         <div className="rounded-xl border border-border/60 bg-muted/15 p-4 sm:p-5">
-                          <div className="grid gap-5 sm:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label htmlFor="kpi-max-jours-diffusion" className="text-foreground">
-                                Jours de diffusion
-                              </Label>
+                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-12 sm:gap-6">
+                            <div className="flex flex-col gap-2 sm:col-span-4">
+                              <div className="flex min-h-10 items-end">
+                                <Label htmlFor="kpi-max-plateforme-select" className="text-foreground">
+                                  Plateforme
+                                </Label>
+                              </div>
+                              <Select
+                                value={kpiMaxPlatformSelected ?? KPI_MAX_RADIO_NONE}
+                                onValueChange={(v) =>
+                                  setKpiMaxPlatformSelected(
+                                    v === KPI_MAX_RADIO_NONE ? null : (v as KpiMaxPlatformId),
+                                  )
+                                }
+                              >
+                                <SelectTrigger id="kpi-max-plateforme-select" className="w-full bg-background">
+                                  <SelectValue placeholder="Choisir une plateforme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={KPI_MAX_RADIO_NONE}>Aucune</SelectItem>
+                                  {KPI_MAX_PLATFORM_ORDER.map(({ id, label }) => (
+                                    <SelectItem key={id} value={id}>
+                                      {label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <div className="min-h-[2.875rem]" aria-hidden />
+                            </div>
+                            <div className="flex min-w-0 flex-col gap-2 sm:col-span-5">
+                              <div className="flex min-h-10 items-end">
+                                <Label htmlFor={potentielInline.fieldId} className="text-foreground">
+                                  {potentielInline.label}
+                                </Label>
+                              </div>
+                              <EditableInput
+                                id={potentielInline.fieldId}
+                                type="number"
+                                min={1}
+                                disabled={potentielInline.disabled}
+                                placeholder={potentielInline.placeholder}
+                                value={potentielInline.value}
+                                onChange={(e) => potentielInline.setValue(e.target.value)}
+                                className="w-full bg-background"
+                              />
+                              <div className="min-h-[2.875rem]" aria-hidden />
+                            </div>
+                            <div className="flex flex-col gap-2 sm:col-span-3">
+                              <div className="flex min-h-10 items-end">
+                                <Label htmlFor="kpi-max-jours-diffusion" className="text-foreground">
+                                  Durée
+                                </Label>
+                              </div>
                               <EditableInput
                                 id="kpi-max-jours-diffusion"
                                 type="number"
@@ -5433,185 +5521,127 @@ export default function VentePage() {
                                 placeholder="ex. 14"
                                 value={kpiMaxDiffusionDays}
                                 onChange={(e) => setKpiMaxDiffusionDays(e.target.value)}
-                                className="bg-background"
+                                className="w-full bg-background"
                               />
-                              {!daysOk && (
-                                <p className="text-xs text-muted-foreground tabular-nums leading-relaxed">
-                                  Indiquez la durée pour calculer la répétition.
-                                </p>
-                              )}
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="kpi-max-comptes-dispo" className="text-foreground">
-                                Nombre de comptes
-                              </Label>
-                              <EditableInput
-                                id="kpi-max-comptes-dispo"
-                                type="number"
-                                min={1}
-                                placeholder="ex. 1"
-                                value={kpiMaxComptesDispo}
-                                onChange={(e) => setKpiMaxComptesDispo(e.target.value)}
-                                className="bg-background"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Selon le potentiel indiqué par les TM.
-                              </p>
+                              <div className="hidden min-h-[2.875rem] sm:block" aria-hidden />
                             </div>
                           </div>
                         </div>
                       </section>
 
-                      {showVolumes && v ? (
-                        <section
-                          className="space-y-4"
-                          aria-labelledby="kpi-max-results-heading"
-                          aria-live="polite"
-                        >
-                          <h2
-                            id="kpi-max-results-heading"
-                            className="text-sm font-medium text-foreground"
-                          >
-                            Résultat
-                          </h2>
+                      <section className="space-y-4" aria-live="polite">
+                        {!valid.ok ? (
+                          <Alert className="border-amber-200/90 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/25 [&_svg]:text-amber-700">
+                            <Info className="h-4 w-4 shrink-0" aria-hidden />
+                            <AlertTitle className="text-sm font-medium text-foreground">Saisie incomplète</AlertTitle>
+                            <AlertDescription className="text-sm text-muted-foreground">{valid.reason}</AlertDescription>
+                          </Alert>
+                        ) : rows.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Sélectionnez une plateforme ci-dessus pour afficher les résultats.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+                              <div
+                                className="min-w-0 rounded-2xl border border-emerald-600/20 bg-emerald-500/[0.03] px-5 py-6 dark:bg-emerald-500/[0.06]"
+                                aria-label="Résultats stratégie idéale"
+                              >
+                                <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+                                  Stratégie idéale
+                                </h3>
+                                <ul className="space-y-6">
+                                  {rows.map((row) => (
+                                    <li key={`ideal-impr-${row.id}`} className="space-y-2">
+                                      <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                                      <p className="text-xl font-bold tabular-nums text-foreground">
+                                        {formatNumber(row.idealImpressions, 0)}{' '}
+                                        <span className="text-sm font-medium text-muted-foreground">
+                                          impressions
+                                        </span>
+                                      </p>
+                                    </li>
+                                  ))}
+                                </ul>
 
-                          {belowCommitThreshold && (
-                            <Alert className="border-amber-200/90 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/25 [&_svg]:text-amber-700 dark:[&_svg]:text-amber-400">
-                              <Info className="h-4 w-4 shrink-0" aria-hidden />
-                              <AlertTitle className="text-sm font-medium text-foreground">
-                                Moins de {KPI_MAX_COMMIT_MIN_COMPTES.toLocaleString('fr-FR')} comptes
-                              </AlertTitle>
-                              <AlertDescription className="text-sm leading-relaxed text-muted-foreground">
-                                Aucun volume chiffré n&apos;est affiché. Les quatre encarts indiquent « Max » à titre
-                                indicatif — pas d&apos;engagement sur les KPIs pour ce palier volumétrique.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-
-                          <div
-                            className="rounded-xl border border-border/60 bg-muted/10 p-4 sm:p-5"
-                            aria-labelledby="kpi-max-penetration-heading"
-                          >
-                            <h3
-                              id="kpi-max-penetration-heading"
-                              className="text-sm font-medium text-foreground"
-                            >
-                              Taux de pénétration
-                            </h3>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                              <div className="flex items-baseline justify-between gap-4 rounded-lg border border-border/50 bg-background/80 px-4 py-3">
-                                <span className="text-sm text-muted-foreground">Stratégie idéale</span>
-                                <span className="text-lg font-semibold tabular-nums text-foreground">
-                                  {formatKpiMaxPenetrationPct(penIdeal)}
-                                </span>
+                                <div className="mt-8 border-t border-border/35 pt-6">
+                                  <h3 className="mb-4 text-xs font-semibold normal-case tracking-normal text-emerald-800 dark:text-emerald-300">
+                                    taux de pénétration
+                                  </h3>
+                                  <ul className="space-y-6">
+                                    {rows.map((row) => (
+                                      <li key={`ideal-pen-${row.id}`} className="space-y-2">
+                                        <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                                        {row.showMaxPenetration ? (
+                                          <p
+                                            className="text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400"
+                                            role="status"
+                                          >
+                                            {formatKpiMaxPenetrationFr(
+                                              row.idealImpressions,
+                                              row.penetrationComptes,
+                                            )}
+                                          </p>
+                                        ) : (
+                                          <p className="text-sm text-muted-foreground">—</p>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               </div>
-                              <div className="flex items-baseline justify-between gap-4 rounded-lg border border-border/50 bg-background/80 px-4 py-3">
-                                <span className="text-sm text-muted-foreground">Stratégie max</span>
-                                <span className="text-lg font-semibold tabular-nums text-foreground">
-                                  {formatKpiMaxPenetrationPct(penMax)}
-                                </span>
+
+                              <div
+                                className="min-w-0 rounded-2xl border border-[#E94C16]/22 bg-[#E94C16]/[0.04] px-5 py-6 dark:bg-[#E94C16]/[0.07]"
+                                aria-label="Résultats stratégie max"
+                              >
+                                <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-[#C43D11] dark:text-orange-400">
+                                  Stratégie max
+                                </h3>
+                                <ul className="space-y-6">
+                                  {rows.map((row) => (
+                                    <li key={`max-impr-${row.id}`} className="space-y-2">
+                                      <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                                      <p className="text-xl font-bold tabular-nums text-foreground">
+                                        {formatNumber(row.maxImpressions, 0)}{' '}
+                                        <span className="text-sm font-medium text-muted-foreground">
+                                          impressions
+                                        </span>
+                                      </p>
+                                    </li>
+                                  ))}
+                                </ul>
+
+                                <div className="mt-8 border-t border-border/35 pt-6">
+                                  <h3 className="mb-4 text-xs font-semibold normal-case tracking-normal text-[#C43D11] dark:text-orange-400">
+                                    taux de pénétration
+                                  </h3>
+                                  <ul className="space-y-6">
+                                    {rows.map((row) => (
+                                      <li key={`max-pen-${row.id}`} className="space-y-2">
+                                        <p className="text-sm font-semibold text-foreground">{row.label}</p>
+                                        {row.showMaxPenetration ? (
+                                          <p
+                                            className="text-lg font-semibold tabular-nums text-[#E94C16]"
+                                            role="status"
+                                          >
+                                            {formatKpiMaxPenetrationFr(
+                                              row.maxImpressions,
+                                              row.penetrationComptes,
+                                            )}
+                                          </p>
+                                        ) : (
+                                          <p className="text-sm text-muted-foreground">—</p>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               </div>
                             </div>
-                            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-                              Les pourcentages s&apos;afficheront ici une fois les formules renseignées (mêmes entrées : jours
-                              de diffusion et nombre de comptes).
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {(
-                              [
-                                {
-                                  key: 'imp-ideal',
-                                  metric: 'impressions' as const,
-                                  scenario: 'ideal' as const,
-                                  title: 'Impressions',
-                                  subtitle: 'Stratégie idéale',
-                                  cardClass:
-                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
-                                },
-                                {
-                                  key: 'imp-max',
-                                  metric: 'impressions' as const,
-                                  scenario: 'max' as const,
-                                  title: 'Impressions',
-                                  subtitle: 'Stratégie max',
-                                  cardClass:
-                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
-                                },
-                                {
-                                  key: 'clk-ideal',
-                                  metric: 'clics' as const,
-                                  scenario: 'ideal' as const,
-                                  title: 'Clics',
-                                  subtitle: 'Stratégie idéale',
-                                  cardClass:
-                                    'border-l-[3px] border-l-emerald-600/90 bg-gradient-to-br from-emerald-500/[0.06] to-transparent dark:from-emerald-500/[0.08]',
-                                },
-                                {
-                                  key: 'clk-max',
-                                  metric: 'clics' as const,
-                                  scenario: 'max' as const,
-                                  title: 'Clics',
-                                  subtitle: 'Stratégie max',
-                                  cardClass:
-                                    'border-l-[3px] border-l-[#E94C16] bg-gradient-to-br from-[#E94C16]/[0.07] to-transparent',
-                                },
-                              ] as const
-                            ).map((slot) => (
-                              <div
-                                key={slot.key}
-                                className={cn(
-                                  'flex min-h-[132px] flex-col gap-3 rounded-xl border border-border/70 p-5 shadow-sm',
-                                  slot.cardClass,
-                                )}
-                              >
-                                <div>
-                                  <h3 className="text-sm font-semibold leading-none text-foreground">{slot.title}</h3>
-                                  <p className="mt-1 text-xs text-muted-foreground">{slot.subtitle}</p>
-                                </div>
-                                <div className="mt-auto space-y-1">
-                                  {belowCommitThreshold ? (
-                                    <p className="text-3xl font-semibold tracking-tight text-foreground">Max</p>
-                                  ) : (
-                                    <>
-                                      <p className="break-words text-3xl font-bold tabular-nums tracking-tight text-foreground sm:text-4xl">
-                                        {formatNumber(
-                                          Math.round(v[slot.scenario][slot.metric]),
-                                          0,
-                                        )}
-                                      </p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {slot.metric === 'impressions' ? 'impressions' : 'clics'}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      ) : (
-                        <div
-                          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-muted/10 px-6 py-12 text-center"
-                          role="status"
-                        >
-                          <BarChart2
-                            className="h-10 w-10 text-muted-foreground/45"
-                            strokeWidth={1.25}
-                            aria-hidden
-                          />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              Saisissez jours de diffusion et nombre de comptes
-                            </p>
-                            <p className="max-w-sm text-xs text-muted-foreground leading-relaxed">
-                              Les indicateurs (taux de pénétration, puis impressions et clics × idéal et max) s&apos;afficheront
-                              ici.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </section>
                     </>
                   )
                 })()}
