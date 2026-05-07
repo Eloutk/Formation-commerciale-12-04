@@ -150,6 +150,9 @@ export async function communesFromPostalCodesList(
       continue
     }
     for (const r of rows) {
+      const codesApi = Array.isArray(r.codesPostaux) ? r.codesPostaux : []
+      /** Ne garder que les communes où ce code postal figure bien dans la liste renvoyée par l’API. */
+      if (!codesApi.includes(cp)) continue
       const code = r.code
       if (!code || byInsee.has(code)) continue
       const coords = r.centre?.coordinates

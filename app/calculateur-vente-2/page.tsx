@@ -41,9 +41,12 @@ import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
 import {
   kpiMaxPenetrationPct,
+  kpiMaxPenetrationRawPct,
+  KPI_MAX_PENETRATION_CAP_PCT,
   computeKpiMaxRowsForEnabledPlatforms,
   kpiMaxValidateInputs,
   KPI_MAX_PLATFORM_ORDER,
+  KPI_MAX_IMPRESSIONS_BAREME_ROWS,
   kpiMaxSelectedToEnabled,
   KPI_MAX_RADIO_NONE,
   type KpiMaxPlatformId,
@@ -789,8 +792,13 @@ async function fetchVenteSocialPdfLogoDataUrl(timeoutMs = 2000): Promise<string 
 }
 
 function formatKpiMaxPenetrationFr(impressions: number, comptes: number): string {
-  const p = kpiMaxPenetrationPct(impressions, comptes)
-  return `${p.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
+  const raw = kpiMaxPenetrationRawPct(impressions, comptes)
+  const p = Math.min(KPI_MAX_PENETRATION_CAP_PCT, Math.max(0, raw))
+  const base = `${p.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
+  if (raw > KPI_MAX_PENETRATION_CAP_PCT + 1e-9) {
+    return `${base} (plafond ${KPI_MAX_PENETRATION_CAP_PCT}\u202f%)`
+  }
+  return base
 }
 
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
@@ -1703,6 +1711,9 @@ const KpiMaxPdfDocument = ({
               maximumFractionDigits: 2,
             })}
             {' %'}
+            {kpiMaxPenetrationRawPct(impressions, row.penetrationComptes) > KPI_MAX_PENETRATION_CAP_PCT + 1e-9
+              ? ` (plafonné à ${KPI_MAX_PENETRATION_CAP_PCT} %)`
+              : ''}
           </Text>
         ) : null}
       </View>
@@ -5453,6 +5464,54 @@ export default function VentePage() {
 
                   return (
                     <>
+                      <div className="rounded-lg border border-border/60 bg-muted/15 px-4 py-3 sm:px-5">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#E94C16]">
+                          Barème impressions (référence)
+                        </p>
+                        <p className="mb-3 text-xs text-muted-foreground">
+                          Les « / mois » sont multipliés par le nombre de mois correspondant aux{' '}
+                          <span className="font-medium text-foreground">tranches de 30 jours</span>{' '}
+                          (jours 1 à 30 = 1 mois, 31 à 60 = 2 mois, etc.). Le champ saisi s’appelle toujours{' '}
+                          <span className="font-medium text-foreground">Potentiel</span> (base META pour META, Display et
+                          Youtube).
+                        </p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[480px] border-collapse text-left text-xs sm:text-sm">
+                            <caption className="sr-only">
+                              Formules impressions stratégie idéale et stratégie max par plateforme
+                            </caption>
+                            <thead>
+                              <tr className="border-b border-border/60">
+                                <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
+                                  Plateforme
+                                </th>
+                                <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
+                                  Stratégie idéale
+                                </th>
+                                <th scope="col" className="py-2 font-semibold text-foreground">
+                                  Stratégie max
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-muted-foreground">
+                              {KPI_MAX_IMPRESSIONS_BAREME_ROWS.map((row) => (
+                                <tr key={row.label} className="border-b border-border/40 last:border-b-0">
+                                  <td className="py-2 pr-3 font-medium text-foreground">{row.label}</td>
+                                  <td className="py-2 pr-3">{row.idealCaption}</td>
+                                  <td className="py-2">{row.maxCaption}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                          <span className="font-medium text-foreground">Taux de pénétration</span> (affiché en %){' '}
+                          : (impressions de la stratégie ÷ 1,8) × 100 ÷ potentiel,{' '}
+                          <span className="font-medium text-foreground">plafonné à {KPI_MAX_PENETRATION_CAP_PCT} %</span>
+                          .
+                        </p>
+                      </div>
+
                       <section className="space-y-4" aria-labelledby="kpi-max-saisie-heading">
                         <h2
                           id="kpi-max-saisie-heading"
