@@ -1152,7 +1152,7 @@ export function ZonesDiffusionTool() {
               </p>
             </div>
           </div>
-          <div className="relative z-0 h-[min(440px,58vh)] w-full bg-white sm:h-[min(480px,55vh)]">
+          <div className="relative z-0 h-[min(720px,75vh)] w-full bg-white sm:h-[min(800px,80vh)]">
             {mapMounted ? (
               <MapContainer
                 center={mapCenter}

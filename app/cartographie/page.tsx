@@ -27,7 +27,7 @@ const ZonesDiffusionTool = dynamic(() => import('@/components/diffusion/ZonesDif
 export default function CartographiePage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-[#E94C16]/[0.04] via-background to-background">
-      <div className="container mx-auto max-w-5xl px-4 py-8 sm:py-10">
+      <div className="container mx-auto max-w-6xl px-4 py-8 sm:py-10">
         <header className="mb-8 border-b border-border/60 pb-8">
           <h1 className="flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight sm:text-3xl">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
