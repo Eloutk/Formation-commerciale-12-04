@@ -1696,8 +1696,8 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 6 pastilles (ordre de l’image : nav haut, photo, marque, texte, CTA, nav bas) */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Limites_caracteres_10x.png"
                               alt="Limites de caractères pour les wordings TikTok"
@@ -1716,28 +1716,28 @@ export default function StudioPage() {
                               {/* 2 : photo de profil */}
                               <Tooltip open={tiktokLimites2Open} onOpenChange={setTiktokLimites2Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute top-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites2Open(!tiktokLimites2Open)}>2</div>
+                                  <div className="absolute top-[30%] right-[7%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites2Open(!tiktokLimites2Open)}>2</div>
                                 </TooltipTrigger>
                                 <TooltipContent><div className="text-sm"><strong>photo de profil</strong></div></TooltipContent>
                               </Tooltip>
                               {/* 3 : nom de marque */}
                               <Tooltip open={tiktokLimites3Open} onOpenChange={setTiktokLimites3Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute top-[18%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites3Open(!tiktokLimites3Open)}>3</div>
+                                  <div className="absolute bottom-[28%] left-[10%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites3Open(!tiktokLimites3Open)}>3</div>
                                 </TooltipTrigger>
                                 <TooltipContent><div className="text-sm"><strong>nom de marque</strong></div></TooltipContent>
                               </Tooltip>
                               {/* 4 : texte principal */}
                               <Tooltip open={tiktokLimites4Open} onOpenChange={setTiktokLimites4Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute top-[28%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites4Open(!tiktokLimites4Open)}>4</div>
+                                  <div className="absolute bottom-[24%] left-[50%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites4Open(!tiktokLimites4Open)}>4</div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs"><div className="text-sm"><strong>texte principal :</strong><br />100 caractères maximum, espaces inclus</div></TooltipContent>
                               </Tooltip>
                               {/* 5 : bloc CTA² */}
                               <Tooltip open={tiktokLimites5Open} onOpenChange={setTiktokLimites5Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute bottom-[20%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites5Open(!tiktokLimites5Open)}>5</div>
+                                  <div className="absolute bottom-[12%] left-[10%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokLimites5Open(!tiktokLimites5Open)}>5</div>
                                 </TooltipTrigger>
                                 <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
                               </Tooltip>
@@ -1757,8 +1757,8 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/TikTok_Marges_securite_10x.png"
                               alt="Marges de sécurité publicités verticales TikTok"
@@ -1769,7 +1769,7 @@ export default function StudioPage() {
                             <TooltipProvider delayDuration={0}>
                               <Tooltip open={tiktokMarges1Open} onOpenChange={setTiktokMarges1Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute top-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokMarges1Open(!tiktokMarges1Open)}>1</div>
+                                  <div className="absolute top-[6%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setTiktokMarges1Open(!tiktokMarges1Open)}>1</div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <div className="text-sm">
