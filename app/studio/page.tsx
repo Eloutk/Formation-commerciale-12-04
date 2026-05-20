@@ -31,7 +31,6 @@ export default function StudioPage() {
   const [linkedinLimites3Open, setLinkedinLimites3Open] = useState(false);
   const [linkedinLimites4Open, setLinkedinLimites4Open] = useState(false);
   const [linkedinLimites5Open, setLinkedinLimites5Open] = useState(false);
-  const [linkedinLimites6Open, setLinkedinLimites6Open] = useState(false);
   const [tiktokLimites1Open, setTiktokLimites1Open] = useState(false);
   const [tiktokLimites2Open, setTiktokLimites2Open] = useState(false);
   const [tiktokLimites3Open, setTiktokLimites3Open] = useState(false);
@@ -1117,46 +1116,39 @@ export default function StudioPage() {
                           {/* 1 : photo de profil + nom de page */}
                           <Tooltip open={linkedinLimites1Open} onOpenChange={setLinkedinLimites1Open}>
                             <TooltipTrigger asChild>
-                              <div className="absolute top-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites1Open(!linkedinLimites1Open)}>1</div>
+                              <div className="absolute top-[6%] left-[14%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites1Open(!linkedinLimites1Open)}>1</div>
                             </TooltipTrigger>
                             <TooltipContent><div className="text-sm"><strong>photo de profil + nom de page</strong></div></TooltipContent>
                           </Tooltip>
                           {/* 2 : texte principal */}
                           <Tooltip open={linkedinLimites2Open} onOpenChange={setLinkedinLimites2Open}>
                             <TooltipTrigger asChild>
-                              <div className="absolute top-[18%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites2Open(!linkedinLimites2Open)}>2</div>
+                              <div className="absolute top-[16%] left-[22%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites2Open(!linkedinLimites2Open)}>2</div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <div className="text-sm"><strong>texte principal :</strong><br />150 caractères maximum, espaces inclus</div>
                             </TooltipContent>
                           </Tooltip>
-                          {/* 3 : image ou vidéo */}
+                          {/* 3 : titre */}
                           <Tooltip open={linkedinLimites3Open} onOpenChange={setLinkedinLimites3Open}>
                             <TooltipTrigger asChild>
-                              <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites3Open(!linkedinLimites3Open)}>3</div>
-                            </TooltipTrigger>
-                            <TooltipContent><div className="text-sm"><strong>image ou vidéo</strong></div></TooltipContent>
-                          </Tooltip>
-                          {/* 4 : titre */}
-                          <Tooltip open={linkedinLimites4Open} onOpenChange={setLinkedinLimites4Open}>
-                            <TooltipTrigger asChild>
-                              <div className="absolute bottom-[22%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites4Open(!linkedinLimites4Open)}>4</div>
+                              <div className="absolute bottom-[6%] left-[16%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites3Open(!linkedinLimites3Open)}>3</div>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <div className="text-sm"><strong>titre :</strong><br />70 caractères maximum, espaces inclus<br /><span className="text-xs">(45 pour un groupe publicitaire carrousel)</span></div>
                             </TooltipContent>
                           </Tooltip>
-                          {/* 5 : description */}
-                          <Tooltip open={linkedinLimites5Open} onOpenChange={setLinkedinLimites5Open}>
+                          {/* 4 : description */}
+                          <Tooltip open={linkedinLimites4Open} onOpenChange={setLinkedinLimites4Open}>
                             <TooltipTrigger asChild>
-                              <div className="absolute bottom-[12%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites5Open(!linkedinLimites5Open)}>5</div>
+                              <div className="absolute bottom-0 left-[16%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites4Open(!linkedinLimites4Open)}>4</div>
                             </TooltipTrigger>
                             <TooltipContent><div className="text-sm"><strong>description :</strong><br />70 caractères maximum, espaces inclus</div></TooltipContent>
                           </Tooltip>
-                          {/* 6 : bloc CTA */}
-                          <Tooltip open={linkedinLimites6Open} onOpenChange={setLinkedinLimites6Open}>
+                          {/* 5 : bloc CTA */}
+                          <Tooltip open={linkedinLimites5Open} onOpenChange={setLinkedinLimites5Open}>
                             <TooltipTrigger asChild>
-                              <div className="absolute bottom-[4%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites6Open(!linkedinLimites6Open)}>6</div>
+                              <div className="absolute bottom-[9%] right-[24%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setLinkedinLimites5Open(!linkedinLimites5Open)}>5</div>
                             </TooltipTrigger>
                             <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
                           </Tooltip>
@@ -1212,23 +1204,23 @@ export default function StudioPage() {
                       <h3 className="font-semibold mb-4">groupe publicitaire standard</h3>
                       {/* Bloc visuel : 3 formats (horizontal, vertical déprécié, carré) comme sur le screen */}
                       <div className="grid grid-cols-3 gap-4 mb-6">
-                        {/* Encart 1 : format horizontal (IMAGE 1) */}
+                        {/* Encart 1 : format horizontal */}
                         <div className="flex flex-col items-center">
                           <NextImage src="/images/META format horizontal.png" alt="Format horizontal" width={1440} height={754} className="w-full h-auto object-contain" />
-                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 1<br />image ou vidéo</span>
+                          <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                         </div>
-                        {/* Encart 2 : format vertical déprécié (IMAGE 2) */}
+                        {/* Encart 2 : format vertical déprécié */}
                         <div className="flex flex-col items-center relative">
                           <div className="relative w-full">
                             <NextImage src="/images/META format vertical.png" alt="Format vertical" width={1440} height={2560} className="w-full h-auto object-contain" />
                             <Badge variant="destructive" className="absolute top-1 right-1 text-xs">déprécié</Badge>
                           </div>
-                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 2<br />image ou vidéo</span>
+                          <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                         </div>
-                        {/* Encart 3 : format carré (IMAGE 3) */}
+                        {/* Encart 3 : format carré */}
                         <div className="flex flex-col items-center">
                           <NextImage src="/images/META format carre.png" alt="Format carré" width={1440} height={1440} className="w-full h-auto object-contain" />
-                          <span className="text-xs text-muted-foreground text-center mt-1">IMAGE 3<br />image ou vidéo</span>
+                          <span className="text-xs text-muted-foreground text-center mt-1">image ou vidéo</span>
                         </div>
                       </div>
                       {/* Pré-requis média minimum obligatoires */}
