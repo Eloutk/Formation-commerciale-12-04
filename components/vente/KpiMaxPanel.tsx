@@ -171,12 +171,18 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 
 type NombreComptesField = {
   label: string
+  /** Libellé en rouge (#E94C16) — Display et Youtube uniquement. */
+  labelHighlightRed?: boolean
   fieldId: string
   disabled: boolean
   placeholder: string
   value: string
   setValue: (v: string) => void
   hint?: string
+}
+
+function kpiMaxPlatformLabel(platform: KpiMaxPlatformId): string {
+  return KPI_MAX_PLATFORM_ORDER.find(({ id }) => id === platform)?.label ?? platform
 }
 
 function resolveNombreComptesField(
@@ -200,9 +206,17 @@ function resolveNombreComptesField(
       hint: 'Sélectionnez une plateforme pour activer la saisie.',
     }
   }
+
+  const platformLabel = kpiMaxPlatformLabel(platform)
+  const label =
+    platform === 'display' || platform === 'youtube'
+      ? `Nombre de comptes ${kpiMaxPlatformLabel('meta')}`
+      : `Nombre de comptes ${platformLabel}`
+
   if (platform === 'meta' || platform === 'display' || platform === 'youtube') {
     return {
-      label: 'Nombre de comptes',
+      label,
+      labelHighlightRed: platform === 'display' || platform === 'youtube',
       fieldId: 'kpi-max-nombre-comptes-meta',
       disabled: false,
       placeholder: 'Ex. 150 000',
@@ -211,12 +225,12 @@ function resolveNombreComptesField(
       hint:
         platform === 'meta'
           ? 'Base utilisée pour META, Display et Youtube.'
-          : 'Display et Youtube utilisent le nombre de comptes META (saisi ici).',
+          : `${platformLabel} utilise le nombre de comptes META (saisi ici).`,
     }
   }
   if (platform === 'linkedin') {
     return {
-      label: 'Nombre de comptes LinkedIn',
+      label,
       fieldId: 'kpi-max-nombre-comptes-linkedin',
       disabled: false,
       placeholder: 'Ex. 150 000',
@@ -226,7 +240,7 @@ function resolveNombreComptesField(
   }
   if (platform === 'snapchat') {
     return {
-      label: 'Nombre de comptes Snapchat',
+      label,
       fieldId: 'kpi-max-nombre-comptes-snapchat',
       disabled: false,
       placeholder: 'Ex. 150 000',
@@ -235,7 +249,7 @@ function resolveNombreComptesField(
     }
   }
   return {
-    label: 'Nombre de comptes Tiktok',
+    label,
     fieldId: 'kpi-max-nombre-comptes-tiktok',
     disabled: false,
     placeholder: 'Ex. 150 000',
@@ -249,7 +263,7 @@ function MetricTable({
   description,
   rows,
 }: {
-  title: string
+  title?: string
   description?: string
   rows: Array<{
     key: string
@@ -260,18 +274,24 @@ function MetricTable({
     maxDisplay?: string
   }>
 }) {
+  const captionLabel = title ?? 'Volumes KPIs'
+
   return (
     <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
-      <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        {description ? (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
+      {title || description ? (
+        <div className="border-b border-border/60 bg-muted/30 px-4 py-3 sm:px-5">
+          {title ? <h3 className="text-sm font-semibold text-foreground">{title}</h3> : null}
+          {description ? (
+            <p className={cn('text-xs leading-relaxed text-muted-foreground', title && 'mt-1')}>
+              {description}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[320px] border-collapse text-sm">
           <caption className="sr-only">
-            {title} — stratégie idéale et stratégie max
+            {captionLabel} — stratégie idéale et stratégie max
           </caption>
           <thead>
             <tr className="border-b border-border/60 bg-muted/20">
@@ -320,17 +340,14 @@ function MetricTable({
   )
 }
 
-function buildResultRows(row: KpiMaxComputedRow) {
-  const impressionRows = [
+function buildResultMetricRows(row: KpiMaxComputedRow) {
+  return [
     {
       key: 'impressions',
       label: 'Impressions',
       ideal: row.idealImpressions,
       max: row.maxImpressions,
     },
-  ]
-
-  const clickRows = [
     {
       key: 'clics',
       label: 'Clics / clics sur lien',
@@ -338,8 +355,6 @@ function buildResultRows(row: KpiMaxComputedRow) {
       max: row.maxClics,
     },
   ]
-
-  return { impressionRows, clickRows }
 }
 
 export type KpiMaxPanelProps = {
@@ -400,7 +415,7 @@ export function KpiMaxPanel({
   }, [valid, platformsEnabled])
 
   const resultRow = rows[0] ?? null
-  const resultTables = resultRow && valid.ok ? buildResultRows(resultRow) : null
+  const resultMetricRows = resultRow && valid.ok ? buildResultMetricRows(resultRow) : null
 
   const champNombreComptes = resolveNombreComptesField(platformSelected, compteStrings, {
     setMeta: onCompteMetaChange,
@@ -481,7 +496,12 @@ export function KpiMaxPanel({
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor={champNombreComptes.fieldId}>{champNombreComptes.label}</Label>
+                  <Label
+                    htmlFor={champNombreComptes.fieldId}
+                    className={cn(champNombreComptes.labelHighlightRed && 'text-[#E94C16]')}
+                  >
+                    {champNombreComptes.label}
+                  </Label>
                   <EditableInput
                     id={champNombreComptes.fieldId}
                     type="number"
@@ -526,7 +546,7 @@ export function KpiMaxPanel({
           <section
             className={cn(
               KPI_MAX_ENCART_BASE,
-              resultRow && resultTables
+              resultRow && resultMetricRows
                 ? 'border-[#E94C16]'
                 : valid.ok
                   ? 'border-[#E94C16]/45'
@@ -538,7 +558,9 @@ export function KpiMaxPanel({
             <div className="mb-5 flex flex-wrap items-center gap-2">
               <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">Étape 2</Badge>
               <h2 id="kpi-max-results-heading" className="text-base font-semibold text-foreground">
-                {resultRow && resultTables ? `Résultats — ${resultRow.label}` : 'Résultats'}
+                {resultRow && resultMetricRows
+                  ? `Conseils kpis - ${resultRow.label}`
+                  : 'Conseils kpis'}
               </h2>
               {resultRow?.metaBasedWarning ? (
                 <Badge
@@ -558,24 +580,12 @@ export function KpiMaxPanel({
                 </AlertTitle>
                 <AlertDescription className="text-sm text-muted-foreground">{valid.reason}</AlertDescription>
               </Alert>
-            ) : resultRow && resultTables ? (
-              <div className="space-y-5">
-                <MetricTable
-                  title="Impressions"
-                  description="Volumes stratégie idéale / max selon le barème impressions (nombre de comptes) de la plateforme."
-                  rows={resultTables.impressionRows}
-                />
-
-                <MetricTable
-                  title="Clics / Clics sur lien"
-                  description={`${resultRow.idealClickFormulaCaption} · ${resultRow.maxClickFormulaCaption}`}
-                  rows={resultTables.clickRows}
-                />
-              </div>
+            ) : resultRow && resultMetricRows ? (
+              <MetricTable rows={resultMetricRows} />
             ) : null}
           </section>
 
-          {valid.ok && resultRow && resultTables ? (
+          {valid.ok && resultRow && resultMetricRows ? (
             <section
               className={cn(
                 KPI_MAX_ENCART_BASE,
