@@ -11,31 +11,31 @@ export const KPI_MAX_PLATFORM_ORDER: { id: KpiMaxPlatformId; label: string }[] =
   { id: 'tiktok', label: 'Tiktok' },
 ]
 
-/** Libellés du barème impressions (strat. idéale / max) — parenthèses sur la fréquence seulement, comme le tableau métier. */
+/** Libellés du barème impressions (strat. idéale / max) — « Nombre de comptes » = valeur saisie ; parenthèses sur la fréquence seulement. */
 export const KPI_MAX_IMPRESSION_FORMULAS: Record<KpiMaxPlatformId, { idealCaption: string; maxCaption: string }> = {
   meta: {
-    idealCaption: 'Potentiel × 70 % × (1,5 / mois)',
-    maxCaption: 'Potentiel × 80 % × (2 / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1,5 / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (2 / mois)',
   },
   display: {
-    idealCaption: 'Potentiel × (2 / mois)',
-    maxCaption: 'Potentiel × (3 / mois)',
+    idealCaption: 'Nombre de comptes × (2 / mois)',
+    maxCaption: 'Nombre de comptes × (3 / mois)',
   },
   youtube: {
-    idealCaption: 'Potentiel × 70 % × (1 / mois)',
-    maxCaption: 'Potentiel × 80 % × (2 / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (2 / mois)',
   },
   linkedin: {
-    idealCaption: 'Potentiel × 70 % × (1,5 / mois)',
-    maxCaption: 'Potentiel × 80 % × (2 / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1,5 / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (2 / mois)',
   },
   snapchat: {
-    idealCaption: 'Potentiel × 70 % × (1,5 / mois)',
-    maxCaption: 'Potentiel × 80 % × (2 / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1,5 / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (2 / mois)',
   },
   tiktok: {
-    idealCaption: 'Potentiel × 70 % × (1,5 / mois)',
-    maxCaption: 'Potentiel × 80 % × (2 / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1,5 / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (2 / mois)',
   },
 }
 
@@ -53,28 +53,28 @@ export const KPI_MAX_IMPRESSIONS_BAREME_ROWS: ReadonlyArray<{
 /** Libellés du barème clics (strat. idéale / max). */
 export const KPI_MAX_CLICK_FORMULAS: Record<KpiMaxPlatformId, { idealCaption: string; maxCaption: string }> = {
   meta: {
-    idealCaption: 'Potentiel × 70 % × (1 % / mois)',
-    maxCaption: 'Potentiel × 80 % × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (1,5 % / mois)',
   },
   display: {
-    idealCaption: 'Potentiel × (1 % / mois)',
-    maxCaption: 'Potentiel × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × (1,5 % / mois)',
   },
   youtube: {
-    idealCaption: 'Potentiel × 70 % × (1 % / mois)',
-    maxCaption: 'Potentiel × 80 % × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (1,5 % / mois)',
   },
   linkedin: {
-    idealCaption: 'Potentiel × 70 % × (1 % / mois)',
-    maxCaption: 'Potentiel × 80 % × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (1,5 % / mois)',
   },
   snapchat: {
-    idealCaption: 'Potentiel × 70 % × (1 % / mois)',
-    maxCaption: 'Potentiel × 80 % × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (1,5 % / mois)',
   },
   tiktok: {
-    idealCaption: 'Potentiel × 70 % × (1 % / mois)',
-    maxCaption: 'Potentiel × 80 % × (1,5 % / mois)',
+    idealCaption: 'Nombre de comptes × 70 % × (1 % / mois)',
+    maxCaption: 'Nombre de comptes × 80 % × (1,5 % / mois)',
   },
 }
 
@@ -89,7 +89,7 @@ export const KPI_MAX_CLICKS_BAREME_ROWS: ReadonlyArray<{
   maxCaption: KPI_MAX_CLICK_FORMULAS[id].maxCaption,
 }))
 
-/** Potentiels « À remplir » : META, LinkedIn, Snapchat, Tiktok — Display / Youtube = basés sur META */
+/** Plates-formes avec champ « nombre de comptes » dédié : META, LinkedIn, Snapchat, Tiktok — Display / Youtube = nombre META. */
 export type KpiMaxPotentielField = Exclude<KpiMaxPlatformId, 'display' | 'youtube'>
 
 export function kpiMaxPlatformNeedsPotentielBox(id: KpiMaxPlatformId): id is KpiMaxPotentielField {
@@ -106,29 +106,29 @@ export function kpiMaxMonthsEquivalence(diffusionDays: number): number {
   return Math.ceil(d / 30)
 }
 
-/** Display : potentiel × (2 ou 3 / mois) × nombre de mois (tranches de 30 j.) ; potentiel = base META. */
+/** Display : nombre de comptes META × (2 ou 3 / mois) × nombre de mois (tranches de 30 j.). */
 const DISPLAY_IMPRESSIONS_IDEAL_PER_MONTH = 2
 const DISPLAY_IMPRESSIONS_MAX_PER_MONTH = 3
 
-/** Youtube stratégie idéale : potentiel × 70 % × 1 / mois × nombre de mois (tranches de 30 j.) */
+/** Youtube stratégie idéale : nombre de comptes META × 70 % × 1 / mois × nombre de mois (tranches de 30 j.) */
 const YOUTUBE_IDEAL_IMPRESSIONS_PER_MONTH = 0.7 * 1
-/** Youtube stratégie max : potentiel × 80 % × 2 / mois × nombre de mois (tranches de 30 j.) */
+/** Youtube stratégie max : nombre de comptes META × 80 % × 2 / mois × nombre de mois (tranches de 30 j.) */
 const YOUTUBE_MAX_IMPRESSIONS_PER_MONTH = 0.8 * 2
 
-/** Stratégie idéale (META, LinkedIn, Snapchat, TikTok) : potentiel × 70 % × 1,5 / mois × nombre de mois (tranches de 30 j.) */
+/** Stratégie idéale (META, LinkedIn, Snapchat, TikTok) : nombre de comptes × 70 % × 1,5 / mois × nombre de mois (tranches de 30 j.) */
 const META_IDEAL_IMPRESSIONS_PER_MONTH = 0.7 * 1.5
-/** Stratégie max (META, LinkedIn, Snapchat, TikTok) : potentiel × 80 % × 2 / mois × nombre de mois (tranches de 30 j.) */
+/** Stratégie max (META, LinkedIn, Snapchat, TikTok) : nombre de comptes × 80 % × 2 / mois × nombre de mois (tranches de 30 j.) */
 const META_MAX_IMPRESSIONS_PER_MONTH = 0.8 * 2
 
-/** Clics META / LinkedIn / Snapchat / TikTok : potentiel × 70 % × 1 % / mois · max × 80 % × 1,5 % / mois. */
+/** Clics META / LinkedIn / Snapchat / TikTok : nombre de comptes × 70 % × 1 % / mois · max × 80 % × 1,5 % / mois. */
 const META_IDEAL_CLICKS_PER_MONTH = 0.7 * 0.01
 const META_MAX_CLICKS_PER_MONTH = 0.8 * 0.015
 
-/** Display : potentiel × 1 % / mois · max × 1,5 % / mois (potentiel = base META). */
+/** Display : nombre de comptes META × 1 % / mois · max × 1,5 % / mois. */
 const DISPLAY_IDEAL_CLICKS_PER_MONTH = 0.01
 const DISPLAY_MAX_CLICKS_PER_MONTH = 0.015
 
-/** Youtube : potentiel × 70 % × 1 % / mois · max × 80 % × 1,5 % / mois. */
+/** Youtube : nombre de comptes META × 70 % × 1 % / mois · max × 80 % × 1,5 % / mois. */
 const YOUTUBE_IDEAL_CLICKS_PER_MONTH = 0.7 * 0.01
 const YOUTUBE_MAX_CLICKS_PER_MONTH = 0.8 * 0.015
 
@@ -138,10 +138,10 @@ function roundKpiQuantity(v: number): number {
 
 function computeClicksForPlatform(
   platformId: KpiMaxPlatformId,
-  potentiel: number,
+  nombreComptes: number,
   months: number,
 ): { idealClics: number; maxClics: number } {
-  const p = Math.max(1, Math.floor(potentiel))
+  const p = Math.max(1, Math.floor(nombreComptes))
   const m = Math.max(0, months)
 
   if (platformId === 'display') {
@@ -165,56 +165,30 @@ function computeClicksForPlatform(
 /** Plafond du taux de pénétration KPIs max (en %). */
 export const KPI_MAX_PENETRATION_CAP_PCT = 85
 
-export type KpiMaxPenetrationMetric = 'impressions' | 'clicks'
-
-/** Potentiel global utilisé comme dénominateur du taux de pénétration (vente). */
-export function kpiMaxGlobalPotentiel(
-  platformId: KpiMaxPlatformId,
-  comptes: KpiMaxComptesParsed,
-): number {
-  if (platformId === 'meta' || platformId === 'display' || platformId === 'youtube') {
-    return Math.max(1, Math.floor(comptes.meta))
-  }
-  if (platformId === 'linkedin') return Math.max(1, Math.floor(comptes.linkedin))
-  if (platformId === 'snapchat') return Math.max(1, Math.floor(comptes.snapchat))
-  return Math.max(1, Math.floor(comptes.tiktok))
+/** Taux brut = (impressions / 1,8) × 100 / nombre de comptes, sans plafonnement. */
+export function kpiMaxPenetrationRawPct(impressions: number, comptes: number): number {
+  const denom = Math.max(1, Math.abs(Math.floor(comptes)) || 1)
+  const im = Math.max(0, impressions)
+  return (im / 1.8) * (100 / denom)
 }
 
-/**
- * Taux brut de pénétration des KPIs vendus vs potentiel global.
- * Impressions : (vendus / 1,8) × 100 / potentiel · Clics : vendus × 100 / potentiel.
- */
-export function kpiMaxSoldPenetrationRawPct(
-  kpisVendus: number,
-  potentielGlobal: number,
-  metric: KpiMaxPenetrationMetric,
-): number {
-  const sold = Math.max(0, Math.floor(kpisVendus))
-  const denom = Math.max(1, Math.abs(Math.floor(potentielGlobal)) || 1)
-  if (metric === 'clicks') {
-    return sold * (100 / denom)
-  }
-  return (sold / 1.8) * (100 / denom)
-}
-
-/** Même formule, plafonnée à {@link KPI_MAX_PENETRATION_CAP_PCT} % (plancher 0 %). */
-export function kpiMaxSoldPenetrationPct(
-  kpisVendus: number,
-  potentielGlobal: number,
-  metric: KpiMaxPenetrationMetric,
-): number {
-  const raw = kpiMaxSoldPenetrationRawPct(kpisVendus, potentielGlobal, metric)
+/** Même formule impressions, plafonnée à {@link KPI_MAX_PENETRATION_CAP_PCT} % (plancher 0 %). */
+export function kpiMaxPenetrationPct(impressions: number, comptes: number): number {
+  const raw = kpiMaxPenetrationRawPct(impressions, comptes)
   return Math.min(KPI_MAX_PENETRATION_CAP_PCT, Math.max(0, raw))
 }
 
-/** @deprecated Utiliser {@link kpiMaxSoldPenetrationRawPct} pour la vente. */
-export function kpiMaxPenetrationRawPct(impressions: number, comptes: number): number {
-  return kpiMaxSoldPenetrationRawPct(impressions, comptes, 'impressions')
+/** Taux brut clics × 100 / nombre de comptes, sans plafonnement. */
+export function kpiMaxClickPenetrationRawPct(clics: number, comptes: number): number {
+  const denom = Math.max(1, Math.abs(Math.floor(comptes)) || 1)
+  const c = Math.max(0, clics)
+  return c * (100 / denom)
 }
 
-/** @deprecated Utiliser {@link kpiMaxSoldPenetrationPct} pour la vente. */
-export function kpiMaxPenetrationPct(impressions: number, comptes: number): number {
-  return kpiMaxSoldPenetrationPct(impressions, comptes, 'impressions')
+/** Même formule clics, plafonnée à {@link KPI_MAX_PENETRATION_CAP_PCT} % (plancher 0 %). */
+export function kpiMaxClickPenetrationPct(clics: number, comptes: number): number {
+  const raw = kpiMaxClickPenetrationRawPct(clics, comptes)
+  return Math.min(KPI_MAX_PENETRATION_CAP_PCT, Math.max(0, raw))
 }
 
 export type KpiMaxComptesParsed = {
@@ -234,7 +208,7 @@ export type KpiMaxComputedRow = {
   maxClics: number
   idealClickFormulaCaption: string
   maxClickFormulaCaption: string
-  /** Potentiel pour le taux (I÷1,8)×100÷potentiel ; META saisi ou potentiel LP par plateforme */
+  /** Nombre de comptes utilisé comme dénominateur du taux de pénétration impressions (META ou LP selon plateforme). */
   penetrationComptes: number
   showMaxPenetration: boolean
   idealFormulaCaption: string
@@ -265,9 +239,9 @@ export function computeKpiMaxRowsForEnabledPlatforms(
       KpiMaxComputedRow,
       'idealClics' | 'maxClics' | 'idealClickFormulaCaption' | 'maxClickFormulaCaption'
     >,
-    potentiel: number,
+    nombreComptes: number,
   ): KpiMaxComputedRow => {
-    const clicks = computeClicksForPlatform(platformId, potentiel, months)
+    const clicks = computeClicksForPlatform(platformId, nombreComptes, months)
     const clickCap = KPI_MAX_CLICK_FORMULAS[platformId]
     return {
       ...row,
@@ -385,8 +359,6 @@ export type KpiMaxInputsValidity = {
   ok: boolean
   diffusionDays?: number
   comptes?: KpiMaxComptesParsed
-  /** KPIs que le commercial souhaite vendre (impressions ou clics). */
-  kpisVendus?: number
   /** Message utilisateur si !ok */
   reason?: string
 }
@@ -398,20 +370,11 @@ export type KpiMaxCompteStrings = {
   tiktok: string
 }
 
-function parseKpisVendus(s: string): number | null {
-  const t = s.trim().replace(/\s/g, '').replace(',', '.')
-  if (t === '') return null
-  const n = parseFloat(t)
-  if (!Number.isFinite(n) || n < 0) return null
-  return Math.floor(n)
-}
-
 /** Valide entrées lorsque tout est obligatoirement rempli selon plates-formes cochées */
 export function kpiMaxValidateInputs(
   enabled: Record<KpiMaxPlatformId, boolean>,
   diffusionDaysStr: string,
   compteStrings: KpiMaxCompteStrings,
-  kpisVendusStr?: string,
 ): KpiMaxInputsValidity {
   const anyPlatform = KPI_MAX_PLATFORM_ORDER.some(({ id }) => enabled[id])
   if (!anyPlatform) {
@@ -425,7 +388,7 @@ export function kpiMaxValidateInputs(
   }
   const diffusionDays = Math.max(1, Math.floor(jNum))
 
-  function parsePotentiel(s: string): number | null {
+  function parseNombreComptes(s: string): number | null {
     const t = s.trim().replace(/\s/g, '').replace(',', '.')
     if (t === '') return null
     const n = parseFloat(t)
@@ -433,33 +396,24 @@ export function kpiMaxValidateInputs(
     return Math.floor(n)
   }
 
-  const meta = parsePotentiel(compteStrings.meta)
-  const linkedin = parsePotentiel(compteStrings.linkedin)
-  const snapchat = parsePotentiel(compteStrings.snapchat)
-  const tiktok = parsePotentiel(compteStrings.tiktok)
+  const meta = parseNombreComptes(compteStrings.meta)
+  const linkedin = parseNombreComptes(compteStrings.linkedin)
+  const snapchat = parseNombreComptes(compteStrings.snapchat)
+  const tiktok = parseNombreComptes(compteStrings.tiktok)
 
   const needMeta = enabled.meta || enabled.display || enabled.youtube
   if (needMeta && meta === null) {
-    return { ok: false, reason: 'Renseignez le potentiel.' }
+    return { ok: false, reason: 'Renseignez le nombre de comptes.' }
   }
 
   if (enabled.linkedin && linkedin === null) {
-    return { ok: false, reason: 'Renseignez le potentiel.' }
+    return { ok: false, reason: 'Renseignez le nombre de comptes.' }
   }
   if (enabled.snapchat && snapchat === null) {
-    return { ok: false, reason: 'Renseignez le potentiel.' }
+    return { ok: false, reason: 'Renseignez le nombre de comptes.' }
   }
   if (enabled.tiktok && tiktok === null) {
-    return { ok: false, reason: 'Renseignez le potentiel.' }
-  }
-
-  let kpisVendus: number | undefined
-  if (kpisVendusStr !== undefined) {
-    const parsed = parseKpisVendus(kpisVendusStr)
-    if (parsed === null) {
-      return { ok: false, reason: 'Renseignez les KPIs que vous voulez vendre (nombre ≥ 0).' }
-    }
-    kpisVendus = parsed
+    return { ok: false, reason: 'Renseignez le nombre de comptes.' }
   }
 
   return {
@@ -471,7 +425,6 @@ export function kpiMaxValidateInputs(
       snapchat: snapchat ?? 0,
       tiktok: tiktok ?? 0,
     },
-    kpisVendus,
   }
 }
 

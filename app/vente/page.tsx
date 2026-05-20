@@ -1715,8 +1715,8 @@ export default function VentePage() {
     return opt
   }, [smsType, smsOptions.ciblage, smsOptions.richSms])
 
-  // Si Tarif Intermarché est coché, le PU est figé à 0,12 € quel que soit le volume.
-  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.12 : smsBasePU + smsOptionPU
+  // Si Tarif Intermarché est coché, le PU est figé à 0,13 € quel que soit le volume.
+  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.13 : smsBasePU + smsOptionPU
 
   const smsTotalPrice = useMemo(() => {
     if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
@@ -3669,7 +3669,7 @@ export default function VentePage() {
                             </div>
                             <div className="text-xs text-muted-foreground leading-snug">
                               {smsOptions.tarifIntermarche ? (
-                                <>Tarif Intermarché : 0,12 € / SMS (PU fixe, quel que soit le volume).</>
+                                <>Tarif Intermarché : 0,13 € / SMS (PU fixe, quel que soit le volume).</>
                               ) : (
                                 <>
                                   Base :{' '}

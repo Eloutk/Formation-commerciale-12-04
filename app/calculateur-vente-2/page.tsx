@@ -40,10 +40,6 @@ import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
 import {
-  kpiMaxGlobalPotentiel,
-  kpiMaxSoldPenetrationPct,
-  kpiMaxSoldPenetrationRawPct,
-  KPI_MAX_PENETRATION_CAP_PCT,
   computeKpiMaxRowsForEnabledPlatforms,
   kpiMaxValidateInputs,
   KPI_MAX_PLATFORM_ORDER,
@@ -789,20 +785,6 @@ async function fetchVenteSocialPdfLogoDataUrl(timeoutMs = 2000): Promise<string 
   } catch {
     return null
   }
-}
-
-function formatKpiMaxSoldPenetrationFr(
-  kpisVendus: number,
-  potentielGlobal: number,
-  metric: 'impressions' | 'clicks',
-): string {
-  const raw = kpiMaxSoldPenetrationRawPct(kpisVendus, potentielGlobal, metric)
-  const p = kpiMaxSoldPenetrationPct(kpisVendus, potentielGlobal, metric)
-  const base = `${p.toLocaleString('fr-FR', { maximumFractionDigits: 2, minimumFractionDigits: 0 })} %`
-  if (raw > KPI_MAX_PENETRATION_CAP_PCT + 1e-9) {
-    return `${base} (plafond ${KPI_MAX_PENETRATION_CAP_PCT}\u202f%)`
-  }
-  return base
 }
 
 /** Objectifs « max » performance (alignés sur le mode KPIs → budget du calculateur) */
@@ -1671,16 +1653,14 @@ const KpiMaxPdfDocument = ({
   diffusionDaysStr,
   platformsEnabled,
   compteStrings,
-  kpisVendusStr,
 }: {
   clientName: string
   userName: string
   diffusionDaysStr: string
   platformsEnabled: Record<KpiMaxPlatformId, boolean>
   compteStrings: KpiMaxCompteStrings
-  kpisVendusStr: string
 }) => {
-  const valid = kpiMaxValidateInputs(platformsEnabled, diffusionDaysStr, compteStrings, kpisVendusStr)
+  const valid = kpiMaxValidateInputs(platformsEnabled, diffusionDaysStr, compteStrings)
   const rows: KpiMaxComputedRow[] =
     valid.ok && valid.diffusionDays && valid.comptes
       ? computeKpiMaxRowsForEnabledPlatforms(platformsEnabled, valid.comptes, valid.diffusionDays)
@@ -1691,8 +1671,6 @@ const KpiMaxPdfDocument = ({
       .map(({ label }) => label)
       .join(', ') || '—'
 
-  const kpisVendus = valid.ok && valid.kpisVendus != null ? valid.kpisVendus : 0
-
   const rowPdfBlock = (scenario: 'ideal' | 'max', row: KpiMaxComputedRow) => {
     const impressions = scenario === 'ideal' ? row.idealImpressions : row.maxImpressions
     const clics = scenario === 'ideal' ? row.idealClics : row.maxClics
@@ -1702,25 +1680,8 @@ const KpiMaxPdfDocument = ({
         <Text style={{ marginBottom: 3, fontSize: 10, lineHeight: 1.45 }} wrap>
           • {row.label}
         </Text>
-        <Text style={{ marginBottom: 3, marginLeft: 12, fontSize: 10, lineHeight: 1.45 }} wrap>
+        <Text style={{ marginBottom: 8, marginLeft: 12, fontSize: 10, lineHeight: 1.45 }} wrap>
           {formatNumber(impressions, 0)} impressions · {formatNumber(clics, 0)} clics
-        </Text>
-      </View>
-    )
-  }
-
-  const penetrationPdfBlock = (row: KpiMaxComputedRow) => {
-    if (!valid.ok || valid.kpisVendus == null || !valid.comptes) return null
-    const potentielGlobal = kpiMaxGlobalPotentiel(row.id, valid.comptes)
-    return (
-      <View wrap={false} style={{ marginBottom: 8 }}>
-        <Text style={{ marginBottom: 2, marginLeft: 12, fontSize: 9, lineHeight: 1.4, color: '#047857' }} wrap>
-          Pénétration impressions vendues ({kpisVendus.toLocaleString('fr-FR')} / potentiel{' '}
-          {potentielGlobal.toLocaleString('fr-FR')}) :{' '}
-          {formatKpiMaxSoldPenetrationFr(kpisVendus, potentielGlobal, 'impressions')}
-        </Text>
-        <Text style={{ marginLeft: 12, fontSize: 9, lineHeight: 1.4, color: '#047857' }} wrap>
-          Pénétration clics vendus : {formatKpiMaxSoldPenetrationFr(kpisVendus, potentielGlobal, 'clicks')}
         </Text>
       </View>
     )
@@ -1750,32 +1711,28 @@ const KpiMaxPdfDocument = ({
           </View>
           {(platformsEnabled.meta || platformsEnabled.display || platformsEnabled.youtube) ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemLabel}>Nombre de comptes (META)</Text>
               <Text style={styles.itemValue}>{compteStrings.meta.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.linkedin ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemLabel}>Nombre de comptes LinkedIn</Text>
               <Text style={styles.itemValue}>{compteStrings.linkedin.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.snapchat ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemLabel}>Nombre de comptes Snapchat</Text>
               <Text style={styles.itemValue}>{compteStrings.snapchat.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.tiktok ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Potentiel</Text>
+              <Text style={styles.itemLabel}>Nombre de comptes Tiktok</Text>
               <Text style={styles.itemValue}>{compteStrings.tiktok.trim() || '—'}</Text>
             </View>
           ) : null}
-          <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>KPIs que je veux vendre</Text>
-            <Text style={styles.itemValue}>{kpisVendusStr.trim() || '—'}</Text>
-          </View>
         </View>
 
         {!valid.ok ? (
@@ -1796,16 +1753,6 @@ const KpiMaxPdfDocument = ({
             {rows.map((r) => (
               <View key={`max-${r.id}`}>{rowPdfBlock('max', r)}</View>
             ))}
-            {valid.kpisVendus != null ? (
-              <>
-                <Text style={[styles.chartTitle, { marginTop: 14, marginBottom: 8 }]}>
-                  Taux de pénétration (KPIs vendus)
-                </Text>
-                {rows.map((r) => (
-                  <View key={`pen-${r.id}`}>{penetrationPdfBlock(r)}</View>
-                ))}
-              </>
-            ) : null}
           </>
         )}
       </Page>
@@ -1833,7 +1780,7 @@ export default function VentePage() {
   const [mainValue, setMainValue] = useState<string>('') // Budget ou KPIs selon le mode
   const [aePercentage, setAePercentage] = useState<string>('40')
   const [diffusionDays, setDiffusionDays] = useState<string>('14')
-  /** KPIs max : une plateforme + potentiel + durée */
+  /** KPIs max : une plateforme + nombre de comptes + durée */
   const [kpiMaxPlatformSelected, setKpiMaxPlatformSelected] = useState<KpiMaxPlatformId | null>(null)
   const kpiMaxPlatformsEnabled = useMemo(
     () => kpiMaxSelectedToEnabled(kpiMaxPlatformSelected),
@@ -1845,7 +1792,6 @@ export default function VentePage() {
   const [kpiMaxCompteTiktok, setKpiMaxCompteTiktok] = useState<string>('')
   /** KPIs max : champ durée (jours). */
   const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
-  const [kpiMaxKpisQueJeVeuxVendre, setKpiMaxKpisQueJeVeuxVendre] = useState<string>('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
   const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
@@ -2080,8 +2026,8 @@ export default function VentePage() {
     return opt
   }, [smsType, smsOptions.ciblage, smsOptions.richSms])
 
-  // Si Tarif Intermarché est coché, le PU est figé à 0,12 € quel que soit le volume.
-  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.12 : smsBasePU + smsOptionPU
+  // Si Tarif Intermarché est coché, le PU est figé à 0,13 € quel que soit le volume.
+  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.13 : smsBasePU + smsOptionPU
 
   const smsTotalPrice = useMemo(() => {
     if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
@@ -2988,11 +2934,10 @@ export default function VentePage() {
             snapchat: kpiMaxCompteSnapchat,
             tiktok: kpiMaxCompteTiktok,
           }}
-          kpisVendusStr={kpiMaxKpisQueJeVeuxVendre}
         />,
       ).toBlob()
       zip.file('05-kpis-max.pdf', kpiBlob)
-      readmeLines.push('• 05-kpis-max.pdf — KPIs max (plateformes, impressions strat. idéale / max, pénétration strat. max)')
+      readmeLines.push('• 05-kpis-max.pdf — KPIs max (plateformes, impressions et clics strat. idéale / max)')
 
       readmeLines.push(
         '',
@@ -4336,7 +4281,7 @@ export default function VentePage() {
                             </div>
                             <div className="text-xs text-muted-foreground leading-snug">
                               {smsOptions.tarifIntermarche ? (
-                                <>Tarif Intermarché : 0,12 € / SMS (PU fixe, quel que soit le volume).</>
+                                <>Tarif Intermarché : 0,13 € / SMS (PU fixe, quel que soit le volume).</>
                               ) : (
                                 <>
                                   Base :{' '}
@@ -5409,8 +5354,6 @@ export default function VentePage() {
             onCompteTiktokChange={setKpiMaxCompteTiktok}
             diffusionDays={kpiMaxDiffusionDays}
             onDiffusionDaysChange={setKpiMaxDiffusionDays}
-            kpisQueJeVeuxVendre={kpiMaxKpisQueJeVeuxVendre}
-            onKpisQueJeVeuxVendreChange={setKpiMaxKpisQueJeVeuxVendre}
           />
         )}
       </div>

@@ -1,30 +1,30 @@
 'use client'
 
-import React, { useMemo } from 'react'
-import { BarChart2, ChevronDown, Info, Pencil } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { BarChart2, Info, Pencil } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import {
-  KPI_MAX_CLICKS_BAREME_ROWS,
-  KPI_MAX_IMPRESSIONS_BAREME_ROWS,
   KPI_MAX_PENETRATION_CAP_PCT,
   KPI_MAX_PLATFORM_ORDER,
   computeKpiMaxRowsForEnabledPlatforms,
-  kpiMaxGlobalPotentiel,
   kpiMaxMonthsEquivalence,
+  kpiMaxPenetrationPct,
   kpiMaxSelectedToEnabled,
-  kpiMaxSoldPenetrationPct,
-  kpiMaxSoldPenetrationRawPct,
   kpiMaxValidateInputs,
   type KpiMaxCompteStrings,
   type KpiMaxComputedRow,
-  type KpiMaxPenetrationMetric,
   type KpiMaxPlatformId,
 } from '@/lib/kpi-max-vente2'
+
+/** Encarts étapes : fond blanc, bordure qui se renforce au fil des étapes franchies (couleur #E94C16). */
+const KPI_MAX_ENCART_BASE =
+  'rounded-xl border-2 bg-white p-4 shadow-sm dark:bg-card sm:p-6'
 
 function formatNumber(num: number, decimals = 0): string {
   return num.toLocaleString('fr-FR', {
@@ -33,18 +33,126 @@ function formatNumber(num: number, decimals = 0): string {
   })
 }
 
-function formatSoldPenetrationPct(
-  kpisVendus: number,
-  potentielGlobal: number,
-  metric: KpiMaxPenetrationMetric,
-): string {
-  const raw = kpiMaxSoldPenetrationRawPct(kpisVendus, potentielGlobal, metric)
-  const capped = kpiMaxSoldPenetrationPct(kpisVendus, potentielGlobal, metric)
-  const base = `${formatNumber(capped, 2)} %`
-  if (raw > KPI_MAX_PENETRATION_CAP_PCT + 1e-9) {
-    return `${base} (plaf. ${KPI_MAX_PENETRATION_CAP_PCT} %)`
-  }
-  return base
+function parseOptionalVolumeNonNegative(s: string): number | null {
+  const t = s.trim().replace(/\s/g, '').replace(',', '.')
+  if (t === '') return null
+  const n = parseFloat(t)
+  if (!Number.isFinite(n) || n < 0) return null
+  return Math.floor(n)
+}
+
+function formatImpressionPenetrationDisplay(impressions: number, comptes: number): string {
+  return `${formatNumber(kpiMaxPenetrationPct(impressions, comptes), 2)} %*`
+}
+
+const KPI_MAX_PENETRATION_FOOTNOTE = `* Les taux affichés sont plafonnés à ${KPI_MAX_PENETRATION_CAP_PCT} %. Nous considérons qu’il n’est pas réaliste de s’engager à toucher plus de ${KPI_MAX_PENETRATION_CAP_PCT} % de la cible.`
+
+type PenetrationMetricPanelProps = {
+  title: string
+  explainer: string
+  idealLabel: string
+  maxLabel: string
+  idealPct: string
+  maxPct: string
+  simulationTitle: string
+  inputId: string
+  inputPlaceholder: string
+  formatPct: (volume: number, comptes: number) => string
+  penetrationComptes: number
+  customStr: string
+  onCustomStrChange: (v: string) => void
+  parsed: ParsedCustomVolume
+}
+
+/** value: parsed number, invalid string, or empty */
+type ParsedCustomVolume =
+  | { kind: 'empty' }
+  | { kind: 'invalid' }
+  | { kind: 'ok'; n: number }
+
+function parseCustomVolumeState(s: string): ParsedCustomVolume {
+  if (s.trim() === '') return { kind: 'empty' }
+  const n = parseOptionalVolumeNonNegative(s)
+  if (n === null) return { kind: 'invalid' }
+  return { kind: 'ok', n }
+}
+
+function PenetrationMetricPanel(props: PenetrationMetricPanelProps) {
+  const {
+    title,
+    explainer,
+    idealLabel,
+    maxLabel,
+    idealPct,
+    maxPct,
+    simulationTitle,
+    inputId,
+    inputPlaceholder,
+    formatPct,
+    penetrationComptes,
+    customStr,
+    onCustomStrChange,
+    parsed,
+  } = props
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/80 p-4 shadow-sm sm:p-5">
+      <div className="mb-4 border-b border-border/50 pb-3">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{explainer}</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg bg-emerald-500/[0.07] px-4 py-3 dark:bg-emerald-500/10">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-900/80 dark:text-emerald-200/90">
+            {idealLabel}
+          </p>
+          <p className="mt-2 text-xl font-bold tabular-nums text-emerald-800 dark:text-emerald-300">
+            {idealPct}
+          </p>
+        </div>
+        <div className="rounded-lg bg-[#E94C16]/[0.08] px-4 py-3 dark:bg-orange-950/20">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-900/90 dark:text-orange-200/85">
+            {maxLabel}
+          </p>
+          <p className="mt-2 text-xl font-bold tabular-nums text-[#C43D11] dark:text-orange-400">
+            {maxPct}
+          </p>
+        </div>
+        <div className="rounded-lg border border-dashed border-border bg-muted/25 px-4 py-3 sm:col-span-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {simulationTitle}
+          </p>
+          <Label htmlFor={inputId} className="mt-2 block text-xs font-medium text-foreground">
+            Volume que vous pouvez vendre
+          </Label>
+          <Input
+            id={inputId}
+            type="number"
+            min={0}
+            className="mt-1.5 h-10 bg-background"
+            placeholder={inputPlaceholder}
+            value={customStr}
+            onChange={(e) => onCustomStrChange(e.target.value)}
+          />
+          <div className="mt-3 min-h-[2.75rem] rounded-md bg-background/80 px-2.5 py-2">
+            {parsed.kind === 'ok' ? (
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Taux estimé : </span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {formatPct(parsed.n, penetrationComptes)}
+                </span>
+              </p>
+            ) : parsed.kind === 'invalid' ? (
+              <p className="text-xs text-amber-800 dark:text-amber-200/90">Saisissez un nombre positif ou zéro.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Indiquez un volume pour voir le taux.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function EditableInput(props: React.ComponentProps<typeof Input>) {
@@ -61,7 +169,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
   )
 }
 
-type PotentielField = {
+type NombreComptesField = {
   label: string
   fieldId: string
   disabled: boolean
@@ -71,7 +179,7 @@ type PotentielField = {
   hint?: string
 }
 
-function resolvePotentielField(
+function resolveNombreComptesField(
   platform: KpiMaxPlatformId | null,
   comptes: KpiMaxCompteStrings,
   setters: {
@@ -80,11 +188,11 @@ function resolvePotentielField(
     setSnapchat: (v: string) => void
     setTiktok: (v: string) => void
   },
-): PotentielField {
+): NombreComptesField {
   if (platform === null) {
     return {
-      label: 'Potentiel',
-      fieldId: 'kpi-max-potentiel-inline',
+      label: 'Nombre de comptes',
+      fieldId: 'kpi-max-nombre-comptes-inline',
       disabled: true,
       placeholder: '—',
       value: '',
@@ -94,8 +202,8 @@ function resolvePotentielField(
   }
   if (platform === 'meta' || platform === 'display' || platform === 'youtube') {
     return {
-      label: 'Potentiel',
-      fieldId: 'kpi-max-potentiel-meta-input',
+      label: 'Nombre de comptes',
+      fieldId: 'kpi-max-nombre-comptes-meta',
       disabled: false,
       placeholder: 'Ex. 150 000',
       value: comptes.meta,
@@ -103,13 +211,13 @@ function resolvePotentielField(
       hint:
         platform === 'meta'
           ? 'Base utilisée pour META, Display et Youtube.'
-          : 'Display et Youtube utilisent le potentiel META (saisi ici).',
+          : 'Display et Youtube utilisent le nombre de comptes META (saisi ici).',
     }
   }
   if (platform === 'linkedin') {
     return {
-      label: 'Potentiel LinkedIn',
-      fieldId: 'kpi-max-potentiel-linkedin',
+      label: 'Nombre de comptes LinkedIn',
+      fieldId: 'kpi-max-nombre-comptes-linkedin',
       disabled: false,
       placeholder: 'Ex. 150 000',
       value: comptes.linkedin,
@@ -118,8 +226,8 @@ function resolvePotentielField(
   }
   if (platform === 'snapchat') {
     return {
-      label: 'Potentiel Snapchat',
-      fieldId: 'kpi-max-potentiel-snapchat',
+      label: 'Nombre de comptes Snapchat',
+      fieldId: 'kpi-max-nombre-comptes-snapchat',
       disabled: false,
       placeholder: 'Ex. 150 000',
       value: comptes.snapchat,
@@ -127,8 +235,8 @@ function resolvePotentielField(
     }
   }
   return {
-    label: 'Potentiel Tiktok',
-    fieldId: 'kpi-max-potentiel-tiktok',
+    label: 'Nombre de comptes Tiktok',
+    fieldId: 'kpi-max-nombre-comptes-tiktok',
     disabled: false,
     placeholder: 'Ex. 150 000',
     value: comptes.tiktok,
@@ -150,8 +258,6 @@ function MetricTable({
     max: number
     idealDisplay?: string
     maxDisplay?: string
-    /** Ligne unique (taux de pénétration vendu) : valeur sur toute la largeur. */
-    fullWidth?: boolean
   }>
 }) {
   return (
@@ -195,29 +301,16 @@ function MetricTable({
                 <th scope="row" className="px-4 py-3.5 text-left font-medium text-foreground">
                   {row.label}
                 </th>
-                {row.fullWidth ? (
-                  <td
-                    colSpan={2}
-                    className="border-l border-border/50 px-4 py-3.5 text-right tabular-nums"
-                  >
-                    <span className="text-base font-bold text-foreground">
-                      {row.idealDisplay ?? formatNumber(row.ideal, 2)}
-                    </span>
-                  </td>
-                ) : (
-                  <>
-                    <td className="border-l border-border/50 px-4 py-3.5 text-right tabular-nums">
-                      <span className="text-base font-bold text-emerald-800 dark:text-emerald-300">
-                        {row.idealDisplay ?? formatNumber(row.ideal, 0)}
-                      </span>
-                    </td>
-                    <td className="border-l border-border/50 px-4 py-3.5 text-right tabular-nums">
-                      <span className="text-base font-bold text-[#E94C16]">
-                        {row.maxDisplay ?? formatNumber(row.max, 0)}
-                      </span>
-                    </td>
-                  </>
-                )}
+                <td className="border-l border-border/50 px-4 py-3.5 text-right tabular-nums">
+                  <span className="text-base font-bold text-emerald-800 dark:text-emerald-300">
+                    {row.idealDisplay ?? formatNumber(row.ideal, 0)}
+                  </span>
+                </td>
+                <td className="border-l border-border/50 px-4 py-3.5 text-right tabular-nums">
+                  <span className="text-base font-bold text-[#E94C16]">
+                    {row.maxDisplay ?? formatNumber(row.max, 0)}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -227,28 +320,13 @@ function MetricTable({
   )
 }
 
-function buildResultRows(
-  row: KpiMaxComputedRow,
-  kpisVendus: number,
-  potentielGlobal: number,
-) {
-  const impressionPen = kpiMaxSoldPenetrationPct(kpisVendus, potentielGlobal, 'impressions')
-  const clickPen = kpiMaxSoldPenetrationPct(kpisVendus, potentielGlobal, 'clicks')
-
+function buildResultRows(row: KpiMaxComputedRow) {
   const impressionRows = [
     {
       key: 'impressions',
       label: 'Impressions',
       ideal: row.idealImpressions,
       max: row.maxImpressions,
-    },
-    {
-      key: 'penetration-impressions',
-      label: 'Taux de pénétration (impressions vendues)',
-      ideal: impressionPen,
-      max: impressionPen,
-      idealDisplay: formatSoldPenetrationPct(kpisVendus, potentielGlobal, 'impressions'),
-      fullWidth: true,
     },
   ]
 
@@ -258,14 +336,6 @@ function buildResultRows(
       label: 'Clics / clics sur lien',
       ideal: row.idealClics,
       max: row.maxClics,
-    },
-    {
-      key: 'penetration-clics',
-      label: 'Taux de pénétration (clics vendus)',
-      ideal: clickPen,
-      max: clickPen,
-      idealDisplay: formatSoldPenetrationPct(kpisVendus, potentielGlobal, 'clicks'),
-      fullWidth: true,
     },
   ]
 
@@ -285,8 +355,6 @@ export type KpiMaxPanelProps = {
   onCompteTiktokChange: (v: string) => void
   diffusionDays: string
   onDiffusionDaysChange: (v: string) => void
-  kpisQueJeVeuxVendre: string
-  onKpisQueJeVeuxVendreChange: (v: string) => void
 }
 
 export function KpiMaxPanel({
@@ -302,9 +370,10 @@ export function KpiMaxPanel({
   onCompteTiktokChange,
   diffusionDays,
   onDiffusionDaysChange,
-  kpisQueJeVeuxVendre,
-  onKpisQueJeVeuxVendreChange,
 }: KpiMaxPanelProps) {
+  const [step3Enabled, setStep3Enabled] = useState(false)
+  const [customImpressionsStr, setCustomImpressionsStr] = useState('')
+
   const platformsEnabled = useMemo(
     () => kpiMaxSelectedToEnabled(platformSelected),
     [platformSelected],
@@ -321,8 +390,8 @@ export function KpiMaxPanel({
   )
 
   const valid = useMemo(
-    () => kpiMaxValidateInputs(platformsEnabled, diffusionDays, compteStrings, kpisQueJeVeuxVendre),
-    [platformsEnabled, diffusionDays, compteStrings, kpisQueJeVeuxVendre],
+    () => kpiMaxValidateInputs(platformsEnabled, diffusionDays, compteStrings),
+    [platformsEnabled, diffusionDays, compteStrings],
   )
 
   const rows = useMemo(() => {
@@ -331,17 +400,9 @@ export function KpiMaxPanel({
   }, [valid, platformsEnabled])
 
   const resultRow = rows[0] ?? null
-  const potentielGlobal =
-    valid.ok && valid.comptes && platformSelected
-      ? kpiMaxGlobalPotentiel(platformSelected, valid.comptes)
-      : 0
-  const kpisVendus = valid.ok && valid.kpisVendus != null ? valid.kpisVendus : 0
-  const resultTables =
-    resultRow && valid.ok && valid.kpisVendus != null
-      ? buildResultRows(resultRow, kpisVendus, potentielGlobal)
-      : null
+  const resultTables = resultRow && valid.ok ? buildResultRows(resultRow) : null
 
-  const potentiel = resolvePotentielField(platformSelected, compteStrings, {
+  const champNombreComptes = resolveNombreComptesField(platformSelected, compteStrings, {
     setMeta: onCompteMetaChange,
     setLinkedin: onCompteLinkedinChange,
     setSnapchat: onCompteSnapchatChange,
@@ -350,6 +411,11 @@ export function KpiMaxPanel({
 
   const monthsEquiv =
     valid.ok && valid.diffusionDays ? kpiMaxMonthsEquivalence(valid.diffusionDays) : null
+
+  const customImpressionsParsed = useMemo(
+    () => parseCustomVolumeState(customImpressionsStr),
+    [customImpressionsStr],
+  )
 
   return (
     <div className="mt-6 mx-auto max-w-5xl px-0">
@@ -362,14 +428,22 @@ export function KpiMaxPanel({
             KPIs max
           </CardTitle>
           <CardDescription className="max-w-2xl text-sm leading-relaxed">
-            Renseignez la plateforme, le potentiel, les KPIs à vendre et la durée de diffusion pour
-            afficher les volumes (stratégies idéale et max) et les taux de pénétration.
+            Renseignez la plateforme, le nombre de comptes et la durée de diffusion pour afficher les volumes
+            impressions et clics (stratégies idéale et max). L’étape 3 optionnelle estime le taux de
+            pénétration des impressions pour un volume que vous saisissez.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
           <section
-            className="rounded-xl border-2 border-[#E94C16]/20 bg-gradient-to-br from-[#E94C16]/[0.05] to-background p-4 sm:p-6"
+            className={cn(
+              KPI_MAX_ENCART_BASE,
+              valid.ok
+                ? 'border-[#E94C16]'
+                : platformSelected
+                  ? 'border-[#E94C16]/45'
+                  : 'border-border',
+            )}
             aria-labelledby="kpi-max-setup-heading"
           >
             <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -405,38 +479,22 @@ export function KpiMaxPanel({
                 </div>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor={potentiel.fieldId}>{potentiel.label}</Label>
+                  <Label htmlFor={champNombreComptes.fieldId}>{champNombreComptes.label}</Label>
                   <EditableInput
-                    id={potentiel.fieldId}
+                    id={champNombreComptes.fieldId}
                     type="number"
                     min={1}
-                    disabled={potentiel.disabled}
-                    placeholder={potentiel.placeholder}
-                    value={potentiel.value}
-                    onChange={(e) => potentiel.setValue(e.target.value)}
+                    disabled={champNombreComptes.disabled}
+                    placeholder={champNombreComptes.placeholder}
+                    value={champNombreComptes.value}
+                    onChange={(e) => champNombreComptes.setValue(e.target.value)}
                     className="bg-background"
                   />
-                  {potentiel.hint ? (
-                    <p className="text-xs leading-relaxed text-muted-foreground">{potentiel.hint}</p>
+                  {champNombreComptes.hint ? (
+                    <p className="text-xs leading-relaxed text-muted-foreground">{champNombreComptes.hint}</p>
                   ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="kpi-max-kpis-vendre">KPIs que je veux vendre</Label>
-                  <EditableInput
-                    id="kpi-max-kpis-vendre"
-                    type="number"
-                    min={0}
-                    disabled={platformSelected === null}
-                    placeholder="Ex. 50 000"
-                    value={kpisQueJeVeuxVendre}
-                    onChange={(e) => onKpisQueJeVeuxVendreChange(e.target.value)}
-                    className="bg-background"
-                  />
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Volume d&apos;impressions ou de clics vendus — taux de pénétration vs potentiel global.
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="kpi-max-jours-diffusion">Nombre de jours de diffusion</Label>
@@ -465,7 +523,33 @@ export function KpiMaxPanel({
             </div>
           </section>
 
-          <section className="space-y-5" aria-live="polite">
+          <section
+            className={cn(
+              KPI_MAX_ENCART_BASE,
+              resultRow && resultTables
+                ? 'border-[#E94C16]'
+                : valid.ok
+                  ? 'border-[#E94C16]/45'
+                  : 'border-border',
+            )}
+            aria-labelledby="kpi-max-results-heading"
+            aria-live="polite"
+          >
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">Étape 2</Badge>
+              <h2 id="kpi-max-results-heading" className="text-base font-semibold text-foreground">
+                {resultRow && resultTables ? `Résultats — ${resultRow.label}` : 'Résultats'}
+              </h2>
+              {resultRow?.metaBasedWarning ? (
+                <Badge
+                  variant="outline"
+                  className="border-[#E94C16]/30 bg-[#E94C16]/5 text-[10px] font-medium text-[#E94C16]"
+                >
+                  Base META
+                </Badge>
+              ) : null}
+            </div>
+
             {!valid.ok ? (
               <Alert className="border-amber-200/90 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/25 [&_svg]:text-amber-700">
                 <Info className="h-4 w-4 shrink-0" aria-hidden />
@@ -475,114 +559,103 @@ export function KpiMaxPanel({
                 <AlertDescription className="text-sm text-muted-foreground">{valid.reason}</AlertDescription>
               </Alert>
             ) : resultRow && resultTables ? (
-              <>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-emerald-600/30 text-emerald-800 dark:text-emerald-300">
-                    Étape 2
-                  </Badge>
-                  <h2 className="text-base font-semibold text-foreground">Résultats — {resultRow.label}</h2>
-                  {resultRow.metaBasedWarning ? (
-                    <Badge
-                      variant="outline"
-                      className="border-[#E94C16]/30 bg-[#E94C16]/5 text-[10px] font-medium text-[#E94C16]"
-                    >
-                      Base META
-                    </Badge>
-                  ) : null}
-                </div>
-
+              <div className="space-y-5">
                 <MetricTable
                   title="Impressions"
-                  description="Volumes stratégie idéale / max selon le barème. Pénétration : (KPIs vendus ÷ 1,8) × 100 ÷ potentiel global (plafond 85 %)."
+                  description="Volumes stratégie idéale / max selon le barème impressions (nombre de comptes) de la plateforme."
                   rows={resultTables.impressionRows}
                 />
 
                 <MetricTable
                   title="Clics / Clics sur lien"
-                  description={`${resultRow.idealClickFormulaCaption} · ${resultRow.maxClickFormulaCaption}. Pénétration : KPIs vendus × 100 ÷ potentiel global (plafond 85 %).`}
+                  description={`${resultRow.idealClickFormulaCaption} · ${resultRow.maxClickFormulaCaption}`}
                   rows={resultTables.clickRows}
                 />
-              </>
+              </div>
             ) : null}
           </section>
 
-          <details className="group rounded-lg border border-border/60 bg-muted/10 open:bg-muted/15">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
-              <span className="text-xs font-semibold uppercase tracking-wide text-[#E94C16]">
-                Barèmes de référence (impressions & clics)
-              </span>
-              <ChevronDown
-                className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
-                aria-hidden
-              />
-            </summary>
-            <div className="space-y-6 border-t border-border/50 px-4 pb-4 pt-4">
-              <div>
-                <p className="mb-2 text-xs font-semibold text-foreground">Impressions</p>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[480px] border-collapse text-left text-xs sm:text-sm">
-                  <caption className="sr-only">
-                    Formules impressions stratégie idéale et stratégie max par plateforme
-                  </caption>
-                  <thead>
-                    <tr className="border-b border-border/60">
-                      <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
-                        Plateforme
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
-                        Stratégie idéale
-                      </th>
-                      <th scope="col" className="py-2 font-semibold text-foreground">
-                        Stratégie max
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-muted-foreground">
-                    {KPI_MAX_IMPRESSIONS_BAREME_ROWS.map((row) => (
-                      <tr key={row.label} className="border-b border-border/40 last:border-b-0">
-                        <td className="py-2 pr-3 font-medium text-foreground">{row.label}</td>
-                        <td className="py-2 pr-3">{row.idealCaption}</td>
-                        <td className="py-2">{row.maxCaption}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold text-foreground">Clics / clics sur lien</p>
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[480px] border-collapse text-left text-xs sm:text-sm">
-                    <caption className="sr-only">
-                      Formules clics stratégie idéale et stratégie max par plateforme
-                    </caption>
-                    <thead>
-                      <tr className="border-b border-border/60">
-                        <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
-                          Plateforme
-                        </th>
-                        <th scope="col" className="py-2 pr-3 font-semibold text-foreground">
-                          Stratégie idéale
-                        </th>
-                        <th scope="col" className="py-2 font-semibold text-foreground">
-                          Stratégie max
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-muted-foreground">
-                      {KPI_MAX_CLICKS_BAREME_ROWS.map((row) => (
-                        <tr key={row.label} className="border-b border-border/40 last:border-b-0">
-                          <td className="py-2 pr-3 font-medium text-foreground">{row.label}</td>
-                          <td className="py-2 pr-3">{row.idealCaption}</td>
-                          <td className="py-2">{row.maxCaption}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          {valid.ok && resultRow && resultTables ? (
+            <section
+              className={cn(
+                KPI_MAX_ENCART_BASE,
+                step3Enabled ? 'border-[#E94C16]' : 'border-[#E94C16]/45',
+              )}
+              aria-labelledby="kpi-max-step3-heading"
+            >
+              <div className="flex flex-col gap-4 border-b border-border/40 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">Étape 3</Badge>
+                    <h2 id="kpi-max-step3-heading" className="text-base font-semibold text-foreground">
+                      Taux de pénétration (impressions)
+                    </h2>
+                    <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                      Optionnel
+                    </span>
+                  </div>
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                    Les taux des stratégies idéale et max sont calculés pour{' '}
+                    <span className="whitespace-nowrap font-medium text-foreground tabular-nums">
+                      {formatNumber(resultRow.penetrationComptes, 0)} comptes
+                    </span>{' '}
+                    (valeur saisie à l’étape 1). À droite, saisissez un volume d&apos;impressions que vous pensez
+                    pouvoir vendre : le taux estimé s&apos;affiche aussitôt.
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3 self-start rounded-xl border border-border/70 bg-background px-4 py-3 shadow-sm">
+                  <Switch
+                    id="kpi-max-step3-toggle"
+                    checked={step3Enabled}
+                    onCheckedChange={(c) => setStep3Enabled(c === true)}
+                    className="data-[state=checked]:bg-[#E94C16]"
+                  />
+                  <Label
+                    htmlFor="kpi-max-step3-toggle"
+                    className="cursor-pointer text-sm font-medium leading-snug text-foreground"
+                  >
+                    Afficher
+                  </Label>
                 </div>
               </div>
-            </div>
-          </details>
+
+              {step3Enabled ? (
+                resultRow.showMaxPenetration ? (
+                <div className="mt-6">
+                  <PenetrationMetricPanel
+                    title="Impressions"
+                    explainer="Taux issus des volumes d’impressions des stratégies idéale et max du barème."
+                    idealLabel="Stratégie idéale"
+                    maxLabel="Stratégie max"
+                    idealPct={formatImpressionPenetrationDisplay(
+                      resultRow.idealImpressions,
+                      resultRow.penetrationComptes,
+                    )}
+                    maxPct={formatImpressionPenetrationDisplay(
+                      resultRow.maxImpressions,
+                      resultRow.penetrationComptes,
+                    )}
+                    simulationTitle="Simulation"
+                    inputId="kpi-max-custom-imp"
+                    inputPlaceholder="Nombre d’impressions"
+                    formatPct={formatImpressionPenetrationDisplay}
+                    penetrationComptes={resultRow.penetrationComptes}
+                    customStr={customImpressionsStr}
+                    onCustomStrChange={setCustomImpressionsStr}
+                    parsed={customImpressionsParsed}
+                  />
+                  <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                    {KPI_MAX_PENETRATION_FOOTNOTE}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-6 text-sm text-muted-foreground">
+                  Aucun affichage de pénétration pour cette ligne.
+                </p>
+              )
+              ) : null}
+            </section>
+          ) : null}
         </CardContent>
       </Card>
     </div>
