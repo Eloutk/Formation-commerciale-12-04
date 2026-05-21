@@ -21,8 +21,7 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Clics: { cost: 0.823, perThousand: false },
   },
   'Perf max': {
-    Impressions: { cost: 2.552, perThousand: true },
-    Clics: { cost: 0.823, perThousand: false },
+    Conversion: { cost: 70.4, perThousand: false },
   },
   'Demand Gen': {
     Impressions: { cost: 2.552, perThousand: true },

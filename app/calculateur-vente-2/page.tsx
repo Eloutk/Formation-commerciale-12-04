@@ -416,10 +416,12 @@ const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as
 
 const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
 
+const PERF_MAX_OBJECTIVES = ['Conversion'] as const
+
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
-  'Perf max': DEFAULT_CUSTOM_OBJECTIVES,
+  'Perf max': PERF_MAX_OBJECTIVES,
   'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
   Search: SEARCH_CUSTOM_OBJECTIVES,
   'Insta only': INSTA_CUSTOM_OBJECTIVES,
@@ -1938,7 +1940,8 @@ export default function VentePage() {
     PLATFORMS_ORDER.forEach((platform) => {
       const objectives = CUSTOM_OBJECTIVES[platform] ?? DEFAULT_CUSTOM_OBJECTIVES
       initial[platform] = {
-        objective: objectives[0] ?? 'Impressions',
+        objective:
+          platform === 'Perf max' ? 'Conversion' : (objectives[0] ?? 'Impressions'),
         budget: '',
       }
     })
@@ -2370,6 +2373,9 @@ export default function VentePage() {
       }
       return getAeColorClass(platform, aeCheckValue)
     }
+    if (platform === 'Perf max') {
+      return 'bg-orange-50 text-orange-700'
+    }
     const daysClass = getDaysOverrideClass(days)
     if (daysClass) return daysClass
     return getAeColorClass(platform, aeCheckValue)
@@ -2427,6 +2433,10 @@ export default function VentePage() {
       }
       const aeVal = item.aeCheckValue ?? 0
       if (aeVal <= 0) return
+      if (item.platform === 'Perf max') {
+        warnings.push(`${item.platform} : à valider par le TM.`)
+        return
+      }
       if (item.platform === 'Spotify') {
         if (aeVal < 250) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (sous le minimum 250 €).`)
         else if (aeVal <= 350) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (à valider, objectif 350 €+).`)
@@ -2434,7 +2444,7 @@ export default function VentePage() {
         const dailyBudget = item.dailyBudget ?? 0
         const isMetaLike = ['META', 'Insta only', 'Display', 'Youtube'].includes(item.platform)
         const isLinkedInTiktok = ['LinkedIn', 'Tiktok'].includes(item.platform)
-        const isSnapEtc = ['Snapchat', 'Perf max', 'Demand Gen', 'Search'].includes(item.platform)
+        const isSnapEtc = ['Snapchat', 'Demand Gen', 'Search'].includes(item.platform)
         if (isMetaLike && dailyBudget < 5) {
           warnings.push(`${item.platform} : budget quotidien ${dailyBudget.toFixed(1)} €/j (minimum 5 €/j).`)
         } else if (isMetaLike && dailyBudget <= 10) {
@@ -2455,6 +2465,9 @@ export default function VentePage() {
 
   // Fonction pour déterminer la couleur selon le niveau d'AE (par jour ou total Spotify)
   const getAeColorClass = (platform: string, aeCheckValue: number): string => {
+    if (platform === 'Perf max') {
+      return aeCheckValue === 0 ? 'bg-gray-100 text-gray-400' : 'bg-orange-50 text-orange-700'
+    }
     if (aeCheckValue === 0) return 'bg-gray-100 text-gray-400'
 
     const isMetaLike =
@@ -2484,8 +2497,8 @@ export default function VentePage() {
       return 'bg-green-50 text-green-700'
     }
 
-    if (platform === 'Snapchat' || platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search') {
-      // Snapchat, Perf max, Demand Gen, Search : AE / jours (seuils spécifiques 10 / 15)
+    if (platform === 'Snapchat' || platform === 'Demand Gen' || platform === 'Search') {
+      // Snapchat, Demand Gen, Search : AE / jours (seuils spécifiques 10 / 15)
       if (aeCheckValue < 10) return 'bg-red-50 text-red-700'
       if (aeCheckValue <= 15) return 'bg-orange-50 text-orange-700'
       return 'bg-green-50 text-green-700'
@@ -3233,7 +3246,11 @@ export default function VentePage() {
                   const onlyCustomRow = platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search'
                   if (!onlyCustomRow && platformRows.length === 0) return null
 
-                  const custom = customRows[platform] ?? { objective: '', budget: '' }
+                  const customRaw = customRows[platform] ?? { objective: '', budget: '' }
+                  const custom =
+                    platform === 'Perf max'
+                      ? { ...customRaw, objective: 'Conversion' }
+                      : customRaw
                   const daysNum = parseFloat(diffusionDays) || 14
                   const mainValueNum = parseFloat(mainValue) || 0
                   const aeNum = parseFloat(aePercentage) || 40
@@ -3399,7 +3416,9 @@ export default function VentePage() {
                               {platform !== 'Search' && (
                               <TableRow className={customRowColor}>
                                 <TableCell>
-                                  {platform === 'Perf max' || platform === 'Demand Gen' ? (
+                                  {platform === 'Perf max' ? (
+                                    <span className="text-[11px] font-medium">Conversion</span>
+                                  ) : platform === 'Demand Gen' ? (
                                     <EditableInput
                                       value={custom.objective}
                                       onChange={(e) =>
@@ -3440,11 +3459,15 @@ export default function VentePage() {
                                     : '—'}
                                 </TableCell>
                                 <TableCell className="text-right text-xs">
-                                  {custom.objective
-                                    ? `${getMaxKpiLabel(custom.objective)}${
-                                        custom.objective === 'Leads' ? ' (estimation)' : ''
-                                      }`
-                                    : '—'}
+                                  {platform === 'Perf max' ? (
+                                    <>Max de conversion</>
+                                  ) : custom.objective ? (
+                                    `${getMaxKpiLabel(custom.objective)}${
+                                      custom.objective === 'Leads' ? ' (estimation)' : ''
+                                    }`
+                                  ) : (
+                                    '—'
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-xs">
                                   {customDailyBudget > 0
@@ -3469,6 +3492,10 @@ export default function VentePage() {
                                           dailyBudget: customDailyBudget,
                                           aeCheckValue: customAeCheckValue,
                                           isAvailable: true,
+                                          customKpiLabel:
+                                            platform === 'Perf max'
+                                              ? 'Max de conversion'
+                                              : undefined,
                                         })
                                       }
                                       className="h-8 w-8 p-0"

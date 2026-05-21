@@ -45,6 +45,7 @@ export default function StudioPage() {
   const [snapLimites3Open, setSnapLimites3Open] = useState(false);
   const [snapMarges1Open, setSnapMarges1Open] = useState(false);
   const [snapMarges2Open, setSnapMarges2Open] = useState(false);
+  const [snapMarges3Open, setSnapMarges3Open] = useState(false);
   const [spotifyLimites1Open, setSpotifyLimites1Open] = useState(false);
   const [spotifyLimites2Open, setSpotifyLimites2Open] = useState(false);
 
@@ -1454,8 +1455,8 @@ export default function StudioPage() {
                     {/* Colonne gauche : Limites de caractères - image + 3 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Limites_caracteres_10x.png"
                               alt="Limites de caractères pour les wordings Snapchat"
@@ -1479,14 +1480,14 @@ export default function StudioPage() {
                               {/* 2 : répétition du nom de marque + titre + lien */}
                               <Tooltip open={snapLimites2Open} onOpenChange={setSnapLimites2Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute bottom-[22%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites2Open(!snapLimites2Open)}>2</div>
+                                  <div className="absolute bottom-[15%] left-[12%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites2Open(!snapLimites2Open)}>2</div>
                                 </TooltipTrigger>
                                 <TooltipContent><div className="text-sm">répétition du nom de marque + titre + lien</div></TooltipContent>
                               </Tooltip>
                               {/* 3 : bloc CTA² */}
                               <Tooltip open={snapLimites3Open} onOpenChange={setSnapLimites3Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute bottom-[8%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites3Open(!snapLimites3Open)}>3</div>
+                                  <div className="absolute bottom-[2%] right-[10%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapLimites3Open(!snapLimites3Open)}>3</div>
                                 </TooltipTrigger>
                                 <TooltipContent><div className="text-sm"><strong>bloc CTA²</strong></div></TooltipContent>
                               </Tooltip>
@@ -1499,8 +1500,8 @@ export default function StudioPage() {
                     {/* Colonne droite : Marges de sécurité - image + 2 pastilles */}
                     <div>
                       <div className="flex justify-center">
-                        <div className="studio-limites-marges-image w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg border-0 shadow-none ring-0 outline-none relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                        <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                             <NextImage
                               src="/images/Snapchat_Marges_securite_10x.png"
                               alt="Marges de sécurité publicités verticales Snapchat"
@@ -1512,7 +1513,7 @@ export default function StudioPage() {
                               {/* 1 : bloc nom de marque + titre (haut) */}
                               <Tooltip open={snapMarges1Open} onOpenChange={setSnapMarges1Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute top-[10%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges1Open(!snapMarges1Open)}>1</div>
+                                  <div className="absolute top-[5%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges1Open(!snapMarges1Open)}>1</div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <div className="text-sm">
@@ -1522,10 +1523,21 @@ export default function StudioPage() {
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
-                              {/* 2 : bloc nom de marque + titre + lien (bas) */}
+                              {/* 2 : zone visuel principal (centre) */}
                               <Tooltip open={snapMarges2Open} onOpenChange={setSnapMarges2Open}>
                                 <TooltipTrigger asChild>
-                                  <div className="absolute bottom-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges2Open(!snapMarges2Open)}>2</div>
+                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges2Open(!snapMarges2Open)}>2</div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="text-sm">
+                                    Dans cette zone, il est recommandé de ne mettre aucun texte ou image important pour la compréhension du message.
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                              {/* 3 : bloc nom de marque + titre + lien (bas) */}
+                              <Tooltip open={snapMarges3Open} onOpenChange={setSnapMarges3Open}>
+                                <TooltipTrigger asChild>
+                                  <div className="absolute bottom-[12%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSnapMarges3Open(!snapMarges3Open)}>3</div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <div className="text-sm">
@@ -1578,6 +1590,34 @@ export default function StudioPage() {
                         </p>
                       </CardContent>
                     </Card>
+                  </div>
+                </div>
+
+                {/* Section : Rappel des livrables attendus par Snapchat */}
+                <div className="mt-6">
+                  <h2 className="text-2xl font-bold text-orange-500 mb-6">
+                    Rappel des livrables attendus par Snapchat
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className="text-sm font-semibold mb-2">
+                        Pré-requis média minimum obligatoires :
+                      </h5>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>1 visuel image et/ou vidéo décliné au format vertical.</li>
+                        <li>2 maximum.</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-semibold mb-2">
+                        Pré-requis wording¹ minimum obligatoires :
+                      </h5>
+                      <ul className="text-sm space-y-1 ml-4 list-disc">
+                        <li>Nom de marque.</li>
+                        <li>1 titre.</li>
+                        <li>1 CTA².</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
 
