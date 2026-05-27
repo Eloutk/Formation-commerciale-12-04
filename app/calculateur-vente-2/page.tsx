@@ -50,6 +50,7 @@ import {
 } from '@/lib/kpi-max-vente2'
 import { SMS_SALES_CONDITIONS, RCS_SALES_CONDITIONS } from '@/app/vente/calendar/smsSalesConditions'
 import { KpiMaxPanel } from '@/components/vente/KpiMaxPanel'
+import { KpiMax2Panel } from '@/components/vente/KpiMax2Panel'
 import {
   rebalanceRetroSocialSegments,
   retroStrategyLineKey,
@@ -469,7 +470,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 }
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
-type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax'
+type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax' | 'kpiMax2'
 type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
@@ -3027,7 +3028,7 @@ export default function VentePage() {
             onValueChange={(value) => setPdvSection(value as PdvSection)}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-2 sm:grid-cols-4 border-2 border-gray-300 gap-1">
+            <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-2 border-gray-300 gap-1">
               <TabsTrigger
                 value="social"
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -3051,6 +3052,12 @@ export default function VentePage() {
                 className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
               >
                 KPIs max
+              </TabsTrigger>
+              <TabsTrigger
+                value="kpiMax2"
+                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+              >
+                KPIs max 2
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -5383,6 +5390,8 @@ export default function VentePage() {
             onDiffusionDaysChange={setKpiMaxDiffusionDays}
           />
         )}
+
+        {pdvSection === 'kpiMax2' && <KpiMax2Panel />}
       </div>
 
       {/* Modale Calendrier de diffusion — même UX que /vente (plage affichée, granularité, recalcul budget/KPIs) */}
