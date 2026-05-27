@@ -274,30 +274,38 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                  {/* Bloc 4 & 5 : Wordings + Marges de sécurité côte à côte */}
+                  {/* Limites de caractères + Marges de sécurité META — même présentation que Snapchat */}
                   <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                      {/* Bloc 4: Limites de caractères pour les wordings */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                      <h2 className="text-2xl font-bold text-orange-500">
+                        Limites de caractères pour les wordings¹
+                      </h2>
+                      <h2 className="text-2xl font-bold text-orange-500">
+                        Marges de sécurité pour les story et reels
+                      </h2>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Colonne gauche : Limites de caractères */}
                       <div>
-                        <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
-                          Limites de caractères pour les wordings
-                        </h2>
-                        <div className="flex justify-start">
-                          <div className="w-full max-w-[135px] relative">
-                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
-                              <SafeImage
-                                src="/images/META-format-complet-carre-10x.png"
-                                alt="Limites de caractères pour les wordings"
-                                width={1440}
-                                height={1440}
-                                className="w-full h-full object-contain"
+                        <div className="flex justify-center">
+                          <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                              <NextImage
+                                src="/images/META Limites de caracteres@10x.png"
+                                alt="Limites de caractères pour les wordings META"
+                                width={1080}
+                                height={1920}
+                                className="w-full h-full object-contain border-0 outline-none"
                               />
                               <TooltipProvider delayDuration={0}>
-                                {/* Zone 1 : photo de profil + nom de page */}
+                                {/* 1 : photo de profil + nom de page */}
                                 <Tooltip open={tooltip1Open} onOpenChange={setTooltip1Open}>
                                   <TooltipTrigger asChild>
-                                    <div 
-                                      className="absolute top-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                                    <div
+                                      className="absolute top-[7%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
                                       style={{ zIndex: 10 }}
                                       onClick={() => setTooltip1Open(!tooltip1Open)}
                                     >
@@ -310,12 +318,11 @@ export default function StudioPage() {
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
-                                
-                                {/* Zone 2 : texte principal */}
+                                {/* 2 : texte principal */}
                                 <Tooltip open={tooltip2Open} onOpenChange={setTooltip2Open}>
                                   <TooltipTrigger asChild>
-                                    <div 
-                                      className="absolute top-[18%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                                    <div
+                                      className="absolute top-[21%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
                                       style={{ zIndex: 10 }}
                                       onClick={() => setTooltip2Open(!tooltip2Open)}
                                     >
@@ -332,12 +339,11 @@ export default function StudioPage() {
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
-                                
-                                {/* Zone 3 : titre, description, CTA */}
+                                {/* 3 : titre, description, bloc CTA */}
                                 <Tooltip open={tooltip3Open} onOpenChange={setTooltip3Open}>
                                   <TooltipTrigger asChild>
-                                    <div 
-                                      className="absolute bottom-[8%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" 
+                                    <div
+                                      className="absolute top-[86%] left-[63%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
                                       style={{ zIndex: 10 }}
                                       onClick={() => setTooltip3Open(!tooltip3Open)}
                                     >
@@ -365,101 +371,86 @@ export default function StudioPage() {
                         </div>
                       </div>
 
-                      {/* Bloc 5: Marges de sécurité */}
+                      {/* Colonne droite : Marges de sécurité */}
                       <div>
-                        <h2 className="text-xl font-bold text-orange-500 mb-4 md:mb-6 leading-tight">
-                          Marges de sécurité pour les story et reels
-                        </h2>
-                        <div className="flex justify-start">
-                          <div className="w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
-                            <SafeImage
-                              src="/images/META Marges de securite 2@10x.png"
-                              extraSrcCandidates={[
-                                // NFC variant (single-codepoint accents) often differs from NFD (combining accents)
-                                "/images/META Marges de securite 2@10x.png",
-                                "/images/META%20Marges%20de%20securite%202@10x.png",
-                              ]}
-                              alt="Marges de sécurité pour les story et reels"
-                              width={1440}
-                              height={2560}
-                              className="w-full h-full object-contain"
-                            />
-                            <TooltipProvider delayDuration={0}>
-                              {/* Zone 1 : haut de l'écran */}
-                              <Tooltip
-                                open={marginsTooltip1Open}
-                                onOpenChange={setMarginsTooltip1Open}
-                              >
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className="absolute top-[14%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                    style={{ zIndex: 10 }}
-                                    onClick={() =>
-                                      setMarginsTooltip1Open(!marginsTooltip1Open)
-                                    }
-                                  >
-                                    1
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="text-sm">
-                                    <strong>Zone 1</strong>
-                                    <ul className="ml-4 mt-1 space-y-1 list-disc">
-                                      <li>bloc photo de profil + nom de page</li>
-                                      <li>marge de 21 %</li>
-                                      <li>400 pixels environ</li>
-                                    </ul>
-                                    <p className="mt-2 italic text-xs">
-                                      Dans cette zone, il est recommandé de ne mettre
-                                      aucun texte ou image important pour la
-                                      compréhension du message.
-                                    </p>
-                                    <p className="mt-1 italic text-xs">
-                                      La présence d&apos;éléments dans cette zone est
-                                      considérée comme tolérable.
-                                    </p>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* Zone 2 : bas de l'écran */}
-                              <Tooltip
-                                open={marginsTooltip2Open}
-                                onOpenChange={setMarginsTooltip2Open}
-                              >
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className="absolute bottom-[10%] right-[8%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                    style={{ zIndex: 10 }}
-                                    onClick={() =>
-                                      setMarginsTooltip2Open(!marginsTooltip2Open)
-                                    }
-                                  >
-                                    2
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="text-sm">
-                                    <strong>Zone 2</strong>
-                                    <ul className="ml-4 mt-1 space-y-1 list-disc">
-                                      <li>bloc CTA + interactions</li>
-                                      <li>marge de 15 % (285 pixels environ)</li>
-                                      <li>marge de 30 % (570 pixels environ)</li>
-                                    </ul>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                        <div className="flex justify-center">
+                          <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                              <SafeImage
+                                src="/images/META Marges de securite 2@10x.png"
+                                extraSrcCandidates={[
+                                  '/images/META Marges de securite 2@10x.png',
+                                  '/images/META%20Marges%20de%20securite%202@10x.png',
+                                ]}
+                                alt="Marges de sécurité pour les story et reels"
+                                width={1080}
+                                height={1920}
+                                className="w-full h-full object-contain border-0 outline-none"
+                              />
+                              <TooltipProvider delayDuration={0}>
+                                <Tooltip
+                                  open={marginsTooltip1Open}
+                                  onOpenChange={setMarginsTooltip1Open}
+                                >
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="absolute top-[14%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                      style={{ zIndex: 10 }}
+                                      onClick={() => setMarginsTooltip1Open(!marginsTooltip1Open)}
+                                    >
+                                      1
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="text-sm">
+                                      <strong>Zone 1</strong>
+                                      <ul className="ml-4 mt-1 space-y-1 list-disc">
+                                        <li>bloc photo de profil + nom de page</li>
+                                        <li>marge de 21 %</li>
+                                        <li>400 pixels environ</li>
+                                      </ul>
+                                      <p className="mt-2 italic text-xs">
+                                        Dans cette zone, il est recommandé de ne mettre aucun texte ou image
+                                        important pour la compréhension du message.
+                                      </p>
+                                      <p className="mt-1 italic text-xs">
+                                        La présence d&apos;éléments dans cette zone est considérée comme
+                                        tolérable.
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip
+                                  open={marginsTooltip2Open}
+                                  onOpenChange={setMarginsTooltip2Open}
+                                >
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="absolute bottom-[10%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                      style={{ zIndex: 10 }}
+                                      onClick={() => setMarginsTooltip2Open(!marginsTooltip2Open)}
+                                    >
+                                      2
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="text-sm">
+                                      <strong>Zone 2</strong>
+                                      <ul className="ml-4 mt-1 space-y-1 list-disc">
+                                        <li>bloc CTA + interactions</li>
+                                        <li>marge de 15 % (285 pixels environ)</li>
+                                        <li>marge de 30 % (570 pixels environ)</li>
+                                      </ul>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                           </div>
                         </div>
                       </div>
-
-                      </div>
                     </div>
-
-                    {/* Instruction unique pour les deux blocs */}
-                    <p className="mt-4 text-xs text-center text-muted-foreground italic md:col-span-2">
+                    <p className="mt-4 text-xs text-center text-muted-foreground italic">
                       Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
                     </p>
                   </div>
@@ -2047,49 +2038,68 @@ export default function StudioPage() {
                   </div>
                   </div>
 
-                {/* 1. Limites de caractères pour les wordings¹ */}
+                {/* Limites de caractères pour les wordings¹ — même présentation que Snapchat */}
                 <div>
-              <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
-                  <div className="flex justify-start">
-                    <div className="w-full max-w-[135px] relative">
-                          <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative">
-                            <SafeImage
-                              src="/images/Spotify-Limites-caracteres-10x.png"
-                              alt="Limites de caractères pour les wordings Spotify"
-                              width={1080}
-                              height={1920}
-                              className="w-full h-full object-contain"
-                            />
-                            <TooltipProvider delayDuration={0}>
-                              {/* 1 : nom de marque + photo de profil + mention Publicité */}
-                              <Tooltip open={spotifyLimites1Open} onOpenChange={setSpotifyLimites1Open}>
-                                <TooltipTrigger asChild>
-                                  <div className="absolute top-[38%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSpotifyLimites1Open(!spotifyLimites1Open)}>1</div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="text-sm">
-                                    <strong>nom de marque :</strong> 25 caractères maximum, espaces inclus<br />
-                                    + photo de profil · + mention « Publicité »
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                              {/* 2 : accroche + bloc CTA² */}
-                              <Tooltip open={spotifyLimites2Open} onOpenChange={setSpotifyLimites2Open}>
-                                <TooltipTrigger asChild>
-                                  <div className="absolute bottom-[18%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors" style={{ zIndex: 10 }} onClick={() => setSpotifyLimites2Open(!spotifyLimites2Open)}>2</div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="text-sm">
-                                    <strong>accroche :</strong> 40 caractères maximum, espaces inclus<br />
-                                    + bloc CTA²
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4">Limites de caractères pour les wordings¹</h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
+                  </p>
+                  <div>
+                    <div className="flex justify-center">
+                      <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                        <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                          <NextImage
+                            src="/images/Spotify-Limites-caracteres-10x.png"
+                            alt="Limites de caractères pour les wordings Spotify"
+                            width={1080}
+                            height={1920}
+                            className="w-full h-full object-contain border-0 outline-none"
+                          />
+                          <TooltipProvider delayDuration={0}>
+                            {/* 1 : nom de marque + photo de profil + mention Publicité (barres sous le visuel) */}
+                            <Tooltip open={spotifyLimites1Open} onOpenChange={setSpotifyLimites1Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[52%] left-[38%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSpotifyLimites1Open(!spotifyLimites1Open)}
+                                >
+                                  1
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>nom de marque :</strong> 25 caractères maximum, espaces inclus
+                                  <br />
+                                  + photo de profil · + mention « Publicité »
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                            {/* 2 : accroche + bloc CTA² (pilule CTA en bas) */}
+                            <Tooltip open={spotifyLimites2Open} onOpenChange={setSpotifyLimites2Open}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="absolute top-[86%] left-[63%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
+                                  style={{ zIndex: 10 }}
+                                  onClick={() => setSpotifyLimites2Open(!spotifyLimites2Open)}
+                                >
+                                  2
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="text-sm">
+                                  <strong>accroche :</strong> 40 caractères maximum, espaces inclus
+                                  <br />
+                                  + bloc CTA²
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-4 text-xs text-center text-muted-foreground">
+                  <p className="mt-4 text-xs text-center text-muted-foreground italic">
                     Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
                   </p>
                 </div>
