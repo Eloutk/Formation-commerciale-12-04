@@ -18,6 +18,8 @@ export default function StudioPage() {
   const [tooltip1Open, setTooltip1Open] = useState(false)
   const [tooltip2Open, setTooltip2Open] = useState(false)
   const [tooltip3Open, setTooltip3Open] = useState(false)
+  const [tooltip4Open, setTooltip4Open] = useState(false)
+  const [tooltip5Open, setTooltip5Open] = useState(false)
   const [marginsTooltip1Open, setMarginsTooltip1Open] = useState(false)
   const [marginsTooltip2Open, setMarginsTooltip2Open] = useState(false)
   const [searchLimites1Open, setSearchLimites1Open] = useState(false)
@@ -288,16 +290,21 @@ export default function StudioPage() {
                       Survolez ou cliquez les pastilles orange numérotées pour afficher le détail.
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Colonne gauche : Limites de caractères */}
+                      {/* Colonne gauche : Limites de caractères — mêmes dimensions que LinkedIn */}
                       <div>
                         <div className="flex justify-center">
-                          <div className="studio-limites-marges-image w-full max-w-[300px] relative">
-                            <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
-                              <NextImage
-                                src="/images/META Limites de caracteres@10x.png"
+                          <div className="studio-limites-marges-image w-full max-w-[400px] relative">
+                            <div className="aspect-square w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
+                              <SafeImage
+                                src="/images/META format complet carre10x.png"
+                                extraSrcCandidates={[
+                                  "/images/META format complet carre10x.png",
+                                  "/images/META%20format%20complet%20carre10x.png",
+                                  "/images/META-format-complet-carre-10x.png",
+                                ]}
                                 alt="Limites de caractères pour les wordings META"
-                                width={1080}
-                                height={1920}
+                                width={1440}
+                                height={1440}
                                 className="w-full h-full object-contain border-0 outline-none"
                               />
                               <TooltipProvider delayDuration={0}>
@@ -305,63 +312,79 @@ export default function StudioPage() {
                                 <Tooltip open={tooltip1Open} onOpenChange={setTooltip1Open}>
                                   <TooltipTrigger asChild>
                                     <div
-                                      className="absolute top-[7%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                      style={{ zIndex: 10 }}
+                                      className="absolute top-[6%] left-[14%] z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-sm font-bold text-white transition-colors hover:bg-[#E94C16]/80"
                                       onClick={() => setTooltip1Open(!tooltip1Open)}
                                     >
                                       1
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <div className="text-sm">
-                                      <strong>photo de profil + nom de page</strong>
-                                    </div>
+                                    <div className="text-sm">photo de profil + nom de page</div>
                                   </TooltipContent>
                                 </Tooltip>
                                 {/* 2 : texte principal */}
                                 <Tooltip open={tooltip2Open} onOpenChange={setTooltip2Open}>
                                   <TooltipTrigger asChild>
                                     <div
-                                      className="absolute top-[21%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                      style={{ zIndex: 10 }}
+                                      className="absolute top-[16%] left-[22%] z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-sm font-bold text-white transition-colors hover:bg-[#E94C16]/80"
                                       onClick={() => setTooltip2Open(!tooltip2Open)}
                                     >
                                       2
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <div className="text-sm">
-                                      <strong>texte principal :</strong>
-                                      <ul className="list-disc ml-4 mt-1 space-y-1">
-                                        <li>De 50 à 150 caractères maximum (Facebook)</li>
-                                        <li>125 caractères maximum (Instagram)</li>
-                                      </ul>
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>texte principal :</strong></p>
+                                      <p>De 50 à 150 caractères maximum (Facebook)</p>
+                                      <p>125 caractères maximum (Instagram)</p>
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
-                                {/* 3 : titre, description, bloc CTA */}
+                                {/* 3 : titre */}
                                 <Tooltip open={tooltip3Open} onOpenChange={setTooltip3Open}>
                                   <TooltipTrigger asChild>
                                     <div
-                                      className="absolute top-[86%] left-[63%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                      style={{ zIndex: 10 }}
+                                      className="absolute bottom-[6%] left-[16%] z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-sm font-bold text-white transition-colors hover:bg-[#E94C16]/80"
                                       onClick={() => setTooltip3Open(!tooltip3Open)}
                                     >
                                       3
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>titre :</strong></p>
+                                      <p>27 caractères maximum (Facebook)</p>
+                                      <p>40 caractères maximum (Instagram)</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                                {/* 4 : description */}
+                                <Tooltip open={tooltip4Open} onOpenChange={setTooltip4Open}>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="absolute bottom-0 left-[16%] z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-sm font-bold text-white transition-colors hover:bg-[#E94C16]/80"
+                                      onClick={() => setTooltip4Open(!tooltip4Open)}
+                                    >
+                                      4
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="text-sm">description : 27 caractères maximum</div>
+                                  </TooltipContent>
+                                </Tooltip>
+                                {/* 5 : bloc CTA */}
+                                <Tooltip open={tooltip5Open} onOpenChange={setTooltip5Open}>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className="absolute bottom-[9%] right-[24%] z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-sm font-bold text-white transition-colors hover:bg-[#E94C16]/80"
+                                      onClick={() => setTooltip5Open(!tooltip5Open)}
+                                    >
+                                      5
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
                                     <div className="text-sm">
-                                      <strong>titre :</strong>
-                                      <ul className="list-disc ml-4 mt-1 space-y-1">
-                                        <li>27 caractères maximum (Facebook)</li>
-                                        <li>40 caractères maximum (Instagram)</li>
-                                      </ul>
-                                      <strong className="block mt-2">description :</strong>
-                                      <ul className="list-disc ml-4 mt-1 space-y-1">
-                                        <li>27 caractères maximum</li>
-                                      </ul>
-                                      <strong className="block mt-2">bloc CTA</strong>
+                                      + bloc CTA<sup>2</sup>
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
@@ -374,7 +397,7 @@ export default function StudioPage() {
                       {/* Colonne droite : Marges de sécurité */}
                       <div>
                         <div className="flex justify-center">
-                          <div className="studio-limites-marges-image w-full max-w-[300px] relative">
+                          <div className="studio-limites-marges-image w-full max-w-[240px] relative">
                             <div className="aspect-[9/16] w-full overflow-hidden rounded-lg shadow-sm relative [&_img]:border-0 [&_img]:outline-none [&_img]:ring-0">
                               <SafeImage
                                 src="/images/META Marges de securite 2@10x.png"
@@ -394,26 +417,22 @@ export default function StudioPage() {
                                 >
                                   <TooltipTrigger asChild>
                                     <div
-                                      className="absolute top-[14%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                      style={{ zIndex: 10 }}
+                                      className="absolute top-[5%] right-[7%] z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-[11px] font-bold text-white transition-colors hover:bg-[#E94C16]/80"
                                       onClick={() => setMarginsTooltip1Open(!marginsTooltip1Open)}
                                     >
                                       1
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <div className="text-sm">
-                                      <strong>Zone 1</strong>
-                                      <ul className="ml-4 mt-1 space-y-1 list-disc">
-                                        <li>bloc photo de profil + nom de page</li>
-                                        <li>marge de 21 %</li>
-                                        <li>400 pixels environ</li>
-                                      </ul>
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>bloc photo de profil + nom de page</strong></p>
+                                      <p>marge de 21 %</p>
+                                      <p>400 pixels environ</p>
                                       <p className="mt-2 italic text-xs">
                                         Dans cette zone, il est recommandé de ne mettre aucun texte ou image
                                         important pour la compréhension du message.
                                       </p>
-                                      <p className="mt-1 italic text-xs">
+                                      <p className="italic text-xs">
                                         La présence d&apos;éléments dans cette zone est considérée comme
                                         tolérable.
                                       </p>
@@ -426,21 +445,19 @@ export default function StudioPage() {
                                 >
                                   <TooltipTrigger asChild>
                                     <div
-                                      className="absolute bottom-[10%] right-[6%] w-8 h-8 rounded-full bg-[#E94C16] flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:bg-[#E94C16]/80 transition-colors"
-                                      style={{ zIndex: 10 }}
+                                      className="absolute bottom-[10%] right-[6%] z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-[#E94C16] text-[11px] font-bold text-white transition-colors hover:bg-[#E94C16]/80"
                                       onClick={() => setMarginsTooltip2Open(!marginsTooltip2Open)}
                                     >
                                       2
                                     </div>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-xs">
-                                    <div className="text-sm">
-                                      <strong>Zone 2</strong>
-                                      <ul className="ml-4 mt-1 space-y-1 list-disc">
-                                        <li>bloc CTA + interactions</li>
-                                        <li>marge de 15 % (285 pixels environ)</li>
-                                        <li>marge de 30 % (570 pixels environ)</li>
-                                      </ul>
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>bloc CTA² + interactions</strong></p>
+                                      <p>marge de 15 %</p>
+                                      <p>285 pixels environ</p>
+                                      <p>marge de 30 %</p>
+                                      <p>570 pixels environ</p>
                                     </div>
                                   </TooltipContent>
                                 </Tooltip>
@@ -723,9 +740,8 @@ export default function StudioPage() {
                   </div>
                 </div>
 
-                {/* H2 : Logos obligatoires */}
+                {/* Résolutions + fichiers acceptés */}
                 <div>
-                  {/* Résolutions + fichiers acceptés, alignés sur 2 colonnes */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {/* Colonne gauche : résolutions + fichiers images/logos */}
                     <div className="space-y-3">
@@ -771,14 +787,19 @@ export default function StudioPage() {
                       </AlertDescription>
                     </Alert>
                   </div>
+                </div>
 
-                  <h2 className="mb-4 md:mb-5 lg:mb-6">logos obligatoires</h2>
+                {/* Logos obligatoires + Limites de caractères — 2 colonnes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-7 md:mb-9 lg:mb-12 items-start">
+                  <div>
+                  <h2 className="mb-4 border-b border-foreground/20 pb-2 md:mb-5">
+                    logos obligatoires
+                  </h2>
                   
-                  {/* Grille de logos seule (même logique 3 colonnes que la liste des formats) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7 md:mb-9 lg:mb-12 items-start">
-                    {/* Logo format carré : taille fixe 240px comme le format carré publicités images */}
-                    <div className="flex flex-col items-center md:min-w-[240px]">
-                      <div className="w-[240px] mb-2 shrink-0">
+                  <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-5">
+                    {/* Logo format carré */}
+                    <div className="flex flex-col items-start shrink-0">
+                      <div className="w-[160px] mb-2 shrink-0">
                         <div className="w-full">
                           <NextImage
                             src="/images/format%20carre_infeed@10x.png"
@@ -789,44 +810,40 @@ export default function StudioPage() {
                           />
                         </div>
                       </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format carré</p>
-                        <p>1440 × 1440 px</p>
-                        <p>ratio 1:1</p>
+                      <div className="text-sm leading-snug">
+                        <p>format carré</p>
+                        <p className="font-bold">1080 x 1080 px</p>
+                        <p className="italic">ratio 1:1</p>
                       </div>
                     </div>
 
-                    {/* Logo format bannière : même largeur max que le carré pour cohérence */}
-                    <div className="flex flex-col items-center">
-                      <div className="w-full max-w-[240px] mb-2">
-                        <div className="aspect-[1.91/1] w-full overflow-hidden">
+                    {/* Logo format bannière */}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="w-[280px] mb-2 shrink-0">
+                        <div className="aspect-[4/1] w-full overflow-hidden">
                           <NextImage
                             src="/images/format%20horizontal_tv_instream@10x.png"
                             alt="Format bannière"
-                            width={1440}
-                            height={754}
+                            width={800}
+                            height={200}
                             className="w-full h-full object-contain"
                           />
                         </div>
                       </div>
-                      <div className="text-sm text-center">
-                        <p className="font-medium">format bannière</p>
-                        <p>1440 × 754 px</p>
-                        <p>ratio 1.91:1</p>
+                      <div className="w-[280px] text-center text-sm leading-snug">
+                        <p>format bannière</p>
+                        <p className="font-bold">800 x 200 px</p>
+                        <p className="italic">ratio 4:1</p>
                       </div>
                     </div>
-
-                    {/* Colonne vide (réserve pour un 3ᵉ format si besoin) */}
-                    <div className="hidden md:block" />
                   </div>
-                </div>
+                  </div>
 
-                {/* H2 : Limites de caractères pour les wordings */}
-                <div>
-                  <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5 lg:mb-6">
+                  <div>
+                  <h2 className="text-2xl font-bold text-orange-500 mb-4 md:mb-5">
                     Limites de caractères pour les wordings
                   </h2>
-                  <Card className="inline-block">
+                  <Card>
                     <CardContent className="pt-4">
                       <ul className="text-sm space-y-2">
                         <li>
@@ -852,6 +869,7 @@ export default function StudioPage() {
                       </ul>
                     </CardContent>
                   </Card>
+                  </div>
                 </div>
 
                 {/* H2 : Recommandations et contraintes */}
