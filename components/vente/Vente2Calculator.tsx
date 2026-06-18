@@ -2,14 +2,13 @@
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -690,6 +689,7 @@ function EditableInput(props: React.ComponentProps<typeof Input>) {
 
 type CalculationMode = 'budget-to-kpis' | 'kpis-to-budget'
 type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax' | 'kpiMax2'
+export type Vente2CalculatorView = 'social' | 'sms' | 'kpiMax' | 'calendar'
 type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
@@ -2309,20 +2309,19 @@ const KpiMaxPdfDocument = ({
   )
 }
 
-export default function VentePage() {
+export function Vente2Calculator({
+  view,
+  pageTitle = 'Calculateur Vente 2',
+  pageDescription = 'Outil à titre informatif : estimez prix, volumes et planning pour la lecture d’une brief — sans valeur contractuelle.',
+}: {
+  view: Vente2CalculatorView
+  pageTitle?: string
+  pageDescription?: string
+}) {
   const router = useRouter()
-  const [adminChecked, setAdminChecked] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const ok = await checkIsAdmin()
-      if (cancelled) return
-      setAdminChecked(true)
-      if (!ok) router.replace('/home')
-    })()
-    return () => { cancelled = true }
-  }, [router])
+  const [kpiSubSection, setKpiSubSection] = useState<'kpiMax' | 'kpiMax2'>('kpiMax')
+  const pdvSection: PdvSection =
+    view === 'kpiMax' ? kpiSubSection : view === 'calendar' ? 'calendar' : view === 'sms' ? 'sms' : 'social'
 
   // État du formulaire
   const [calculationMode, setCalculationMode] = useState<CalculationMode>('budget-to-kpis')
@@ -2342,7 +2341,6 @@ export default function VentePage() {
   /** KPIs max : champ durée (jours). */
   const [kpiMaxDiffusionDays, setKpiMaxDiffusionDays] = useState<string>('14')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() => [])
-  const [pdvSection, setPdvSection] = useState<PdvSection>('social')
   const [smsVolume, setSmsVolume] = useState<string>('') // nombre de SMS pour le module SMS
   const [smsType, setSmsType] = useState<SmsType>('sms')
   const [smsOptions, setSmsOptions] = useState<SmsOptionsState>({
@@ -2380,14 +2378,6 @@ export default function VentePage() {
   const [retroLinkSms, setRetroLinkSms] = useState(false)
   /** Rétro Social lié à chaque stratégie (phases, dates, découpe lignes, calendrier manuel résiduel). */
   const [retroSocialByStrategy, setRetroSocialByStrategy] = useState<Record<string, RetroSocialState>>({})
-  /** null = modale de choix de source à afficher ; défini une fois l’utilisateur a choisi */
-  const [retroSourceChoice, setRetroSourceChoice] = useState<'social' | 'sms' | 'both' | 'none' | null>(null)
-  useEffect(() => {
-    if (pdvSection !== 'calendar') {
-      setRetroSourceChoice(null)
-    }
-  }, [pdvSection])
-
   /** Dates de début par ligne (clé platform::objectif), indexées par id de stratégie (évite les collisions entre stratégies). */
   const [defineDatesPerStrategy, setDefineDatesPerStrategy] = useState<
     Record<string, Record<string, string>>
@@ -2418,25 +2408,6 @@ export default function VentePage() {
       ...prev,
       [strategyId]: { ...(prev[strategyId] ?? defaultRetroSocialState()), ...patch },
     }))
-  }, [])
-
-  const applyRetroSourceChoice = useCallback((choice: 'social' | 'sms' | 'both' | 'none') => {
-    setRetroLinkSocial(choice === 'social' || choice === 'both')
-    setRetroLinkSms(choice === 'sms' || choice === 'both')
-    setRetroSourceChoice(choice)
-    setRetroCalendarData((prev) => filterRetroCalendarDataForSourceChoice(prev, choice))
-    setRetroPlatformPhases((phases) => (choice === 'sms' || choice === 'none' ? [] : phases))
-    setRetroSmsPhases((phases) => (choice === 'social' || choice === 'none' ? [] : phases))
-    setDefineDatesPerStrategy((prev) => filterDefineDatesPerStrategyMap(prev, choice))
-    if (choice === 'sms' || choice === 'none') {
-      setRetroSocialByStrategy((prev) => {
-        const next = { ...prev }
-        for (const id of Object.keys(next)) {
-          next[id] = { ...next[id]!, socialLineSplits: {} }
-        }
-        return next
-      })
-    }
   }, [])
 
   useEffect(() => {
@@ -2854,44 +2825,6 @@ export default function VentePage() {
     smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
   const rcsDevisPdfEligible =
     smsVolumeNumber >= 10_000 && rcsUnitPrice > 0 && rcsTotalPrice > 0
-
-  /** Au moins une ligne dans la stratégie Social active (pour rétroplanning lié) */
-  const activeStrategyHasLines = useMemo(() => {
-    const b = strategies.find((s) => s.id === activeStrategyId)
-    return (b?.items?.length ?? 0) > 0
-  }, [strategies, activeStrategyId])
-
-  const activeStrategyName = useMemo(() => {
-    const b = strategies.find((s) => s.id === activeStrategyId)
-    return b?.name?.trim() || 'Stratégie active'
-  }, [strategies, activeStrategyId])
-
-  const socialLineCount = useMemo(() => {
-    const b = strategies.find((s) => s.id === activeStrategyId)
-    return b?.items?.length ?? 0
-  }, [strategies, activeStrategyId])
-
-  /** Campagne SMS/RCS exploitable pour le rétroplanning lié (mêmes critères que les boutons PDF SMS) */
-  const smsCampaignReadyForRetro = useMemo(() => {
-    if (smsType === 'sms') {
-      return smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
-    }
-    return smsVolumeNumber >= 10_000 && rcsUnitPrice > 0 && rcsTotalPrice > 0
-  }, [smsType, smsVolumeNumber, smsUnitPrice, smsTotalPrice, rcsUnitPrice, rcsTotalPrice])
-
-  const retroPlanningMissingLinkedData = useMemo(
-    () =>
-      retroSourceChoice !== null &&
-      retroSourceChoice !== 'none' &&
-      ((retroLinkSocial && !activeStrategyHasLines) || (retroLinkSms && !smsCampaignReadyForRetro)),
-    [
-      retroSourceChoice,
-      retroLinkSocial,
-      retroLinkSms,
-      activeStrategyHasLines,
-      smsCampaignReadyForRetro,
-    ],
-  )
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -3864,88 +3797,63 @@ export default function VentePage() {
     }
   }
 
-  if (!adminChecked) {
-    return (
-      <div className="container mx-auto px-4 py-24 flex items-center justify-center">
-        Chargement...
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-3">Calculateur Vente 2</h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Outil à titre informatif : estimez prix, volumes et planning pour la lecture d’une brief — sans valeur
-            contractuelle.
-          </p>
+          <h1 className="text-4xl font-bold mb-3">{pageTitle}</h1>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{pageDescription}</p>
         </div>
-        {/* Sous-onglets PDV + pack global */}
+        {/* Pack global (Vente 2) + sous-onglets KPIs (Stratégie Social Media) */}
         <div className="mb-6 space-y-4">
-          <div className="flex justify-center px-2">
-            <Button
-              type="button"
-              onClick={() => {
-                setGlobalPackClientName(clientName)
-                setGlobalPackDialogOpen(true)
-              }}
-              disabled={globalPackExporting}
-              className="bg-[#E94C16] hover:bg-[#d43f12] text-white shadow-sm"
+          {(view === 'social' || view === 'sms') && (
+            <div className="flex justify-center px-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  setGlobalPackClientName(clientName)
+                  setGlobalPackDialogOpen(true)
+                }}
+                disabled={globalPackExporting}
+                className="bg-[#E94C16] hover:bg-[#d43f12] text-white shadow-sm"
+              >
+                {globalPackExporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Génération du pack…
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger le pack complet (ZIP)
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          {view === 'kpiMax' && (
+            <Tabs
+              value={kpiSubSection}
+              onValueChange={(value) => setKpiSubSection(value as 'kpiMax' | 'kpiMax2')}
+              className="w-full"
             >
-              {globalPackExporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Génération du pack…
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Télécharger le pack complet (ZIP)
-                </>
-              )}
-            </Button>
-          </div>
-          <Tabs
-            value={pdvSection}
-            onValueChange={(value) => setPdvSection(value as PdvSection)}
-            className="w-full"
-          >
-            <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 border-2 border-gray-300 gap-1">
-              <TabsTrigger
-                value="social"
-                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-              >
-                Social media
-              </TabsTrigger>
-              <TabsTrigger
-                value="sms"
-                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-              >
-                SMS
-              </TabsTrigger>
-              <TabsTrigger
-                value="calendar"
-                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-              >
-                Rétroplanning
-              </TabsTrigger>
-              <TabsTrigger
-                value="kpiMax"
-                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-              >
-                KPIs max
-              </TabsTrigger>
-              <TabsTrigger
-                value="kpiMax2"
-                className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-              >
-                KPIs max 2
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 border-2 border-gray-300 gap-1">
+                <TabsTrigger
+                  value="kpiMax"
+                  className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                >
+                  KPIs max
+                </TabsTrigger>
+                <TabsTrigger
+                  value="kpiMax2"
+                  className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                >
+                  KPIs max 2
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </div>
 
         {pdvSection === 'social' && (
@@ -5648,341 +5556,7 @@ export default function VentePage() {
 
         {pdvSection === 'calendar' && (
           <div className="mt-6 space-y-6">
-            <Dialog open={retroSourceChoice === null} onOpenChange={() => {}}>
-              <DialogContent
-                className="sm:max-w-xl [&>button.absolute]:hidden"
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onEscapeKeyDown={(e) => e.preventDefault()}
-              >
-                <DialogHeader className="space-y-2 text-left">
-                  <DialogTitle className="text-xl font-bold tracking-tight text-[#E94C16]">Rétroplanning</DialogTitle>
-                  <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-                    <span className="font-medium text-foreground">Vert</span> : option utilisable d’un clic.{' '}
-                    <span className="font-medium text-red-700 dark:text-red-400">Rouge</span> : prérequis manquants —
-                    complétez l’onglet concerné, l’option deviendra verte automatiquement.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => applyRetroSourceChoice('none')}
-                    className={cn(
-                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2',
-                      'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45',
-                    )}
-                  >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-800 dark:text-emerald-200">
-                      <LayoutGrid className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-emerald-950 dark:text-emerald-50">Partir de 0</span>
-                        <Badge variant="secondary" className="border-emerald-600/30 bg-emerald-500/15 text-[10px] font-normal text-emerald-900 dark:text-emerald-100">
-                          Sans liaison
-                        </Badge>
-                      </span>
-                      <span className="mt-1 block text-xs leading-relaxed text-emerald-900/85 dark:text-emerald-100/85">
-                        Vous cochez les plateformes et créez les phases vous-même. Aucune donnée n’est importée depuis
-                        les onglets Social ou SMS.
-                      </span>
-                      <span className="mt-2 inline-flex flex-wrap gap-2">
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
-                        >
-                          Toujours disponible
-                        </Badge>
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!activeStrategyHasLines}
-                    onClick={() => applyRetroSourceChoice('social')}
-                    className={cn(
-                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
-                      activeStrategyHasLines
-                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
-                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                        activeStrategyHasLines
-                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
-                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
-                      )}
-                    >
-                      <Share2 className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            activeStrategyHasLines
-                              ? 'text-emerald-950 dark:text-emerald-50'
-                              : 'text-red-950 dark:text-red-100',
-                          )}
-                        >
-                          Partir de la stratégie Social media
-                        </span>
-                      </span>
-                      <span
-                        className={cn(
-                          'mt-1 block text-xs leading-relaxed',
-                          activeStrategyHasLines
-                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
-                            : 'text-red-900/90 dark:text-red-100/85',
-                        )}
-                      >
-                        Reprend les lignes de la stratégie active (plateformes, objectifs, durées) comme base du
-                        calendrier.
-                      </span>
-                      <span className="mt-2 inline-flex flex-wrap gap-2">
-                        {activeStrategyHasLines ? (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
-                          >
-                            Prêt · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''} · « {activeStrategyName} »
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
-                          >
-                            Non disponible · Ajoutez au moins une ligne dans l’onglet Social media
-                          </Badge>
-                        )}
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!smsCampaignReadyForRetro}
-                    onClick={() => applyRetroSourceChoice('sms')}
-                    className={cn(
-                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
-                      smsCampaignReadyForRetro
-                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
-                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                        smsCampaignReadyForRetro
-                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
-                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
-                      )}
-                    >
-                      <MessageSquare className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            smsCampaignReadyForRetro
-                              ? 'text-emerald-950 dark:text-emerald-50'
-                              : 'text-red-950 dark:text-red-100',
-                          )}
-                        >
-                          Partir de la stratégie SMS / RCS
-                        </span>
-                      </span>
-                      <span
-                        className={cn(
-                          'mt-1 block text-xs leading-relaxed',
-                          smsCampaignReadyForRetro
-                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
-                            : 'text-red-900/90 dark:text-red-100/85',
-                        )}
-                      >
-                        Intègre une campagne {smsType === 'sms' ? 'SMS' : 'RCS'} (volume, options) dans le même document
-                        de rétroplanning.
-                      </span>
-                      <span className="mt-2 inline-flex flex-wrap gap-2">
-                        {smsCampaignReadyForRetro ? (
-                          <Badge
-                            variant="outline"
-                            className="border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
-                          >
-                            Prêt · campagne {smsType === 'sms' ? 'SMS' : 'RCS'} renseignée
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
-                          >
-                            Non disponible · Volume et barème dans l’onglet SMS / RCS
-                          </Badge>
-                        )}
-                      </span>
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!(activeStrategyHasLines && smsCampaignReadyForRetro)}
-                    onClick={() => applyRetroSourceChoice('both')}
-                    className={cn(
-                      'group flex w-full gap-3 rounded-xl border-2 p-4 text-left transition-all',
-                      activeStrategyHasLines && smsCampaignReadyForRetro
-                        ? 'cursor-pointer border-emerald-600/50 bg-emerald-50/60 hover:border-emerald-600 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 dark:border-emerald-600/45 dark:bg-emerald-950/35 dark:hover:bg-emerald-950/45'
-                        : 'cursor-not-allowed border-red-500/55 bg-red-50/70 opacity-[0.98] dark:border-red-500/50 dark:bg-red-950/35',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg',
-                        activeStrategyHasLines && smsCampaignReadyForRetro
-                          ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-200'
-                          : 'bg-red-500/20 text-red-800 dark:text-red-200',
-                      )}
-                    >
-                      <Layers className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            activeStrategyHasLines && smsCampaignReadyForRetro
-                              ? 'text-emerald-950 dark:text-emerald-50'
-                              : 'text-red-950 dark:text-red-100',
-                          )}
-                        >
-                          Social media + SMS / RCS
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            'text-[10px] font-normal',
-                            activeStrategyHasLines && smsCampaignReadyForRetro
-                              ? 'border-emerald-600/30 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100'
-                              : 'border-red-600/30 bg-red-500/15 text-red-900 dark:text-red-100',
-                          )}
-                        >
-                          Combiné
-                        </Badge>
-                      </span>
-                      <span
-                        className={cn(
-                          'mt-1 block text-xs leading-relaxed',
-                          activeStrategyHasLines && smsCampaignReadyForRetro
-                            ? 'text-emerald-900/85 dark:text-emerald-100/85'
-                            : 'text-red-900/90 dark:text-red-100/85',
-                        )}
-                      >
-                        Un seul PDF avec la stratégie Social, le détail SMS / RCS et le planning : les deux sources doivent
-                        être prêtes pour un rendu complet.
-                      </span>
-                      <span className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center">
-                        {activeStrategyHasLines ? (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
-                          >
-                            Social · {socialLineCount} ligne{socialLineCount > 1 ? 's' : ''}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
-                          >
-                            Social · manquant
-                          </Badge>
-                        )}
-                        {smsCampaignReadyForRetro ? (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-emerald-600/50 bg-emerald-500/15 text-[11px] font-normal text-emerald-950 dark:text-emerald-100"
-                          >
-                            SMS / RCS · prêt
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="w-fit border-red-600/50 bg-red-500/15 text-[11px] font-normal text-red-950 dark:text-red-100"
-                          >
-                            SMS / RCS · manquant
-                          </Badge>
-                        )}
-                      </span>
-                    </span>
-                  </button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {retroSourceChoice !== null && (
-              <>
-                {retroPlanningMissingLinkedData ? (
-                  <div className="rounded-2xl border border-border/60 bg-card p-6 space-y-4 shadow-sm">
-                    <Alert className="border-orange-500 bg-orange-50 text-orange-950 dark:bg-orange-950/20 dark:border-orange-600 dark:text-orange-100">
-                      <AlertTitle>Aucune stratégie prête pour cette option</AlertTitle>
-                      <AlertDescription className="space-y-3 text-sm">
-                        <p>
-                          Vous avez choisi de partir d’une stratégie Social media et/ou SMS / RCS, mais il n’y a pas encore
-                          assez d’éléments en place pour construire le rétroplanning à partir de ces sources.
-                        </p>
-                        <ul className="list-disc pl-5 space-y-2">
-                          {retroLinkSocial && !activeStrategyHasLines && (
-                            <li>
-                              <strong>Social media :</strong> la stratégie active ne contient aucune ligne (aucune
-                              plateforme avec objectif et budget). Ouvrez l’onglet Social media, ajoutez au moins une
-                              ligne à votre stratégie, puis revenez ici — ou choisissez une autre base ci-dessous.
-                            </li>
-                          )}
-                          {retroLinkSms && !smsCampaignReadyForRetro && (
-                            <li>
-                              <strong>SMS / RCS :</strong> la campagne n’est pas encore exploitable (volume manquant ou
-                              hors barème, selon le type). Complétez l’onglet SMS / RCS avec un volume valide, puis
-                              revenez — ou repartez de zéro.
-                            </li>
-                          )}
-                        </ul>
-                        <p className="font-medium leading-relaxed">
-                          En résumé : remplissez d’abord la ou les stratégies dans les onglets concernés, ou utilisez
-                          « Choisir une autre base » pour revenir au choix initial et sélectionner « Partir de 0 » afin de
-                          construire votre calendrier sans lier une stratégie existante.
-                        </p>
-                      </AlertDescription>
-                    </Alert>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => setRetroSourceChoice(null)}
-                        className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-                      >
-                        Choisir une autre base
-                      </Button>
-                      {retroLinkSocial && !activeStrategyHasLines && (
-                        <Button type="button" variant="outline" onClick={() => setPdvSection('social')}>
-                          Aller à l’onglet Social media
-                        </Button>
-                      )}
-                      {retroLinkSms && !smsCampaignReadyForRetro && (
-                        <Button type="button" variant="outline" onClick={() => setPdvSection('sms')}>
-                          Aller à l’onglet SMS / RCS
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {retroLinkSocial && strategies.length > 1 && (
-                      <p className="text-sm text-muted-foreground rounded-md border border-border/80 bg-muted/30 px-3 py-2">
-                        Rétroplanning Social lié à la stratégie active :{' '}
-                        <span className="font-medium text-foreground">{activeStrategy?.name ?? '—'}</span>. Changez de
-                        stratégie via l’onglet Social media (sélecteur en haut des cartes).
-                      </p>
-                    )}
+            <div className="space-y-6">
                     <RetroPlanningPanel
               availablePlatforms={PLATFORMS_ORDER}
               startDate={retroLinkSocial ? activeRetroSocial.startDate : retroStartDate}
@@ -6000,7 +5574,7 @@ export default function VentePage() {
                 if (retroLinkSocial) patchRetroSocial(activeStrategyId, { platformPhases: ph })
                 else setRetroPlatformPhases(ph)
               }}
-              fromScratchRetro={retroSourceChoice === 'none'}
+              fromScratchRetro={true}
               linkSocial={retroLinkSocial}
               strategyItems={
                 retroLinkSocial
@@ -6257,7 +5831,6 @@ export default function VentePage() {
               }
 
               if (
-                retroSourceChoice === 'none' &&
                 scratchPhases.length > 0 &&
                 items.length > 0
               ) {
@@ -6313,7 +5886,7 @@ export default function VentePage() {
                 } else {
                   setRetroCalendarData(saved)
                 }
-                if (retroSourceChoice === 'none' && retroItems.length > 0) {
+                if (retroItems.length > 0) {
                   if (retroLinkSocial) {
                     setRetroSocialByStrategy((prev) => {
                       const bundle = prev[activeStrategyId] ?? defaultRetroSocialState()
@@ -6531,10 +6104,7 @@ export default function VentePage() {
                   />
               )
             })()}
-                  </div>
-                )}
-              </>
-            )}
+            </div>
           </div>
         )}
 

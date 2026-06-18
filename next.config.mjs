@@ -27,8 +27,8 @@ const nextConfig = {
     return [
       // /vente = calculateur historique ; /calculateur-vente-2 = version complète (admin)
       { source: '/pdv', destination: '/vente', permanent: false },
-      { source: '/pdv2', destination: '/calculateur-vente-2', permanent: true },
-      { source: '/vente2', destination: '/calculateur-vente-2', permanent: true },
+      { source: '/pdv2', destination: '/calculateur-vente-2/social-media', permanent: true },
+      { source: '/vente2', destination: '/calculateur-vente-2/social-media', permanent: true },
       { source: '/diffusion/zones', destination: '/cartographie', permanent: true },
     ]
   },

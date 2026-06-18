@@ -2,9 +2,22 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
+import { MobileNavMenu } from "@/components/nav/mobile-nav-menu"
+import {
+  AIDE_LINKS,
+  RESSOURCES_LINKS,
+  STRATEGIE_LINKS,
+  VENTE2_LINKS,
+  isAidePath,
+  isRessourcesPath,
+  isStrategiePath,
+  isVente2Path,
+  withActiveItems,
+} from "@/lib/nav-config"
 
 type MobileNavUser = {
   name?: string
@@ -21,6 +34,7 @@ export function MobileNav({
   onLogout?: () => void | Promise<void>
 }) {
   const [open, setOpen] = React.useState(false)
+  const pathname = usePathname()
   const handleNav = () => setOpen(false)
 
   return (
@@ -46,65 +60,18 @@ export function MobileNav({
               Link academy
             </Link>
             <nav className="flex flex-col gap-1">
-              <div className="space-y-2 pb-2">
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ressources</p>
-                <div className="flex flex-col gap-0.5 border-l-2 border-[#E94C16]/35 pl-3">
-                  <Link
-                    href="/diffusion"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Diffusion
-                  </Link>
-                  <Link
-                    href="/chefferie"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Chefferie de projet
-                  </Link>
-                  <Link
-                    href="/studio"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Studio
-                  </Link>
-                  <Link
-                    href="/cartographie"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Cartographie
-                  </Link>
-                </div>
-              </div>
-              <div className="space-y-2 pb-2">
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Aide</p>
-                <div className="flex flex-col gap-0.5 border-l-2 border-[#E94C16]/35 pl-3">
-                  <Link
-                    href="/documents"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Document
-                  </Link>
-                  <Link
-                    href="/glossaire"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    Glossaire
-                  </Link>
-                  <Link
-                    href="/faq"
-                    className="rounded-md px-2 py-2.5 text-sm text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                    onClick={handleNav}
-                  >
-                    FAQ
-                  </Link>
-                </div>
-              </div>
+              <MobileNavMenu
+                label="Ressources"
+                active={isRessourcesPath(pathname)}
+                items={withActiveItems(pathname, RESSOURCES_LINKS)}
+                onNavigate={handleNav}
+              />
+              <MobileNavMenu
+                label="Aide"
+                active={isAidePath(pathname)}
+                items={withActiveItems(pathname, AIDE_LINKS)}
+                onNavigate={handleNav}
+              />
               <Link
                 href="/vente"
                 className="mt-1 rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
@@ -113,13 +80,20 @@ export function MobileNav({
                 Vente
               </Link>
               {isAdmin && (
-                <Link
-                  href="/calculateur-vente-2"
-                  className="rounded-md px-2 py-2.5 text-sm text-orange-600 transition-colors hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40"
-                  onClick={handleNav}
-                >
-                  Vente 2
-                </Link>
+                <MobileNavMenu
+                  label="Vente 2"
+                  active={isVente2Path(pathname)}
+                  items={withActiveItems(pathname, VENTE2_LINKS)}
+                  onNavigate={handleNav}
+                />
+              )}
+              {isAdmin && (
+                <MobileNavMenu
+                  label="Stratégie"
+                  active={isStrategiePath(pathname)}
+                  items={withActiveItems(pathname, STRATEGIE_LINKS)}
+                  onNavigate={handleNav}
+                />
               )}
               {isAdmin && (
                 <Link
@@ -160,4 +134,3 @@ export function MobileNav({
     </div>
   )
 }
-

@@ -9,15 +9,15 @@ export async function checkIsAdmin(): Promise<boolean> {
     
     if (!user) return false
 
-    const { data, error } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (error || !data) return false
+    if (error || !profile?.role) return false
 
-    const role = typeof data.role === 'string' ? data.role.trim().toLowerCase() : ''
+    const role = typeof profile.role === 'string' ? profile.role.trim().toLowerCase() : ''
     return role === 'admin' || role === 'super_admin'
   } catch (error) {
     console.error('Error checking admin status:', error)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -8,12 +8,23 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
-import { ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
+import {
+  AIDE_LINKS,
+  RESSOURCES_LINKS,
+  STRATEGIE_LINKS,
+  VENTE2_LINKS,
+  isAidePath,
+  isRessourcesPath,
+  isStrategiePath,
+  isVente2Path,
+  withActiveItems,
+} from '@/lib/nav-config'
 
 // ✅ On utilise uniquement le client Supabase centralisé
 import supabase from "@/utils/supabase/client"
 import { checkIsAdmin } from "@/lib/admin"
+import { AuthAccessContext } from "@/components/auth-context"
 
 interface User {
   id: string
@@ -25,6 +36,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [adminResolved, setAdminResolved] = useState(false)
   const [mustCompleteName, setMustCompleteName] = useState(false)
   const [nickname, setNickname] = useState("")
   const [savingName, setSavingName] = useState(false)
@@ -182,6 +194,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (!u && !hasTokens) {
           setUser(null)
           setIsAdmin(false)
+          setAdminResolved(true)
           return false
         }
 
@@ -198,6 +211,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (!stableUser) {
           setUser(null)
           setIsAdmin(false)
+          setAdminResolved(true)
           return false
         }
 
@@ -225,8 +239,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         const role = (profile as any)?.role as string | undefined
         const roleNorm = typeof role === 'string' ? role.trim().toLowerCase() : ''
         setIsAdmin(roleNorm === 'admin' || roleNorm === 'super_admin')
+        setAdminResolved(true)
       } catch {
         // Garder l'état admin précédent en cas de timeout / erreur réseau
+        setAdminResolved(true)
       }
 
       // Ne demander le nom d'affichage que si l'utilisateur n'a aucun nom (ni display_name, ni full_name, ni metadata)
@@ -292,6 +308,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setIsAdmin(false)
+        setAdminResolved(true)
         setMustCompleteName(false)
         router.replace('/login')
       }
@@ -305,7 +322,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     if (!user || loading) return
     let cancelled = false
     checkIsAdmin().then((ok: boolean) => {
-      if (!cancelled) setIsAdmin(ok)
+      if (!cancelled) {
+        setIsAdmin(ok)
+        setAdminResolved(true)
+      }
     })
     return () => { cancelled = true }
   }, [user, loading])
@@ -382,11 +402,28 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
   }
 
+  const ressourcesActive = isRessourcesPath(pathname)
+  const vente2Active = isVente2Path(pathname)
+  const strategieActive = isStrategiePath(pathname)
+  const aideActive = isAidePath(pathname)
+  const authAccessValue = useMemo(
+    () => ({
+      isAdmin,
+      authReady: !loading && adminResolved,
+    }),
+    [isAdmin, loading, adminResolved],
+  )
+
   if (loading && !isPublicPath) {
-    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
+    return (
+      <AuthAccessContext.Provider value={authAccessValue}>
+        <div className="min-h-screen flex items-center justify-center">Chargement...</div>
+      </AuthAccessContext.Provider>
+    )
   }
 
   return (
+    <AuthAccessContext.Provider value={authAccessValue}>
     <div className="min-h-screen flex flex-col">
       {!isPublicPath && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -397,132 +434,35 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
             </Link>
 
             <nav className="hidden md:flex items-center gap-1 text-sm">
-              {/* Ressources — mega menu au survol */}
-              <div className="relative group/mega">
-                <span
-                  className={cn(
-                    'inline-flex cursor-default items-center gap-1 rounded-md px-3 py-2 font-medium',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  )}
-                  tabIndex={0}
-                  role="button"
-                  aria-haspopup="true"
-                >
-                  Ressources
-                  <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/mega:rotate-180" aria-hidden />
-                </span>
-                <div
-                  className={cn(
-                    'pointer-events-none invisible absolute left-0 top-full z-50 w-[min(100vw-2rem,20rem)] pt-2',
-                    'opacity-0 transition-[opacity,visibility] duration-150',
-                    'group-hover/mega:pointer-events-auto group-hover/mega:visible group-hover/mega:opacity-100',
-                    'focus-within:pointer-events-auto focus-within:visible focus-within:opacity-100',
-                  )}
-                >
-                  <div className="pointer-events-auto h-2 -translate-y-2" aria-hidden />
-                  <div className="rounded-xl border border-[#E94C16]/20 bg-popover p-4 shadow-lg">
-                    <ul className="space-y-0.5">
-                      <li>
-                        <Link
-                          href="/diffusion"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Diffusion
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/chefferie"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Chefferie de projet
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/studio"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Studio
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/cartographie"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Cartographie
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+              <HeaderNavMenu
+                label="Ressources"
+                active={ressourcesActive}
+                items={withActiveItems(pathname, RESSOURCES_LINKS)}
+              />
 
               <Link href="/vente" className="rounded-md px-3 py-2 font-medium hover:bg-accent hover:text-accent-foreground">
                 Vente
               </Link>
               {isAdmin && (
-                <Link href="/calculateur-vente-2" className="rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700">
-                  Vente 2
-                </Link>
+                <HeaderNavMenu
+                  label="Vente 2"
+                  active={vente2Active}
+                  items={withActiveItems(pathname, VENTE2_LINKS)}
+                />
+              )}
+              {isAdmin && (
+                <HeaderNavMenu
+                  label="Stratégie"
+                  active={strategieActive}
+                  items={withActiveItems(pathname, STRATEGIE_LINKS)}
+                />
               )}
 
-              {/* Aide — mega menu au survol (à gauche de Admin) */}
-              <div className="relative group/mega2">
-                <span
-                  className={cn(
-                    'inline-flex cursor-default items-center gap-1 rounded-md px-3 py-2 font-medium',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  )}
-                  tabIndex={0}
-                  role="button"
-                  aria-haspopup="true"
-                >
-                  Aide
-                  <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/mega2:rotate-180" aria-hidden />
-                </span>
-                <div
-                  className={cn(
-                    'pointer-events-none invisible absolute left-0 top-full z-50 w-[min(100vw-2rem,18rem)] pt-2',
-                    'opacity-0 transition-[opacity,visibility] duration-150',
-                    'group-hover/mega2:pointer-events-auto group-hover/mega2:visible group-hover/mega2:opacity-100',
-                    'focus-within:pointer-events-auto focus-within:visible focus-within:opacity-100',
-                  )}
-                >
-                  <div className="pointer-events-auto h-2 -translate-y-2" aria-hidden />
-                  <div className="rounded-xl border border-[#E94C16]/20 bg-popover p-4 shadow-lg">
-                    <ul className="space-y-0.5">
-                      <li>
-                        <Link
-                          href="/documents"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Document
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/glossaire"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          Glossaire
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/faq"
-                          className="block rounded-md px-2 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-                        >
-                          FAQ
-                        </Link>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+              <HeaderNavMenu
+                label="Aide"
+                active={aideActive}
+                items={withActiveItems(pathname, AIDE_LINKS)}
+              />
 
               {isAdmin && (
                 <Link href="/admin" className="rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700">
@@ -576,5 +516,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         </DialogContent>
       </Dialog>
     </div>
+    </AuthAccessContext.Provider>
   )
 }
