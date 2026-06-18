@@ -74,6 +74,7 @@ const PLATFORMS_ORDER = [
   'Demand Gen',
   'Search',
   'Insta only',
+  'Facebook only',
   'Youtube',
   'LinkedIn',
   'Snapchat',
@@ -84,6 +85,7 @@ const PLATFORMS_ORDER = [
 // Couleurs très contrastées par plateforme (calendrier, PDF)
 const PLATFORM_CALENDAR_COLORS: Record<string, string> = {
   META: '#E85D04',
+  'Facebook only': '#1877F2',
   Display: '#0077B6',
   'Perf max': '#6A0DAD',
   'Demand Gen': '#2D6A4F',
@@ -387,6 +389,7 @@ function CalendarMonthView({
 
 const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
   META: '/images/Logo META.png',
+  'Facebook only': '/images/facebook-logo-facebook-icon-transparent-free-png.webp',
   Display: '/images/Logo Google.png',
   'Perf max': '/images/Logo Google.png',
   'Demand Gen': '/images/Logo Google.png',
@@ -477,6 +480,12 @@ function hasMakeLeadsAddonForAdditionalSale(
   block: Pick<StrategyBlock, 'items'>,
   saleId: AdditionalSaleId,
 ): boolean {
+  if (saleId === 'leadsMeta') {
+    return block.items.some(
+      (it) =>
+        it.isMakeLeadsAddon && (it.platform === 'META' || it.platform === 'Facebook only'),
+    )
+  }
   const platform = getMakeLeadsPlatformForSale(saleId)
   if (!platform) return false
   return block.items.some((it) => it.isMakeLeadsAddon && it.platform === platform)
@@ -513,7 +522,9 @@ function isMakeLeadsTrigger(platform: string, objective: string): boolean {
   const normalizedPlatform = platform.trim()
   const normalizedObjective = objective.trim()
   return (
-    (normalizedPlatform === 'META' || normalizedPlatform === 'LinkedIn') &&
+    (normalizedPlatform === 'META' ||
+      normalizedPlatform === 'Facebook only' ||
+      normalizedPlatform === 'LinkedIn') &&
     normalizedObjective === 'Leads'
   )
 }
@@ -549,11 +560,18 @@ function getActiveAdditionalSales(block: Pick<StrategyBlock, 'additionalSales' |
   viaMake?: boolean
 }> {
   return ADDITIONAL_SALE_OPTIONS.flatMap((opt) => {
-    const platform = getMakeLeadsPlatformForSale(opt.id)
     const makeItem =
-      platform != null
-        ? block.items.find((it) => it.isMakeLeadsAddon && it.platform === platform)
-        : undefined
+      opt.id === 'leadsMeta'
+        ? block.items.find(
+            (it) =>
+              it.isMakeLeadsAddon && (it.platform === 'META' || it.platform === 'Facebook only'),
+          )
+        : (() => {
+            const platform = getMakeLeadsPlatformForSale(opt.id)
+            return platform != null
+              ? block.items.find((it) => it.isMakeLeadsAddon && it.platform === platform)
+              : undefined
+          })()
 
     if (makeItem) {
       return [
@@ -594,6 +612,7 @@ const PERF_MAX_OBJECTIVES = ['Conversion'] as const
 
 const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
+  'Facebook only': META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
   'Perf max': PERF_MAX_OBJECTIVES,
   'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
@@ -604,6 +623,10 @@ const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly strin
   Snapchat: DEFAULT_CUSTOM_OBJECTIVES,
   Tiktok: TIKTOK_CUSTOM_OBJECTIVES,
   Spotify: ['Impressions'],
+}
+
+function usesMetaObjectives(platform: string): boolean {
+  return platform === 'META' || platform === 'Facebook only'
 }
 
 function PlatformBadge({ platform, withDownload = false }: { platform: string; withDownload?: boolean }) {
@@ -671,6 +694,7 @@ type SmsType = 'sms' | 'rcs'
 
 interface SmsOptionsState {
   ciblage: boolean
+  baseClients: boolean
   richSms: boolean
   agent: boolean
   creaByLink: boolean
@@ -999,6 +1023,68 @@ const formatNumber = (num: number, decimals: number = 0): string => {
   }
   
   return decimalPart ? `${formatted},${decimalPart}` : formatted
+}
+
+const formatEuro = (num: number, decimals = 2): string => `${formatNumber(num, decimals)} €`
+
+/** Affiche le PU RCS : 3 décimales pour Base clients (0,077), 2 sinon. */
+const formatRcsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string => {
+  const decimals = baseClients ? 3 : 2
+  return `${unitPrice.toFixed(decimals).replace('.', ',')} €`
+}
+
+const formatRcsUnitPriceLabel = (unitPrice: number, baseClients: boolean): string =>
+  `${formatRcsUnitPriceEuro(unitPrice, baseClients)} / RCS`
+
+interface SmsRcsMiniDevisLine {
+  label: string
+  value: string
+  emphasis?: boolean
+  muted?: boolean
+}
+
+function SmsRcsMiniDevisPanel({
+  title,
+  lines,
+  totalValue,
+  emptyMessage,
+}: {
+  title: string
+  lines: SmsRcsMiniDevisLine[]
+  totalValue?: string | null
+  emptyMessage: string
+}) {
+  return (
+    <div className="rounded-xl border-2 border-[#E94C16]/25 bg-gradient-to-br from-orange-50/60 via-white to-white p-4 shadow-sm">
+      <h4 className="text-sm font-semibold text-foreground tracking-tight">{title}</h4>
+      {lines.length === 0 ? (
+        <p className="text-sm text-muted-foreground mt-3">{emptyMessage}</p>
+      ) : (
+        <dl className="mt-3 space-y-2 text-sm">
+          {lines.map((line) => (
+            <div
+              key={line.label}
+              className={cn(
+                'flex justify-between items-baseline gap-4',
+                line.muted ? 'text-muted-foreground text-xs' : 'text-foreground',
+              )}
+            >
+              <dt className={cn(line.emphasis && 'font-semibold')}>{line.label}</dt>
+              <dd className={cn('tabular-nums text-right shrink-0', line.emphasis && 'font-semibold')}>
+                {line.value}
+              </dd>
+            </div>
+          ))}
+          {totalValue ? (
+            <div className="border-t border-[#E94C16]/20 pt-3 mt-3 flex justify-between items-baseline gap-4 font-semibold text-[#E94C16]">
+              <dt>Total HT</dt>
+              <dd className="tabular-nums text-right text-base">{totalValue}</dd>
+            </div>
+          ) : null}
+        </dl>
+      )}
+    </div>
+  )
 }
 
 const VENTE_SOCIAL_PDF_LOGO_PATH = '/Logo Link Vertical (Orange).png'
@@ -1760,6 +1846,8 @@ function StrategyPdfStrategyOverview({
             !(
               (item.platform === 'META' &&
                 additionalSales.some((s) => s.id === 'leadsMeta' && s.viaMake)) ||
+              (item.platform === 'Facebook only' &&
+                additionalSales.some((s) => s.id === 'leadsMeta' && s.viaMake)) ||
               (item.platform === 'LinkedIn' &&
                 additionalSales.some((s) => s.id === 'leadsLinkedIn' && s.viaMake))
             ),
@@ -1857,6 +1945,7 @@ const SMSRCSPDFDocument = ({
   totalPrice: number
   options: {
     ciblage?: boolean
+    baseClients?: boolean
     richSms?: boolean
     agent?: boolean
     creaByLink?: boolean
@@ -1911,7 +2000,11 @@ const SMSRCSPDFDocument = ({
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>Prix unitaire HT :</Text>
             <Text style={styles.itemValue}>
-              {unitPrice > 0 ? `${unitPrice.toFixed(type === 'sms' ? 4 : 2).replace('.', ',')} €` : '--'}
+              {unitPrice > 0
+                ? type === 'sms'
+                  ? `${unitPrice.toFixed(4).replace('.', ',')} €`
+                  : formatRcsUnitPriceEuro(unitPrice, !!options.baseClients)
+                : '--'}
             </Text>
           </View>
 
@@ -1934,6 +2027,18 @@ const SMSRCSPDFDocument = ({
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>dont Rich SMS :</Text>
               <Text style={styles.itemValue}>+0,021 € / SMS</Text>
+            </View>
+          )}
+          {type === 'rcs' && options.ciblage && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>dont Ciblage :</Text>
+              <Text style={styles.itemValue}>+0,028 € / RCS</Text>
+            </View>
+          )}
+          {type === 'rcs' && options.baseClients && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
+              <Text style={styles.itemValue}>0,077 € / RCS</Text>
             </View>
           )}
           {type === 'rcs' && options.agent && (
@@ -2159,6 +2264,7 @@ export default function VentePage() {
   const [smsType, setSmsType] = useState<SmsType>('sms')
   const [smsOptions, setSmsOptions] = useState<SmsOptionsState>({
     ciblage: false,
+    baseClients: false,
     richSms: false,
     agent: false,
     creaByLink: false,
@@ -2410,6 +2516,9 @@ export default function VentePage() {
   }, [smsType, smsVolumeNumber, smsBasePU, smsUnitPrice, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // --- Logique de calcul RCS (indépendante du SMS) ---
+  const RCS_BASE_CLIENTS_UNIT_PRICE = 0.077
+  const RCS_CIBLAGE_UNIT_PRICE = 0.028
+
   const rcsBasePU = useMemo(() => {
     const n = smsVolumeNumber
     if (n <= 0) return 0
@@ -2423,6 +2532,16 @@ export default function VentePage() {
     return isNaN(parsed) || parsed < 1 ? 1 : parsed
   }, [creaByLinkCount])
 
+  /** PU RCS : Base clients = tarif forfaitaire 0,077 € (hors barème volume) ; sinon barème + ciblage éventuel. */
+  const rcsUnitPrice = useMemo(() => {
+    const n = smsVolumeNumber
+    if (smsType !== 'rcs' || n <= 0) return 0
+    if (n < 10_000) return -1
+    if (smsOptions.baseClients) return RCS_BASE_CLIENTS_UNIT_PRICE
+    if (rcsBasePU < 0) return -1
+    return rcsBasePU + (smsOptions.ciblage ? RCS_CIBLAGE_UNIT_PRICE : 0)
+  }, [smsType, smsVolumeNumber, smsOptions.baseClients, smsOptions.ciblage, rcsBasePU])
+
   const rcsOptionFee = useMemo(() => {
     if (smsType !== 'rcs') return 0
     let fee = 0
@@ -2432,14 +2551,194 @@ export default function VentePage() {
   }, [smsType, smsOptions.agent, smsOptions.creaByLink, creaByLinkCountNumber])
 
   const rcsTotalPrice = useMemo(() => {
-    if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsBasePU < 0) return 0
+    if (smsType !== 'rcs' || smsVolumeNumber <= 0 || rcsUnitPrice < 0) return 0
     const setupFee = 250 // frais fixes obligatoires comptés une seule fois
-    const variablePerCampaign = rcsBasePU * smsVolumeNumber + rcsOptionFee
+    const variablePerCampaign = rcsUnitPrice * smsVolumeNumber + rcsOptionFee
     if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
       return setupFee + variablePerCampaign
     }
     return setupFee + variablePerCampaign * campaignMonthsNumber
-  }, [smsType, smsVolumeNumber, rcsBasePU, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+  }, [smsType, smsVolumeNumber, rcsUnitPrice, rcsOptionFee, smsOptions.duplicateCampaign, campaignMonthsNumber])
+
+  const smsCampaignCount =
+    smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? campaignMonthsNumber : 1
+
+  const smsMiniDevis = useMemo(() => {
+    if (smsType !== 'sms' || smsVolumeNumber <= 0) {
+      return { lines: [] as SmsRcsMiniDevisLine[], total: null as string | null }
+    }
+    const lines: SmsRcsMiniDevisLine[] = [
+      {
+        label: smsCampaignCount > 1 ? 'Volume par campagne' : 'Volume',
+        value: `${formatNumber(smsVolumeNumber, 0)} SMS`,
+      },
+    ]
+    if (smsCampaignCount > 1) {
+      lines.push({ label: 'Nombre de campagnes', value: String(smsCampaignCount), muted: true })
+      lines.push({
+        label: 'Volume total',
+        value: `${formatNumber(totalUnitsNumber, 0)} SMS`,
+        muted: true,
+      })
+    }
+    if (smsUnitPrice <= 0) return { lines, total: null }
+    lines.push({
+      label: 'Prix unitaire HT',
+      value: `${smsUnitPrice.toFixed(4).replace('.', ',')} € / SMS`,
+      emphasis: true,
+    })
+    if (smsOptions.tarifIntermarche) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: 'Tarif Intermarché — 0,13 € fixe / SMS',
+        muted: true,
+      })
+    } else {
+      if (smsBasePU > 0) {
+        lines.push({
+          label: 'Tarif de base',
+          value: `${smsBasePU.toFixed(4).replace('.', ',')} € / SMS`,
+          muted: true,
+        })
+      }
+      if (smsOptions.ciblage) {
+        lines.push({ label: 'Option Ciblage', value: '+0,028 € / SMS', muted: true })
+      }
+      if (smsOptions.richSms) {
+        lines.push({ label: 'Option Rich SMS', value: '+0,021 € / SMS', muted: true })
+      }
+    }
+    const variablePerCampaign = smsUnitPrice * smsVolumeNumber
+    lines.push({
+      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
+      value: formatEuro(variablePerCampaign),
+    })
+    if (smsCampaignCount > 1) {
+      lines.push({
+        label: 'Coût envoie (toutes campagnes)',
+        value: formatEuro(variablePerCampaign * smsCampaignCount),
+        muted: true,
+      })
+    }
+    lines.push({ label: 'Frais de mise en place', value: '190 €' })
+    return {
+      lines,
+      total: smsTotalPrice > 0 ? formatEuro(smsTotalPrice) : null,
+    }
+  }, [
+    smsType,
+    smsVolumeNumber,
+    smsUnitPrice,
+    smsBasePU,
+    smsOptionPU,
+    smsTotalPrice,
+    smsCampaignCount,
+    totalUnitsNumber,
+    smsOptions.tarifIntermarche,
+    smsOptions.ciblage,
+    smsOptions.richSms,
+  ])
+
+  const rcsMiniDevis = useMemo(() => {
+    if (smsType !== 'rcs' || smsVolumeNumber <= 0) {
+      return { lines: [] as SmsRcsMiniDevisLine[], total: null as string | null, forbidden: false }
+    }
+    if (smsVolumeNumber < 10_000) {
+      return {
+        lines: [] as SmsRcsMiniDevisLine[],
+        total: null as string | null,
+        forbidden: true,
+      }
+    }
+    const lines: SmsRcsMiniDevisLine[] = [
+      {
+        label: smsCampaignCount > 1 ? 'Volume par campagne' : 'Volume',
+        value: `${formatNumber(smsVolumeNumber, 0)} RCS`,
+      },
+    ]
+    if (smsCampaignCount > 1) {
+      lines.push({ label: 'Nombre de campagnes', value: String(smsCampaignCount), muted: true })
+      lines.push({
+        label: 'Volume total',
+        value: `${formatNumber(totalUnitsNumber, 0)} RCS`,
+        muted: true,
+      })
+    }
+    if (rcsUnitPrice <= 0) return { lines, total: null, forbidden: false }
+    lines.push({
+      label: 'Prix unitaire HT',
+      value: formatRcsUnitPriceLabel(rcsUnitPrice, smsOptions.baseClients),
+      emphasis: true,
+    })
+    if (smsOptions.baseClients) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: 'Base clients — 0,077 € / RCS (hors barème)',
+        muted: true,
+      })
+    } else {
+      if (rcsBasePU > 0) {
+        lines.push({
+          label: 'Tarif de base',
+          value: `${rcsBasePU.toFixed(2).replace('.', ',')} € / RCS`,
+          muted: true,
+        })
+      }
+      if (smsOptions.ciblage) {
+        lines.push({ label: 'Option Ciblage', value: '+0,028 € / RCS', muted: true })
+      }
+    }
+    const messagesPerCampaign = rcsUnitPrice * smsVolumeNumber
+    lines.push({
+      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
+      value: formatEuro(messagesPerCampaign),
+    })
+    if (smsCampaignCount > 1) {
+      lines.push({
+        label: 'Coût envoie (toutes campagnes)',
+        value: formatEuro(messagesPerCampaign * smsCampaignCount),
+        muted: true,
+      })
+    }
+    if (smsOptions.agent) {
+      lines.push({
+        label: 'Création d’agent',
+        value:
+          smsCampaignCount > 1
+            ? `${formatEuro(550)} × ${smsCampaignCount} campagnes = ${formatEuro(550 * smsCampaignCount)}`
+            : formatEuro(550),
+      })
+    }
+    if (smsOptions.creaByLink) {
+      const creaFee = 100 * creaByLinkCountNumber
+      lines.push({
+        label: 'CREA BY LINK',
+        value:
+          smsCampaignCount > 1
+            ? `${formatEuro(creaFee)} × ${smsCampaignCount} campagnes = ${formatEuro(creaFee * smsCampaignCount)}`
+            : `${creaByLinkCountNumber} × 100 € = ${formatEuro(creaFee)}`,
+      })
+    }
+    lines.push({ label: 'Frais de set up (obligatoires)', value: '250 €' })
+    return {
+      lines,
+      total: rcsTotalPrice > 0 ? formatEuro(rcsTotalPrice) : null,
+      forbidden: false,
+    }
+  }, [
+    smsType,
+    smsVolumeNumber,
+    rcsUnitPrice,
+    rcsBasePU,
+    rcsTotalPrice,
+    smsCampaignCount,
+    totalUnitsNumber,
+    creaByLinkCountNumber,
+    smsOptions.baseClients,
+    smsOptions.ciblage,
+    smsOptions.agent,
+    smsOptions.creaByLink,
+  ])
 
   /**
    * Mêmes critères que les boutons « Télécharger le devis SMS / RCS en PDF »
@@ -2448,7 +2747,7 @@ export default function VentePage() {
   const smsDevisPdfEligible =
     smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
   const rcsDevisPdfEligible =
-    smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
+    smsVolumeNumber >= 10_000 && rcsUnitPrice > 0 && rcsTotalPrice > 0
 
   /** Au moins une ligne dans la stratégie Social active (pour rétroplanning lié) */
   const activeStrategyHasLines = useMemo(() => {
@@ -2471,8 +2770,8 @@ export default function VentePage() {
     if (smsType === 'sms') {
       return smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
     }
-    return smsVolumeNumber >= 10_000 && rcsBasePU > 0 && rcsTotalPrice > 0
-  }, [smsType, smsVolumeNumber, smsUnitPrice, smsTotalPrice, rcsBasePU, rcsTotalPrice])
+    return smsVolumeNumber >= 10_000 && rcsUnitPrice > 0 && rcsTotalPrice > 0
+  }, [smsType, smsVolumeNumber, smsUnitPrice, smsTotalPrice, rcsUnitPrice, rcsTotalPrice])
 
   const retroPlanningMissingLinkedData = useMemo(
     () =>
@@ -2912,7 +3211,7 @@ export default function VentePage() {
         else if (aeVal <= 350) warnings.push(`${item.platform} : budget AE total ${Math.round(aeVal)} € (à valider, objectif 350 €+).`)
       } else {
         const dailyBudget = item.dailyBudget ?? 0
-        const isMetaLike = ['META', 'Insta only', 'Display', 'Youtube'].includes(item.platform)
+        const isMetaLike = ['META', 'Facebook only', 'Insta only', 'Display', 'Youtube'].includes(item.platform)
         const isLinkedInTiktok = ['LinkedIn', 'Tiktok'].includes(item.platform)
         const isSnapEtc = ['Snapchat', 'Demand Gen', 'Search'].includes(item.platform)
         if (isMetaLike && dailyBudget < 5) {
@@ -2942,6 +3241,7 @@ export default function VentePage() {
 
     const isMetaLike =
       platform === 'META' ||
+      platform === 'Facebook only' ||
       platform === 'Insta only' ||
       platform === 'Display' ||
       platform === 'Youtube'
@@ -3142,7 +3442,7 @@ export default function VentePage() {
 
   // Fonction pour ouvrir la modal RCS
   const handleOpenRCSPDFDialog = () => {
-    if (smsVolumeNumber <= 0 || rcsBasePU <= 0 || rcsTotalPrice <= 0) {
+    if (smsVolumeNumber <= 0 || rcsUnitPrice <= 0 || rcsTotalPrice <= 0) {
       alert('Veuillez configurer une campagne RCS valide avant de télécharger le PDF.')
       return
     }
@@ -3178,7 +3478,7 @@ export default function VentePage() {
       <SMSRCSPDFDocument
         type={currentSmsType}
         volume={smsVolumeNumber}
-        unitPrice={currentSmsType === 'sms' ? smsUnitPrice : rcsBasePU}
+        unitPrice={currentSmsType === 'sms' ? smsUnitPrice : rcsUnitPrice}
         totalPrice={currentSmsType === 'sms' ? smsTotalPrice : rcsTotalPrice}
         options={currentSmsType === 'sms' 
           ? {
@@ -3188,6 +3488,8 @@ export default function VentePage() {
               duplicateCampaign: smsOptions.duplicateCampaign,
             }
           : {
+              ciblage: smsOptions.ciblage,
+              baseClients: smsOptions.baseClients,
               agent: smsOptions.agent,
               creaByLink: smsOptions.creaByLink,
               tarifIntermarche: smsOptions.tarifIntermarche,
@@ -3314,9 +3616,11 @@ export default function VentePage() {
           <SMSRCSPDFDocument
             type="rcs"
             volume={smsVolumeNumber}
-            unitPrice={rcsBasePU}
+            unitPrice={rcsUnitPrice}
             totalPrice={rcsTotalPrice}
             options={{
+              ciblage: smsOptions.ciblage,
+              baseClients: smsOptions.baseClients,
               agent: smsOptions.agent,
               creaByLink: smsOptions.creaByLink,
               tarifIntermarche: smsOptions.tarifIntermarche,
@@ -3373,7 +3677,7 @@ export default function VentePage() {
           smsQuoteDetail: retroLinkSms
             ? {
                 volume: smsVolumeNumber,
-                unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                unitPrice: smsType === 'sms' ? smsUnitPrice : rcsUnitPrice,
                 totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
                 options:
                   smsType === 'sms'
@@ -3384,6 +3688,8 @@ export default function VentePage() {
                         duplicateCampaign: smsOptions.duplicateCampaign,
                       }
                     : {
+                        ciblage: smsOptions.ciblage,
+                        baseClients: smsOptions.baseClients,
                         agent: smsOptions.agent,
                         creaByLink: smsOptions.creaByLink,
                         tarifIntermarche: smsOptions.tarifIntermarche,
@@ -3746,8 +4052,7 @@ export default function VentePage() {
                     ? customDailyBudget
                     : (referenceRow?.aeCheckValue ?? 0)
                   const customRowColor = getRowColorClass(platform, customAeCheckValue, daysNum)
-                  const objectivesForPlatform =
-                    platform === 'META'
+                  const objectivesForPlatform = usesMetaObjectives(platform)
                       ? [...META_CUSTOM_OBJECTIVES, 'conversion']
                       : CUSTOM_OBJECTIVES[platform as (typeof PLATFORMS_ORDER)[number]] ?? DEFAULT_CUSTOM_OBJECTIVES
                   const isCustomInStrategy = strategy.some(
@@ -3775,7 +4080,7 @@ export default function VentePage() {
                             </TableHeader>
                             <TableBody>
                               {!onlyCustomRow && platformRows.map((row, index) => {
-                                if (platform === 'META' && row.objective === 'conversion') {
+                                if (usesMetaObjectives(platform) && row.objective === 'conversion') {
                                   return null
                                 }
                                 const colorClass = getRowColorClass(row.platform, row.aeCheckValue, daysNum)
@@ -4715,23 +5020,21 @@ export default function VentePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Bloc configuration (gauche) + simulation (droite), même esprit que Social media */}
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-6">
-                  {/* Colonne gauche : configuration de la campagne */}
-                  <div className="space-y-5">
-                    {/* Type de campagne SMS / RCS */}
-                    <div className="space-y-2">
-                      <Label>Type de campagne</Label>
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-x-6 gap-y-4">
+                  <Label className="lg:col-start-1">Type de campagne & volume</Label>
+
+                  <div className="lg:col-start-1 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                       <Tabs
                         value={smsType}
                         onValueChange={(value) => {
                           const next = value as SmsType
                           setSmsType(next)
-                          // Réinitialiser les options à chaque changement de type pour éviter tout héritage implicite
                           setSmsOptions(
                             next === 'sms'
                               ? {
                                   ciblage: false,
+                                  baseClients: false,
                                   richSms: false,
                                   agent: false,
                                   creaByLink: false,
@@ -4740,6 +5043,7 @@ export default function VentePage() {
                                 }
                               : {
                                   ciblage: false,
+                                  baseClients: false,
                                   richSms: false,
                                   agent: false,
                                   creaByLink: false,
@@ -4747,12 +5051,12 @@ export default function VentePage() {
                                   duplicateCampaign: false,
                                 },
                           )
-                          setCampaignMonths('1') // Reset nombre de mois
-                          setCreaByLinkCount('1') // Reset nombre de CREA BY LINK
+                          setCampaignMonths('1')
+                          setCreaByLinkCount('1')
                         }}
-                        className="w-full max-w-xs"
+                        className="w-full sm:w-auto shrink-0"
                       >
-                        <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300">
+                        <TabsList className="grid w-full sm:w-[11rem] grid-cols-2 border-2 border-gray-300">
                           <TabsTrigger
                             value="sms"
                             className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
@@ -4767,16 +5071,75 @@ export default function VentePage() {
                           </TabsTrigger>
                         </TabsList>
                       </Tabs>
-                      {smsType === 'sms' && (
-                        <p className="text-xs text-muted-foreground">
-                          Le tarif unitaire dépend uniquement du volume total de SMS envoyé
-                          (tranche unique, non cumulative).
-                        </p>
-                      )}
-                    </div>
 
-                    {/* Options selon le type */}
-                    <div className="space-y-3">
+                      <div className="flex-1 min-w-[10rem] space-y-1">
+                        <Label htmlFor="sms-rcs-volume" className="text-xs text-muted-foreground sm:sr-only">
+                          Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}
+                          {smsOptions.duplicateCampaign && smsCampaignCount > 1 ? ' par campagne' : ''}
+                        </Label>
+                        <EditableInput
+                          id="sms-rcs-volume"
+                          type="number"
+                          min={0}
+                          placeholder={`Ex: ${smsType === 'sms' ? '20 000' : '15 000'}`}
+                          value={smsVolume}
+                          onChange={(e) => setSmsVolume(e.target.value)}
+                          className="h-10"
+                        />
+                      </div>
+                    </div>
+                    {smsType === 'sms' && (
+                      <p className="text-xs text-muted-foreground">
+                        Le tarif unitaire dépend uniquement du volume total de SMS envoyé (tranche unique, non
+                        cumulative).
+                      </p>
+                    )}
+                    {smsType === 'rcs' && totalUnitsNumber > 0 && totalUnitsNumber < 10_000 && (
+                      <p className="text-xs text-red-600 font-medium">Volume minimum requis : 10 000 RCS</p>
+                    )}
+                    {smsOptions.duplicateCampaign && smsCampaignCount > 1 && smsVolumeNumber > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Nombre total de {smsType === 'sms' ? 'SMS' : 'RCS'} :{' '}
+                        {totalUnitsNumber.toLocaleString('fr-FR')}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Devis — aligné sur la ligne de saisie du volume (lg: row 2) */}
+                  <div className="space-y-4 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:sticky lg:top-4 self-start">
+                    {smsType === 'sms' ? (
+                      <SmsRcsMiniDevisPanel
+                        title="Devis SMS"
+                        lines={smsMiniDevis.lines}
+                        totalValue={smsMiniDevis.total}
+                        emptyMessage="Saisissez un volume de SMS pour afficher le détail des coûts."
+                      />
+                    ) : rcsMiniDevis.forbidden ? (
+                      <SmsRcsMiniDevisPanel
+                        title="Devis RCS"
+                        lines={[]}
+                        emptyMessage="Volume minimum requis : 10 000 RCS pour établir un devis."
+                      />
+                    ) : (
+                      <SmsRcsMiniDevisPanel
+                        title="Devis RCS"
+                        lines={rcsMiniDevis.lines}
+                        totalValue={rcsMiniDevis.total}
+                        emptyMessage="Saisissez un volume de RCS pour afficher le détail des coûts."
+                      />
+                    )}
+
+                    {smsType === 'rcs' && smsOptions.tarifIntermarche && rcsMiniDevis.lines.length > 0 && (
+                      <div className="rounded-lg border border-[#E94C16]/30 bg-orange-50/40 px-3 py-2 text-xs text-[#E94C16] space-y-0.5">
+                        <p className="font-semibold">Tarif Intermarché — points de négo possibles :</p>
+                        <p>Offre des frais de set up si besoin.</p>
+                        <p>Négo créa agent possible.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Options — colonne gauche, sous le volume */}
+                  <div className="lg:col-start-1 space-y-3">
                       <Label>Options disponibles</Label>
                       {smsType === 'sms' && (
                         <div className="space-y-2 text-sm">
@@ -4857,6 +5220,61 @@ export default function VentePage() {
 
                       {smsType === 'rcs' && (
                         <div className="space-y-2 text-sm">
+                          <label
+                            className={cn(
+                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.baseClients
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.ciblage}
+                                disabled={smsOptions.baseClients}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({
+                                    ...prev,
+                                    ciblage: e.target.checked,
+                                    baseClients: e.target.checked ? false : prev.baseClients,
+                                  }))
+                                }
+                              />
+                              <span>Ciblage</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">+ 0,028 € / RCS</span>
+                          </label>
+
+                          <label
+                            className={cn(
+                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.ciblage || smsOptions.tarifIntermarche
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300"
+                                checked={smsOptions.baseClients}
+                                disabled={smsOptions.ciblage || smsOptions.tarifIntermarche}
+                                onChange={(e) =>
+                                  setSmsOptions((prev) => ({
+                                    ...prev,
+                                    baseClients: e.target.checked,
+                                    ciblage: e.target.checked ? false : prev.ciblage,
+                                    tarifIntermarche: e.target.checked ? false : prev.tarifIntermarche,
+                                  }))
+                                }
+                              />
+                              <span>Base clients</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground">0,077 € / RCS</span>
+                          </label>
+
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
                             <div className="flex items-center gap-2">
                               <input
@@ -4902,14 +5320,26 @@ export default function VentePage() {
                             )}
                           </label>
 
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                          <label
+                            className={cn(
+                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.baseClients
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
                             <div className="flex items-center gap-2">
                               <input
                                 type="checkbox"
                                 className="h-4 w-4 rounded border-gray-300"
                                 checked={smsOptions.tarifIntermarche}
+                                disabled={smsOptions.baseClients}
                                 onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, tarifIntermarche: e.target.checked }))
+                                  setSmsOptions((prev) => ({
+                                    ...prev,
+                                    tarifIntermarche: e.target.checked,
+                                    baseClients: e.target.checked ? false : prev.baseClients,
+                                  }))
                                 }
                               />
                               <span>Tarif Intermarché</span>
@@ -4947,170 +5377,6 @@ export default function VentePage() {
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Colonne droite : volume & prix */}
-                  {(smsType === 'sms' || smsType === 'rcs') && (
-                    <div className="space-y-3 rounded-lg border border-black bg-white p-3">
-                      <div className="space-y-2">
-                        <Label>
-                          Nombre de {smsType === 'sms' ? 'SMS' : 'RCS'}
-                          {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? ' par campagne' : ''}
-                        </Label>
-                        <EditableInput
-                          type="number"
-                          min={0}
-                          placeholder={`Ex: ${smsType === 'sms' ? '20000' : '15000'}`}
-                          value={smsVolume}
-                          onChange={(e) => setSmsVolume(e.target.value)}
-                        />
-                        {smsType === 'rcs' && totalUnitsNumber > 0 && totalUnitsNumber < 10_000 && (
-                          <p className="text-xs text-red-600 font-medium">
-                            Volume minimum requis : 10 000 RCS
-                          </p>
-                        )}
-                        {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && smsVolumeNumber > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Nombre total de {smsType === 'sms' ? 'SMS' : 'RCS'} :{' '}
-                            {totalUnitsNumber.toLocaleString('fr-FR')}
-                          </p>
-                        )}
-                      </div>
-
-                      {smsType === 'sms' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Prix unitaire HT
-                            </div>
-                            <div className="text-lg font-semibold">
-                              {smsVolumeNumber > 0 && smsUnitPrice > 0
-                                ? `${smsUnitPrice.toFixed(4).replace('.', ',')} €`
-                                : '--'}
-                            </div>
-                            <div className="text-xs text-muted-foreground leading-snug">
-                              {smsOptions.tarifIntermarche ? (
-                                <>Tarif Intermarché : 0,13 € / SMS (PU fixe, quel que soit le volume).</>
-                              ) : (
-                                <>
-                                  Base :{' '}
-                                  {smsBasePU > 0
-                                    ? `${smsBasePU.toFixed(4).replace('.', ',')} €`
-                                    : '--'}{' '}
-                                  {smsOptionPU > 0 && (
-                                    <>
-                                      <br />
-                                      Options : +{smsOptionPU.toFixed(3).replace('.', ',')} € / SMS
-                                    </>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Prix total HT
-                            </div>
-                            <div className="text-lg font-semibold text-[#E94C16]">
-                              {smsTotalPrice > 0
-                                ? `${smsTotalPrice
-                                    .toFixed(2)
-                                    .toString()
-                                    .replace('.', ',')
-                                    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €`
-                                : '--'}
-                            </div>
-                            <div className="text-xs text-muted-foreground leading-snug">
-                              Inclut les frais fixes de mise en place : 190 €.
-                            </div>
-                            {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && (
-                              <p className="text-xs font-semibold text-[#E94C16] mt-1">
-                                × {campaignMonthsNumber} mois
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {smsType === 'rcs' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Prix unitaire HT
-                            </div>
-                            <div className="text-lg font-semibold">
-                              {smsVolumeNumber >= 10_000 && rcsBasePU > 0
-                                ? `${rcsBasePU.toFixed(2).replace('.', ',')} €`
-                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_000
-                                  ? 'Interdit'
-                                  : '--'}
-                            </div>
-                            <div className="text-xs text-muted-foreground leading-snug">
-                              {smsVolumeNumber >= 10_000 && (
-                                <>
-                                  {smsVolumeNumber <= 50_000
-                                    ? 'Tranche : 10 000 - 50 000 RCS'
-                                    : 'Tranche : 50 001+ RCS'}
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                              Prix total HT
-                            </div>
-                            <div className="text-lg font-semibold text-[#E94C16]">
-                              {rcsTotalPrice > 0
-                                ? `${rcsTotalPrice
-                                    .toFixed(2)
-                                    .toString()
-                                    .replace('.', ',')
-                                    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} €`
-                                : smsVolumeNumber > 0 && smsVolumeNumber < 10_000
-                                  ? 'Interdit'
-                                  : '--'}
-                            </div>
-                            <div className="text-xs text-muted-foreground leading-snug space-y-1">
-                              <p>
-                                Frais fixes (set up obligatoire) : 250 €
-                                {smsOptions.agent && (
-                                  <>
-                                    <br />
-                                    Création d&apos;agent : +550 €
-                                  </>
-                                )}
-                                {smsOptions.creaByLink && (
-                                  <>
-                                    <br />
-                                    CREA BY LINK : +{100 * creaByLinkCountNumber} € {creaByLinkCountNumber > 1 && `(${creaByLinkCountNumber} × 100 €)`}
-                                  </>
-                                )}
-                              </p>
-
-                              {smsOptions.tarifIntermarche && (
-                                <div className="mt-1 space-y-0.5 text-xs">
-                                  <p className="font-semibold text-[#E94C16]">
-                                    POSSIBILITÉ D&apos;OFFRIR LES FRAIS DE SET UP SI BESOIN.
-                                  </p>
-                                  <p className="font-semibold text-[#E94C16]">
-                                    NÉGO CRÉA AGENT POSSIBLE.
-                                  </p>
-                                </div>
-                              )}
-
-                              {smsOptions.duplicateCampaign && campaignMonthsNumber > 1 && (
-                                <p className="mt-2 font-semibold text-[#E94C16]">
-                                  × {campaignMonthsNumber} mois
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Conditions de vente selon le type de campagne */}
@@ -5147,7 +5413,7 @@ export default function VentePage() {
                   ) : (
                     <Button
                       onClick={handleOpenRCSPDFDialog}
-                      disabled={smsVolumeNumber < 10_000 || rcsBasePU <= 0 || rcsTotalPrice <= 0}
+                      disabled={smsVolumeNumber < 10_000 || rcsUnitPrice <= 0 || rcsTotalPrice <= 0}
                       className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -5905,7 +6171,7 @@ export default function VentePage() {
                             smsQuoteDetail: retroLinkSms
                               ? {
                                   volume: smsVolumeNumber,
-                                  unitPrice: smsType === 'sms' ? smsUnitPrice : rcsBasePU,
+                                  unitPrice: smsType === 'sms' ? smsUnitPrice : rcsUnitPrice,
                                   totalPrice: smsType === 'sms' ? smsTotalPrice : rcsTotalPrice,
                                   options:
                                     smsType === 'sms'
@@ -5916,6 +6182,8 @@ export default function VentePage() {
                                           duplicateCampaign: smsOptions.duplicateCampaign,
                                         }
                                       : {
+                                          ciblage: smsOptions.ciblage,
+                                          baseClients: smsOptions.baseClients,
                                           agent: smsOptions.agent,
                                           creaByLink: smsOptions.creaByLink,
                                           tarifIntermarche: smsOptions.tarifIntermarche,

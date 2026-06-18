@@ -11,6 +11,13 @@ export const UNIT_COSTS: Record<string, Record<string, UnitCost>> = {
     Leads: { cost: 70.4, perThousand: false },
     conversion: { cost: 70.4, perThousand: false },
   },
+  'Facebook only': {
+    Impressions: { cost: 2.25, perThousand: true },
+    Clics: { cost: 0.52, perThousand: false },
+    'Clics sur lien': { cost: 0.736, perThousand: false },
+    Leads: { cost: 70.4, perThousand: false },
+    conversion: { cost: 70.4, perThousand: false },
+  },
   'Insta only': {
     Impressions: { cost: 2.94, perThousand: true },
     Clics: { cost: 1.127, perThousand: false },
@@ -106,6 +113,7 @@ export function calculatePriceForKPIs(
 
   switch (platform) {
     case 'META':
+    case 'Facebook only':
       switch (objective) {
         case 'Impressions':
           // ((KPIS souhaités / 1000 x 2,25) / %AE) x 1,3
@@ -127,7 +135,7 @@ export function calculatePriceForKPIs(
           price = ((kpis * 70.4) / aeFactor) * 1.3
           break
         default:
-          throw new Error('Objectif non supporté pour META')
+          throw new Error(`Objectif non supporté pour ${platform}`)
       }
       break
 
@@ -283,13 +291,14 @@ export function calculatePriceForKPIsDirection(
 
   switch (platform) {
     case 'META':
+    case 'Facebook only':
       switch (objective) {
         case 'Impressions': price = ((kpis / 1000 * 2.25) / aeFactor) * mult; break
         case 'Clics': price = ((kpis * 0.52) / aeFactor) * mult; break
         case 'Clics sur lien': price = ((kpis * 0.736) / aeFactor) * mult; break
         case 'Leads': price = ((kpis * 70.4) / aeFactor) * mult; break
         case 'conversion': price = ((kpis * 70.4) / aeFactor) * mult; break
-        default: throw new Error('Objectif non supporté pour META')
+        default: throw new Error(`Objectif non supporté pour ${platform}`)
       }
       break
     case 'Insta only':
@@ -374,6 +383,7 @@ export function calculateKPIsForBudget(
 
   switch (platform) {
     case 'META':
+    case 'Facebook only':
       switch (objective) {
         case 'Impressions':
           // ((Prix souhaité / 1,3) x %AE) / 2,25 x 1000
@@ -395,7 +405,7 @@ export function calculateKPIsForBudget(
           calculatedKpis = ((budget / 1.3) * aeFactor) / 70.4
           break
         default:
-          throw new Error('Objectif non supporté pour META')
+          throw new Error(`Objectif non supporté pour ${platform}`)
       }
       break
 
@@ -549,13 +559,14 @@ export function calculateKPIsForBudgetDirection(
   let calculatedKpis: number
   switch (platform) {
     case 'META':
+    case 'Facebook only':
       switch (objective) {
         case 'Impressions': calculatedKpis = (base / 2.25) * 1000; break
         case 'Clics': calculatedKpis = base / 0.52; break
         case 'Clics sur lien': calculatedKpis = base / 0.736; break
         case 'Leads': calculatedKpis = base / 70.4; break
         case 'conversion': calculatedKpis = base / 70.4; break
-        default: throw new Error('Objectif non supporté pour META')
+        default: throw new Error(`Objectif non supporté pour ${platform}`)
       }
       break
     case 'Insta only':

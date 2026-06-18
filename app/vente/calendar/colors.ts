@@ -5,6 +5,7 @@ export const PLATFORM_COLORS: Record<string, string> = {
   'Perf max': '#6A0DAD',  // violet
   'Demand Gen': '#2D6A4F', // vert forêt
   Search: '#00B4D8',      // cyan
+  'Facebook only': '#1877F2', // bleu Facebook
   'Insta only': '#C71585', // rose / magenta
   Youtube: '#B71C1C',     // rouge
   LinkedIn: '#3D5AFE',    // bleu indigo

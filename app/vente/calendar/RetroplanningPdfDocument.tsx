@@ -522,6 +522,7 @@ export interface RetroplanningSmsQuotePdf {
   totalPrice: number
   options: {
     ciblage?: boolean
+    baseClients?: boolean
     richSms?: boolean
     agent?: boolean
     creaByLink?: boolean
