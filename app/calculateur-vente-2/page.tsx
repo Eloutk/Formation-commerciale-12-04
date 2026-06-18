@@ -6,6 +6,7 @@ import { checkIsAdmin } from '@/lib/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
@@ -415,6 +416,18 @@ const TIKTOK_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'conversion'] as const
 
 const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
 
+const MAKE_LEADS_OPTION_LABEL = 'Envoi automatique des leads au client via Make'
+const MAKE_LEADS_OPTION_BUDGET = 150
+const MAKE_LEADS_PINK_ROW_CLASS = 'bg-pink-50 text-pink-700 border-pink-200'
+
+function isMakeLeadsTrigger(platform: string, objective: string): boolean {
+  return (platform === 'META' || platform === 'LinkedIn') && objective === 'Leads'
+}
+
+function isCampaignMediaItem(item: { isMakeLeadsAddon?: boolean }): boolean {
+  return !item.isMakeLeadsAddon
+}
+
 const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
 
 const PERF_MAX_OBJECTIVES = ['Conversion'] as const
@@ -506,6 +519,8 @@ interface StrategyItem extends TableRowData {
   customKpiLabel?: string
   // Tarifs direction appliqués pour cette ligne (au moment de l'ajout)
   tarifsDirection?: boolean
+  /** Option Make (150 €) vendue avec Meta Leads ou LinkedIn Leads. */
+  isMakeLeadsAddon?: boolean
 }
 
 // Phase posée sur la frise (vue mois)
@@ -610,6 +625,8 @@ interface StrategyBlock {
   name: string
   items: StrategyItem[]
   calendar?: StrategyCalendar | StrategyCalendarData | null
+  /** Commentaire libre saisi dans l’onglet Social media (indépendant par stratégie). */
+  comment?: string
 }
 
 /**
@@ -677,7 +694,8 @@ function computeVenteStrategyCalendarItems(
   timelineStartResolved: string
 } {
   const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDaysStr) || 14))
-  const platformSources: CalendarPlatformSource[] = block.items.map((item) => ({
+  const mediaItems = block.items.filter(isCampaignMediaItem)
+  const platformSources: CalendarPlatformSource[] = mediaItems.map((item) => ({
     platform: `${item.platform}::${item.objective}`,
     budget: item.budget,
     kpiLabel: item.customKpiLabel
@@ -691,14 +709,14 @@ function computeVenteStrategyCalendarItems(
     block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
       ? block.calendar
       : null
-  const starts = block.items.map((it) => {
+  const starts = mediaItems.map((it) => {
     const key = `${it.platform}::${it.objective}`
     return defineDatesPerPlatform[key] ?? new Date().toISOString().slice(0, 10)
   })
   const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
   const tsCandidate = timelineStart.trim() || globalStart
   const ts = tsCandidate > globalStart ? globalStart : tsCandidate
-  const computedItems = block.items.map((item, i) => {
+  const computedItems = mediaItems.map((item, i) => {
     const key = `${item.platform}::${item.objective}`
     const composite = `${item.platform}::${item.objective}`
     const savedRow = savedCal?.items.find(
@@ -826,6 +844,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     color: '#666666',
+    lineHeight: 1.45,
+    width: '100%',
+  },
+  strategyCommentOnCover: {
+    fontSize: 11,
+    marginTop: 4,
+    marginBottom: 4,
+    color: '#666666',
+    lineHeight: 1.45,
+    width: '100%',
+  },
+  strategyCommentNameOnCover: {
+    fontSize: 11,
+    marginTop: 10,
+    marginBottom: 2,
+    color: '#374151',
+    fontWeight: 'bold',
     lineHeight: 1.45,
     width: '100%',
   },
@@ -1213,6 +1248,19 @@ function StrategyPdfCampaignItem({
   item: StrategyItem
   platformDates: { start: string; end: string } | null
 }) {
+  if (item.isMakeLeadsAddon) {
+    return (
+      <View style={[styles.itemCard, { borderColor: '#f9a8d4', backgroundColor: '#fdf2f8' }]}>
+        <Text style={[styles.pdfItemPlatform, { color: '#9d174d' }]} wrap>
+          {MAKE_LEADS_OPTION_LABEL}
+        </Text>
+        <Text style={styles.pdfItemDetailLine} wrap>
+          Coût : {formatNumber(item.budget, 0)} €
+        </Text>
+      </View>
+    )
+  }
+
   const kpiDisplay = item.customKpiLabel
     ? item.customKpiLabel
     : item.estimatedKPIs > 0
@@ -1352,6 +1400,17 @@ function StrategyPdfStrategyOverview({
         )}
       </View>
 
+      {!!block.comment?.trim() && (
+        <View style={{ width: '100%', marginTop: 10 }}>
+          <Text style={[styles.pdfSummaryBlockText, { fontWeight: 'bold', marginBottom: 4 }]} wrap>
+            Commentaire
+          </Text>
+          <Text style={[styles.clientComment, { marginTop: 0, marginBottom: 0 }]} wrap>
+            {block.comment.trim()}
+          </Text>
+        </View>
+      )}
+
       {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
         <View style={styles.chartsRow}>
           {chartDataPlatform.length > 0 && (
@@ -1433,6 +1492,18 @@ const PDFDocument = ({
               {comment.trim()}
             </Text>
           )}
+          {strategies
+            .filter((s) => s.comment?.trim())
+            .map((s) => (
+              <View key={s.id} style={{ width: '100%' }}>
+                <Text style={styles.strategyCommentNameOnCover} wrap>
+                  {s.name}
+                </Text>
+                <Text style={styles.strategyCommentOnCover} wrap>
+                  {s.comment!.trim()}
+                </Text>
+              </View>
+            ))}
           {strategyPages.length === 0 ? (
             <Text style={[styles.pdfCoverHint, { marginTop: 12 }]} wrap>
               Aucune stratégie avec lignes de campagne ou calendrier de diffusion à inclure dans l&apos;export.
@@ -1951,6 +2022,10 @@ export default function VentePage() {
   
   // État pour la modale PDF
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [makeLeadsModalOpen, setMakeLeadsModalOpen] = useState(false)
+  const [pendingLeadsRow, setPendingLeadsRow] = useState<
+    (TableRowData & { customKpiLabel?: string }) | null
+  >(null)
   const [clientName, setClientName] = useState('')
   const [pdfClientComment, setPdfClientComment] = useState('')
   
@@ -2253,7 +2328,10 @@ export default function VentePage() {
   }, [tableData])
 
   // Fonction pour ajouter à la stratégie active
-  const addToStrategy = (row: TableRowData & { customKpiLabel?: string }) => {
+  const addToStrategy = (
+    row: TableRowData & { customKpiLabel?: string },
+    options?: { includeMakeLeadsAddon?: boolean },
+  ) => {
     const daysNum = parseFloat(diffusionDays) || 0
     const aeNum = parseFloat(aePercentage) || 0
 
@@ -2276,16 +2354,61 @@ export default function VentePage() {
       days: daysNum,
       aePercentage: aeNum,
     }
+
+    const makeLeadsAddon: StrategyItem[] =
+      options?.includeMakeLeadsAddon && isMakeLeadsTrigger(row.platform, row.objective)
+        ? [
+            {
+              id: `make-leads-${row.platform}-${Date.now()}`,
+              platform: row.platform,
+              objective: MAKE_LEADS_OPTION_LABEL,
+              budget: MAKE_LEADS_OPTION_BUDGET,
+              estimatedKPIs: 0,
+              dailyBudget: 0,
+              aeCheckValue: 0,
+              isAvailable: true,
+              days: daysNum,
+              aePercentage: aeNum,
+              isMakeLeadsAddon: true,
+              customKpiLabel: MAKE_LEADS_OPTION_LABEL,
+            },
+          ]
+        : []
+
     setStrategies((prev) => {
       return prev.map((s) =>
         s.id === targetId
           ? {
               ...s,
-              items: [...s.items, { ...newItem, tarifsDirection }],
+              items: [
+                ...s.items,
+                { ...newItem, tarifsDirection },
+                ...makeLeadsAddon,
+              ],
             }
           : s,
       )
     })
+  }
+
+  const requestAddToStrategy = (row: TableRowData & { customKpiLabel?: string }) => {
+    if (isMakeLeadsTrigger(row.platform, row.objective)) {
+      setPendingLeadsRow(row)
+      setMakeLeadsModalOpen(true)
+      return
+    }
+    addToStrategy(row)
+  }
+
+  const handleMakeLeadsChoice = (acceptMakeOption: boolean) => {
+    if (!pendingLeadsRow) return
+    if (acceptMakeOption) {
+      addToStrategy(pendingLeadsRow, { includeMakeLeadsAddon: true })
+    } else {
+      addToStrategy(pendingLeadsRow)
+    }
+    setPendingLeadsRow(null)
+    setMakeLeadsModalOpen(false)
   }
 
   // Fonction pour supprimer de la stratégie (par bloc)
@@ -3338,7 +3461,7 @@ export default function VentePage() {
                                         <Button
                                           size="sm"
                                           variant="ghost"
-                                          onClick={() => addToStrategy(row)}
+                                          onClick={() => requestAddToStrategy(row)}
                                           className="h-8 w-8 p-0"
                                         >
                                           <Plus className="h-4 w-4" />
@@ -3394,7 +3517,7 @@ export default function VentePage() {
                                             size="sm"
                                             variant="ghost"
                                             onClick={() =>
-                                              addToStrategy({
+                                              requestAddToStrategy({
                                                 platform,
                                                 objective: obj,
                                                 budget: customBudgetNum,
@@ -3490,7 +3613,7 @@ export default function VentePage() {
                                       size="sm"
                                       variant="ghost"
                                       onClick={() =>
-                                        addToStrategy({
+                                        requestAddToStrategy({
                                           platform,
                                           objective: custom.objective,
                                           budget: customBudgetNum,
@@ -3816,7 +3939,9 @@ export default function VentePage() {
                           <div className="flex-1 overflow-y-auto mb-4 mt-2">
                             <div className="space-y-2">
                               {items.map((item) => {
-                                const colorClass = getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
+                                const colorClass = item.isMakeLeadsAddon
+                                  ? MAKE_LEADS_PINK_ROW_CLASS
+                                  : getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
                                 return (
                                   <div
                                     key={item.id}
@@ -3824,41 +3949,53 @@ export default function VentePage() {
                                   >
                                     <div className="flex-1 min-w-0">
                                       <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
-                                        <PlatformBadge platform={item.platform} />
+                                        {item.isMakeLeadsAddon ? (
+                                          <span className="text-sm font-semibold">
+                                            {MAKE_LEADS_OPTION_LABEL}
+                                          </span>
+                                        ) : (
+                                          <PlatformBadge platform={item.platform} />
+                                        )}
                                         {item.tarifsDirection && (
                                           <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
                                             Tarifs direction
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {item.objective}
-                                      </div>
+                                      {!item.isMakeLeadsAddon && (
+                                        <div className="text-xs text-muted-foreground">
+                                          {item.objective}
+                                        </div>
+                                      )}
                                       <div className="text-xs font-semibold mt-1">
                                         {item.budget.toLocaleString('fr-FR', {
                                           maximumFractionDigits: 0,
                                         })}{' '}
                                         €
                                       </div>
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        {item.customKpiLabel
-                                          ? item.customKpiLabel
-                                          : item.estimatedKPIs > 0
-                                            ? `${item.estimatedKPIs.toLocaleString(
-                                                'fr-FR',
-                                              )} ${getKpiUnitLabel(item.objective)}${
-                                                item.objective === 'Leads' ? ' (estimation)' : ''
-                                              }`
-                                            : `${getMaxKpiLabel(item.objective)}${
-                                                item.objective === 'Leads' ? ' (estimation)' : ''
+                                      {!item.isMakeLeadsAddon && (
+                                        <>
+                                          <div className="text-xs text-muted-foreground mt-1">
+                                            {item.customKpiLabel
+                                              ? item.customKpiLabel
+                                              : item.estimatedKPIs > 0
+                                                ? `${item.estimatedKPIs.toLocaleString(
+                                                    'fr-FR',
+                                                  )} ${getKpiUnitLabel(item.objective)}${
+                                                    item.objective === 'Leads' ? ' (estimation)' : ''
+                                                  }`
+                                                : `${getMaxKpiLabel(item.objective)}${
+                                                    item.objective === 'Leads' ? ' (estimation)' : ''
+                                                  }`}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground">
+                                            {item.days > 0 &&
+                                              `Diffusion : ${item.days} jour${
+                                                item.days > 1 ? 's' : ''
                                               }`}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {item.days > 0 &&
-                                          `Diffusion : ${item.days} jour${
-                                            item.days > 1 ? 's' : ''
-                                          }`}
-                                      </div>
+                                          </div>
+                                        </>
+                                      )}
                                     </div>
                                     <Button
                                       size="sm"
@@ -3978,6 +4115,27 @@ export default function VentePage() {
                                   </ResponsiveContainer>
                                 </div>
                               )}
+                            </div>
+                          )}
+
+                          {/* Commentaire libre (indépendant par stratégie) */}
+                          {isActive && (
+                            <div className="mb-4 space-y-2 flex-shrink-0 rounded-lg border bg-muted/30 p-3">
+                              <Label htmlFor={`strategy-comment-${block.id}`}>Commentaire</Label>
+                              <Textarea
+                                id={`strategy-comment-${block.id}`}
+                                placeholder="Ajoutez un commentaire pour cette stratégie…"
+                                value={block.comment ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  setStrategies((prev) =>
+                                    prev.map((s) =>
+                                      s.id === block.id ? { ...s, comment: value } : s,
+                                    ),
+                                  )
+                                }}
+                                className="min-h-[72px] text-sm resize-y bg-background"
+                              />
                             </div>
                           )}
 
@@ -5586,6 +5744,39 @@ export default function VentePage() {
             })()}
           </div>
           {/* La fermeture de la modale enregistre le calendrier dans la stratégie si la validation passe. */}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale option Make — Meta Leads / LinkedIn Leads (obligatoire avant ajout) */}
+      <Dialog open={makeLeadsModalOpen} onOpenChange={() => {}}>
+        <DialogContent
+          className="[&>button.absolute]:hidden"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Envoi automatique des leads via Make</DialogTitle>
+            <DialogDescription>
+              Souhaitez-vous proposer au client l&apos;option d&apos;envoi automatique des leads via Make
+              ({MAKE_LEADS_OPTION_BUDGET.toLocaleString('fr-FR')} € HT) ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => handleMakeLeadsChoice(false)}
+              className="flex-1 sm:flex-none"
+            >
+              Non
+            </Button>
+            <Button
+              onClick={() => handleMakeLeadsChoice(true)}
+              className="flex-1 sm:flex-none bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              Oui
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
