@@ -28,7 +28,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import { UNIT_COSTS, calculatePriceForKPIs, calculatePriceForKPIsDirection, calculateKPIsForBudget, calculateKPIsForBudgetDirection } from '@/lib/pdv-calculations'
 import * as XLSX from 'xlsx'
 import JSZip from 'jszip'
-import { Document, Page, Text, View, StyleSheet, pdf, Image, Svg, Path, Circle } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer'
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/vente/calendar/StrategyCalendarBuilder'
@@ -436,13 +436,19 @@ type AdditionalSaleId =
   | 'animationVisuel'
   | 'creationComplete'
 
-const ADDITIONAL_SALE_PRICE = 150
+const ADDITIONAL_SALE_PRICES: Record<AdditionalSaleId, number> = {
+  miseAuFormat: 200,
+  animationVisuel: 250,
+  creationComplete: 490,
+  leadsMeta: 150,
+  leadsLinkedIn: 150,
+}
 
 const ADDITIONAL_SALE_OPTIONS: { id: AdditionalSaleId; label: string }[] = [
   { id: 'miseAuFormat', label: 'Mise au format' },
   { id: 'animationVisuel', label: 'Animation de visuel' },
-  { id: 'leadsMeta', label: 'Leads Meta' },
-  { id: 'leadsLinkedIn', label: 'Leads LinkedIn' },
+  { id: 'leadsMeta', label: 'Envoi automatique de leads META' },
+  { id: 'leadsLinkedIn', label: 'Envoi automatique de leads LinkedIn' },
   { id: 'creationComplete', label: 'Création complète' },
 ]
 
@@ -488,14 +494,18 @@ function removeMakeLeadsAddonItems(items: StrategyItem[], platform: string): Str
   return items.filter((it) => !(it.isMakeLeadsAddon && it.platform === platform))
 }
 
-function getAdditionalSaleAmount(count: number): number {
-  return Math.max(0, Math.floor(count)) * ADDITIONAL_SALE_PRICE
+function getAdditionalSaleUnitPrice(saleId: AdditionalSaleId): number {
+  return ADDITIONAL_SALE_PRICES[saleId]
+}
+
+function getAdditionalSaleAmount(saleId: AdditionalSaleId, count: number): number {
+  return Math.max(0, Math.floor(count)) * getAdditionalSaleUnitPrice(saleId)
 }
 
 function getAdditionalSalesTotal(block: Pick<StrategyBlock, 'additionalSales' | 'items'>): number {
   return ADDITIONAL_SALE_OPTIONS.reduce((sum, opt) => {
     if (hasMakeLeadsAddonForAdditionalSale(block, opt.id)) return sum
-    return sum + getAdditionalSaleAmount(getAdditionalSaleCount(block, opt.id))
+    return sum + getAdditionalSaleAmount(opt.id, getAdditionalSaleCount(block, opt.id))
   }, 0)
 }
 
@@ -522,6 +532,12 @@ function isCampaignMediaItem(item: { isMakeLeadsAddon?: boolean }): boolean {
 
 function getStrategyBlockBudgetTotal(block: Pick<StrategyBlock, 'items' | 'additionalSales'>): number {
   return block.items.reduce((sum, it) => sum + it.budget, 0) + getAdditionalSalesTotal(block)
+}
+
+const STRATEGY_VAT_MULTIPLIER = 1.2
+
+function getStrategyBudgetTtc(ht: number): number {
+  return ht * STRATEGY_VAT_MULTIPLIER
 }
 
 function getActiveAdditionalSales(block: Pick<StrategyBlock, 'additionalSales' | 'items'>): Array<{
@@ -559,8 +575,8 @@ function getActiveAdditionalSales(block: Pick<StrategyBlock, 'additionalSales' |
         id: opt.id,
         label: opt.label,
         count,
-        unitPrice: ADDITIONAL_SALE_PRICE,
-        total: getAdditionalSaleAmount(count),
+        unitPrice: getAdditionalSaleUnitPrice(opt.id),
+        total: getAdditionalSaleAmount(opt.id, count),
       },
     ]
   })
@@ -614,7 +630,30 @@ function PlatformBadge({ platform, withDownload = false }: { platform: string; w
   )
 }
 
-/** Champ de saisie avec icône stylo pour indiquer qu’il est modifiable (sauf type="file") */
+/** Encart stratégie : logo + « META - clics sur lien » sur une ligne */
+function StrategyPlatformObjectiveLine({
+  platform,
+  objective,
+}: {
+  platform: string
+  objective: string
+}) {
+  const src = PLATFORM_LOGOS[platform as keyof typeof PLATFORM_LOGOS]
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm font-semibold leading-snug min-w-0">
+      {src ? (
+        <span className="relative h-5 w-5 shrink-0 overflow-hidden rounded-sm">
+          <NextImage src={src} alt={platform} fill className="object-contain" />
+        </span>
+      ) : null}
+      <span className="min-w-0">
+        {formatStrategyPlatformObjectiveLine(platform, objective)}
+      </span>
+    </span>
+  )
+}
+
+/** Champ de saisie avec icône stylo pour indiquer qu'il est modifiable (sauf type="file") */
 function EditableInput(props: React.ComponentProps<typeof Input>) {
   const { className, type, ...rest } = props
   if (type === 'file') return <Input {...props} />
@@ -771,7 +810,7 @@ interface StrategyBlock {
   calendar?: StrategyCalendar | StrategyCalendarData | null
   /** Commentaire libre saisi dans l’onglet Social media (indépendant par stratégie). */
   comment?: string
-  /** Options « Vente additionnelle » (150 € HT / unité ; quantité pour mise au format & animation). */
+  /** Options « Vente additionnelle » (tarifs HT par option ; quantité pour mise au format, animation & création). */
   additionalSales?: Partial<Record<AdditionalSaleId, number>>
 }
 
@@ -917,6 +956,30 @@ const getKpiUnitLabel = (objective: string): string => {
   if (o.includes('conversion')) return 'conversions'
   // Reprendre l'objectif tel quel (ex. « clics sur lien », « intéractions », « visites de profil »)
   return o
+}
+
+/** Forme neutre singulier/pluriel pour les libellés PDF (ex. « option(s) »). */
+function pdfPlural(word: string): string {
+  const w = word.trim()
+  if (!w || w.includes('(s)')) return w
+  if (w.toLowerCase().endsWith('s') && w.length > 1) {
+    return `${w.slice(0, -1)}(s)`
+  }
+  return `${w}(s)`
+}
+
+function getPdfKpiUnitLabel(objective: string): string {
+  const unit = getKpiUnitLabel(objective)
+  const spaceIdx = unit.indexOf(' ')
+  if (spaceIdx === -1) return pdfPlural(unit)
+  return `${pdfPlural(unit.slice(0, spaceIdx))}${unit.slice(spaceIdx)}`
+}
+
+function getPdfMaxKpiLabel(objective: string): string {
+  const unit = getKpiUnitLabel(objective)
+  const label = getMaxKpiLabel(objective)
+  if (!unit) return label
+  return label.replace(unit, getPdfKpiUnitLabel(objective))
 }
 
 // Fonction pour formater les nombres avec espaces classiques (pour PDF)
@@ -1122,21 +1185,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
-  chartsRow: {
-    marginTop: 10,
-    marginBottom: 16,
-    flexDirection: 'column',
-    width: '100%',
-  },
-  chartBox: {
-    width: '100%',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-  },
   pdfStrategySheetTitle: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -1145,12 +1193,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
-  },
-  pdfPlatformDetailSubtitle: {
-    fontSize: 11,
-    color: '#6b7280',
-    marginBottom: 12,
-    width: '100%',
   },
   pdfCoverHint: {
     fontSize: 11,
@@ -1164,24 +1206,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#1a1a1a',
-  },
-  pieCircle: {
-    width: 90,
-    height: 90,
-    alignSelf: 'center',
-    marginBottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pieCenterText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  legend: {
-    marginTop: 6,
-    width: '100%',
-    flexDirection: 'column',
   },
   pdfSectionHeader: {
     marginTop: 12,
@@ -1241,24 +1265,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#E94C16',
   },
-  pdfDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 3,
-    width: '100%',
-  },
-  pdfDetailLabel: {
-    fontSize: 9,
-    color: '#6b7280',
-    width: '42%',
-  },
-  pdfDetailValue: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#111827',
-    width: '58%',
-    textAlign: 'right',
-  },
   pdfCommentBox: {
     marginTop: 10,
     padding: 10,
@@ -1287,36 +1293,40 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   pdfTableCellPlatform: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
     color: '#111827',
-    width: '28%',
+    width: '16%',
   },
   pdfTableCellObjective: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#4b5563',
-    width: '32%',
+    width: '16%',
   },
   pdfTableCellBudget: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
     color: '#111827',
-    width: '20%',
+    width: '14%',
     textAlign: 'right',
+  },
+  pdfTableCellDaily: {
+    fontSize: 8,
+    color: '#4b5563',
+    width: '14%',
+    textAlign: 'right',
+  },
+  pdfTableCellDiffusion: {
+    fontSize: 7,
+    color: '#4b5563',
+    width: '22%',
+    textAlign: 'center',
   },
   pdfTableCellKpi: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#6b7280',
-    width: '20%',
+    width: '18%',
     textAlign: 'right',
-  },
-  pdfCoverTable: {
-    marginTop: 16,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 6,
-    overflow: 'hidden',
   },
   pdfCoverTableTitle: {
     fontSize: 12,
@@ -1363,118 +1373,7 @@ const styles = StyleSheet.create({
   },
 })
 
-// Couleurs pour le graphique PDF (mêmes que dans l'interface)
-const PDF_COLORS = ['#E94C16', '#FF6B35', '#FF8C42', '#FFA07A', '#FFB347', '#FFD700', '#FFA500', '#FF8C00']
-
 /** Nombre maximum d’encarts plateforme (lignes de campagne) par page de détail PDF. */
-const PDF_STRATEGY_DETAIL_CHUNK = 4
-
-function chunkItemsForPdf<T>(items: T[], chunkSize: number): T[][] {
-  if (chunkSize <= 0) return [items]
-  const out: T[][] = []
-  for (let i = 0; i < items.length; i += chunkSize) {
-    out.push(items.slice(i, i + chunkSize))
-  }
-  return out
-}
-
-type PdfChartDatum = {
-  name: string
-  value: number
-  percentage: number
-  color: string
-}
-
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
-
-const toRadians = (deg: number) => (deg * Math.PI) / 180
-
-const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
-  const a = toRadians(angleDeg)
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
-}
-
-const donutSlicePath = (
-  cx: number,
-  cy: number,
-  rOuter: number,
-  rInner: number,
-  startAngle: number,
-  endAngle: number,
-) => {
-  // SVG arc flags
-  const sweep = 1
-  const delta = ((endAngle - startAngle) % 360 + 360) % 360
-  const largeArc = delta > 180 ? 1 : 0
-
-  const p1 = polarToCartesian(cx, cy, rOuter, startAngle)
-  const p2 = polarToCartesian(cx, cy, rOuter, endAngle)
-  const p3 = polarToCartesian(cx, cy, rInner, endAngle)
-  const p4 = polarToCartesian(cx, cy, rInner, startAngle)
-
-  return [
-    `M ${p1.x} ${p1.y}`,
-    `A ${rOuter} ${rOuter} 0 ${largeArc} ${sweep} ${p2.x} ${p2.y}`,
-    `L ${p3.x} ${p3.y}`,
-    `A ${rInner} ${rInner} 0 ${largeArc} ${sweep ? 0 : 1} ${p4.x} ${p4.y}`,
-    'Z',
-  ].join(' ')
-}
-
-function PdfDonutChart({
-  data,
-  size = 90,
-}: {
-  data: Array<Pick<PdfChartDatum, 'value' | 'color'>>
-  size?: number
-}) {
-  const total = data.reduce((s, d) => s + (Number.isFinite(d.value) ? d.value : 0), 0)
-  const safeTotal = total > 0 ? total : 1
-  const slices = data
-    .map((d) => ({ value: Math.max(0, d.value || 0), color: d.color }))
-    .filter((d) => d.value > 0)
-
-  const rOuter = size / 2
-  const rInner = rOuter - 8
-  const cx = rOuter
-  const cy = rOuter
-
-  // Starting at top
-  let angle = -90
-
-  // Special cases: no data or single slice => draw a clean ring
-  if (slices.length === 0) {
-    return (
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Circle cx={cx} cy={cy} r={rInner + 4} stroke="#f3f4f6" strokeWidth={8} fill="none" />
-      </Svg>
-    )
-  }
-
-  if (slices.length === 1) {
-    return (
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Circle cx={cx} cy={cy} r={rInner + 4} stroke={slices[0].color} strokeWidth={8} fill="none" />
-      </Svg>
-    )
-  }
-
-  return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* background ring */}
-      <Circle cx={cx} cy={cy} r={rInner + 4} stroke="#f3f4f6" strokeWidth={8} fill="none" />
-      {slices.map((s, idx) => {
-        const frac = clamp01(s.value / safeTotal)
-        const start = angle
-        const end = angle + frac * 360
-        angle = end
-        const d = donutSlicePath(cx, cy, rOuter - 4, rInner, start, end)
-        return <Path key={idx} d={d} fill={s.color} />
-      })}
-    </Svg>
-  )
-}
-
 /** Une stratégie est exportable PDF si elle a des lignes OU un calendrier renseigné. */
 function strategyBlockHasPdfContent(block: StrategyBlock): boolean {
   const hasItems = block.items.length > 0
@@ -1545,19 +1444,6 @@ function getPdfStrategyItemDates(
   )
 }
 
-function PdfDetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.pdfDetailRow}>
-      <Text style={styles.pdfDetailLabel} wrap>
-        {label}
-      </Text>
-      <Text style={styles.pdfDetailValue} wrap>
-        {value}
-      </Text>
-    </View>
-  )
-}
-
 function StrategyPdfSectionHeader({ title }: { title: string }) {
   return (
     <View style={styles.pdfSectionHeader}>
@@ -1581,7 +1467,7 @@ function StrategyPdfBudgetBreakdown({ block }: { block: StrategyBlock }) {
       {mediaTotal > 0 && (
         <View style={styles.pdfBudgetRow}>
           <Text style={styles.pdfBudgetRowLabel} wrap>
-            Budget média (plateformes)
+            Budget média (plateforme(s))
           </Text>
           <Text style={styles.pdfBudgetRowValue} wrap>
             {formatNumber(mediaTotal, 0)} €
@@ -1592,7 +1478,7 @@ function StrategyPdfBudgetBreakdown({ block }: { block: StrategyBlock }) {
         <>
           <View style={styles.pdfBudgetRow}>
             <Text style={[styles.pdfBudgetRowLabel, { fontWeight: 'bold' }]} wrap>
-              Ventes additionnelles
+              Vente(s) additionnelle(s)
             </Text>
             <Text style={styles.pdfBudgetRowValue} wrap>
               {formatNumber(additionalTotal, 0)} €
@@ -1612,10 +1498,23 @@ function StrategyPdfBudgetBreakdown({ block }: { block: StrategyBlock }) {
       )}
       <View style={styles.pdfBudgetTotalRow}>
         <Text style={styles.pdfBudgetTotalLabel} wrap>
-          Total stratégie
+          Total stratégie HT
         </Text>
         <Text style={styles.pdfBudgetTotalValue} wrap>
           {formatNumber(total, 0)} €
+        </Text>
+      </View>
+      <View
+        style={[
+          styles.pdfBudgetTotalRow,
+          { marginTop: 0, paddingTop: 4, borderTopWidth: 0 },
+        ]}
+      >
+        <Text style={styles.pdfBudgetTotalLabel} wrap>
+          Total stratégie TTC
+        </Text>
+        <Text style={styles.pdfBudgetTotalValue} wrap>
+          {formatNumber(getStrategyBudgetTtc(total), 0)} €
         </Text>
       </View>
     </View>
@@ -1625,26 +1524,52 @@ function StrategyPdfBudgetBreakdown({ block }: { block: StrategyBlock }) {
 function getStrategyItemKpiDisplay(item: StrategyItem): string {
   if (item.customKpiLabel) return item.customKpiLabel
   if (item.estimatedKPIs > 0) {
-    return `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+    return `${formatNumber(item.estimatedKPIs, 0)} ${getPdfKpiUnitLabel(item.objective)}${
       item.objective === 'Leads' ? ' (est.)' : ''
     }`
   }
-  return `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (est.)' : ''}`
+  return `${getPdfMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (est.)' : ''}`
 }
 
-function StrategyPdfMediaTable({ items }: { items: StrategyItem[] }) {
+function getStrategyItemDiffusionDisplay(
+  block: StrategyBlock,
+  item: StrategyItem,
+): string {
+  const platformDates = getPdfStrategyItemDates(block, item)
+  if (platformDates) {
+    return `${platformDates.start} → ${platformDates.end}`
+  }
+  if (item.days > 0) {
+    return `${item.days} jour(s)`
+  }
+  return '—'
+}
+
+function StrategyPdfMediaTable({
+  block,
+  items,
+}: {
+  block: StrategyBlock
+  items: StrategyItem[]
+}) {
   if (items.length === 0) return null
   return (
     <View style={{ width: '100%' }}>
       <View style={styles.pdfTableHeader}>
         <Text style={styles.pdfTableCellPlatform} wrap>
-          Plateforme
+          Plateforme(s)
         </Text>
         <Text style={styles.pdfTableCellObjective} wrap>
           Objectif
         </Text>
         <Text style={styles.pdfTableCellBudget} wrap>
           Budget
+        </Text>
+        <Text style={styles.pdfTableCellDaily} wrap>
+          Budget quotidien
+        </Text>
+        <Text style={styles.pdfTableCellDiffusion} wrap>
+          Diffusion
         </Text>
         <Text style={styles.pdfTableCellKpi} wrap>
           KPIs
@@ -1660,6 +1585,12 @@ function StrategyPdfMediaTable({ items }: { items: StrategyItem[] }) {
           </Text>
           <Text style={styles.pdfTableCellBudget} wrap>
             {formatNumber(item.budget, 0)} €
+          </Text>
+          <Text style={styles.pdfTableCellDaily} wrap>
+            {item.dailyBudget > 0 ? `${formatNumber(item.dailyBudget, 1)} €` : '—'}
+          </Text>
+          <Text style={styles.pdfTableCellDiffusion} wrap>
+            {getStrategyItemDiffusionDisplay(block, item)}
           </Text>
           <Text style={styles.pdfTableCellKpi} wrap>
             {getStrategyItemKpiDisplay(item)}
@@ -1680,7 +1611,7 @@ function StrategyPdfAdditionalSalesTable({
     <View style={{ width: '100%' }}>
       <View style={styles.pdfTableHeader}>
         <Text style={[styles.pdfTableCellPlatform, { width: '38%' }]} wrap>
-          Option
+          Option(s)
         </Text>
         <Text style={[styles.pdfTableCellObjective, { width: '14%', textAlign: 'center' }]} wrap>
           Qté
@@ -1710,7 +1641,7 @@ function StrategyPdfAdditionalSalesTable({
       ))}
       <View style={[styles.pdfTableRow, { backgroundColor: '#fafafa', borderBottomWidth: 0 }]}>
         <Text style={[styles.pdfTableCellPlatform, { width: '38%', fontWeight: 'bold' }]} wrap>
-          Sous-total ventes additionnelles
+          Sous-total vente(s) additionnelle(s)
         </Text>
         <Text style={[styles.pdfTableCellObjective, { width: '14%' }]} wrap>
           {' '}
@@ -1736,109 +1667,17 @@ function StrategyPdfAdditionalSalesTable({
   )
 }
 
-function StrategyPdfAdditionalSaleCard({
-  label,
-  count = 1,
-  unitPrice = ADDITIONAL_SALE_PRICE,
-  viaMake = false,
-}: {
-  label: string
-  count?: number
-  unitPrice?: number
-  viaMake?: boolean
-}) {
-  const total = count * unitPrice
-  return (
-    <View style={[styles.itemCard, { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' }]}>
-      <Text style={[styles.pdfItemPlatform, { color: '#5b21b6', fontSize: 11 }]} wrap>
-        {label}
-      </Text>
-      <PdfDetailRow label="Type" value={viaMake ? 'Make (Leads)' : 'Vente additionnelle'} />
-      <PdfDetailRow label="Quantité" value={String(count)} />
-      <PdfDetailRow label="Prix unitaire HT" value={`${formatNumber(unitPrice, 0)} €`} />
-      <PdfDetailRow
-        label="Total HT"
-        value={
-          count > 1
-            ? `${formatNumber(total, 0)} € (${count} × ${formatNumber(unitPrice, 0)} €)`
-            : `${formatNumber(total, 0)} €`
-        }
-      />
-    </View>
-  )
-}
-
-/** Une campagne / plateforme : une ligne <Text> par champ (évite chevauchement Yoga sur blocs multilignes). */
-function StrategyPdfCampaignItem({
-  item,
-  platformDates,
-}: {
-  item: StrategyItem
-  platformDates: { start: string; end: string } | null
-}) {
-  if (item.isMakeLeadsAddon) {
-    return (
-      <View style={[styles.itemCard, { borderColor: '#f9a8d4', backgroundColor: '#fdf2f8' }]}>
-        <Text style={[styles.pdfItemPlatform, { color: '#9d174d', fontSize: 11 }]} wrap>
-          {MAKE_LEADS_OPTION_LABEL}
-        </Text>
-        <PdfDetailRow label="Type" value="Prestation Make (Leads)" />
-        <PdfDetailRow label="Coût" value={`${formatNumber(item.budget, 0)} € HT`} />
-      </View>
-    )
-  }
-
-  const kpiDisplay = getStrategyItemKpiDisplay(item)
-
-  return (
-    <View style={styles.itemCard}>
-      <Text style={styles.pdfItemPlatform} wrap>
-        {item.platform}
-      </Text>
-      <Text style={[styles.pdfItemObjective, { marginBottom: 6 }]} wrap>
-        Objectif : {item.objective}
-      </Text>
-      <PdfDetailRow label="Budget" value={`${formatNumber(item.budget, 0)} €`} />
-      <PdfDetailRow label="KPIs estimés" value={kpiDisplay} />
-      <PdfDetailRow label="Budget quotidien" value={`${formatNumber(item.dailyBudget, 1)} €`} />
-      {item.days > 0 && (
-        <PdfDetailRow
-          label="Diffusion"
-          value={`${item.days} jour${item.days > 1 ? 's' : ''}`}
-        />
-      )}
-      {platformDates && (
-        <PdfDetailRow
-          label="Dates"
-          value={`${platformDates.start} → ${platformDates.end}`}
-        />
-      )}
-      {item.tarifsDirection && (
-        <Text
-          style={[
-            styles.pdfItemDetailLine,
-            { fontStyle: 'italic', color: '#1d4ed8', marginTop: 4, marginBottom: 0 },
-          ]}
-          wrap
-        >
-          Tarifs direction appliqués
-        </Text>
-      )}
-    </View>
-  )
-}
-
 /**
- * Résumé + graphiques uniquement (pas le détail par plateforme).
- * Le détail est sur des pages séparées avec wrap={false} pour éviter les chevauchements du moteur
- * de pagination react-pdf/Yoga (voir issues diegomura/react-pdf #2129, #3298).
+ * Résumé stratégie avec tableau plateformes & campagnes (budget quotidien et diffusion inclus).
  */
 function StrategyPdfStrategyOverview({
   block,
   strategyIdx,
+  showAe,
 }: {
   block: StrategyBlock
   strategyIdx: number
+  showAe: boolean
 }) {
   const hasItems = block.items.length > 0
   const cal = block.calendar
@@ -1852,39 +1691,6 @@ function StrategyPdfStrategyOverview({
   if (!hasItems && !hasCalendar && !hasAdditionalSales) return null
 
   const mediaItems = block.items.filter(isMediaStrategyItem)
-  const mediaTotal = mediaItems.reduce((sum, item) => sum + item.budget, 0)
-  const total = getStrategyBlockBudgetTotal(block)
-
-  const platformTotals: Record<string, number> = {}
-  mediaItems.forEach((item) => {
-    if (!platformTotals[item.platform]) {
-      platformTotals[item.platform] = 0
-    }
-    platformTotals[item.platform] += item.budget
-  })
-
-  const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
-    name,
-    value: Math.round(value),
-    percentage: mediaTotal > 0 ? (value / mediaTotal) * 100 : 0,
-    color: PDF_COLORS[idx % PDF_COLORS.length],
-  }))
-
-  const objectiveTotals: Record<string, number> = {}
-  mediaItems.forEach((item) => {
-    if (!objectiveTotals[item.objective]) {
-      objectiveTotals[item.objective] = 0
-    }
-    objectiveTotals[item.objective] += item.budget
-  })
-
-  const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
-    name,
-    value: Math.round(value),
-    percentage: mediaTotal > 0 ? (value / mediaTotal) * 100 : 0,
-    color: PDF_COLORS[idx % PDF_COLORS.length],
-  }))
-
   const complementaryItems = block.items.filter(isComplementaryStrategyItem)
   const strategyAe = block.items.length > 0 ? block.items[0].aePercentage : 0
 
@@ -1896,9 +1702,11 @@ function StrategyPdfStrategyOverview({
         </Text>
         {hasItems && (
           <>
-            <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
-              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '—'}
-            </Text>
+            {showAe && (
+              <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
+                AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '—'}
+              </Text>
+            )}
             {block.items.some((it) => it.tarifsDirection) && (
               <Text
                 style={[
@@ -1907,7 +1715,7 @@ function StrategyPdfStrategyOverview({
                 ]}
                 wrap
               >
-                Tarifs direction appliqués sur certaines plateformes
+                Tarifs direction appliqués sur certaine(s) plateforme(s)
               </Text>
             )}
           </>
@@ -1934,14 +1742,14 @@ function StrategyPdfStrategyOverview({
 
       {mediaItems.length > 0 && (
         <View style={{ width: '100%' }}>
-          <StrategyPdfSectionHeader title="Plateformes & campagnes" />
-          <StrategyPdfMediaTable items={mediaItems} />
+          <StrategyPdfSectionHeader title="Plateforme(s) & campagne(s)" />
+          <StrategyPdfMediaTable block={block} items={mediaItems} />
         </View>
       )}
 
       {hasAdditionalSales && (
         <View style={{ width: '100%' }}>
-          <StrategyPdfSectionHeader title="Ventes additionnelles" />
+          <StrategyPdfSectionHeader title="Vente(s) additionnelle(s)" />
           <StrategyPdfAdditionalSalesTable sales={additionalSales} />
         </View>
       )}
@@ -1957,7 +1765,7 @@ function StrategyPdfStrategyOverview({
             ),
         ) && (
           <View style={{ width: '100%' }}>
-            <StrategyPdfSectionHeader title="Prestations Make" />
+            <StrategyPdfSectionHeader title="Prestation(s) Make" />
             {complementaryItems
               .filter(
                 (item) =>
@@ -1970,67 +1778,25 @@ function StrategyPdfStrategyOverview({
               )
               .map((item) => (
                 <Text key={item.id} style={[styles.pdfLegendLine, { color: '#6d28d9', marginBottom: 3 }]} wrap>
-                  {`• ${MAKE_LEADS_OPTION_LABEL} — ${formatNumber(item.budget, 0)} € HT`}
+                  {`• ${MAKE_LEADS_OPTION_LABEL.replace('leads', 'lead(s)')} — ${formatNumber(item.budget, 0)} € HT`}
                 </Text>
               ))}
           </View>
         )}
 
-      {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
-        <View style={{ width: '100%' }}>
-          <StrategyPdfSectionHeader title="Répartition du budget média" />
-          <View style={styles.chartsRow}>
-            {chartDataPlatform.length > 0 && (
-              <View style={styles.chartBox}>
-                <Text style={styles.chartTitle}>Par plateforme</Text>
-                <View style={styles.pieCircle}>
-                  <PdfDonutChart data={chartDataPlatform} />
-                </View>
-                <View style={styles.legend}>
-                  {chartDataPlatform.map((row, idx) => (
-                    <Text key={idx} style={styles.pdfLegendLine} wrap>
-                      {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            )}
-            {chartDataObjective.length > 0 && (
-              <View style={styles.chartBox}>
-                <Text style={styles.chartTitle}>Par objectif</Text>
-                <View style={styles.pieCircle}>
-                  <PdfDonutChart data={chartDataObjective} />
-                </View>
-                <View style={styles.legend}>
-                  {chartDataObjective.map((row, idx) => (
-                    <Text key={idx} style={styles.pdfLegendLine} wrap>
-                      {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                    </Text>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      )}
-
-      {hasItems && (
-        <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
-          Le détail complet de chaque campagne figure sur les pages suivantes.
-        </Text>
-      )}
     </View>
   )
 }
 
-// Composant PDF multi-stratégies — page de garde + par stratégie : récap puis pages de détail (≤4 encarts / page)
+// Composant PDF multi-stratégies — une page récapitulative par stratégie
 const PDFDocument = ({
   strategies,
-  clientName,
-  userName,
+  clientName: _clientName,
+  userName: _userName,
   aePercentage: _aePercentage,
-  comment,
-  logoDataUrl,
+  comment: _comment,
+  logoDataUrl: _logoDataUrl,
+  includeAeInPdf,
 }: {
   strategies: StrategyBlock[]
   clientName: string
@@ -2038,183 +1804,34 @@ const PDFDocument = ({
   aePercentage: number
   comment?: string
   logoDataUrl?: string | null
+  includeAeInPdf: boolean
 }) => {
   const strategyPages = strategies
     .map((block, strategyIdx) => ({ block, strategyIdx }))
     .filter(({ block }) => strategyBlockHasPdfContent(block))
 
-  const grandTotal = strategies.reduce((sum, block) => sum + getStrategyBlockBudgetTotal(block), 0)
-
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap>
-        <View style={styles.pdfCoverRoot}>
-          {!!logoDataUrl && <Image src={logoDataUrl} style={styles.pdfCoverLogo} />}
-          <Text style={styles.title} wrap>
-            {userName ? `Stratégies de ${userName}` : 'Mes stratégies'}
+      {strategyPages.length === 0 ? (
+        <Page size="A4" style={styles.page} wrap>
+          <Text style={styles.pdfCoverHint} wrap>
+            Aucune stratégie avec ligne(s) de campagne(s) ou calendrier de diffusion à inclure dans l&apos;export.
           </Text>
-          <Text style={styles.clientName} wrap>
-            Client : {clientName}
+        </Page>
+      ) : (
+      strategyPages.map(({ block, strategyIdx }) => (
+        <Page key={block.id} size="A4" style={styles.page} wrap>
+          <Text style={styles.pdfStrategySheetTitle} wrap>
+            Stratégie {strategyIdx + 1} · {block.name}
           </Text>
-          {!!comment?.trim() && (
-            <View style={[styles.pdfCommentBox, { marginTop: 10 }]}>
-              <Text style={[styles.pdfSummaryBlockText, { fontWeight: 'bold', marginBottom: 4 }]} wrap>
-                Commentaire général
-              </Text>
-              <Text style={[styles.clientComment, { marginTop: 0, marginBottom: 0 }]} wrap>
-                {comment.trim()}
-              </Text>
-            </View>
-          )}
-
-          {strategyPages.length > 0 && (
-            <View style={{ width: '100%', marginTop: 16 }}>
-              <Text style={styles.pdfCoverTableTitle} wrap>
-                Synthèse des stratégies
-              </Text>
-              <View style={styles.pdfCoverTable}>
-                <View style={[styles.pdfTableHeader, { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
-                  <Text style={[styles.pdfTableCellPlatform, { width: '40%' }]} wrap>
-                    Stratégie
-                  </Text>
-                  <Text style={[styles.pdfTableCellBudget, { width: '30%' }]} wrap>
-                    Total
-                  </Text>
-                  <Text style={[styles.pdfTableCellKpi, { width: '30%', textAlign: 'right' }]} wrap>
-                    AE
-                  </Text>
-                </View>
-                {strategyPages.map(({ block, strategyIdx }) => {
-                  const blockTotal = getStrategyBlockBudgetTotal(block)
-                  const blockAe = block.items.length > 0 ? block.items[0].aePercentage : 0
-                  return (
-                    <View key={block.id} style={styles.pdfTableRow}>
-                      <Text style={[styles.pdfTableCellPlatform, { width: '40%' }]} wrap>
-                        {strategyIdx + 1}. {block.name}
-                      </Text>
-                      <Text style={[styles.pdfTableCellBudget, { width: '30%' }]} wrap>
-                        {formatNumber(blockTotal, 0)} €
-                      </Text>
-                      <Text style={[styles.pdfTableCellKpi, { width: '30%', textAlign: 'right' }]} wrap>
-                        {blockAe > 0 ? `${formatNumber(blockAe, 0)} %` : '—'}
-                      </Text>
-                    </View>
-                  )
-                })}
-                <View
-                  style={[
-                    styles.pdfTableRow,
-                    { backgroundColor: '#fafafa', borderBottomWidth: 0 },
-                  ]}
-                >
-                  <Text style={[styles.pdfTableCellPlatform, { width: '40%', fontWeight: 'bold' }]} wrap>
-                    Total général
-                  </Text>
-                  <Text
-                    style={[
-                      styles.pdfTableCellBudget,
-                      { width: '30%', color: '#E94C16', fontSize: 11 },
-                    ]}
-                    wrap
-                  >
-                    {formatNumber(grandTotal, 0)} €
-                  </Text>
-                  <Text style={[styles.pdfTableCellKpi, { width: '30%' }]} wrap>
-                    {' '}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {strategies.some((s) => s.comment?.trim()) && (
-            <View style={{ width: '100%', marginTop: 14 }}>
-              <Text style={styles.pdfCoverTableTitle} wrap>
-                Commentaires par stratégie
-              </Text>
-              {strategies
-                .filter((s) => s.comment?.trim())
-                .map((s) => (
-                  <View key={s.id} style={[styles.pdfCommentBox, { marginTop: 6 }]}>
-                    <Text style={styles.strategyCommentNameOnCover} wrap>
-                      {s.name}
-                    </Text>
-                    <Text style={[styles.strategyCommentOnCover, { marginTop: 2 }]} wrap>
-                      {s.comment!.trim()}
-                    </Text>
-                  </View>
-                ))}
-            </View>
-          )}
-
-          {strategyPages.length === 0 ? (
-            <Text style={[styles.pdfCoverHint, { marginTop: 12 }]} wrap>
-              Aucune stratégie avec lignes de campagne ou calendrier de diffusion à inclure dans l&apos;export.
-            </Text>
-          ) : (
-            <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
-              {strategyPages.length} stratégie{strategyPages.length > 1 ? 's' : ''} · Page récapitulative puis détail
-              campagnes et prestations complémentaires.
-            </Text>
-          )}
-        </View>
-      </Page>
-
-      {strategyPages.map(({ block, strategyIdx }) => {
-        const mediaChunks = chunkItemsForPdf(
-          block.items.filter(isMediaStrategyItem),
-          PDF_STRATEGY_DETAIL_CHUNK,
-        )
-        const additionalSalesLines = getActiveAdditionalSales(block)
-        return (
-        <React.Fragment key={block.id}>
-          <Page size="A4" style={styles.page} wrap>
-            <Text style={styles.pdfStrategySheetTitle} wrap>
-              Stratégie {strategyIdx + 1} · {block.name}
-            </Text>
-            <StrategyPdfStrategyOverview block={block} strategyIdx={strategyIdx} />
-          </Page>
-          {mediaChunks.map((chunk, chunkIdx) => (
-            <Page key={`${block.id}-detail-${chunkIdx}`} size="A4" style={styles.page} wrap={false}>
-              <Text style={styles.pdfStrategySheetTitle} wrap>
-                Stratégie {strategyIdx + 1} · {block.name}
-              </Text>
-              <Text style={styles.pdfPlatformDetailSubtitle} wrap>
-                Détail des campagnes ({chunkIdx + 1}/{mediaChunks.length})
-              </Text>
-              {chunk.map((item) => (
-                <StrategyPdfCampaignItem
-                  key={item.id}
-                  item={item}
-                  platformDates={getPdfStrategyItemDates(block, item)}
-                />
-              ))}
-            </Page>
-          ))}
-          {additionalSalesLines.length > 0 && (
-            <Page key={`${block.id}-additional-sales`} size="A4" style={styles.page} wrap>
-              <Text style={styles.pdfStrategySheetTitle} wrap>
-                Stratégie {strategyIdx + 1} · {block.name}
-              </Text>
-              <StrategyPdfSectionHeader title="Ventes additionnelles — détail" />
-              <StrategyPdfAdditionalSalesTable sales={additionalSalesLines} />
-              <Text style={[styles.pdfPlatformDetailSubtitle, { marginTop: 12 }]} wrap>
-                Détail par option
-              </Text>
-              {additionalSalesLines.map((sale) => (
-                <StrategyPdfAdditionalSaleCard
-                  key={sale.id}
-                  label={sale.label}
-                  count={sale.count}
-                  unitPrice={sale.unitPrice}
-                  viaMake={sale.viaMake}
-                />
-              ))}
-            </Page>
-          )}
-        </React.Fragment>
-        )
-      })}
+          <StrategyPdfStrategyOverview
+            block={block}
+            strategyIdx={strategyIdx}
+            showAe={includeAeInPdf}
+          />
+        </Page>
+      ))
+      )}
     </Document>
   )
 }
@@ -2284,7 +1901,7 @@ const SMSRCSPDFDocument = ({
             Récapitulatif de la demande
           </Text>
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Type de campagne :</Text>
+            <Text style={styles.itemLabel}>Type de campagne(s) :</Text>
             <Text style={styles.itemValue}>{typeLabel}</Text>
           </View>
           <View style={styles.itemRow}>
@@ -2341,7 +1958,7 @@ const SMSRCSPDFDocument = ({
           )}
           {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
             <View style={styles.itemRow}>
-              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagnes :</Text>
+              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagne(s) :</Text>
               <Text style={[styles.itemValue, { fontWeight: 'bold' }]}>× {campaignMonths}</Text>
             </View>
           )}
@@ -2359,7 +1976,7 @@ const SMSRCSPDFDocument = ({
         {imageBase64 && (
           <View style={{ marginTop: 12, marginBottom: 12 }}>
             <Text style={[styles.chartTitle, { marginBottom: 8, fontSize: 12 }]}>
-              Potentiels calculés
+              Potentiel(s) calculé(s)
             </Text>
             <Image
               src={imageBase64}
@@ -2375,7 +1992,7 @@ const SMSRCSPDFDocument = ({
         {/* Conditions de vente */}
         <View style={{ marginTop: 'auto' }}>
           <Text style={[styles.chartTitle, { marginBottom: 6, fontSize: 12 }]}>
-            Conditions de vente {typeLabel}
+            Condition(s) de vente {typeLabel}
           </Text>
           <View style={[styles.itemCard, { backgroundColor: '#f9f9f9', padding: 8, marginBottom: 0 }]}>
             {salesConditions.map((condition, idx) => (
@@ -2425,7 +2042,7 @@ const KpiMaxPdfDocument = ({
           • {row.label}
         </Text>
         <Text style={{ marginBottom: 8, marginLeft: 12, fontSize: 10, lineHeight: 1.45 }} wrap>
-          {formatNumber(impressions, 0)} impressions · {formatNumber(clics, 0)} clics
+          {formatNumber(impressions, 0)} impression(s) · {formatNumber(clics, 0)} clic(s)
         </Text>
       </View>
     )
@@ -2446,34 +2063,34 @@ const KpiMaxPdfDocument = ({
         <View style={styles.summary}>
           <Text style={[styles.chartTitle, { marginBottom: 8 }]}>Saisie</Text>
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Plateforme</Text>
+            <Text style={styles.itemLabel}>Plateforme(s)</Text>
             <Text style={styles.itemValue}>{selectedLabels}</Text>
           </View>
           <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Durée (jours)</Text>
+            <Text style={styles.itemLabel}>Durée (jour(s))</Text>
             <Text style={styles.itemValue}>{diffusionDaysStr.trim() || '—'}</Text>
           </View>
           {(platformsEnabled.meta || platformsEnabled.display || platformsEnabled.youtube) ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Nombre de comptes (META)</Text>
+              <Text style={styles.itemLabel}>Nombre de compte(s) (META)</Text>
               <Text style={styles.itemValue}>{compteStrings.meta.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.linkedin ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Nombre de comptes LinkedIn</Text>
+              <Text style={styles.itemLabel}>Nombre de compte(s) LinkedIn</Text>
               <Text style={styles.itemValue}>{compteStrings.linkedin.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.snapchat ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Nombre de comptes Snapchat</Text>
+              <Text style={styles.itemLabel}>Nombre de compte(s) Snapchat</Text>
               <Text style={styles.itemValue}>{compteStrings.snapchat.trim() || '—'}</Text>
             </View>
           ) : null}
           {platformsEnabled.tiktok ? (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Nombre de comptes Tiktok</Text>
+              <Text style={styles.itemLabel}>Nombre de compte(s) Tiktok</Text>
               <Text style={styles.itemValue}>{compteStrings.tiktok.trim() || '—'}</Text>
             </View>
           ) : null}
@@ -2698,6 +2315,8 @@ export default function VentePage() {
   >(null)
   const pendingLeadsRowRef = useRef<(TableRowData & { customKpiLabel?: string }) | null>(null)
   const [clientName, setClientName] = useState('')
+  /** Inclure les % AE dans l’export PDF (récap stratégie). */
+  const [pdfIncludeAe, setPdfIncludeAe] = useState(true)
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -3408,6 +3027,7 @@ export default function VentePage() {
         aePercentage={parseFloat(aePercentage) || 0}
         comment={undefined}
         logoDataUrl={logoDataUrl}
+        includeAeInPdf={pdfIncludeAe}
       />
     )
     const blob = await pdf(doc).toBlob()
@@ -3437,6 +3057,7 @@ export default function VentePage() {
           aePercentage={parseFloat(aePercentage) || 0}
           comment={undefined}
           logoDataUrl={logoDataUrl}
+          includeAeInPdf={pdfIncludeAe}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -3652,6 +3273,7 @@ export default function VentePage() {
           aePercentage={parseFloat(aePercentage) || 0}
           comment={globalPackComment}
           logoDataUrl={logoDataUrl}
+          includeAeInPdf={pdfIncludeAe}
         />,
       ).toBlob()
       zip.file('01-strategies-social-media.pdf', socialBlob)
@@ -4437,6 +4059,9 @@ export default function VentePage() {
               const blockTotal = getStrategyBlockBudgetTotal(block)
               const hasSummary = items.length > 0 || getAdditionalSalesTotal(block) > 0
               const budgetLabel = blockTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+              const budgetTtcLabel = getStrategyBudgetTtc(blockTotal).toLocaleString('fr-FR', {
+                maximumFractionDigits: 0,
+              })
 
               const renderStrategyItemRow = (
                 item: StrategyItem,
@@ -4458,9 +4083,10 @@ export default function VentePage() {
                         {item.isMakeLeadsAddon ? (
                           <span className="text-sm font-semibold">{MAKE_LEADS_OPTION_LABEL}</span>
                         ) : (
-                          <span className="text-sm font-semibold leading-snug">
-                            {formatStrategyPlatformObjectiveLine(item.platform, item.objective)}
-                          </span>
+                          <StrategyPlatformObjectiveLine
+                            platform={item.platform}
+                            objective={item.objective}
+                          />
                         )}
                         {item.tarifsDirection && (
                           <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
@@ -4679,10 +4305,23 @@ export default function VentePage() {
                           </CardTitle>
 
                           {hasSummary && !isExpanded && (
-                            <div className="text-[11px] text-muted-foreground">
-                              Budget total :{' '}
-                              <span className="font-semibold text-[#E94C16]">
-                                {budgetLabel} €
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              {blockAe > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#E94C16]">
+                                  AE {blockAe} %
+                                </span>
+                              )}
+                              <span className="inline-flex items-center rounded-md border-2 border-[#E94C16] bg-white px-2 py-0.5 text-[10px] font-bold text-[#E94C16]">
+                                HT{' '}
+                                <span className="ml-1 text-xs font-extrabold tabular-nums">
+                                  {budgetLabel} €
+                                </span>
+                              </span>
+                              <span className="inline-flex items-center rounded-md border-2 border-[#E94C16] bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                TTC{' '}
+                                <span className="ml-1 text-xs font-extrabold tabular-nums">
+                                  {budgetTtcLabel} €
+                                </span>
                               </span>
                             </div>
                           )}
@@ -4883,7 +4522,8 @@ export default function VentePage() {
                                   const checked = isAdditionalSaleChecked(block, opt.id)
                                   const hasQuantity = supportsAdditionalSaleQuantity(opt.id)
                                   const quantityValue = Math.max(1, count)
-                                  const lineTotal = getAdditionalSaleAmount(quantityValue)
+                                  const unitPrice = getAdditionalSaleUnitPrice(opt.id)
+                                  const lineTotal = getAdditionalSaleAmount(opt.id, quantityValue)
 
                                   return (
                                     <div
@@ -4961,7 +4601,7 @@ export default function VentePage() {
                                               </Button>
                                             </div>
                                             <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                              × {ADDITIONAL_SALE_PRICE.toLocaleString('fr-FR')} €
+                                              × {unitPrice.toLocaleString('fr-FR')} €
                                             </span>
                                           </div>
                                           <span className="text-[10px] font-semibold text-violet-800">
@@ -4978,20 +4618,41 @@ export default function VentePage() {
 
                           {/* Prix total — au-dessus des boutons d'export */}
                           {isActive && hasSummary && (
-                            <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-[#E94C16]/30 bg-[#E94C16]/5 px-2.5 py-1.5 flex-shrink-0">
-                              <div className="min-w-0 leading-tight">
-                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                                  Total HT
-                                </p>
-                                {blockAe > 0 && (
-                                  <p className="text-[10px] text-muted-foreground">
-                                    AE {blockAe} %
+                            <div className="mb-2 flex-shrink-0 space-y-2">
+                              {blockAe > 0 && (
+                                <div className="flex justify-center">
+                                  <span className="inline-flex items-center gap-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#E94C16]">
+                                      AE
+                                    </span>
+                                    <span className="text-base font-extrabold leading-none text-[#E94C16] tabular-nums">
+                                      {blockAe} %
+                                    </span>
+                                  </span>
+                                </div>
+                              )}
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="rounded-xl border-2 border-[#E94C16] bg-white px-4 py-3 shadow-sm">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#E94C16]">
+                                    Total HT
                                   </p>
-                                )}
+                                  <p className="mt-1.5 text-2xl font-extrabold leading-none text-[#E94C16] tabular-nums">
+                                    {budgetLabel}
+                                    <span className="ml-1 text-lg font-bold text-[#E94C16]/80">€</span>
+                                  </p>
+                                  <p className="mt-2 text-[10px] font-medium text-[#E94C16]/80">Hors taxes</p>
+                                </div>
+                                <div className="rounded-xl border-2 border-[#E94C16] bg-white px-4 py-3 shadow-sm">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                                    Total TTC
+                                  </p>
+                                  <p className="mt-1.5 text-2xl font-extrabold leading-none text-slate-600 tabular-nums">
+                                    {budgetTtcLabel}
+                                    <span className="ml-1 text-lg font-bold text-slate-600/80">€</span>
+                                  </p>
+                                  <p className="mt-2 text-[10px] font-medium text-slate-600/80">TVA 20 % incluse</p>
+                                </div>
                               </div>
-                              <p className="text-lg font-bold text-[#E94C16] leading-none shrink-0 tabular-nums">
-                                {budgetLabel} €
-                              </p>
                             </div>
                           )}
 
@@ -6661,6 +6322,24 @@ export default function VentePage() {
                   }
                 }}
               />
+            </div>
+            <div className="flex items-start space-x-2 pt-1">
+              <Checkbox
+                id="pdf-include-ae"
+                checked={pdfIncludeAe}
+                onCheckedChange={(checked) => setPdfIncludeAe(checked === true)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="pdf-include-ae"
+                  className="text-sm font-medium text-foreground cursor-pointer"
+                >
+                  Afficher l&apos;AE dans le PDF
+                </label>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  % AE de la stratégie dans le récapitulatif. Décochez pour masquer cet élément.
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>
