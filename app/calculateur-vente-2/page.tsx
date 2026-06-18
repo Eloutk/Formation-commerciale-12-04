@@ -9,10 +9,18 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, LayoutGrid, Share2, MessageSquare, Layers, BarChart2, Info, Loader2 } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -419,13 +427,149 @@ const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as
 const MAKE_LEADS_OPTION_LABEL = 'Envoi automatique des leads au client via Make'
 const MAKE_LEADS_OPTION_BUDGET = 150
 const MAKE_LEADS_PINK_ROW_CLASS = 'bg-pink-50 text-pink-700 border-pink-200'
+const COMPLEMENTARY_ROW_CLASS = 'bg-violet-50 text-violet-900 border-violet-200'
+
+type AdditionalSaleId =
+  | 'miseAuFormat'
+  | 'leadsMeta'
+  | 'leadsLinkedIn'
+  | 'animationVisuel'
+  | 'creationComplete'
+
+const ADDITIONAL_SALE_PRICE = 150
+
+const ADDITIONAL_SALE_OPTIONS: { id: AdditionalSaleId; label: string }[] = [
+  { id: 'miseAuFormat', label: 'Mise au format' },
+  { id: 'animationVisuel', label: 'Animation de visuel' },
+  { id: 'leadsMeta', label: 'Leads Meta' },
+  { id: 'leadsLinkedIn', label: 'Leads LinkedIn' },
+  { id: 'creationComplete', label: 'Création complète' },
+]
+
+function supportsAdditionalSaleQuantity(saleId: AdditionalSaleId): boolean {
+  return saleId !== 'leadsMeta' && saleId !== 'leadsLinkedIn'
+}
+
+function getAdditionalSaleCount(
+  block: Pick<StrategyBlock, 'additionalSales'>,
+  saleId: AdditionalSaleId,
+): number {
+  const raw = block.additionalSales?.[saleId] as number | boolean | undefined
+  if (raw === true) return 1
+  if (raw === false || raw === undefined || raw === null) return 0
+  const n = Math.floor(Number(raw))
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
+function getMakeLeadsPlatformForSale(saleId: AdditionalSaleId): string | null {
+  if (saleId === 'leadsMeta') return 'META'
+  if (saleId === 'leadsLinkedIn') return 'LinkedIn'
+  return null
+}
+
+function hasMakeLeadsAddonForAdditionalSale(
+  block: Pick<StrategyBlock, 'items'>,
+  saleId: AdditionalSaleId,
+): boolean {
+  const platform = getMakeLeadsPlatformForSale(saleId)
+  if (!platform) return false
+  return block.items.some((it) => it.isMakeLeadsAddon && it.platform === platform)
+}
+
+function isAdditionalSaleChecked(
+  block: Pick<StrategyBlock, 'items' | 'additionalSales'>,
+  saleId: AdditionalSaleId,
+): boolean {
+  if (hasMakeLeadsAddonForAdditionalSale(block, saleId)) return true
+  return getAdditionalSaleCount(block, saleId) > 0
+}
+
+function removeMakeLeadsAddonItems(items: StrategyItem[], platform: string): StrategyItem[] {
+  return items.filter((it) => !(it.isMakeLeadsAddon && it.platform === platform))
+}
+
+function getAdditionalSaleAmount(count: number): number {
+  return Math.max(0, Math.floor(count)) * ADDITIONAL_SALE_PRICE
+}
+
+function getAdditionalSalesTotal(block: Pick<StrategyBlock, 'additionalSales' | 'items'>): number {
+  return ADDITIONAL_SALE_OPTIONS.reduce((sum, opt) => {
+    if (hasMakeLeadsAddonForAdditionalSale(block, opt.id)) return sum
+    return sum + getAdditionalSaleAmount(getAdditionalSaleCount(block, opt.id))
+  }, 0)
+}
 
 function isMakeLeadsTrigger(platform: string, objective: string): boolean {
-  return (platform === 'META' || platform === 'LinkedIn') && objective === 'Leads'
+  const normalizedPlatform = platform.trim()
+  const normalizedObjective = objective.trim()
+  return (
+    (normalizedPlatform === 'META' || normalizedPlatform === 'LinkedIn') &&
+    normalizedObjective === 'Leads'
+  )
+}
+
+function isComplementaryStrategyItem(item: Pick<StrategyItem, 'isMakeLeadsAddon'>): boolean {
+  return !!item.isMakeLeadsAddon
+}
+
+function isMediaStrategyItem(item: Pick<StrategyItem, 'isMakeLeadsAddon'>): boolean {
+  return !item.isMakeLeadsAddon
 }
 
 function isCampaignMediaItem(item: { isMakeLeadsAddon?: boolean }): boolean {
   return !item.isMakeLeadsAddon
+}
+
+function getStrategyBlockBudgetTotal(block: Pick<StrategyBlock, 'items' | 'additionalSales'>): number {
+  return block.items.reduce((sum, it) => sum + it.budget, 0) + getAdditionalSalesTotal(block)
+}
+
+function getActiveAdditionalSales(block: Pick<StrategyBlock, 'additionalSales' | 'items'>): Array<{
+  id: AdditionalSaleId
+  label: string
+  count: number
+  unitPrice: number
+  total: number
+  viaMake?: boolean
+}> {
+  return ADDITIONAL_SALE_OPTIONS.flatMap((opt) => {
+    const platform = getMakeLeadsPlatformForSale(opt.id)
+    const makeItem =
+      platform != null
+        ? block.items.find((it) => it.isMakeLeadsAddon && it.platform === platform)
+        : undefined
+
+    if (makeItem) {
+      return [
+        {
+          id: opt.id,
+          label: opt.label,
+          count: 1,
+          unitPrice: makeItem.budget,
+          total: makeItem.budget,
+          viaMake: true,
+        },
+      ]
+    }
+
+    const count = getAdditionalSaleCount(block, opt.id)
+    if (count <= 0) return []
+    return [
+      {
+        id: opt.id,
+        label: opt.label,
+        count,
+        unitPrice: ADDITIONAL_SALE_PRICE,
+        total: getAdditionalSaleAmount(count),
+      },
+    ]
+  })
+}
+
+function getActiveAdditionalSaleLabels(block: Pick<StrategyBlock, 'additionalSales' | 'items'>): string[] {
+  return getActiveAdditionalSales(block).map((sale) =>
+    sale.count > 1 ? `${sale.label} (× ${sale.count})` : sale.label,
+  )
 }
 
 const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
@@ -627,6 +771,8 @@ interface StrategyBlock {
   calendar?: StrategyCalendar | StrategyCalendarData | null
   /** Commentaire libre saisi dans l’onglet Social media (indépendant par stratégie). */
   comment?: string
+  /** Options « Vente additionnelle » (150 € HT / unité ; quantité pour mise au format & animation). */
+  additionalSales?: Partial<Record<AdditionalSaleId, number>>
 }
 
 /**
@@ -757,14 +903,20 @@ const getMaxKpiLabel = (objective: string): string => {
   return `Max ${prep}${trimmed.toLowerCase()}`
 }
 
+/** Encart stratégie : « META - clics sur lien » */
+function formatStrategyPlatformObjectiveLine(platform: string, objective: string): string {
+  const obj = objective.trim()
+  return obj ? `${platform} - ${obj.toLowerCase()}` : platform
+}
+
 // Libellé d'un KPI en fonction de l'objectif (pour l'affichage dans la stratégie)
 const getKpiUnitLabel = (objective: string): string => {
-  const o = objective.toLowerCase()
-  if (o.includes('impression')) return 'impressions'
+  const o = objective.trim().toLowerCase()
+  if (!o) return 'KPIs'
   if (o.includes('lead')) return 'leads'
   if (o.includes('conversion')) return 'conversions'
-  if (o.includes('clic')) return 'clics'
-  return 'KPIs'
+  // Reprendre l'objectif tel quel (ex. « clics sur lien », « intéractions », « visites de profil »)
+  return o
 }
 
 // Fonction pour formater les nombres avec espaces classiques (pour PDF)
@@ -1031,6 +1183,147 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'column',
   },
+  pdfSectionHeader: {
+    marginTop: 12,
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E94C16',
+    width: '100%',
+  },
+  pdfSectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#111827',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pdfBudgetBreakdown: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#fafafa',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    width: '100%',
+  },
+  pdfBudgetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    width: '100%',
+  },
+  pdfBudgetRowLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+  },
+  pdfBudgetRowValue: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  pdfBudgetTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#E94C16',
+    width: '100%',
+  },
+  pdfBudgetTotalLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  pdfBudgetTotalValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#E94C16',
+  },
+  pdfDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 3,
+    width: '100%',
+  },
+  pdfDetailLabel: {
+    fontSize: 9,
+    color: '#6b7280',
+    width: '42%',
+  },
+  pdfDetailValue: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#111827',
+    width: '58%',
+    textAlign: 'right',
+  },
+  pdfCommentBox: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    width: '100%',
+  },
+  pdfTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    marginTop: 8,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    width: '100%',
+  },
+  pdfTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    width: '100%',
+  },
+  pdfTableCellPlatform: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#111827',
+    width: '28%',
+  },
+  pdfTableCellObjective: {
+    fontSize: 9,
+    color: '#4b5563',
+    width: '32%',
+  },
+  pdfTableCellBudget: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#111827',
+    width: '20%',
+    textAlign: 'right',
+  },
+  pdfTableCellKpi: {
+    fontSize: 8,
+    color: '#6b7280',
+    width: '20%',
+    textAlign: 'right',
+  },
+  pdfCoverTable: {
+    marginTop: 16,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  pdfCoverTableTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
   total: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -1185,13 +1478,14 @@ function PdfDonutChart({
 /** Une stratégie est exportable PDF si elle a des lignes OU un calendrier renseigné. */
 function strategyBlockHasPdfContent(block: StrategyBlock): boolean {
   const hasItems = block.items.length > 0
+  const hasAdditionalSales = getAdditionalSalesTotal(block) > 0 || getActiveAdditionalSales(block).length > 0
   const cal = block.calendar
   const hasCalendar = !!cal?.startDate && (
     isStrategyCalendarData(cal)
       ? cal.duration > 0 || cal.items.length > 0
       : !!(cal as StrategyCalendar).endDate
   )
-  return hasItems || hasCalendar
+  return hasItems || hasAdditionalSales || hasCalendar
 }
 
 function formatIsoToPdfDate(iso: string) {
@@ -1240,6 +1534,240 @@ function getPdfStrategyPlatformDates(
   return { start: formatIsoToPdfDate(dates[0]!), end: formatIsoToPdfDate(dates[dates.length - 1]!) }
 }
 
+function getPdfStrategyItemDates(
+  block: StrategyBlock,
+  item: StrategyItem,
+): { start: string; end: string } | null {
+  const composite = `${item.platform}::${item.objective}`
+  return (
+    getPdfStrategyPlatformDates(block, composite) ??
+    getPdfStrategyPlatformDates(block, item.platform)
+  )
+}
+
+function PdfDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.pdfDetailRow}>
+      <Text style={styles.pdfDetailLabel} wrap>
+        {label}
+      </Text>
+      <Text style={styles.pdfDetailValue} wrap>
+        {value}
+      </Text>
+    </View>
+  )
+}
+
+function StrategyPdfSectionHeader({ title }: { title: string }) {
+  return (
+    <View style={styles.pdfSectionHeader}>
+      <Text style={styles.pdfSectionHeaderTitle} wrap>
+        {title}
+      </Text>
+    </View>
+  )
+}
+
+function StrategyPdfBudgetBreakdown({ block }: { block: StrategyBlock }) {
+  const mediaTotal = block.items
+    .filter(isMediaStrategyItem)
+    .reduce((sum, item) => sum + item.budget, 0)
+  const additionalSalesLines = getActiveAdditionalSales(block)
+  const additionalTotal = additionalSalesLines.reduce((sum, line) => sum + line.total, 0)
+  const total = getStrategyBlockBudgetTotal(block)
+
+  return (
+    <View style={styles.pdfBudgetBreakdown}>
+      {mediaTotal > 0 && (
+        <View style={styles.pdfBudgetRow}>
+          <Text style={styles.pdfBudgetRowLabel} wrap>
+            Budget média (plateformes)
+          </Text>
+          <Text style={styles.pdfBudgetRowValue} wrap>
+            {formatNumber(mediaTotal, 0)} €
+          </Text>
+        </View>
+      )}
+      {additionalSalesLines.length > 0 && (
+        <>
+          <View style={styles.pdfBudgetRow}>
+            <Text style={[styles.pdfBudgetRowLabel, { fontWeight: 'bold' }]} wrap>
+              Ventes additionnelles
+            </Text>
+            <Text style={styles.pdfBudgetRowValue} wrap>
+              {formatNumber(additionalTotal, 0)} €
+            </Text>
+          </View>
+          {additionalSalesLines.map((line) => (
+            <View key={line.id} style={[styles.pdfBudgetRow, { paddingLeft: 8 }]}>
+              <Text style={[styles.pdfBudgetRowLabel, { fontSize: 9 }]} wrap>
+                {`• ${line.label}${line.count > 1 ? ` (× ${line.count})` : ''}`}
+              </Text>
+              <Text style={[styles.pdfBudgetRowValue, { fontSize: 9 }]} wrap>
+                {formatNumber(line.total, 0)} €
+              </Text>
+            </View>
+          ))}
+        </>
+      )}
+      <View style={styles.pdfBudgetTotalRow}>
+        <Text style={styles.pdfBudgetTotalLabel} wrap>
+          Total stratégie
+        </Text>
+        <Text style={styles.pdfBudgetTotalValue} wrap>
+          {formatNumber(total, 0)} €
+        </Text>
+      </View>
+    </View>
+  )
+}
+
+function getStrategyItemKpiDisplay(item: StrategyItem): string {
+  if (item.customKpiLabel) return item.customKpiLabel
+  if (item.estimatedKPIs > 0) {
+    return `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
+      item.objective === 'Leads' ? ' (est.)' : ''
+    }`
+  }
+  return `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (est.)' : ''}`
+}
+
+function StrategyPdfMediaTable({ items }: { items: StrategyItem[] }) {
+  if (items.length === 0) return null
+  return (
+    <View style={{ width: '100%' }}>
+      <View style={styles.pdfTableHeader}>
+        <Text style={styles.pdfTableCellPlatform} wrap>
+          Plateforme
+        </Text>
+        <Text style={styles.pdfTableCellObjective} wrap>
+          Objectif
+        </Text>
+        <Text style={styles.pdfTableCellBudget} wrap>
+          Budget
+        </Text>
+        <Text style={styles.pdfTableCellKpi} wrap>
+          KPIs
+        </Text>
+      </View>
+      {items.map((item) => (
+        <View key={item.id} style={styles.pdfTableRow}>
+          <Text style={styles.pdfTableCellPlatform} wrap>
+            {item.platform}
+          </Text>
+          <Text style={styles.pdfTableCellObjective} wrap>
+            {item.objective}
+          </Text>
+          <Text style={styles.pdfTableCellBudget} wrap>
+            {formatNumber(item.budget, 0)} €
+          </Text>
+          <Text style={styles.pdfTableCellKpi} wrap>
+            {getStrategyItemKpiDisplay(item)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+function StrategyPdfAdditionalSalesTable({
+  sales,
+}: {
+  sales: ReturnType<typeof getActiveAdditionalSales>
+}) {
+  if (sales.length === 0) return null
+  return (
+    <View style={{ width: '100%' }}>
+      <View style={styles.pdfTableHeader}>
+        <Text style={[styles.pdfTableCellPlatform, { width: '38%' }]} wrap>
+          Option
+        </Text>
+        <Text style={[styles.pdfTableCellObjective, { width: '14%', textAlign: 'center' }]} wrap>
+          Qté
+        </Text>
+        <Text style={[styles.pdfTableCellBudget, { width: '24%' }]} wrap>
+          P.U. HT
+        </Text>
+        <Text style={[styles.pdfTableCellKpi, { width: '24%', textAlign: 'right' }]} wrap>
+          Total HT
+        </Text>
+      </View>
+      {sales.map((sale) => (
+        <View key={sale.id} style={styles.pdfTableRow}>
+          <Text style={[styles.pdfTableCellPlatform, { width: '38%' }]} wrap>
+            {sale.label}
+          </Text>
+          <Text style={[styles.pdfTableCellObjective, { width: '14%', textAlign: 'center' }]} wrap>
+            {String(sale.count)}
+          </Text>
+          <Text style={[styles.pdfTableCellBudget, { width: '24%' }]} wrap>
+            {formatNumber(sale.unitPrice, 0)} €
+          </Text>
+          <Text style={[styles.pdfTableCellKpi, { width: '24%', textAlign: 'right', fontWeight: 'bold' }]} wrap>
+            {formatNumber(sale.total, 0)} €
+          </Text>
+        </View>
+      ))}
+      <View style={[styles.pdfTableRow, { backgroundColor: '#fafafa', borderBottomWidth: 0 }]}>
+        <Text style={[styles.pdfTableCellPlatform, { width: '38%', fontWeight: 'bold' }]} wrap>
+          Sous-total ventes additionnelles
+        </Text>
+        <Text style={[styles.pdfTableCellObjective, { width: '14%' }]} wrap>
+          {' '}
+        </Text>
+        <Text style={[styles.pdfTableCellBudget, { width: '24%' }]} wrap>
+          {' '}
+        </Text>
+        <Text
+          style={[
+            styles.pdfTableCellKpi,
+            { width: '24%', textAlign: 'right', fontWeight: 'bold', color: '#5b21b6' },
+          ]}
+          wrap
+        >
+          {formatNumber(
+            sales.reduce((sum, s) => sum + s.total, 0),
+            0,
+          )}{' '}
+          €
+        </Text>
+      </View>
+    </View>
+  )
+}
+
+function StrategyPdfAdditionalSaleCard({
+  label,
+  count = 1,
+  unitPrice = ADDITIONAL_SALE_PRICE,
+  viaMake = false,
+}: {
+  label: string
+  count?: number
+  unitPrice?: number
+  viaMake?: boolean
+}) {
+  const total = count * unitPrice
+  return (
+    <View style={[styles.itemCard, { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' }]}>
+      <Text style={[styles.pdfItemPlatform, { color: '#5b21b6', fontSize: 11 }]} wrap>
+        {label}
+      </Text>
+      <PdfDetailRow label="Type" value={viaMake ? 'Make (Leads)' : 'Vente additionnelle'} />
+      <PdfDetailRow label="Quantité" value={String(count)} />
+      <PdfDetailRow label="Prix unitaire HT" value={`${formatNumber(unitPrice, 0)} €`} />
+      <PdfDetailRow
+        label="Total HT"
+        value={
+          count > 1
+            ? `${formatNumber(total, 0)} € (${count} × ${formatNumber(unitPrice, 0)} €)`
+            : `${formatNumber(total, 0)} €`
+        }
+      />
+    </View>
+  )
+}
+
 /** Une campagne / plateforme : une ligne <Text> par champ (évite chevauchement Yoga sur blocs multilignes). */
 function StrategyPdfCampaignItem({
   item,
@@ -1251,56 +1779,45 @@ function StrategyPdfCampaignItem({
   if (item.isMakeLeadsAddon) {
     return (
       <View style={[styles.itemCard, { borderColor: '#f9a8d4', backgroundColor: '#fdf2f8' }]}>
-        <Text style={[styles.pdfItemPlatform, { color: '#9d174d' }]} wrap>
+        <Text style={[styles.pdfItemPlatform, { color: '#9d174d', fontSize: 11 }]} wrap>
           {MAKE_LEADS_OPTION_LABEL}
         </Text>
-        <Text style={styles.pdfItemDetailLine} wrap>
-          Coût : {formatNumber(item.budget, 0)} €
-        </Text>
+        <PdfDetailRow label="Type" value="Prestation Make (Leads)" />
+        <PdfDetailRow label="Coût" value={`${formatNumber(item.budget, 0)} € HT`} />
       </View>
     )
   }
 
-  const kpiDisplay = item.customKpiLabel
-    ? item.customKpiLabel
-    : item.estimatedKPIs > 0
-      ? `${formatNumber(item.estimatedKPIs, 0)} ${getKpiUnitLabel(item.objective)}${
-          item.objective === 'Leads' ? ' (estimation)' : ''
-        }`
-      : `${getMaxKpiLabel(item.objective)}${item.objective === 'Leads' ? ' (estimation)' : ''}`
+  const kpiDisplay = getStrategyItemKpiDisplay(item)
 
   return (
     <View style={styles.itemCard}>
       <Text style={styles.pdfItemPlatform} wrap>
         {item.platform}
       </Text>
-      <Text style={styles.pdfItemObjective} wrap>
-        {item.objective}
+      <Text style={[styles.pdfItemObjective, { marginBottom: 6 }]} wrap>
+        Objectif : {item.objective}
       </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        Budget : {formatNumber(item.budget, 0)} €
-      </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        KPIs estimés : {kpiDisplay}
-      </Text>
-      <Text style={styles.pdfItemDetailLine} wrap>
-        Budget quotidien : {formatNumber(item.dailyBudget, 1)} €
-      </Text>
+      <PdfDetailRow label="Budget" value={`${formatNumber(item.budget, 0)} €`} />
+      <PdfDetailRow label="KPIs estimés" value={kpiDisplay} />
+      <PdfDetailRow label="Budget quotidien" value={`${formatNumber(item.dailyBudget, 1)} €`} />
       {item.days > 0 && (
-        <Text style={styles.pdfItemDetailLine} wrap>
-          Diffusion : {item.days} jour{item.days > 1 ? 's' : ''}
-        </Text>
+        <PdfDetailRow
+          label="Diffusion"
+          value={`${item.days} jour${item.days > 1 ? 's' : ''}`}
+        />
       )}
       {platformDates && (
-        <Text style={styles.pdfItemDetailLine} wrap>
-          Dates de diffusion : du {platformDates.start} au {platformDates.end}
-        </Text>
+        <PdfDetailRow
+          label="Dates"
+          value={`${platformDates.start} → ${platformDates.end}`}
+        />
       )}
       {item.tarifsDirection && (
         <Text
           style={[
             styles.pdfItemDetailLine,
-            { fontStyle: 'italic', color: '#1d4ed8', marginBottom: 0 },
+            { fontStyle: 'italic', color: '#1d4ed8', marginTop: 4, marginBottom: 0 },
           ]}
           wrap
         >
@@ -1330,12 +1847,16 @@ function StrategyPdfStrategyOverview({
       ? cal.duration > 0 || cal.items.length > 0
       : !!(cal as StrategyCalendar).endDate
   )
-  if (!hasItems && !hasCalendar) return null
+  const additionalSales = getActiveAdditionalSales(block)
+  const hasAdditionalSales = additionalSales.length > 0
+  if (!hasItems && !hasCalendar && !hasAdditionalSales) return null
 
-  const total = hasItems ? block.items.reduce((sum, item) => sum + item.budget, 0) : 0
+  const mediaItems = block.items.filter(isMediaStrategyItem)
+  const mediaTotal = mediaItems.reduce((sum, item) => sum + item.budget, 0)
+  const total = getStrategyBlockBudgetTotal(block)
 
   const platformTotals: Record<string, number> = {}
-  block.items.forEach((item) => {
+  mediaItems.forEach((item) => {
     if (!platformTotals[item.platform]) {
       platformTotals[item.platform] = 0
     }
@@ -1345,12 +1866,12 @@ function StrategyPdfStrategyOverview({
   const chartDataPlatform = Object.entries(platformTotals).map(([name, value], idx) => ({
     name,
     value: Math.round(value),
-    percentage: total > 0 ? (value / total) * 100 : 0,
+    percentage: mediaTotal > 0 ? (value / mediaTotal) * 100 : 0,
     color: PDF_COLORS[idx % PDF_COLORS.length],
   }))
 
   const objectiveTotals: Record<string, number> = {}
-  block.items.forEach((item) => {
+  mediaItems.forEach((item) => {
     if (!objectiveTotals[item.objective]) {
       objectiveTotals[item.objective] = 0
     }
@@ -1360,10 +1881,11 @@ function StrategyPdfStrategyOverview({
   const chartDataObjective = Object.entries(objectiveTotals).map(([name, value], idx) => ({
     name,
     value: Math.round(value),
-    percentage: total > 0 ? (value / total) * 100 : 0,
+    percentage: mediaTotal > 0 ? (value / mediaTotal) * 100 : 0,
     color: PDF_COLORS[idx % PDF_COLORS.length],
   }))
 
+  const complementaryItems = block.items.filter(isComplementaryStrategyItem)
   const strategyAe = block.items.length > 0 ? block.items[0].aePercentage : 0
 
   return (
@@ -1374,21 +1896,18 @@ function StrategyPdfStrategyOverview({
         </Text>
         {hasItems && (
           <>
-            <Text style={[styles.summaryTotal, { marginTop: 4 }]} wrap>
-              Total : {formatNumber(total, 0)} €
-            </Text>
-            <Text style={[styles.pdfSummaryBlockText, { marginTop: 10 }]} wrap>
-              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '-'}
+            <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
+              AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '—'}
             </Text>
             {block.items.some((it) => it.tarifsDirection) && (
               <Text
                 style={[
                   styles.pdfSummaryBlockText,
-                  { marginTop: 8, fontStyle: 'italic', color: '#1d4ed8' },
+                  { marginTop: 6, fontStyle: 'italic', color: '#1d4ed8' },
                 ]}
                 wrap
               >
-                Tarifs direction : certaines plateformes
+                Tarifs direction appliqués sur certaines plateformes
               </Text>
             )}
           </>
@@ -1400,56 +1919,104 @@ function StrategyPdfStrategyOverview({
         )}
       </View>
 
+      {(hasItems || hasAdditionalSales) && <StrategyPdfBudgetBreakdown block={block} />}
+
       {!!block.comment?.trim() && (
-        <View style={{ width: '100%', marginTop: 10 }}>
+        <View style={styles.pdfCommentBox}>
           <Text style={[styles.pdfSummaryBlockText, { fontWeight: 'bold', marginBottom: 4 }]} wrap>
             Commentaire
           </Text>
-          <Text style={[styles.clientComment, { marginTop: 0, marginBottom: 0 }]} wrap>
+          <Text style={[styles.clientComment, { marginTop: 0, marginBottom: 0, fontSize: 10 }]} wrap>
             {block.comment.trim()}
           </Text>
         </View>
       )}
 
+      {mediaItems.length > 0 && (
+        <View style={{ width: '100%' }}>
+          <StrategyPdfSectionHeader title="Plateformes & campagnes" />
+          <StrategyPdfMediaTable items={mediaItems} />
+        </View>
+      )}
+
+      {hasAdditionalSales && (
+        <View style={{ width: '100%' }}>
+          <StrategyPdfSectionHeader title="Ventes additionnelles" />
+          <StrategyPdfAdditionalSalesTable sales={additionalSales} />
+        </View>
+      )}
+
+      {complementaryItems.length > 0 &&
+        complementaryItems.some(
+          (item) =>
+            !(
+              (item.platform === 'META' &&
+                additionalSales.some((s) => s.id === 'leadsMeta' && s.viaMake)) ||
+              (item.platform === 'LinkedIn' &&
+                additionalSales.some((s) => s.id === 'leadsLinkedIn' && s.viaMake))
+            ),
+        ) && (
+          <View style={{ width: '100%' }}>
+            <StrategyPdfSectionHeader title="Prestations Make" />
+            {complementaryItems
+              .filter(
+                (item) =>
+                  !(
+                    (item.platform === 'META' &&
+                      additionalSales.some((s) => s.id === 'leadsMeta' && s.viaMake)) ||
+                    (item.platform === 'LinkedIn' &&
+                      additionalSales.some((s) => s.id === 'leadsLinkedIn' && s.viaMake))
+                  ),
+              )
+              .map((item) => (
+                <Text key={item.id} style={[styles.pdfLegendLine, { color: '#6d28d9', marginBottom: 3 }]} wrap>
+                  {`• ${MAKE_LEADS_OPTION_LABEL} — ${formatNumber(item.budget, 0)} € HT`}
+                </Text>
+              ))}
+          </View>
+        )}
+
       {hasItems && (chartDataPlatform.length > 0 || chartDataObjective.length > 0) && (
-        <View style={styles.chartsRow}>
-          {chartDataPlatform.length > 0 && (
-            <View style={styles.chartBox}>
-              <Text style={styles.chartTitle}>Répartition par plateforme</Text>
-              <View style={styles.pieCircle}>
-                <PdfDonutChart data={chartDataPlatform} />
+        <View style={{ width: '100%' }}>
+          <StrategyPdfSectionHeader title="Répartition du budget média" />
+          <View style={styles.chartsRow}>
+            {chartDataPlatform.length > 0 && (
+              <View style={styles.chartBox}>
+                <Text style={styles.chartTitle}>Par plateforme</Text>
+                <View style={styles.pieCircle}>
+                  <PdfDonutChart data={chartDataPlatform} />
+                </View>
+                <View style={styles.legend}>
+                  {chartDataPlatform.map((row, idx) => (
+                    <Text key={idx} style={styles.pdfLegendLine} wrap>
+                      {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                    </Text>
+                  ))}
+                </View>
               </View>
-              <View style={styles.legend}>
-                {chartDataPlatform.map((row, idx) => (
-                  <Text key={idx} style={styles.pdfLegendLine} wrap>
-                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                  </Text>
-                ))}
+            )}
+            {chartDataObjective.length > 0 && (
+              <View style={styles.chartBox}>
+                <Text style={styles.chartTitle}>Par objectif</Text>
+                <View style={styles.pieCircle}>
+                  <PdfDonutChart data={chartDataObjective} />
+                </View>
+                <View style={styles.legend}>
+                  {chartDataObjective.map((row, idx) => (
+                    <Text key={idx} style={styles.pdfLegendLine} wrap>
+                      {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
+                    </Text>
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
-          {chartDataObjective.length > 0 && (
-            <View style={styles.chartBox}>
-              <Text style={styles.chartTitle}>Répartition par objectif</Text>
-              <View style={styles.pieCircle}>
-                <PdfDonutChart data={chartDataObjective} />
-              </View>
-              <View style={styles.legend}>
-                {chartDataObjective.map((row, idx) => (
-                  <Text key={idx} style={styles.pdfLegendLine} wrap>
-                    {`• ${row.name} — ${row.percentage.toFixed(1)} % (${formatNumber(row.value, 0)} €)`}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
+            )}
+          </View>
         </View>
       )}
 
       {hasItems && (
         <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
-          Le détail des lignes de campagne figure sur les pages suivantes (au plus {PDF_STRATEGY_DETAIL_CHUNK} encarts par
-          page).
+          Le détail complet de chaque campagne figure sur les pages suivantes.
         </Text>
       )}
     </View>
@@ -1476,6 +2043,8 @@ const PDFDocument = ({
     .map((block, strategyIdx) => ({ block, strategyIdx }))
     .filter(({ block }) => strategyBlockHasPdfContent(block))
 
+  const grandTotal = strategies.reduce((sum, block) => sum + getStrategyBlockBudgetTotal(block), 0)
+
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
@@ -1488,37 +2057,116 @@ const PDFDocument = ({
             Client : {clientName}
           </Text>
           {!!comment?.trim() && (
-            <Text style={styles.clientComment} wrap>
-              {comment.trim()}
-            </Text>
+            <View style={[styles.pdfCommentBox, { marginTop: 10 }]}>
+              <Text style={[styles.pdfSummaryBlockText, { fontWeight: 'bold', marginBottom: 4 }]} wrap>
+                Commentaire général
+              </Text>
+              <Text style={[styles.clientComment, { marginTop: 0, marginBottom: 0 }]} wrap>
+                {comment.trim()}
+              </Text>
+            </View>
           )}
-          {strategies
-            .filter((s) => s.comment?.trim())
-            .map((s) => (
-              <View key={s.id} style={{ width: '100%' }}>
-                <Text style={styles.strategyCommentNameOnCover} wrap>
-                  {s.name}
-                </Text>
-                <Text style={styles.strategyCommentOnCover} wrap>
-                  {s.comment!.trim()}
-                </Text>
+
+          {strategyPages.length > 0 && (
+            <View style={{ width: '100%', marginTop: 16 }}>
+              <Text style={styles.pdfCoverTableTitle} wrap>
+                Synthèse des stratégies
+              </Text>
+              <View style={styles.pdfCoverTable}>
+                <View style={[styles.pdfTableHeader, { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+                  <Text style={[styles.pdfTableCellPlatform, { width: '40%' }]} wrap>
+                    Stratégie
+                  </Text>
+                  <Text style={[styles.pdfTableCellBudget, { width: '30%' }]} wrap>
+                    Total
+                  </Text>
+                  <Text style={[styles.pdfTableCellKpi, { width: '30%', textAlign: 'right' }]} wrap>
+                    AE
+                  </Text>
+                </View>
+                {strategyPages.map(({ block, strategyIdx }) => {
+                  const blockTotal = getStrategyBlockBudgetTotal(block)
+                  const blockAe = block.items.length > 0 ? block.items[0].aePercentage : 0
+                  return (
+                    <View key={block.id} style={styles.pdfTableRow}>
+                      <Text style={[styles.pdfTableCellPlatform, { width: '40%' }]} wrap>
+                        {strategyIdx + 1}. {block.name}
+                      </Text>
+                      <Text style={[styles.pdfTableCellBudget, { width: '30%' }]} wrap>
+                        {formatNumber(blockTotal, 0)} €
+                      </Text>
+                      <Text style={[styles.pdfTableCellKpi, { width: '30%', textAlign: 'right' }]} wrap>
+                        {blockAe > 0 ? `${formatNumber(blockAe, 0)} %` : '—'}
+                      </Text>
+                    </View>
+                  )
+                })}
+                <View
+                  style={[
+                    styles.pdfTableRow,
+                    { backgroundColor: '#fafafa', borderBottomWidth: 0 },
+                  ]}
+                >
+                  <Text style={[styles.pdfTableCellPlatform, { width: '40%', fontWeight: 'bold' }]} wrap>
+                    Total général
+                  </Text>
+                  <Text
+                    style={[
+                      styles.pdfTableCellBudget,
+                      { width: '30%', color: '#E94C16', fontSize: 11 },
+                    ]}
+                    wrap
+                  >
+                    {formatNumber(grandTotal, 0)} €
+                  </Text>
+                  <Text style={[styles.pdfTableCellKpi, { width: '30%' }]} wrap>
+                    {' '}
+                  </Text>
+                </View>
               </View>
-            ))}
+            </View>
+          )}
+
+          {strategies.some((s) => s.comment?.trim()) && (
+            <View style={{ width: '100%', marginTop: 14 }}>
+              <Text style={styles.pdfCoverTableTitle} wrap>
+                Commentaires par stratégie
+              </Text>
+              {strategies
+                .filter((s) => s.comment?.trim())
+                .map((s) => (
+                  <View key={s.id} style={[styles.pdfCommentBox, { marginTop: 6 }]}>
+                    <Text style={styles.strategyCommentNameOnCover} wrap>
+                      {s.name}
+                    </Text>
+                    <Text style={[styles.strategyCommentOnCover, { marginTop: 2 }]} wrap>
+                      {s.comment!.trim()}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          )}
+
           {strategyPages.length === 0 ? (
             <Text style={[styles.pdfCoverHint, { marginTop: 12 }]} wrap>
               Aucune stratégie avec lignes de campagne ou calendrier de diffusion à inclure dans l&apos;export.
             </Text>
           ) : (
-            <Text style={[styles.pdfCoverHint, { marginTop: comment?.trim() ? 4 : 8 }]} wrap>
-              Ce document comporte {strategyPages.length} stratégie{strategyPages.length > 1 ? 's' : ''}. Chaque stratégie
-              commence par une page récapitulative (graphiques), puis des pages de détail avec au plus{' '}
-              {PDF_STRATEGY_DETAIL_CHUNK} encarts plateformes par page.
+            <Text style={[styles.pdfCoverHint, { marginTop: 14 }]} wrap>
+              {strategyPages.length} stratégie{strategyPages.length > 1 ? 's' : ''} · Page récapitulative puis détail
+              campagnes et prestations complémentaires.
             </Text>
           )}
         </View>
       </Page>
 
-      {strategyPages.map(({ block, strategyIdx }) => (
+      {strategyPages.map(({ block, strategyIdx }) => {
+        const mediaChunks = chunkItemsForPdf(
+          block.items.filter(isMediaStrategyItem),
+          PDF_STRATEGY_DETAIL_CHUNK,
+        )
+        const additionalSalesLines = getActiveAdditionalSales(block)
+        return (
         <React.Fragment key={block.id}>
           <Page size="A4" style={styles.page} wrap>
             <Text style={styles.pdfStrategySheetTitle} wrap>
@@ -1526,25 +2174,47 @@ const PDFDocument = ({
             </Text>
             <StrategyPdfStrategyOverview block={block} strategyIdx={strategyIdx} />
           </Page>
-          {chunkItemsForPdf(block.items, PDF_STRATEGY_DETAIL_CHUNK).map((chunk, chunkIdx) => (
+          {mediaChunks.map((chunk, chunkIdx) => (
             <Page key={`${block.id}-detail-${chunkIdx}`} size="A4" style={styles.page} wrap={false}>
               <Text style={styles.pdfStrategySheetTitle} wrap>
                 Stratégie {strategyIdx + 1} · {block.name}
               </Text>
               <Text style={styles.pdfPlatformDetailSubtitle} wrap>
-                Détail des campagnes
+                Détail des campagnes ({chunkIdx + 1}/{mediaChunks.length})
               </Text>
               {chunk.map((item) => (
                 <StrategyPdfCampaignItem
                   key={item.id}
                   item={item}
-                  platformDates={getPdfStrategyPlatformDates(block, item.platform)}
+                  platformDates={getPdfStrategyItemDates(block, item)}
                 />
               ))}
             </Page>
           ))}
+          {additionalSalesLines.length > 0 && (
+            <Page key={`${block.id}-additional-sales`} size="A4" style={styles.page} wrap>
+              <Text style={styles.pdfStrategySheetTitle} wrap>
+                Stratégie {strategyIdx + 1} · {block.name}
+              </Text>
+              <StrategyPdfSectionHeader title="Ventes additionnelles — détail" />
+              <StrategyPdfAdditionalSalesTable sales={additionalSalesLines} />
+              <Text style={[styles.pdfPlatformDetailSubtitle, { marginTop: 12 }]} wrap>
+                Détail par option
+              </Text>
+              {additionalSalesLines.map((sale) => (
+                <StrategyPdfAdditionalSaleCard
+                  key={sale.id}
+                  label={sale.label}
+                  count={sale.count}
+                  unitPrice={sale.unitPrice}
+                  viaMake={sale.viaMake}
+                />
+              ))}
+            </Page>
+          )}
         </React.Fragment>
-      ))}
+        )
+      })}
     </Document>
   )
 }
@@ -2026,8 +2696,8 @@ export default function VentePage() {
   const [pendingLeadsRow, setPendingLeadsRow] = useState<
     (TableRowData & { customKpiLabel?: string }) | null
   >(null)
+  const pendingLeadsRowRef = useRef<(TableRowData & { customKpiLabel?: string }) | null>(null)
   const [clientName, setClientName] = useState('')
-  const [pdfClientComment, setPdfClientComment] = useState('')
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -2063,6 +2733,7 @@ export default function VentePage() {
   
   // État pour le sélecteur de graphique
   const [chartView, setChartView] = useState<ChartView>('platform')
+  const [strategyChartsOpen, setStrategyChartsOpen] = useState<Record<string, boolean>>({})
   
   // État pour le nom de l'utilisateur connecté
   const [userName, setUserName] = useState<string>('')
@@ -2328,14 +2999,8 @@ export default function VentePage() {
   }, [tableData])
 
   // Fonction pour ajouter à la stratégie active
-  const addToStrategy = (
-    row: TableRowData & { customKpiLabel?: string },
-    options?: { includeMakeLeadsAddon?: boolean },
-  ) => {
-    const daysNum = parseFloat(diffusionDays) || 0
+  const canAddToActiveStrategy = useCallback((): boolean => {
     const aeNum = parseFloat(aePercentage) || 0
-
-    // Vérifier cohérence du % AE dans la stratégie cible
     const targetId = activeStrategyId || strategies[0]?.id
     const targetStrategy = strategies.find((s) => s.id === targetId)
     if (targetStrategy && targetStrategy.items.length > 0) {
@@ -2344,9 +3009,24 @@ export default function VentePage() {
         alert(
           `Le % AE de cette stratégie est ${existingAe} %. Pour ajouter une ligne, utilisez le même % AE ou créez une nouvelle stratégie.`,
         )
-        return
+        return false
       }
     }
+    return true
+  }, [activeStrategyId, strategies, aePercentage])
+
+  const addToStrategy = (
+    row: TableRowData & { customKpiLabel?: string },
+    options?: { includeMakeLeadsAddon?: boolean },
+  ): boolean => {
+    const daysNum = parseFloat(diffusionDays) || 0
+    const aeNum = parseFloat(aePercentage) || 0
+
+    if (!canAddToActiveStrategy()) {
+      return false
+    }
+
+    const targetId = activeStrategyId || strategies[0]?.id
 
     const newItem: StrategyItem = {
       ...row,
@@ -2389,10 +3069,14 @@ export default function VentePage() {
           : s,
       )
     })
+    return true
   }
 
   const requestAddToStrategy = (row: TableRowData & { customKpiLabel?: string }) => {
+    if (!canAddToActiveStrategy()) return
+
     if (isMakeLeadsTrigger(row.platform, row.objective)) {
+      pendingLeadsRowRef.current = row
       setPendingLeadsRow(row)
       setMakeLeadsModalOpen(true)
       return
@@ -2401,12 +3085,16 @@ export default function VentePage() {
   }
 
   const handleMakeLeadsChoice = (acceptMakeOption: boolean) => {
-    if (!pendingLeadsRow) return
-    if (acceptMakeOption) {
-      addToStrategy(pendingLeadsRow, { includeMakeLeadsAddon: true })
-    } else {
-      addToStrategy(pendingLeadsRow)
-    }
+    const row = pendingLeadsRowRef.current ?? pendingLeadsRow
+    if (!row) return
+
+    const added = addToStrategy(
+      row,
+      acceptMakeOption ? { includeMakeLeadsAddon: true } : undefined,
+    )
+    if (!added) return
+
+    pendingLeadsRowRef.current = null
     setPendingLeadsRow(null)
     setMakeLeadsModalOpen(false)
   }
@@ -2420,6 +3108,44 @@ export default function VentePage() {
     )
   }
 
+  const setStrategyAdditionalSaleCount = (
+    strategyId: string,
+    saleId: AdditionalSaleId,
+    count: number,
+  ) => {
+    setStrategies((prev) =>
+      prev.map((s) => {
+        if (s.id !== strategyId) return s
+        const platform = getMakeLeadsPlatformForSale(saleId)
+        const normalized = Math.max(0, Math.floor(count))
+        const next = { ...(s.additionalSales ?? {}) }
+
+        if (normalized <= 0) {
+          delete next[saleId]
+        } else if (platform && hasMakeLeadsAddonForAdditionalSale(s, saleId)) {
+          return s
+        } else {
+          next[saleId] = normalized
+        }
+
+        const items =
+          platform && normalized <= 0
+            ? removeMakeLeadsAddonItems(s.items, platform)
+            : s.items
+
+        return { ...s, additionalSales: next, items }
+      }),
+    )
+  }
+
+  const toggleStrategyAdditionalSale = (
+    strategyId: string,
+    saleId: AdditionalSaleId,
+    checked: boolean,
+  ) => {
+    setStrategyAdditionalSaleCount(strategyId, saleId, checked ? 1 : 0)
+  }
+
   // Stratégie active (pour les interactions / +)
   const activeStrategy = strategies.find((s) => s.id === activeStrategyId) ?? strategies[0]
   const activeRetroSocial = retroSocialByStrategy[activeStrategyId] ?? defaultRetroSocialState()
@@ -2427,45 +3153,46 @@ export default function VentePage() {
 
   // Calculer le total de la stratégie active (mise à jour automatique)
   const strategyTotal = useMemo(() => {
-    return strategy.reduce((total, item) => total + item.budget, 0)
-  }, [strategy])
+    if (!activeStrategy) return 0
+    return getStrategyBlockBudgetTotal(activeStrategy)
+  }, [activeStrategy])
 
   // Calculer le total des KPIs dans la stratégie active
   const strategyKPIsTotal = useMemo(() => {
-    return strategy.reduce((total, item) => total + item.estimatedKPIs, 0)
+    return strategy.filter(isMediaStrategyItem).reduce((total, item) => total + item.estimatedKPIs, 0)
   }, [strategy])
 
   // Préparer les données pour le graphique (par plateforme) pour la stratégie active
   const chartData = useMemo(() => {
     const platformTotals: Record<string, number> = {}
-    
-    strategy.forEach((item) => {
+
+    strategy.filter(isMediaStrategyItem).forEach((item) => {
       if (!platformTotals[item.platform]) {
         platformTotals[item.platform] = 0
       }
       platformTotals[item.platform] += item.budget
     })
-  
+
     return Object.entries(platformTotals).map(([name, value]) => ({
       name,
-      value: Math.round(value)
+      value: Math.round(value),
     }))
   }, [strategy])
 
   // Préparer les données pour le graphique (par objectif) pour la stratégie active
   const chartDataByObjective = useMemo(() => {
     const objectiveTotals: Record<string, number> = {}
-    
-    strategy.forEach((item) => {
+
+    strategy.filter(isMediaStrategyItem).forEach((item) => {
       if (!objectiveTotals[item.objective]) {
         objectiveTotals[item.objective] = 0
       }
       objectiveTotals[item.objective] += item.budget
     })
-  
+
     return Object.entries(objectiveTotals).map(([name, value]) => ({
       name,
-      value: Math.round(value)
+      value: Math.round(value),
     }))
   }, [strategy])
 
@@ -2679,7 +3406,7 @@ export default function VentePage() {
         clientName={clientName}
         userName={userName}
         aePercentage={parseFloat(aePercentage) || 0}
-        comment={pdfClientComment}
+        comment={undefined}
         logoDataUrl={logoDataUrl}
       />
     )
@@ -2692,7 +3419,6 @@ export default function VentePage() {
     URL.revokeObjectURL(url)
     setPdfDialogOpen(false)
     setClientName('')
-    setPdfClientComment('')
   }
 
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
@@ -2709,13 +3435,13 @@ export default function VentePage() {
           clientName={clientName || 'Client'}
           userName={userName}
           aePercentage={parseFloat(aePercentage) || 0}
-          comment={pdfClientComment}
+          comment={undefined}
           logoDataUrl={logoDataUrl}
         />
       )
       const blob = await pdf(doc).toBlob()
 
-      // 2) Convertir le blob en base64 (sans FileReader imbriqué)
+      // 2) Convertir le blob en base64
       const arrayBuffer = await blob.arrayBuffer()
       let base64: string
       if (typeof window !== 'undefined') {
@@ -3127,7 +3853,6 @@ export default function VentePage() {
               type="button"
               onClick={() => {
                 setGlobalPackClientName(clientName)
-                setGlobalPackComment(pdfClientComment)
                 setGlobalPackDialogOpen(true)
               }}
               disabled={globalPackExporting}
@@ -3707,11 +4432,76 @@ export default function VentePage() {
               const isActive = block.id === activeStrategyId
               const isExpanded = expandedStrategies[block.id] ?? index === 0
               const items = block.items
+              const mediaItems = items.filter(isMediaStrategyItem)
               const blockAe = items.length > 0 ? items[0].aePercentage : 0
-              const total = items.reduce((sum, it) => sum + it.budget, 0)
-              const hasAnyTarifsDirection = items.some((it) => it.tarifsDirection)
-              const hasSummary = items.length > 0
-              const budgetLabel = total.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+              const blockTotal = getStrategyBlockBudgetTotal(block)
+              const hasSummary = items.length > 0 || getAdditionalSalesTotal(block) > 0
+              const budgetLabel = blockTotal.toLocaleString('fr-FR', { maximumFractionDigits: 0 })
+
+              const renderStrategyItemRow = (
+                item: StrategyItem,
+                variant: 'media' | 'complementary',
+              ) => {
+                const colorClass =
+                  variant === 'complementary'
+                    ? item.isMakeLeadsAddon
+                      ? MAKE_LEADS_PINK_ROW_CLASS
+                      : COMPLEMENTARY_ROW_CLASS
+                    : getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-2.5 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
+                        {item.isMakeLeadsAddon ? (
+                          <span className="text-sm font-semibold">{MAKE_LEADS_OPTION_LABEL}</span>
+                        ) : (
+                          <span className="text-sm font-semibold leading-snug">
+                            {formatStrategyPlatformObjectiveLine(item.platform, item.objective)}
+                          </span>
+                        )}
+                        {item.tarifsDirection && (
+                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            Tarifs direction
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-semibold mt-1">
+                        {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
+                      </div>
+                      {!item.isMakeLeadsAddon && (
+                        <>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {item.customKpiLabel
+                              ? item.customKpiLabel
+                              : item.estimatedKPIs > 0
+                                ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}${
+                                    item.objective === 'Leads' ? ' (estimation)' : ''
+                                  }`
+                                : `${getMaxKpiLabel(item.objective)}${
+                                    item.objective === 'Leads' ? ' (estimation)' : ''
+                                  }`}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {item.days > 0 &&
+                              `Diffusion : ${item.days} jour${item.days > 1 ? 's' : ''}`}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => removeFromStrategy(block.id, item.id)}
+                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )
+              }
 
               return (
                 <Card
@@ -3888,27 +4678,12 @@ export default function VentePage() {
                             )}
                           </CardTitle>
 
-                          {hasSummary && (
+                          {hasSummary && !isExpanded && (
                             <div className="text-[11px] text-muted-foreground">
-                              {isExpanded ? (
-                                <div className="flex flex-col">
-                                  <span>
-                                    Budget total :{' '}
-                                    <span className="font-semibold text-[#E94C16]">
-                                      {budgetLabel} €
-                                    </span>
-                                  </span>
-                                  <span>AE : {blockAe > 0 ? `${blockAe} %` : '-'}</span>
-                                </div>
-                              ) : (
-                                <>
-                                  Budget total :{' '}
-                                  <span className="font-semibold text-[#E94C16]">
-                                    {budgetLabel} €
-                                  </span>{' '}
-                                  - AE : {blockAe > 0 ? `${blockAe} %` : '-'}
-                                </>
-                              )}
+                              Budget total :{' '}
+                              <span className="font-semibold text-[#E94C16]">
+                                {budgetLabel} €
+                              </span>
                             </div>
                           )}
                         </div>
@@ -3935,196 +4710,155 @@ export default function VentePage() {
                     <CardContent className="flex-1 flex flex-col overflow-hidden pt-0">
                       {items.length > 0 ? (
                         <>
-                          {/* Liste des éléments */}
-                          <div className="flex-1 overflow-y-auto mb-4 mt-2">
-                            <div className="space-y-2">
-                              {items.map((item) => {
-                                const colorClass = item.isMakeLeadsAddon
-                                  ? MAKE_LEADS_PINK_ROW_CLASS
-                                  : getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
-                                return (
-                                  <div
-                                    key={item.id}
-                                    className={`p-3 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
-                                        {item.isMakeLeadsAddon ? (
-                                          <span className="text-sm font-semibold">
-                                            {MAKE_LEADS_OPTION_LABEL}
-                                          </span>
-                                        ) : (
-                                          <PlatformBadge platform={item.platform} />
-                                        )}
-                                        {item.tarifsDirection && (
-                                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                                            Tarifs direction
-                                          </span>
-                                        )}
-                                      </div>
-                                      {!item.isMakeLeadsAddon && (
-                                        <div className="text-xs text-muted-foreground">
-                                          {item.objective}
-                                        </div>
-                                      )}
-                                      <div className="text-xs font-semibold mt-1">
-                                        {item.budget.toLocaleString('fr-FR', {
-                                          maximumFractionDigits: 0,
-                                        })}{' '}
-                                        €
-                                      </div>
-                                      {!item.isMakeLeadsAddon && (
-                                        <>
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            {item.customKpiLabel
-                                              ? item.customKpiLabel
-                                              : item.estimatedKPIs > 0
-                                                ? `${item.estimatedKPIs.toLocaleString(
-                                                    'fr-FR',
-                                                  )} ${getKpiUnitLabel(item.objective)}${
-                                                    item.objective === 'Leads' ? ' (estimation)' : ''
-                                                  }`
-                                                : `${getMaxKpiLabel(item.objective)}${
-                                                    item.objective === 'Leads' ? ' (estimation)' : ''
-                                                  }`}
-                                          </div>
-                                          <div className="text-xs text-muted-foreground">
-                                            {item.days > 0 &&
-                                              `Diffusion : ${item.days} jour${
-                                                item.days > 1 ? 's' : ''
-                                              }`}
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => removeFromStrategy(block.id, item.id)}
-                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Graphiques et exports uniquement pour la stratégie active */}
+                          {/* Graphiques (affichage sur demande) */}
                           {isActive && (chartData.length > 0 || chartDataByObjective.length > 0) && (
-                            <div className="mb-6">
-                              {/* Sélecteur de graphique */}
-                              <div className="mb-4">
-                                <Tabs
-                                  value={chartView}
-                                  onValueChange={(value) => setChartView(value as ChartView)}
-                                  className="w-full"
-                                >
-                                  <TabsList className="grid w-full grid-cols-2 border-2 border-gray-300">
-                                    <TabsTrigger
-                                      value="platform"
-                                      className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-                                      disabled={chartData.length === 0}
-                                    >
-                                      Par plateforme
-                                    </TabsTrigger>
-                                    <TabsTrigger
-                                      value="objective"
-                                      className="data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
-                                      disabled={chartDataByObjective.length === 0}
-                                    >
-                                      Par objectif
-                                    </TabsTrigger>
-                                  </TabsList>
-                                </Tabs>
-                              </div>
+                            <div className="mb-3 mt-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-full text-[11px] gap-1.5"
+                                onClick={() =>
+                                  setStrategyChartsOpen((prev) => ({
+                                    ...prev,
+                                    [block.id]: !prev[block.id],
+                                  }))
+                                }
+                              >
+                                <BarChart2 className="h-3.5 w-3.5" />
+                                {strategyChartsOpen[block.id]
+                                  ? 'Masquer les graphiques'
+                                  : 'Afficher les graphiques'}
+                              </Button>
 
-                              {/* Graphique par plateforme */}
-                              {chartView === 'platform' && chartData.length > 0 && (
-                                <div>
-                                  <h3 className="text-sm font-semibold mb-3">
-                                    Répartition par plateforme
-                                  </h3>
-                                  <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                      <Pie
-                                        data={chartData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent = 0 }) =>
-                                          `${name}: ${(percent * 100).toFixed(0)}%`
-                                        }
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                      >
-                                        {chartData.map((entry, idx) => (
-                                          <Cell
-                                            key={`cell-${idx}`}
-                                            fill={COLORS[idx % COLORS.length]}
-                                          />
-                                        ))}
-                                      </Pie>
-                                      <Tooltip
-                                        formatter={(value: number | undefined) =>
-                                          value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
-                                        }
-                                      />
-                                      <Legend />
-                                    </PieChart>
-                                  </ResponsiveContainer>
-                                </div>
-                              )}
+                              {strategyChartsOpen[block.id] && (
+                                <div className="mt-2">
+                                  <div className="mb-2">
+                                    <Tabs
+                                      value={chartView}
+                                      onValueChange={(value) => setChartView(value as ChartView)}
+                                      className="w-full"
+                                    >
+                                      <TabsList className="grid h-8 w-full grid-cols-2 border border-gray-300">
+                                        <TabsTrigger
+                                          value="platform"
+                                          className="h-7 text-[11px] data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                          disabled={chartData.length === 0}
+                                        >
+                                          Par plateforme
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                          value="objective"
+                                          className="h-7 text-[11px] data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                                          disabled={chartDataByObjective.length === 0}
+                                        >
+                                          Par objectif
+                                        </TabsTrigger>
+                                      </TabsList>
+                                    </Tabs>
+                                  </div>
 
-                              {/* Graphique par objectif */}
-                              {chartView === 'objective' && chartDataByObjective.length > 0 && (
-                                <div>
-                                  <h3 className="text-sm font-semibold mb-3">
-                                    Répartition par objectif
-                                  </h3>
-                                  <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                      <Pie
-                                        data={chartDataByObjective}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent = 0 }) =>
-                                          `${name}: ${(percent * 100).toFixed(0)}%`
-                                        }
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                      >
-                                        {chartDataByObjective.map((entry, idx) => (
-                                          <Cell
-                                            key={`cell-objective-${idx}`}
-                                            fill={COLORS[idx % COLORS.length]}
+                                  {chartView === 'platform' && chartData.length > 0 && (
+                                    <div>
+                                      <h3 className="text-xs font-semibold mb-1.5">
+                                        Répartition par plateforme
+                                      </h3>
+                                      <ResponsiveContainer width="100%" height={160}>
+                                        <PieChart>
+                                          <Pie
+                                            data={chartData}
+                                            cx="50%"
+                                            cy="45%"
+                                            labelLine={false}
+                                            outerRadius={42}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                          >
+                                            {chartData.map((entry, idx) => (
+                                              <Cell
+                                                key={`cell-${idx}`}
+                                                fill={COLORS[idx % COLORS.length]}
+                                              />
+                                            ))}
+                                          </Pie>
+                                          <Tooltip
+                                            formatter={(value: number | undefined) =>
+                                              value != null
+                                                ? `${value.toLocaleString('fr-FR')} €`
+                                                : '-'
+                                            }
                                           />
-                                        ))}
-                                      </Pie>
-                                      <Tooltip
-                                        formatter={(value: number | undefined) =>
-                                          value != null ? `${value.toLocaleString('fr-FR')} €` : '-'
-                                        }
-                                      />
-                                      <Legend />
-                                    </PieChart>
-                                  </ResponsiveContainer>
+                                          <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                        </PieChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  )}
+
+                                  {chartView === 'objective' && chartDataByObjective.length > 0 && (
+                                    <div>
+                                      <h3 className="text-xs font-semibold mb-1.5">
+                                        Répartition par objectif
+                                      </h3>
+                                      <ResponsiveContainer width="100%" height={160}>
+                                        <PieChart>
+                                          <Pie
+                                            data={chartDataByObjective}
+                                            cx="50%"
+                                            cy="45%"
+                                            labelLine={false}
+                                            outerRadius={42}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                          >
+                                            {chartDataByObjective.map((entry, idx) => (
+                                              <Cell
+                                                key={`cell-objective-${idx}`}
+                                                fill={COLORS[idx % COLORS.length]}
+                                              />
+                                            ))}
+                                          </Pie>
+                                          <Tooltip
+                                            formatter={(value: number | undefined) =>
+                                              value != null
+                                                ? `${value.toLocaleString('fr-FR')} €`
+                                                : '-'
+                                            }
+                                          />
+                                          <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                        </PieChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
                           )}
 
+                          {/* Lignes plateformes */}
+                          <div className="flex-1 overflow-y-auto mb-3 max-h-[280px]">
+                            {mediaItems.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                  Plateformes
+                                </p>
+                                {mediaItems.map((item) => renderStrategyItemRow(item, 'media'))}
+                              </div>
+                            )}
+                          </div>
+
                           {/* Commentaire libre (indépendant par stratégie) */}
                           {isActive && (
-                            <div className="mb-4 space-y-2 flex-shrink-0 rounded-lg border bg-muted/30 p-3">
-                              <Label htmlFor={`strategy-comment-${block.id}`}>Commentaire</Label>
+                            <div className="mb-3 flex-shrink-0 rounded-lg border bg-muted/30 p-2.5">
+                              <Label
+                                htmlFor={`strategy-comment-${block.id}`}
+                                className="text-sm mb-1.5 block"
+                              >
+                                Commentaire
+                              </Label>
                               <Textarea
                                 id={`strategy-comment-${block.id}`}
-                                placeholder="Ajoutez un commentaire pour cette stratégie…"
+                                placeholder="Commentaire visible sur le PDF"
+                                rows={2}
                                 value={block.comment ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value
@@ -4134,8 +4868,130 @@ export default function VentePage() {
                                     ),
                                   )
                                 }}
-                                className="min-h-[72px] text-sm resize-y bg-background"
+                                className="min-h-0 text-xs resize-none bg-background py-1.5"
                               />
+                            </div>
+                          )}
+
+                          {/* Vente additionnelle */}
+                          {isActive && (
+                            <div className="mb-3 flex-shrink-0 rounded-lg border border-violet-200 bg-violet-50/40 p-2.5">
+                              <Label className="text-violet-900 text-sm mb-2 block">Vente additionnelle</Label>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {ADDITIONAL_SALE_OPTIONS.map((opt) => {
+                                  const count = getAdditionalSaleCount(block, opt.id)
+                                  const checked = isAdditionalSaleChecked(block, opt.id)
+                                  const hasQuantity = supportsAdditionalSaleQuantity(opt.id)
+                                  const quantityValue = Math.max(1, count)
+                                  const lineTotal = getAdditionalSaleAmount(quantityValue)
+
+                                  return (
+                                    <div
+                                      key={opt.id}
+                                      className="flex flex-col gap-1 rounded-md border border-violet-100 bg-white/70 px-2 py-1.5 min-h-[36px]"
+                                    >
+                                      <label className="flex items-start gap-1.5 text-xs leading-tight min-w-0 cursor-pointer">
+                                        <Checkbox
+                                          className="mt-0.5 shrink-0"
+                                          checked={checked}
+                                          onCheckedChange={(c) =>
+                                            toggleStrategyAdditionalSale(
+                                              block.id,
+                                              opt.id,
+                                              c === true,
+                                            )
+                                          }
+                                        />
+                                        <span className="min-w-0">{opt.label}</span>
+                                      </label>
+                                      {hasQuantity && checked && (
+                                        <div className="flex flex-col gap-0.5 pl-5">
+                                          <div className="flex items-center gap-1 flex-wrap">
+                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                              Nombre :
+                                            </span>
+                                            <div className="flex items-center shrink-0 rounded-md border border-input overflow-hidden">
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-6 shrink-0 rounded-none border-r border-input hover:bg-violet-100"
+                                                disabled={quantityValue <= 1}
+                                                onClick={(e) => {
+                                                  e.stopPropagation()
+                                                  setStrategyAdditionalSaleCount(
+                                                    block.id,
+                                                    opt.id,
+                                                    Math.max(1, quantityValue - 1),
+                                                  )
+                                                }}
+                                              >
+                                                <Minus className="h-3 w-3" />
+                                              </Button>
+                                              <Input
+                                                type="number"
+                                                min={1}
+                                                value={quantityValue}
+                                                onChange={(e) => {
+                                                  const parsed = parseInt(e.target.value, 10)
+                                                  setStrategyAdditionalSaleCount(
+                                                    block.id,
+                                                    opt.id,
+                                                    Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+                                                  )
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="h-7 w-9 shrink-0 border-0 px-0 text-center text-sm font-semibold text-foreground tabular-nums shadow-none focus-visible:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                              />
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-6 shrink-0 rounded-none border-l border-input hover:bg-violet-100"
+                                                onClick={(e) => {
+                                                  e.stopPropagation()
+                                                  setStrategyAdditionalSaleCount(
+                                                    block.id,
+                                                    opt.id,
+                                                    quantityValue + 1,
+                                                  )
+                                                }}
+                                              >
+                                                <Plus className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                              × {ADDITIONAL_SALE_PRICE.toLocaleString('fr-FR')} €
+                                            </span>
+                                          </div>
+                                          <span className="text-[10px] font-semibold text-violet-800">
+                                            = {lineTotal.toLocaleString('fr-FR')} € HT
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Prix total — au-dessus des boutons d'export */}
+                          {isActive && hasSummary && (
+                            <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-[#E94C16]/30 bg-[#E94C16]/5 px-2.5 py-1.5 flex-shrink-0">
+                              <div className="min-w-0 leading-tight">
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  Total HT
+                                </p>
+                                {blockAe > 0 && (
+                                  <p className="text-[10px] text-muted-foreground">
+                                    AE {blockAe} %
+                                  </p>
+                                )}
+                              </div>
+                              <p className="text-lg font-bold text-[#E94C16] leading-none shrink-0 tabular-nums">
+                                {budgetLabel} €
+                              </p>
                             </div>
                           )}
 
@@ -4147,7 +5003,7 @@ export default function VentePage() {
                                 size="sm"
                                 onClick={() => setValidationTMDialogOpen(true)}
                                 className="flex-1"
-                                disabled={strategy.length === 0}
+                                disabled={!hasSummary}
                               >
                                 Validation TM
                               </Button>
@@ -5748,22 +6604,23 @@ export default function VentePage() {
       </Dialog>
 
       {/* Modale option Make — Meta Leads / LinkedIn Leads (obligatoire avant ajout) */}
-      <Dialog open={makeLeadsModalOpen} onOpenChange={() => {}}>
-        <DialogContent
-          className="[&>button.absolute]:hidden"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Envoi automatique des leads via Make</DialogTitle>
-            <DialogDescription>
+      <AlertDialog
+        open={makeLeadsModalOpen}
+        onOpenChange={(open) => {
+          if (open) setMakeLeadsModalOpen(true)
+        }}
+      >
+        <AlertDialogContent className="z-[100]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Envoi automatique des leads via Make</AlertDialogTitle>
+            <AlertDialogDescription>
               Souhaitez-vous proposer au client l&apos;option d&apos;envoi automatique des leads via Make
               ({MAKE_LEADS_OPTION_BUDGET.toLocaleString('fr-FR')} € HT) ?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
             <Button
+              type="button"
               variant="outline"
               onClick={() => handleMakeLeadsChoice(false)}
               className="flex-1 sm:flex-none"
@@ -5771,14 +6628,15 @@ export default function VentePage() {
               Non
             </Button>
             <Button
+              type="button"
               onClick={() => handleMakeLeadsChoice(true)}
               className="flex-1 sm:flex-none bg-[#E94C16] hover:bg-[#d43f12] text-white"
             >
               Oui
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Modale pour export PDF */}
       <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
@@ -5802,15 +6660,6 @@ export default function VentePage() {
                     handleExportPDF()
                   }
                 }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client-comment">Commentaire (optionnel)</Label>
-              <EditableInput
-                id="client-comment"
-                placeholder="Ex: Campagne janvier 2026"
-                value={pdfClientComment}
-                onChange={(e) => setPdfClientComment(e.target.value)}
               />
             </div>
           </div>
