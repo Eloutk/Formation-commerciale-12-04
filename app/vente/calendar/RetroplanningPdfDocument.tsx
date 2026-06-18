@@ -532,6 +532,7 @@ export interface RetroplanningSmsQuotePdf {
   campaignMonths?: number
   creaByLinkCount?: number
   comment?: string
+  sendWaves?: { date: string; volume?: number }[]
   imageBase64?: string | null
 }
 

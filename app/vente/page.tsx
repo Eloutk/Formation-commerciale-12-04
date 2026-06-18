@@ -1422,7 +1422,7 @@ const SMSRCSPDFDocument = ({
   totalPrice,
   options,
   salesConditions,
-  userName,
+  fileName,
   tarifIntermarche,
   campaignMonths,
   creaByLinkCount,
@@ -1442,7 +1442,7 @@ const SMSRCSPDFDocument = ({
     duplicateCampaign?: boolean
   }
   salesConditions: readonly string[]
-  userName: string
+  fileName: string
   tarifIntermarche?: boolean
   campaignMonths?: number
   creaByLinkCount?: number
@@ -1451,6 +1451,7 @@ const SMSRCSPDFDocument = ({
 }) => {
   const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
   const setupFee = type === 'sms' ? 190 : 250
+  const documentTitle = fileName.trim() || `Devis ${typeLabel}`
   
   // Calculer le prix de base avant duplication
   const basePriceBeforeDuplication = options.duplicateCampaign && campaignMonths && campaignMonths > 1
@@ -1462,7 +1463,7 @@ const SMSRCSPDFDocument = ({
       <Page size="A4" style={styles.page}>
         {/* En-tête */}
         <Text style={styles.title}>
-          Devis {typeLabel} - {userName}
+          Devis {typeLabel} - {documentTitle}
         </Text>
         <Text style={[styles.summaryText, { marginBottom: 6, fontSize: 12 }]}>
           {new Date().toLocaleDateString('fr-FR')}
@@ -2382,7 +2383,7 @@ export default function VentePage() {
             }
         }
         salesConditions={currentSmsType === 'sms' ? SMS_SALES_CONDITIONS : RCS_SALES_CONDITIONS}
-        userName={userPseudo || userName}
+        fileName={smsPdfFileName.trim()}
         tarifIntermarche={smsOptions.tarifIntermarche}
         campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
         creaByLinkCount={currentSmsType === 'rcs' ? creaByLinkCountNumber : undefined}

@@ -1036,6 +1036,53 @@ const formatRcsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string
 const formatRcsUnitPriceLabel = (unitPrice: number, baseClients: boolean): string =>
   `${formatRcsUnitPriceEuro(unitPrice, baseClients)} / RCS`
 
+interface SmsRcsSendWave {
+  id: string
+  date: string
+  volume: string
+}
+
+interface SmsRcsSendWavePdf {
+  date: string
+  volume?: number
+}
+
+function formatSmsRcsSendDateForDisplay(isoDate: string): string {
+  if (!isoDate.trim()) return ''
+  const [y, m, d] = isoDate.split('-').map((part) => Number(part))
+  if (!y || !m || !d) return isoDate
+  return new Date(y, m - 1, d).toLocaleDateString('fr-FR')
+}
+
+function normalizeSmsRcsSendWavesForPdf(waves: SmsRcsSendWave[]): SmsRcsSendWavePdf[] {
+  return waves
+    .filter((wave) => wave.date.trim())
+    .map((wave) => {
+      const volume = Math.max(0, Math.floor(Number(wave.volume) || 0))
+      return {
+        date: wave.date.trim(),
+        ...(volume > 0 ? { volume } : {}),
+      }
+    })
+}
+
+function appendSmsRcsSendWaveDevisLines(
+  lines: SmsRcsMiniDevisLine[],
+  waves: SmsRcsSendWavePdf[],
+  unitLabel: 'SMS' | 'RCS',
+) {
+  if (waves.length === 0) return
+  waves.forEach((wave, index) => {
+    const label = waves.length > 1 ? `Date d'envoi ${index + 1}` : "Date d'envoi"
+    const dateStr = formatSmsRcsSendDateForDisplay(wave.date)
+    lines.push({
+      label,
+      value: wave.volume ? `${dateStr} — ${formatNumber(wave.volume, 0)} ${unitLabel}` : dateStr,
+      muted: true,
+    })
+  })
+}
+
 interface SmsRcsMiniDevisLine {
   label: string
   value: string
@@ -1046,42 +1093,58 @@ interface SmsRcsMiniDevisLine {
 function SmsRcsMiniDevisPanel({
   title,
   lines,
-  totalValue,
+  totalHt,
   emptyMessage,
 }: {
   title: string
   lines: SmsRcsMiniDevisLine[]
-  totalValue?: string | null
+  totalHt?: number | null
   emptyMessage: string
 }) {
+  const totalTtc = totalHt != null && totalHt > 0 ? getStrategyBudgetTtc(totalHt) : null
+
   return (
     <div className="rounded-xl border-2 border-[#E94C16]/25 bg-gradient-to-br from-orange-50/60 via-white to-white p-4 shadow-sm">
       <h4 className="text-sm font-semibold text-foreground tracking-tight">{title}</h4>
       {lines.length === 0 ? (
         <p className="text-sm text-muted-foreground mt-3">{emptyMessage}</p>
       ) : (
-        <dl className="mt-3 space-y-2 text-sm">
-          {lines.map((line) => (
-            <div
-              key={line.label}
-              className={cn(
-                'flex justify-between items-baseline gap-4',
-                line.muted ? 'text-muted-foreground text-xs' : 'text-foreground',
-              )}
-            >
-              <dt className={cn(line.emphasis && 'font-semibold')}>{line.label}</dt>
-              <dd className={cn('tabular-nums text-right shrink-0', line.emphasis && 'font-semibold')}>
-                {line.value}
-              </dd>
-            </div>
-          ))}
-          {totalValue ? (
-            <div className="border-t border-[#E94C16]/20 pt-3 mt-3 flex justify-between items-baseline gap-4 font-semibold text-[#E94C16]">
-              <dt>Total HT</dt>
-              <dd className="tabular-nums text-right text-base">{totalValue}</dd>
+        <>
+          <dl className="mt-3 space-y-2 text-sm">
+            {lines.map((line) => (
+              <div
+                key={line.label}
+                className={cn(
+                  'flex justify-between items-baseline gap-4',
+                  line.muted ? 'text-muted-foreground text-xs' : 'text-foreground',
+                )}
+              >
+                <dt className={cn(line.emphasis && 'font-semibold')}>{line.label}</dt>
+                <dd className={cn('tabular-nums text-right shrink-0', line.emphasis && 'font-semibold')}>
+                  {line.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {totalHt != null && totalHt > 0 ? (
+            <div className="border-t border-[#E94C16]/20 pt-3 mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border-2 border-[#E94C16] bg-white px-3 py-2.5 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#E94C16]">Total HT</p>
+                <p className="mt-1 text-lg font-extrabold leading-none text-[#E94C16] tabular-nums">
+                  {formatEuro(totalHt)}
+                </p>
+                <p className="mt-1.5 text-[9px] font-medium text-[#E94C16]/80">Hors taxes</p>
+              </div>
+              <div className="rounded-xl border-2 border-[#E94C16] bg-white px-3 py-2.5 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Total TTC</p>
+                <p className="mt-1 text-lg font-extrabold leading-none text-slate-600 tabular-nums">
+                  {formatEuro(totalTtc!)}
+                </p>
+                <p className="mt-1.5 text-[9px] font-medium text-slate-600/80">TVA 20 % incluse</p>
+              </div>
             </div>
           ) : null}
-        </dl>
+        </>
       )}
     </div>
   )
@@ -1932,11 +1995,12 @@ const SMSRCSPDFDocument = ({
   totalPrice,
   options,
   salesConditions,
-  userName,
+  fileName,
   tarifIntermarche,
   campaignMonths,
   creaByLinkCount,
   comment,
+  sendWaves,
   imageBase64,
 }: {
   type: 'sms' | 'rcs'
@@ -1953,15 +2017,17 @@ const SMSRCSPDFDocument = ({
     duplicateCampaign?: boolean
   }
   salesConditions: readonly string[]
-  userName: string
+  fileName: string
   tarifIntermarche?: boolean
   campaignMonths?: number
   creaByLinkCount?: number
   comment?: string
+  sendWaves?: SmsRcsSendWavePdf[]
   imageBase64?: string | null
 }) => {
   const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
   const setupFee = type === 'sms' ? 190 : 250
+  const documentTitle = fileName.trim() || `Devis ${typeLabel}`
   
   // Calculer le prix de base avant duplication
   const basePriceBeforeDuplication = options.duplicateCampaign && campaignMonths && campaignMonths > 1
@@ -1973,7 +2039,7 @@ const SMSRCSPDFDocument = ({
       <Page size="A4" style={styles.page}>
         {/* En-tête */}
         <Text style={styles.title}>
-          Devis {typeLabel} - {userName}
+          Devis {typeLabel} - {documentTitle}
         </Text>
         <Text style={[styles.summaryText, { marginBottom: 6, fontSize: 12 }]}>
           {new Date().toLocaleDateString('fr-FR')}
@@ -1997,6 +2063,17 @@ const SMSRCSPDFDocument = ({
             <Text style={styles.itemLabel}>Volume :</Text>
             <Text style={styles.itemValue}>{formatNumber(volume, 0)} {typeLabel}</Text>
           </View>
+          {sendWaves?.map((wave, index) => (
+            <View key={`${wave.date}-${index}`} style={styles.itemRow}>
+              <Text style={styles.itemLabel}>
+                {(sendWaves?.length ?? 0) > 1 ? `Date d'envoi ${index + 1}` : "Date d'envoi"} :
+              </Text>
+              <Text style={styles.itemValue}>
+                {formatSmsRcsSendDateForDisplay(wave.date)}
+                {wave.volume ? ` — ${formatNumber(wave.volume, 0)} ${typeLabel}` : ''}
+              </Text>
+            </View>
+          ))}
           <View style={styles.itemRow}>
             <Text style={styles.itemLabel}>Prix unitaire HT :</Text>
             <Text style={styles.itemValue}>
@@ -2073,6 +2150,12 @@ const SMSRCSPDFDocument = ({
             <Text style={[styles.itemLabel, { fontSize: 11, fontWeight: 'bold' }]}>Prix total HT :</Text>
             <Text style={[styles.itemValue, { fontSize: 13, fontWeight: 'bold', color: '#E94C16' }]}>
               {formatNumber(totalPrice, 2)} €
+            </Text>
+          </View>
+          <View style={styles.itemRow}>
+            <Text style={[styles.itemLabel, { fontSize: 11, fontWeight: 'bold' }]}>Prix total TTC :</Text>
+            <Text style={[styles.itemValue, { fontSize: 13, fontWeight: 'bold', color: '#475569' }]}>
+              {formatNumber(getStrategyBudgetTtc(totalPrice), 2)} €
             </Text>
           </View>
         </View>
@@ -2428,6 +2511,9 @@ export default function VentePage() {
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
   const [smsPdfFileName, setSmsPdfFileName] = useState('')
   const [smsPdfComment, setSmsPdfComment] = useState('')
+  const [smsRcsSendWaves, setSmsRcsSendWaves] = useState<SmsRcsSendWave[]>(() => [
+    { id: 'send-1', date: '', volume: '' },
+  ])
   const [smsPdfImage, setSmsPdfImage] = useState<string | null>(null)
   const [retroPdfDialogOpen, setRetroPdfDialogOpen] = useState(false)
   const [retroPdfFileName, setRetroPdfFileName] = useState('')
@@ -2563,9 +2649,25 @@ export default function VentePage() {
   const smsCampaignCount =
     smsOptions.duplicateCampaign && campaignMonthsNumber > 1 ? campaignMonthsNumber : 1
 
+  const smsRcsPdfSendWaves = useMemo(
+    () => normalizeSmsRcsSendWavesForPdf(smsRcsSendWaves),
+    [smsRcsSendWaves],
+  )
+
+  const smsRcsSendWavesVolumeSum = useMemo(
+    () => smsRcsPdfSendWaves.reduce((sum, wave) => sum + (wave.volume ?? 0), 0),
+    [smsRcsPdfSendWaves],
+  )
+
+  const smsRcsSendWavesVolumeMismatch =
+    smsRcsPdfSendWaves.some((wave) => wave.volume != null) &&
+    smsVolumeNumber > 0 &&
+    smsRcsSendWavesVolumeSum > 0 &&
+    smsRcsSendWavesVolumeSum !== smsVolumeNumber
+
   const smsMiniDevis = useMemo(() => {
     if (smsType !== 'sms' || smsVolumeNumber <= 0) {
-      return { lines: [] as SmsRcsMiniDevisLine[], total: null as string | null }
+      return { lines: [] as SmsRcsMiniDevisLine[], totalHt: null as number | null }
     }
     const lines: SmsRcsMiniDevisLine[] = [
       {
@@ -2581,7 +2683,8 @@ export default function VentePage() {
         muted: true,
       })
     }
-    if (smsUnitPrice <= 0) return { lines, total: null }
+    appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'SMS')
+    if (smsUnitPrice <= 0) return { lines, totalHt: null }
     lines.push({
       label: 'Prix unitaire HT',
       value: `${smsUnitPrice.toFixed(4).replace('.', ',')} € / SMS`,
@@ -2623,7 +2726,7 @@ export default function VentePage() {
     lines.push({ label: 'Frais de mise en place', value: '190 €' })
     return {
       lines,
-      total: smsTotalPrice > 0 ? formatEuro(smsTotalPrice) : null,
+      totalHt: smsTotalPrice > 0 ? smsTotalPrice : null,
     }
   }, [
     smsType,
@@ -2637,16 +2740,17 @@ export default function VentePage() {
     smsOptions.tarifIntermarche,
     smsOptions.ciblage,
     smsOptions.richSms,
+    smsRcsPdfSendWaves,
   ])
 
   const rcsMiniDevis = useMemo(() => {
     if (smsType !== 'rcs' || smsVolumeNumber <= 0) {
-      return { lines: [] as SmsRcsMiniDevisLine[], total: null as string | null, forbidden: false }
+      return { lines: [] as SmsRcsMiniDevisLine[], totalHt: null as number | null, forbidden: false }
     }
     if (smsVolumeNumber < 10_000) {
       return {
         lines: [] as SmsRcsMiniDevisLine[],
-        total: null as string | null,
+        totalHt: null as number | null,
         forbidden: true,
       }
     }
@@ -2664,7 +2768,8 @@ export default function VentePage() {
         muted: true,
       })
     }
-    if (rcsUnitPrice <= 0) return { lines, total: null, forbidden: false }
+    appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'RCS')
+    if (rcsUnitPrice <= 0) return { lines, totalHt: null, forbidden: false }
     lines.push({
       label: 'Prix unitaire HT',
       value: formatRcsUnitPriceLabel(rcsUnitPrice, smsOptions.baseClients),
@@ -2722,7 +2827,7 @@ export default function VentePage() {
     lines.push({ label: 'Frais de set up (obligatoires)', value: '250 €' })
     return {
       lines,
-      total: rcsTotalPrice > 0 ? formatEuro(rcsTotalPrice) : null,
+      totalHt: rcsTotalPrice > 0 ? rcsTotalPrice : null,
       forbidden: false,
     }
   }, [
@@ -2738,6 +2843,7 @@ export default function VentePage() {
     smsOptions.ciblage,
     smsOptions.agent,
     smsOptions.creaByLink,
+    smsRcsPdfSendWaves,
   ])
 
   /**
@@ -3497,11 +3603,12 @@ export default function VentePage() {
             }
         }
         salesConditions={currentSmsType === 'sms' ? SMS_SALES_CONDITIONS : RCS_SALES_CONDITIONS}
-        userName={userPseudo || userName}
+        fileName={smsPdfFileName.trim()}
         tarifIntermarche={smsOptions.tarifIntermarche}
         campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
         creaByLinkCount={currentSmsType === 'rcs' ? creaByLinkCountNumber : undefined}
         comment={smsPdfComment || undefined}
+        sendWaves={smsRcsPdfSendWaves.length > 0 ? smsRcsPdfSendWaves : undefined}
         imageBase64={smsPdfImage}
       />
     )
@@ -3516,7 +3623,6 @@ export default function VentePage() {
     // Reset et fermer
     setSmsPdfDialogOpen(false)
     setSmsPdfFileName('')
-    setSmsPdfComment('')
     setSmsPdfImage(null)
   }
 
@@ -3596,10 +3702,11 @@ export default function VentePage() {
               duplicateCampaign: smsOptions.duplicateCampaign,
             }}
             salesConditions={SMS_SALES_CONDITIONS}
-            userName={userPseudo || userName}
+            fileName="Devis SMS"
             tarifIntermarche={smsOptions.tarifIntermarche}
             campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
             comment={smsPdfComment || undefined}
+            sendWaves={smsRcsPdfSendWaves.length > 0 ? smsRcsPdfSendWaves : undefined}
             imageBase64={smsPdfImage}
           />,
         ).toBlob()
@@ -3627,11 +3734,12 @@ export default function VentePage() {
               duplicateCampaign: smsOptions.duplicateCampaign,
             }}
             salesConditions={RCS_SALES_CONDITIONS}
-            userName={userPseudo || userName}
+            fileName="Devis RCS"
             tarifIntermarche={smsOptions.tarifIntermarche}
             campaignMonths={smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined}
             creaByLinkCount={creaByLinkCountNumber}
             comment={smsPdfComment || undefined}
+            sendWaves={smsRcsPdfSendWaves.length > 0 ? smsRcsPdfSendWaves : undefined}
             imageBase64={smsPdfImage}
           />,
         ).toBlob()
@@ -3698,6 +3806,7 @@ export default function VentePage() {
                 campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
                 creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
                 comment: smsPdfComment.trim() || undefined,
+                sendWaves: smsRcsPdfSendWaves.length > 0 ? smsRcsPdfSendWaves : undefined,
                 imageBase64: smsPdfImage ?? undefined,
               }
             : undefined,
@@ -5106,12 +5215,12 @@ export default function VentePage() {
                   </div>
 
                   {/* Devis — aligné sur la ligne de saisie du volume (lg: row 2) */}
-                  <div className="space-y-4 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:sticky lg:top-4 self-start">
+                  <div className="space-y-4 lg:col-start-2 lg:row-start-2 lg:row-span-3 lg:sticky lg:top-4 self-start">
                     {smsType === 'sms' ? (
                       <SmsRcsMiniDevisPanel
                         title="Devis SMS"
                         lines={smsMiniDevis.lines}
-                        totalValue={smsMiniDevis.total}
+                        totalHt={smsMiniDevis.totalHt}
                         emptyMessage="Saisissez un volume de SMS pour afficher le détail des coûts."
                       />
                     ) : rcsMiniDevis.forbidden ? (
@@ -5124,7 +5233,7 @@ export default function VentePage() {
                       <SmsRcsMiniDevisPanel
                         title="Devis RCS"
                         lines={rcsMiniDevis.lines}
-                        totalValue={rcsMiniDevis.total}
+                        totalHt={rcsMiniDevis.totalHt}
                         emptyMessage="Saisissez un volume de RCS pour afficher le détail des coûts."
                       />
                     )}
@@ -5136,6 +5245,20 @@ export default function VentePage() {
                         <p>Négo créa agent possible.</p>
                       </div>
                     )}
+
+                    <div className="rounded-lg border bg-muted/30 p-2.5">
+                      <Label htmlFor="sms-rcs-comment" className="text-sm mb-1.5 block">
+                        Commentaire
+                      </Label>
+                      <Textarea
+                        id="sms-rcs-comment"
+                        placeholder="Commentaire visible sur le PDF"
+                        rows={2}
+                        value={smsPdfComment}
+                        onChange={(e) => setSmsPdfComment(e.target.value)}
+                        className="min-h-0 text-xs resize-none bg-background py-1.5"
+                      />
+                    </div>
                   </div>
 
                   {/* Options — colonne gauche, sous le volume */}
@@ -5376,6 +5499,103 @@ export default function VentePage() {
                           </label>
                         </div>
                       )}
+
+                    <div className="rounded-lg border bg-muted/30 p-2.5 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-sm">Dates d&apos;envoi</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() =>
+                            setSmsRcsSendWaves((prev) => [
+                              ...prev,
+                              { id: `send-${Date.now()}`, date: '', volume: '' },
+                            ])
+                          }
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Ajouter
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Planifiez une ou plusieurs dates pour répartir les envois. Le volume par date est
+                        optionnel.
+                      </p>
+                      <div className="space-y-2">
+                        {smsRcsSendWaves.map((wave, index) => (
+                          <div key={wave.id} className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <Label
+                                htmlFor={`sms-rcs-send-date-${wave.id}`}
+                                className="text-xs text-muted-foreground"
+                              >
+                                {smsRcsSendWaves.length > 1 ? `Envoi ${index + 1}` : 'Date'}
+                              </Label>
+                              <Input
+                                id={`sms-rcs-send-date-${wave.id}`}
+                                type="date"
+                                value={wave.date}
+                                onChange={(e) =>
+                                  setSmsRcsSendWaves((prev) =>
+                                    prev.map((item) =>
+                                      item.id === wave.id ? { ...item, date: e.target.value } : item,
+                                    ),
+                                  )
+                                }
+                                className="h-9 text-sm bg-background"
+                              />
+                            </div>
+                            <div className="w-full sm:w-28 space-y-1">
+                              <Label
+                                htmlFor={`sms-rcs-send-volume-${wave.id}`}
+                                className="text-xs text-muted-foreground"
+                              >
+                                Volume
+                              </Label>
+                              <EditableInput
+                                id={`sms-rcs-send-volume-${wave.id}`}
+                                type="number"
+                                min={0}
+                                placeholder="—"
+                                value={wave.volume}
+                                onChange={(e) =>
+                                  setSmsRcsSendWaves((prev) =>
+                                    prev.map((item) =>
+                                      item.id === wave.id ? { ...item, volume: e.target.value } : item,
+                                    ),
+                                  )
+                                }
+                                className="h-9 text-sm text-center"
+                              />
+                            </div>
+                            {smsRcsSendWaves.length > 1 ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                onClick={() =>
+                                  setSmsRcsSendWaves((prev) =>
+                                    prev.length > 1 ? prev.filter((item) => item.id !== wave.id) : prev,
+                                  )
+                                }
+                                aria-label={`Supprimer l'envoi ${index + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                      {smsRcsSendWavesVolumeMismatch ? (
+                        <p className="text-xs text-amber-700 leading-relaxed">
+                          La somme des volumes par date ({formatNumber(smsRcsSendWavesVolumeSum, 0)}) ne
+                          correspond pas au volume saisi ({formatNumber(smsVolumeNumber, 0)}).
+                        </p>
+                      ) : null}
+                    </div>
                     </div>
                 </div>
 
@@ -6192,6 +6412,7 @@ export default function VentePage() {
                                   campaignMonths: smsOptions.duplicateCampaign ? campaignMonthsNumber : undefined,
                                   creaByLinkCount: smsType === 'rcs' ? creaByLinkCountNumber : undefined,
                                   comment: smsPdfComment.trim() || undefined,
+                                  sendWaves: smsRcsPdfSendWaves.length > 0 ? smsRcsPdfSendWaves : undefined,
                                   imageBase64: smsPdfImage ?? undefined,
                                 }
                               : undefined,
@@ -6875,7 +7096,7 @@ export default function VentePage() {
           <DialogHeader>
             <DialogTitle>Télécharger le devis {currentSmsType === 'sms' ? 'SMS' : 'RCS'}</DialogTitle>
             <DialogDescription>
-              Personnalisez votre devis avant de le télécharger.
+              Choisissez le nom du fichier et, si besoin, joignez une image. Le commentaire se saisit sous le devis.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -6888,20 +7109,6 @@ export default function VentePage() {
                 value={smsPdfFileName}
                 onChange={(e) => setSmsPdfFileName(e.target.value)}
               />
-            </div>
-
-            {/* Commentaire */}
-            <div className="space-y-2">
-              <Label htmlFor="pdf-comment">Commentaire (optionnel)</Label>
-              <EditableInput
-                id="pdf-comment"
-                placeholder="Ex: Campagne janvier 2026"
-                value={smsPdfComment}
-                onChange={(e) => setSmsPdfComment(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ce commentaire apparaîtra en sous-titre du document
-              </p>
             </div>
 
             {/* Upload image */}
@@ -6929,7 +7136,6 @@ export default function VentePage() {
               onClick={() => {
                 setSmsPdfDialogOpen(false)
                 setSmsPdfFileName('')
-                setSmsPdfComment('')
                 setSmsPdfImage(null)
               }}
             >

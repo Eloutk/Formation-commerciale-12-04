@@ -18,7 +18,7 @@ export default function DemandesPotentiels() {
         </div>
         <div className="mt-6 text-center">
           <a
-            href="https://link599528.monday.com/boards/1396284164"
+            href="https://link599528.monday.com/boards/1397138702/views/28918344"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
