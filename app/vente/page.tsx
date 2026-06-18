@@ -1506,7 +1506,7 @@ const SMSRCSPDFDocument = ({
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>dont Ciblage :</Text>
-              <Text style={styles.itemValue}>+0,028 € / SMS</Text>
+              <Text style={styles.itemValue}>+0,03 € / SMS</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
@@ -1714,7 +1714,7 @@ export default function VentePage() {
   const smsOptionPU = useMemo(() => {
     if (smsType !== 'sms') return 0
     let opt = 0
-    if (smsOptions.ciblage) opt += 0.028
+    if (smsOptions.ciblage) opt += 0.03
     if (smsOptions.richSms) opt += 0.021
     return opt
   }, [smsType, smsOptions.ciblage, smsOptions.richSms])
@@ -3487,34 +3487,28 @@ export default function VentePage() {
                       <Label>Options disponibles</Label>
                       {smsType === 'sms' && (
                         <div className="space-y-2 text-sm">
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.ciblage}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, ciblage: e.target.checked }))
-                                }
-                              />
-                              <span>Ciblage</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 0,028 € / SMS</span>
+                          <label className="flex items-center gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.ciblage}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({ ...prev, ciblage: e.target.checked }))
+                              }
+                            />
+                            <span>Ciblage</span>
                           </label>
 
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.richSms}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, richSms: e.target.checked }))
-                                }
-                              />
-                              <span>Rich SMS</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 0,021 € / SMS</span>
+                          <label className="flex items-center gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.richSms}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({ ...prev, richSms: e.target.checked }))
+                              }
+                            />
+                            <span>Rich SMS</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
@@ -3564,19 +3558,16 @@ export default function VentePage() {
 
                       {smsType === 'rcs' && (
                         <div className="space-y-2 text-sm">
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.agent}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, agent: e.target.checked }))
-                                }
-                              />
-                              <span>Création d&apos;agent (si nécessaire)</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 550 €</span>
+                          <label className="flex items-center gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.agent}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({ ...prev, agent: e.target.checked }))
+                              }
+                            />
+                            <span>Création d&apos;agent (si nécessaire)</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
@@ -3591,7 +3582,7 @@ export default function VentePage() {
                               />
                               <span className="cursor-pointer">CREA BY LINK</span>
                             </div>
-                            
+
                             {smsOptions.creaByLink && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre :</span>
@@ -3604,7 +3595,6 @@ export default function VentePage() {
                                   className="h-8 w-16 text-center"
                                   placeholder="1"
                                 />
-                                <span className="text-xs text-muted-foreground">× 100 €</span>
                               </div>
                             )}
                           </label>

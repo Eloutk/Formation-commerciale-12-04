@@ -447,6 +447,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                 <HeaderNavMenu
                   label="Vente 2"
                   active={vente2Active}
+                  accent
                   items={withActiveItems(pathname, VENTE2_LINKS)}
                 />
               )}
@@ -454,6 +455,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                 <HeaderNavMenu
                   label="Stratégie"
                   active={strategieActive}
+                  accent
                   items={withActiveItems(pathname, STRATEGIE_LINKS)}
                 />
               )}

@@ -16,6 +16,7 @@ export const RESSOURCES_LINKS: NavMenuItem[] = [
   { href: '/chefferie', label: 'Chefferie de projet' },
   { href: '/studio', label: 'Studio' },
   { href: '/cartographie', label: 'Cartographie' },
+  { href: '/media', label: 'Média' },
 ]
 
 export const VENTE2_SOCIAL_HREF = '/calculateur-vente-2/social-media'

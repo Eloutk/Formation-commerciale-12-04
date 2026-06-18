@@ -83,6 +83,7 @@ export function MobileNav({
                 <MobileNavMenu
                   label="Vente 2"
                   active={isVente2Path(pathname)}
+                  accent
                   items={withActiveItems(pathname, VENTE2_LINKS)}
                   onNavigate={handleNav}
                 />
@@ -91,6 +92,7 @@ export function MobileNav({
                 <MobileNavMenu
                   label="Stratégie"
                   active={isStrategiePath(pathname)}
+                  accent
                   items={withActiveItems(pathname, STRATEGIE_LINKS)}
                   onNavigate={handleNav}
                 />

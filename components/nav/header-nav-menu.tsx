@@ -2,14 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
@@ -23,7 +15,10 @@ const triggerClassName = (active?: boolean, accent?: boolean) =>
   )
 
 const itemClassName = (isActive?: boolean) =>
-  cn('cursor-pointer', isActive && 'bg-orange-50 text-orange-700')
+  cn(
+    'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
+    isActive && 'bg-orange-50 text-orange-700',
+  )
 
 export function HeaderNavMenu({
   label,
@@ -47,41 +42,66 @@ export function HeaderNavMenu({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className={triggerClassName(active, accent)}>
-          {label}
-          <ChevronDown className="h-3.5 w-3.5 opacity-70" aria-hidden />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className={contentClassName}>
-        {items.map((item) => (
-          <DropdownMenuItem
-            key={item.href}
-            className={itemClassName(item.isActive)}
-            onSelect={() => handleSelect(item.href)}
-          >
-            {item.label}
-          </DropdownMenuItem>
-        ))}
-        {groups.map((group) => (
-          <div key={group.label}>
-            {items.length > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {group.label}
-            </DropdownMenuLabel>
-            {group.items.map((item) => (
-              <DropdownMenuItem
-                key={item.href}
-                className={itemClassName(item.isActive)}
-                onSelect={() => handleSelect(item.href)}
-              >
-                {item.label}
-              </DropdownMenuItem>
-            ))}
-          </div>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="group/nav-menu relative">
+      <button
+        type="button"
+        className={triggerClassName(active, accent)}
+        aria-haspopup="menu"
+      >
+        {label}
+        <ChevronDown
+          className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/nav-menu:rotate-180 group-focus-within/nav-menu:rotate-180"
+          aria-hidden
+        />
+      </button>
+
+      <div
+        className={cn(
+          'pointer-events-none invisible absolute left-0 top-full z-50 pt-1 opacity-0',
+          'transition-[opacity,visibility] duration-150',
+          'group-hover/nav-menu:pointer-events-auto group-hover/nav-menu:visible group-hover/nav-menu:opacity-100',
+          'group-focus-within/nav-menu:pointer-events-auto group-focus-within/nav-menu:visible group-focus-within/nav-menu:opacity-100',
+          contentClassName,
+        )}
+      >
+        {/* Pont invisible entre le bouton et le panneau pour éviter la fermeture au survol */}
+        <div className="absolute inset-x-0 -top-2 h-3" aria-hidden />
+        <div
+          role="menu"
+          className="rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+        >
+          {items.map((item) => (
+            <button
+              key={item.href}
+              type="button"
+              role="menuitem"
+              className={itemClassName(item.isActive)}
+              onClick={() => handleSelect(item.href)}
+            >
+              {item.label}
+            </button>
+          ))}
+          {groups.map((group) => (
+            <div key={group.label}>
+              {items.length > 0 ? <div className="my-1 h-px bg-border" role="separator" /> : null}
+              <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <button
+                  key={item.href}
+                  type="button"
+                  role="menuitem"
+                  className={itemClassName(item.isActive)}
+                  onClick={() => handleSelect(item.href)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }

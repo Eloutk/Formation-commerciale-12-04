@@ -1027,14 +1027,37 @@ const formatNumber = (num: number, decimals: number = 0): string => {
 
 const formatEuro = (num: number, decimals = 2): string => `${formatNumber(num, decimals)} €`
 
-/** Affiche le PU RCS : 3 décimales pour Base clients (0,077), 2 sinon. */
+const BASE_CLIENTS_UNIT_PRICE = 0.08
+const CIBLAGE_UNIT_PRICE = 0.03
+
+/** Affiche le PU Base clients (0,08 €). */
+const formatBaseClientsUnitPriceEuro = (unitPrice: number = BASE_CLIENTS_UNIT_PRICE): string =>
+  `${unitPrice.toFixed(2).replace('.', ',')} €`
+
+const formatBaseClientsUnitPriceLabel = (unitLabel: 'SMS' | 'RCS'): string =>
+  `${formatBaseClientsUnitPriceEuro()} / ${unitLabel}`
+
+const formatBaseClientsTariffDescription = (unitLabel: 'SMS' | 'RCS'): string =>
+  `Base clients — ${formatBaseClientsUnitPriceEuro()} / ${unitLabel} (hors barème)`
+
+const formatCiblageOptionLabel = (unitLabel: 'SMS' | 'RCS'): string =>
+  `+${CIBLAGE_UNIT_PRICE.toFixed(2).replace('.', ',')} € / ${unitLabel}`
+
 const formatRcsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string => {
-  const decimals = baseClients ? 3 : 2
-  return `${unitPrice.toFixed(decimals).replace('.', ',')} €`
+  if (baseClients) return formatBaseClientsUnitPriceEuro(unitPrice)
+  return `${unitPrice.toFixed(2).replace('.', ',')} €`
+}
+
+const formatSmsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string => {
+  if (baseClients) return formatBaseClientsUnitPriceEuro(unitPrice)
+  return `${unitPrice.toFixed(4).replace('.', ',')} €`
 }
 
 const formatRcsUnitPriceLabel = (unitPrice: number, baseClients: boolean): string =>
   `${formatRcsUnitPriceEuro(unitPrice, baseClients)} / RCS`
+
+const formatSmsUnitPriceLabel = (unitPrice: number, baseClients: boolean): string =>
+  `${formatSmsUnitPriceEuro(unitPrice, baseClients)} / SMS`
 
 interface SmsRcsSendWave {
   id: string
@@ -2079,7 +2102,7 @@ const SMSRCSPDFDocument = ({
             <Text style={styles.itemValue}>
               {unitPrice > 0
                 ? type === 'sms'
-                  ? `${unitPrice.toFixed(4).replace('.', ',')} €`
+                  ? formatSmsUnitPriceEuro(unitPrice, !!options.baseClients)
                   : formatRcsUnitPriceEuro(unitPrice, !!options.baseClients)
                 : '--'}
             </Text>
@@ -2097,7 +2120,7 @@ const SMSRCSPDFDocument = ({
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>dont Ciblage :</Text>
-              <Text style={styles.itemValue}>+0,028 € / SMS</Text>
+              <Text style={styles.itemValue}>{formatCiblageOptionLabel('SMS')}</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
@@ -2106,16 +2129,22 @@ const SMSRCSPDFDocument = ({
               <Text style={styles.itemValue}>+0,021 € / SMS</Text>
             </View>
           )}
+          {type === 'sms' && options.baseClients && (
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
+              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('SMS')}</Text>
+            </View>
+          )}
           {type === 'rcs' && options.ciblage && (
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>dont Ciblage :</Text>
-              <Text style={styles.itemValue}>+0,028 € / RCS</Text>
+              <Text style={styles.itemValue}>{formatCiblageOptionLabel('RCS')}</Text>
             </View>
           )}
           {type === 'rcs' && options.baseClients && (
             <View style={styles.itemRow}>
               <Text style={styles.itemLabel}>Tarif Base clients :</Text>
-              <Text style={styles.itemValue}>0,077 € / RCS</Text>
+              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('RCS')}</Text>
             </View>
           )}
           {type === 'rcs' && options.agent && (
@@ -2551,18 +2580,22 @@ export function Vente2Calculator({
   }, [totalUnitsNumber])
 
   const smsOptionPU = useMemo(() => {
-    if (smsType !== 'sms') return 0
+    if (smsType !== 'sms' || smsOptions.baseClients) return 0
     let opt = 0
-    if (smsOptions.ciblage) opt += 0.028
+    if (smsOptions.ciblage) opt += CIBLAGE_UNIT_PRICE
     if (smsOptions.richSms) opt += 0.021
     return opt
-  }, [smsType, smsOptions.ciblage, smsOptions.richSms])
+  }, [smsType, smsOptions.baseClients, smsOptions.ciblage, smsOptions.richSms])
 
-  // Si Tarif Intermarché est coché, le PU est figé à 0,13 € quel que soit le volume.
-  const smsUnitPrice = smsOptions.tarifIntermarche ? 0.13 : smsBasePU + smsOptionPU
+  const smsUnitPrice = useMemo(() => {
+    if (smsType !== 'sms') return 0
+    if (smsOptions.baseClients) return BASE_CLIENTS_UNIT_PRICE
+    if (smsOptions.tarifIntermarche) return 0.13
+    return smsBasePU + smsOptionPU
+  }, [smsType, smsOptions.baseClients, smsOptions.tarifIntermarche, smsBasePU, smsOptionPU])
 
   const smsTotalPrice = useMemo(() => {
-    if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsBasePU <= 0) return 0
+    if (smsType !== 'sms' || smsVolumeNumber <= 0 || smsUnitPrice <= 0) return 0
     const setupFee = 190 // frais fixes de setup, comptés une seule fois
     const variablePerCampaign = smsUnitPrice * smsVolumeNumber
     if (!smsOptions.duplicateCampaign || campaignMonthsNumber <= 1) {
@@ -2573,8 +2606,6 @@ export function Vente2Calculator({
   }, [smsType, smsVolumeNumber, smsBasePU, smsUnitPrice, smsOptions.duplicateCampaign, campaignMonthsNumber])
 
   // --- Logique de calcul RCS (indépendante du SMS) ---
-  const RCS_BASE_CLIENTS_UNIT_PRICE = 0.077
-  const RCS_CIBLAGE_UNIT_PRICE = 0.028
 
   const rcsBasePU = useMemo(() => {
     const n = smsVolumeNumber
@@ -2589,14 +2620,14 @@ export function Vente2Calculator({
     return isNaN(parsed) || parsed < 1 ? 1 : parsed
   }, [creaByLinkCount])
 
-  /** PU RCS : Base clients = tarif forfaitaire 0,077 € (hors barème volume) ; sinon barème + ciblage éventuel. */
+  /** PU RCS : Base clients = tarif forfaitaire 0,08 € (hors barème volume) ; sinon barème + ciblage éventuel. */
   const rcsUnitPrice = useMemo(() => {
     const n = smsVolumeNumber
     if (smsType !== 'rcs' || n <= 0) return 0
     if (n < 10_000) return -1
-    if (smsOptions.baseClients) return RCS_BASE_CLIENTS_UNIT_PRICE
+    if (smsOptions.baseClients) return BASE_CLIENTS_UNIT_PRICE
     if (rcsBasePU < 0) return -1
-    return rcsBasePU + (smsOptions.ciblage ? RCS_CIBLAGE_UNIT_PRICE : 0)
+    return rcsBasePU + (smsOptions.ciblage ? CIBLAGE_UNIT_PRICE : 0)
   }, [smsType, smsVolumeNumber, smsOptions.baseClients, smsOptions.ciblage, rcsBasePU])
 
   const rcsOptionFee = useMemo(() => {
@@ -2658,10 +2689,16 @@ export function Vente2Calculator({
     if (smsUnitPrice <= 0) return { lines, totalHt: null }
     lines.push({
       label: 'Prix unitaire HT',
-      value: `${smsUnitPrice.toFixed(4).replace('.', ',')} € / SMS`,
+      value: formatSmsUnitPriceLabel(smsUnitPrice, smsOptions.baseClients),
       emphasis: true,
     })
-    if (smsOptions.tarifIntermarche) {
+    if (smsOptions.baseClients) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: formatBaseClientsTariffDescription('SMS'),
+        muted: true,
+      })
+    } else if (smsOptions.tarifIntermarche) {
       lines.push({
         label: 'Mode tarifaire',
         value: 'Tarif Intermarché — 0,13 € fixe / SMS',
@@ -2676,7 +2713,7 @@ export function Vente2Calculator({
         })
       }
       if (smsOptions.ciblage) {
-        lines.push({ label: 'Option Ciblage', value: '+0,028 € / SMS', muted: true })
+        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('SMS'), muted: true })
       }
       if (smsOptions.richSms) {
         lines.push({ label: 'Option Rich SMS', value: '+0,021 € / SMS', muted: true })
@@ -2709,6 +2746,7 @@ export function Vente2Calculator({
     smsCampaignCount,
     totalUnitsNumber,
     smsOptions.tarifIntermarche,
+    smsOptions.baseClients,
     smsOptions.ciblage,
     smsOptions.richSms,
     smsRcsPdfSendWaves,
@@ -2749,7 +2787,7 @@ export function Vente2Calculator({
     if (smsOptions.baseClients) {
       lines.push({
         label: 'Mode tarifaire',
-        value: 'Base clients — 0,077 € / RCS (hors barème)',
+        value: formatBaseClientsTariffDescription('RCS'),
         muted: true,
       })
     } else {
@@ -2761,7 +2799,7 @@ export function Vente2Calculator({
         })
       }
       if (smsOptions.ciblage) {
-        lines.push({ label: 'Option Ciblage', value: '+0,028 € / RCS', muted: true })
+        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('RCS'), muted: true })
       }
     }
     const messagesPerCampaign = rcsUnitPrice * smsVolumeNumber
@@ -3522,6 +3560,7 @@ export function Vente2Calculator({
         options={currentSmsType === 'sms' 
           ? {
               ciblage: smsOptions.ciblage,
+              baseClients: smsOptions.baseClients,
               richSms: smsOptions.richSms,
               tarifIntermarche: smsOptions.tarifIntermarche,
               duplicateCampaign: smsOptions.duplicateCampaign,
@@ -3630,6 +3669,7 @@ export function Vente2Calculator({
             totalPrice={smsTotalPrice}
             options={{
               ciblage: smsOptions.ciblage,
+              baseClients: smsOptions.baseClients,
               richSms: smsOptions.richSms,
               tarifIntermarche: smsOptions.tarifIntermarche,
               duplicateCampaign: smsOptions.duplicateCampaign,
@@ -3724,6 +3764,7 @@ export function Vente2Calculator({
                   smsType === 'sms'
                     ? {
                         ciblage: smsOptions.ciblage,
+                        baseClients: smsOptions.baseClients,
                         richSms: smsOptions.richSms,
                         tarifIntermarche: smsOptions.tarifIntermarche,
                         duplicateCampaign: smsOptions.duplicateCampaign,
@@ -5174,48 +5215,108 @@ export function Vente2Calculator({
                       <Label>Options disponibles</Label>
                       {smsType === 'sms' && (
                         <div className="space-y-2 text-sm">
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.ciblage}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, ciblage: e.target.checked }))
-                                }
-                              />
-                              <span>Ciblage</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 0,028 € / SMS</span>
+                          <label
+                            className={cn(
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.baseClients
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.ciblage}
+                              disabled={smsOptions.baseClients}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  ciblage: e.target.checked,
+                                  baseClients: e.target.checked ? false : prev.baseClients,
+                                }))
+                              }
+                            />
+                            <span>Ciblage</span>
                           </label>
 
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.richSms}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, richSms: e.target.checked }))
-                                }
-                              />
-                              <span>Rich SMS</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 0,021 € / SMS</span>
+                          <label
+                            className={cn(
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.ciblage ||
+                                smsOptions.richSms ||
+                                smsOptions.tarifIntermarche
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.baseClients}
+                              disabled={
+                                smsOptions.ciblage ||
+                                smsOptions.richSms ||
+                                smsOptions.tarifIntermarche
+                              }
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  baseClients: e.target.checked,
+                                  ciblage: e.target.checked ? false : prev.ciblage,
+                                  richSms: e.target.checked ? false : prev.richSms,
+                                  tarifIntermarche: e.target.checked ? false : prev.tarifIntermarche,
+                                }))
+                              }
+                            />
+                            <span>Base clients</span>
                           </label>
 
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.tarifIntermarche}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, tarifIntermarche: e.target.checked }))
-                                }
-                              />
-                              <span>Tarif Intermarché</span>
-                            </div>
+                          <label
+                            className={cn(
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.baseClients
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.richSms}
+                              disabled={smsOptions.baseClients}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  richSms: e.target.checked,
+                                  baseClients: e.target.checked ? false : prev.baseClients,
+                                }))
+                              }
+                            />
+                            <span>Rich SMS</span>
+                          </label>
+
+                          <label
+                            className={cn(
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
+                              smsOptions.baseClients
+                                ? 'cursor-not-allowed opacity-50'
+                                : 'cursor-pointer',
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.tarifIntermarche}
+                              disabled={smsOptions.baseClients}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  tarifIntermarche: e.target.checked,
+                                  baseClients: e.target.checked ? false : prev.baseClients,
+                                }))
+                              }
+                            />
+                            <span>Tarif Intermarché</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2">
@@ -5253,72 +5354,63 @@ export function Vente2Calculator({
                         <div className="space-y-2 text-sm">
                           <label
                             className={cn(
-                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
                               smsOptions.baseClients
                                 ? 'cursor-not-allowed opacity-50'
                                 : 'cursor-pointer',
                             )}
                           >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.ciblage}
-                                disabled={smsOptions.baseClients}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({
-                                    ...prev,
-                                    ciblage: e.target.checked,
-                                    baseClients: e.target.checked ? false : prev.baseClients,
-                                  }))
-                                }
-                              />
-                              <span>Ciblage</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 0,028 € / RCS</span>
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.ciblage}
+                              disabled={smsOptions.baseClients}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  ciblage: e.target.checked,
+                                  baseClients: e.target.checked ? false : prev.baseClients,
+                                }))
+                              }
+                            />
+                            <span>Ciblage</span>
                           </label>
 
                           <label
                             className={cn(
-                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
                               smsOptions.ciblage || smsOptions.tarifIntermarche
                                 ? 'cursor-not-allowed opacity-50'
                                 : 'cursor-pointer',
                             )}
                           >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.baseClients}
-                                disabled={smsOptions.ciblage || smsOptions.tarifIntermarche}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({
-                                    ...prev,
-                                    baseClients: e.target.checked,
-                                    ciblage: e.target.checked ? false : prev.ciblage,
-                                    tarifIntermarche: e.target.checked ? false : prev.tarifIntermarche,
-                                  }))
-                                }
-                              />
-                              <span>Base clients</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">0,077 € / RCS</span>
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.baseClients}
+                              disabled={smsOptions.ciblage || smsOptions.tarifIntermarche}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  baseClients: e.target.checked,
+                                  ciblage: e.target.checked ? false : prev.ciblage,
+                                  tarifIntermarche: e.target.checked ? false : prev.tarifIntermarche,
+                                }))
+                              }
+                            />
+                            <span>Base clients</span>
                           </label>
 
-                          <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.agent}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({ ...prev, agent: e.target.checked }))
-                                }
-                              />
-                              <span>Création d&apos;agent (si nécessaire)</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground">+ 550 €</span>
+                          <label className="flex items-center gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.agent}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({ ...prev, agent: e.target.checked }))
+                              }
+                            />
+                            <span>Création d&apos;agent (si nécessaire)</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-2 cursor-pointer rounded-md border bg-white px-3 py-2">
@@ -5333,7 +5425,7 @@ export function Vente2Calculator({
                               />
                               <span className="cursor-pointer">CREA BY LINK</span>
                             </div>
-                            
+
                             {smsOptions.creaByLink && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">Nombre :</span>
@@ -5346,35 +5438,32 @@ export function Vente2Calculator({
                                   className="h-8 w-16 text-center"
                                   placeholder="1"
                                 />
-                                <span className="text-xs text-muted-foreground">× 100 €</span>
                               </div>
                             )}
                           </label>
 
                           <label
                             className={cn(
-                              'flex items-center justify-between gap-2 rounded-md border bg-white px-3 py-2',
+                              'flex items-center gap-2 rounded-md border bg-white px-3 py-2',
                               smsOptions.baseClients
                                 ? 'cursor-not-allowed opacity-50'
                                 : 'cursor-pointer',
                             )}
                           >
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300"
-                                checked={smsOptions.tarifIntermarche}
-                                disabled={smsOptions.baseClients}
-                                onChange={(e) =>
-                                  setSmsOptions((prev) => ({
-                                    ...prev,
-                                    tarifIntermarche: e.target.checked,
-                                    baseClients: e.target.checked ? false : prev.baseClients,
-                                  }))
-                                }
-                              />
-                              <span>Tarif Intermarché</span>
-                            </div>
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300"
+                              checked={smsOptions.tarifIntermarche}
+                              disabled={smsOptions.baseClients}
+                              onChange={(e) =>
+                                setSmsOptions((prev) => ({
+                                  ...prev,
+                                  tarifIntermarche: e.target.checked,
+                                  baseClients: e.target.checked ? false : prev.baseClients,
+                                }))
+                              }
+                            />
+                            <span>Tarif Intermarché</span>
                           </label>
 
                           <label className="flex items-center justify-between gap-3 rounded-md border bg-white px-3 py-2">

@@ -20,37 +20,37 @@ export const AIDE_LINKS: NavAideLink[] = [
 export const TUTO_ITEMS: TutoItem[] = [
   {
     label: 'Accès commentaires',
-    href: 'https://vimeo.com/manage/videos/814894285/31f18d2b1c',
+    href: 'https://vimeo.com/814894285/31f18d2b1c',
     external: true,
   },
   {
     label: 'Récupérer les prospects',
-    href: 'https://vimeo.com/manage/videos/814894268/d3f521224f',
+    href: 'https://vimeo.com/814894268/d3f521224f',
     external: true,
   },
   {
     label: 'Rapport campagne',
-    href: 'https://vimeo.com/manage/videos/814894245/c4b8212ce8',
+    href: 'https://vimeo.com/814894245/c4b8212ce8',
     external: true,
   },
   {
     label: 'Google Analytics',
-    href: 'https://vimeo.com/manage/videos/814894231/5ab6e43a31',
+    href: 'https://vimeo.com/814894231/5ab6e43a31',
     external: true,
   },
   {
     label: 'Accès Pixel',
-    href: 'https://vimeo.com/manage/videos/814894180/5678db7f69',
-    external: true,
-  },
-  {
-    label: 'Attribution Administrateur',
-    href: 'https://vimeo.com/manage/videos/814894211/04137c9e4d',
+    href: 'https://vimeo.com/814894180/5678db7f69',
     external: true,
   },
   {
     label: 'Accès GTM',
-    href: 'https://vimeo.com/manage/videos/858612678/20b378c6b3',
+    href: 'https://vimeo.com/858612678/20b378c6b3',
+    external: true,
+  },
+  {
+    label: 'Attribution Administrateur',
+    href: 'https://vimeo.com/814894211/04137c9e4d',
     external: true,
   },
 ]
