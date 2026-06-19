@@ -13,15 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MediaSectorPicker } from '@/components/media/MediaSectorPicker'
-import { MediaPlatformPicker } from '@/components/media/MediaPlatformPicker'
-import { MEDIA_MONTHS, MEDIA_YEARS } from '@/lib/media-config'
+import { MediaMultiSelect } from '@/components/media/MediaMultiSelect'
+import { mediaFetch } from '@/lib/media-api-client'
+import { MEDIA_MONTHS, MEDIA_PLATFORMS, MEDIA_SECTORS, MEDIA_YEARS } from '@/lib/media-config'
 import { cn } from '@/lib/utils'
 
-const NONE = '__none__'
-
 type MediaUploadFormProps = {
-  configured: boolean
+  enabled: boolean
   onSuccess?: () => void
 }
 
@@ -29,7 +27,7 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} Mo`
 }
 
-export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps) {
+export function MediaUploadForm({ enabled, onSuccess }: MediaUploadFormProps) {
   const [files, setFiles] = React.useState<File[]>([])
   const [sectors, setSectors] = React.useState<string[]>([])
   const [platforms, setPlatforms] = React.useState<string[]>([])
@@ -44,10 +42,12 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const isValid =
-    configured &&
+    enabled &&
     files.length > 0 &&
     sectors.length > 0 &&
     platforms.length > 0 &&
+    !!month &&
+    !!year &&
     !!clientName.trim() &&
     !!campaignName.trim()
 
@@ -83,14 +83,14 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
     files.forEach((file) => formData.append('files', file))
     sectors.forEach((sector) => formData.append('sectors', sector))
     platforms.forEach((platform) => formData.append('platforms', platform))
-    if (month) formData.append('month', month)
-    if (year) formData.append('year', year)
+    formData.append('month', month)
+    formData.append('year', year)
     formData.append('client_name', clientName.trim())
     formData.append('campaign_name', campaignName.trim())
     if (reportLink.trim()) formData.append('report_link', reportLink.trim())
 
     try {
-      const res = await fetch('/api/media', { method: 'POST', body: formData })
+      const res = await mediaFetch('/api/media', { method: 'POST', body: formData })
       const json = await res.json().catch(() => ({}))
 
       if (!res.ok) {
@@ -123,42 +123,42 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
-      <CardHeader className="border-b bg-muted/20">
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="border-b bg-muted/20 py-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <Upload className="h-5 w-5 text-[#E94C16]" aria-hidden />
           Déposer un média
         </CardTitle>
-        <CardDescription>
-          Ajoutez un ou plusieurs fichiers avec les mêmes informations. Mois et année sont optionnels.
+        <CardDescription className="text-sm">
+          Ajoutez un ou plusieurs fichiers avec les mêmes informations.
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <section className="space-y-3">
+      <CardContent className="pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <section className="space-y-2">
             <Label htmlFor="media-file">Fichiers *</Label>
             <button
               type="button"
-              disabled={!configured || submitting}
+              disabled={!enabled || submitting}
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                'flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 transition-colors',
+                'flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 transition-colors',
                 files.length > 0
                   ? 'border-[#E94C16]/40 bg-orange-50/50'
                   : 'border-border hover:border-[#E94C16]/30 hover:bg-muted/30',
               )}
             >
-              <Upload className="h-8 w-8 text-muted-foreground" />
+              <Upload className="h-6 w-6 text-muted-foreground" />
               {files.length > 0 ? (
                 <>
-                  <span className="font-medium text-sm">
+                  <span className="text-sm font-medium">
                     {files.length} fichier{files.length > 1 ? 's' : ''} sélectionné{files.length > 1 ? 's' : ''}
                   </span>
                   <span className="text-xs text-muted-foreground">Cliquer pour en ajouter d&apos;autres</span>
                 </>
               ) : (
                 <>
-                  <span className="font-medium text-sm">Cliquez pour choisir des fichiers</span>
-                  <span className="text-xs text-muted-foreground">Images, vidéos, PDF ou ZIP — sélection multiple possible</span>
+                  <span className="text-sm font-medium">Cliquez pour choisir des fichiers</span>
+                  <span className="text-xs text-muted-foreground">Images, vidéos, PDF ou ZIP</span>
                 </>
               )}
             </button>
@@ -173,15 +173,15 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
                 addFiles(e.target.files)
                 e.target.value = ''
               }}
-              disabled={!configured || submitting}
+              disabled={!enabled || submitting}
             />
 
             {files.length > 0 ? (
-              <ul className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-2">
+              <ul className="space-y-1 rounded-md border border-border/70 bg-muted/20 p-1.5">
                 {files.map((file, index) => (
                   <li
                     key={`${file.name}-${file.size}-${file.lastModified}`}
-                    className="flex items-center gap-2 rounded-md bg-background px-3 py-2 text-sm"
+                    className="flex items-center gap-2 rounded-md bg-background px-2 py-1.5 text-sm"
                   >
                     <span className="min-w-0 flex-1 truncate font-medium">{file.name}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">{formatFileSize(file.size)}</span>
@@ -189,12 +189,12 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-red-600"
+                      className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-600"
                       onClick={() => removeFile(index)}
                       disabled={submitting}
                       aria-label={`Retirer ${file.name}`}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </li>
                 ))}
@@ -202,115 +202,109 @@ export function MediaUploadForm({ configured, onSuccess }: MediaUploadFormProps)
             ) : null}
           </section>
 
-          <section className="space-y-3">
-            <div>
-              <Label>Secteurs d&apos;activité *</Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Cochez un ou plusieurs secteurs concernés par ces médias.
-              </p>
+          <section className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="media-sectors">Secteurs d&apos;activité *</Label>
+              <MediaMultiSelect
+                id="media-sectors"
+                options={MEDIA_SECTORS}
+                value={sectors}
+                onChange={setSectors}
+                placeholder="Sélectionner des secteurs"
+                selectedLabel={(count) => `${count} secteurs sélectionnés`}
+                disabled={!enabled || submitting}
+              />
             </div>
-            <MediaSectorPicker
-              value={sectors}
-              onChange={setSectors}
-              disabled={!configured || submitting}
-            />
-          </section>
 
-          <section className="space-y-3">
-            <div>
-              <Label>Plateformes *</Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Cochez une ou plusieurs plateformes concernées par ces médias.
-              </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="media-platforms">Plateformes *</Label>
+              <MediaMultiSelect
+                id="media-platforms"
+                options={MEDIA_PLATFORMS}
+                value={platforms}
+                onChange={setPlatforms}
+                placeholder="Sélectionner des plateformes"
+                selectedLabel={(count) => `${count} plateformes sélectionnées`}
+                disabled={!enabled || submitting}
+              />
             </div>
-            <MediaPlatformPicker
-              value={platforms}
-              onChange={setPlatforms}
-              disabled={!configured || submitting}
-            />
-          </section>
 
-          <section className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label htmlFor="client-name">Nom du client *</Label>
               <Input
                 id="client-name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Ex : Carrefour"
-                disabled={!configured || submitting}
+                disabled={!enabled || submitting}
+                className="h-9"
               />
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-1.5">
               <Label htmlFor="campaign-name">Nom de la campagne *</Label>
               <Input
                 id="campaign-name"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
                 placeholder="Ex : Lancement été 2026"
-                disabled={!configured || submitting}
+                disabled={!enabled || submitting}
+                className="h-9"
               />
             </div>
-          </section>
 
-          <section className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-4 space-y-4">
-            <p className="text-sm font-medium text-muted-foreground">Période (optionnel)</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Mois</Label>
-                <Select
-                  value={month || NONE}
-                  onValueChange={(v) => setMonth(v === NONE ? '' : v)}
-                  disabled={!configured || submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Non renseigné" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Non renseigné</SelectItem>
-                    {MEDIA_MONTHS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Année</Label>
-                <Select
-                  value={year || NONE}
-                  onValueChange={(v) => setYear(v === NONE ? '' : v)}
-                  disabled={!configured || submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Non renseignée" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Non renseignée</SelectItem>
-                    {MEDIA_YEARS.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <Label>Mois de diffusion *</Label>
+              <Select
+                value={month || undefined}
+                onValueChange={setMonth}
+                disabled={!enabled || submitting}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Sélectionner un mois" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEDIA_MONTHS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </section>
 
-          <section className="space-y-2">
-            <Label htmlFor="report-link">Lien du rapport (optionnel)</Label>
-            <Input
-              id="report-link"
-              type="url"
-              value={reportLink}
-              onChange={(e) => setReportLink(e.target.value)}
-              placeholder="https://..."
-              disabled={!configured || submitting}
-            />
+            <div className="space-y-1.5">
+              <Label>Année de diffusion *</Label>
+              <Select
+                value={year || undefined}
+                onValueChange={setYear}
+                disabled={!enabled || submitting}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Sélectionner une année" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEDIA_YEARS.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="report-link">Lien du rapport</Label>
+              <Input
+                id="report-link"
+                type="url"
+                value={reportLink}
+                onChange={(e) => setReportLink(e.target.value)}
+                placeholder="https://..."
+                disabled={!enabled || submitting}
+                className="h-9"
+              />
+            </div>
           </section>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}

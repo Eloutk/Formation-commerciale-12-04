@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
-import { getPrimarySessionUser, getServerSupabase, isMediaTableMissingError } from '@/lib/media-session'
+import { getServerSupabase, isMediaTableMissingError, requireAdminSessionUser } from '@/lib/media-session'
 import { MEDIA_BUCKET } from '@/lib/media-config'
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const user = await getPrimarySessionUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const auth = await requireAdminSessionUser(req)
+  if (!auth.user) {
+    return NextResponse.json(
+      { error: auth.status === 401 ? 'Non authentifié' : 'Accès réservé aux administrateurs' },
+      { status: auth.status ?? 403 },
+    )
   }
 
   try {
-    const supabase = await getServerSupabase()
+    const supabase = await getServerSupabase(req)
     const { data: asset, error } = await supabase
       .from('media_assets')
       .select('storage_path, original_filename')

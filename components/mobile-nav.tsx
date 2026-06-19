@@ -12,6 +12,7 @@ import {
   RESSOURCES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
+  filterNavItemsByAdmin,
   isAidePath,
   isRessourcesPath,
   isStrategiePath,
@@ -63,13 +64,13 @@ export function MobileNav({
               <MobileNavMenu
                 label="Ressources"
                 active={isRessourcesPath(pathname)}
-                items={withActiveItems(pathname, RESSOURCES_LINKS)}
+                items={withActiveItems(pathname, filterNavItemsByAdmin(RESSOURCES_LINKS, !!isAdmin))}
                 onNavigate={handleNav}
               />
               <MobileNavMenu
                 label="Aide"
                 active={isAidePath(pathname)}
-                items={withActiveItems(pathname, AIDE_LINKS)}
+                items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, !!isAdmin))}
                 onNavigate={handleNav}
               />
               <Link

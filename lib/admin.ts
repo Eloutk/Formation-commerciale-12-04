@@ -1,12 +1,17 @@
 import supabase from '@/utils/supabase/client'
 
+export function isAdminRole(role: string | undefined | null): boolean {
+  const roleNorm = typeof role === 'string' ? role.trim().toLowerCase() : ''
+  return roleNorm === 'admin' || roleNorm === 'super_admin'
+}
+
 /**
  * Vérifie si l'utilisateur connecté a un rôle admin
  */
 export async function checkIsAdmin(): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) return false
 
     const { data: profile, error } = await supabase
@@ -17,8 +22,7 @@ export async function checkIsAdmin(): Promise<boolean> {
 
     if (error || !profile?.role) return false
 
-    const role = typeof profile.role === 'string' ? profile.role.trim().toLowerCase() : ''
-    return role === 'admin' || role === 'super_admin'
+    return isAdminRole(profile.role as string)
   } catch (error) {
     console.error('Error checking admin status:', error)
     return false
@@ -31,7 +35,7 @@ export async function checkIsAdmin(): Promise<boolean> {
 export async function getCurrentUserProfile() {
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     if (!user) return null
 
     const { data, error } = await supabase

@@ -40,6 +40,13 @@ ON public.media_assets FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = uploaded_by_id);
 
+DROP POLICY IF EXISTS "Admins can delete media" ON public.media_assets;
+DROP POLICY IF EXISTS "Authenticated users can delete media" ON public.media_assets;
+CREATE POLICY "Authenticated users can delete media"
+ON public.media_assets FOR DELETE
+TO authenticated
+USING (true);
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'media-library',
@@ -68,5 +75,12 @@ WITH CHECK (bucket_id = 'media-library');
 DROP POLICY IF EXISTS "Authenticated users can read media files" ON storage.objects;
 CREATE POLICY "Authenticated users can read media files"
 ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'media-library');
+
+DROP POLICY IF EXISTS "Admins can delete media files" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete media files" ON storage.objects;
+CREATE POLICY "Authenticated users can delete media files"
+ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'media-library');

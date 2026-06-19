@@ -8,8 +8,19 @@ import {
   Film,
   Loader2,
   Maximize2,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Dialog,
   DialogContent,
@@ -18,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { formatMediaPeriod, type MediaAsset } from '@/lib/media-config'
+import { mediaFetch } from '@/lib/media-api-client'
 import { MediaSectorBadges } from '@/components/media/MediaSectorPicker'
 import { MediaPlatformBadges } from '@/components/media/MediaPlatformPicker'
 
@@ -37,7 +49,7 @@ function isPdfType(mime: string | null, filename: string) {
 }
 
 async function fetchMediaUrl(id: string) {
-  const res = await fetch(`/api/media/${id}/download`)
+  const res = await mediaFetch(`/api/media/${id}/download`)
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json.url) {
     throw new Error(json.error || 'Impossible de charger le fichier')
@@ -153,12 +165,23 @@ function MediaPreviewDialog({
   )
 }
 
-export function MediaAssetCard({ item }: { item: MediaAsset }) {
+export function MediaAssetCard({
+  item,
+  canDelete = false,
+  onDeleted,
+}: {
+  item: MediaAsset
+  canDelete?: boolean
+  onDeleted?: (id: string) => void
+}) {
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
   const [loadingPreview, setLoadingPreview] = React.useState(true)
   const [previewError, setPreviewError] = React.useState(false)
   const [previewOpen, setPreviewOpen] = React.useState(false)
   const [downloading, setDownloading] = React.useState(false)
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [deleting, setDeleting] = React.useState(false)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     let cancelled = false
@@ -190,6 +213,25 @@ export function MediaAssetCard({ item }: { item: MediaAsset }) {
       alert('Téléchargement impossible')
     } finally {
       setDownloading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await mediaFetch(`/api/media/${item.id}`, { method: 'DELETE' })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDeleteError(json.error || 'Impossible de supprimer ce média')
+        return
+      }
+      setDeleteOpen(false)
+      onDeleted?.(item.id)
+    } catch {
+      setDeleteError('Erreur réseau lors de la suppression')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -236,7 +278,6 @@ export function MediaAssetCard({ item }: { item: MediaAsset }) {
           {item.uploaded_by_name ? (
             <p className="text-xs text-muted-foreground">Déposé par {item.uploaded_by_name}</p>
           ) : null}
-          <p className="text-xs text-muted-foreground truncate">{item.original_filename}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 self-start">
@@ -267,8 +308,61 @@ export function MediaAssetCard({ item }: { item: MediaAsset }) {
               <Download className="h-4 w-4" />
             )}
           </Button>
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-red-600"
+              title="Supprimer"
+              onClick={() => {
+                setDeleteError(null)
+                setDeleteOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
+
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!deleting) setDeleteOpen(open)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce média ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer « {item.client_name} — {item.campaign_name} » ? Cette
+              action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError ? <p className="text-sm text-red-600">{deleteError}</p> : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={(event) => {
+                event.preventDefault()
+                void handleDelete()
+              }}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression…
+                </>
+              ) : (
+                'Supprimer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {previewUrl ? (
         <MediaPreviewDialog

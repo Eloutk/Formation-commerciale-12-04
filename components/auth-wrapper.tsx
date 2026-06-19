@@ -14,6 +14,7 @@ import {
   RESSOURCES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
+  filterNavItemsByAdmin,
   isAidePath,
   isRessourcesPath,
   isStrategiePath,
@@ -437,7 +438,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <HeaderNavMenu
                 label="Ressources"
                 active={ressourcesActive}
-                items={withActiveItems(pathname, RESSOURCES_LINKS)}
+                items={withActiveItems(pathname, filterNavItemsByAdmin(RESSOURCES_LINKS, isAdmin))}
               />
 
               <Link href="/vente" className="rounded-md px-3 py-2 font-medium hover:bg-accent hover:text-accent-foreground">
@@ -463,7 +464,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <HeaderNavMenu
                 label="Aide"
                 active={aideActive}
-                items={withActiveItems(pathname, AIDE_LINKS)}
+                items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, isAdmin))}
               />
 
               {isAdmin && (

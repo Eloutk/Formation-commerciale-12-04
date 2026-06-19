@@ -4,24 +4,36 @@ import * as React from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useAuthAccess } from '@/components/auth-context'
 import { MediaBrowsePanel } from '@/components/media/MediaBrowsePanel'
 import { MediaUploadForm } from '@/components/media/MediaUploadForm'
+import { mediaFetch } from '@/lib/media-api-client'
+import { isMediaAccessDenied } from '@/lib/media-config'
 
 type MediaView = 'deposit' | 'browse'
 
 export default function MediaPage() {
+  const { isAdmin, authReady } = useAuthAccess()
   const [view, setView] = React.useState<MediaView>('deposit')
   const [configured, setConfigured] = React.useState<boolean | null>(null)
   const [refreshKey, setRefreshKey] = React.useState(0)
 
+  const canUseMedia = authReady && isAdmin
+
   React.useEffect(() => {
-    fetch('/api/media')
+    if (!canUseMedia) return
+
+    mediaFetch('/api/media')
       .then(async (res) => {
         const json = await res.json().catch(() => ({}))
+        if (isMediaAccessDenied(res.status)) {
+          setConfigured(null)
+          return
+        }
         setConfigured(json.configured !== false)
       })
       .catch(() => setConfigured(false))
-  }, [])
+  }, [canUseMedia])
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -68,11 +80,11 @@ export default function MediaPage() {
 
         {view === 'deposit' ? (
           <MediaUploadForm
-            configured={configured !== false}
+            enabled={canUseMedia && configured !== false}
             onSuccess={() => setRefreshKey((k) => k + 1)}
           />
         ) : (
-          <MediaBrowsePanel configured={configured !== false} refreshKey={refreshKey} />
+          <MediaBrowsePanel enabled={canUseMedia && configured !== false} refreshKey={refreshKey} />
         )}
       </div>
     </div>

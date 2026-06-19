@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getPrimarySessionUser, getServerSupabase, formatMediaDbError, isMediaTableMissingError } from '@/lib/media-session'
+import { getPrimarySessionUser, getServerSupabase, formatMediaDbError, isMediaTableMissingError, requireAdminSessionUser } from '@/lib/media-session'
 import { MEDIA_BUCKET, normalizeMediaPlatforms, normalizeMediaSectors } from '@/lib/media-config'
 
 type UploadMeta = {
@@ -128,12 +128,16 @@ function isMissingMediaColumnError(error: { message?: string } | null, column: s
 }
 
 export async function POST(req: Request) {
-  const user = await getPrimarySessionUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const auth = await requireAdminSessionUser(req)
+  if (!auth.user) {
+    return NextResponse.json(
+      { error: auth.status === 401 ? 'Non authentifié' : 'Accès réservé aux administrateurs' },
+      { status: auth.status ?? 403 },
+    )
   }
+  const user = auth.user
 
-  const supabase = await getServerSupabase()
+  const supabase = await getServerSupabase(req)
 
   try {
     const formData = await req.formData()
@@ -152,13 +156,13 @@ export async function POST(req: Request) {
     if (files.length === 0) {
       return NextResponse.json({ error: 'Au moins un fichier est requis' }, { status: 400 })
     }
-    if (sectors.length === 0 || platforms.length === 0 || !clientName || !campaignName) {
+    if (sectors.length === 0 || platforms.length === 0 || !clientName || !campaignName || !monthRaw || !yearRaw) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être renseignés' }, { status: 400 })
     }
-    if (month !== null && (!Number.isInteger(month) || month < 1 || month > 12)) {
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
       return NextResponse.json({ error: 'Mois invalide' }, { status: 400 })
     }
-    if (year !== null && (!Number.isInteger(year) || year < 2000 || year > 2100)) {
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
       return NextResponse.json({ error: 'Année invalide' }, { status: 400 })
     }
 
@@ -213,9 +217,12 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const user = await getPrimarySessionUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const auth = await requireAdminSessionUser(req)
+  if (!auth.user) {
+    return NextResponse.json(
+      { error: auth.status === 401 ? 'Non authentifié' : 'Accès réservé aux administrateurs' },
+      { status: auth.status ?? 403 },
+    )
   }
 
   const { searchParams } = new URL(req.url)
@@ -227,7 +234,7 @@ export async function GET(req: Request) {
   const campaignName = searchParams.get('campaign_name')?.trim()
 
   try {
-    const supabase = await getServerSupabase()
+    const supabase = await getServerSupabase(req)
     let query = supabase
       .from('media_assets')
       .select('*')

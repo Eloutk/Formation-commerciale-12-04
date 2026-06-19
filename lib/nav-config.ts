@@ -4,6 +4,8 @@ export type NavMenuItem = {
   href: string
   label: string
   isActive?: boolean
+  /** Visible et accessible uniquement aux administrateurs */
+  adminOnly?: boolean
 }
 
 export type NavMenuGroup = {
@@ -16,8 +18,15 @@ export const RESSOURCES_LINKS: NavMenuItem[] = [
   { href: '/chefferie', label: 'Chefferie de projet' },
   { href: '/studio', label: 'Studio' },
   { href: '/cartographie', label: 'Cartographie' },
-  { href: '/media', label: 'Média' },
+  { href: '/media', label: 'Média', adminOnly: true },
 ]
+
+export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
+  items: T[],
+  isAdmin: boolean,
+): T[] {
+  return items.filter((item) => !item.adminOnly || isAdmin)
+}
 
 export const VENTE2_SOCIAL_HREF = '/calculateur-vente-2/social-media'
 export const VENTE2_SMS_HREF = '/calculateur-vente-2/sms-rcs'

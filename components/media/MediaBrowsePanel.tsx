@@ -13,28 +13,31 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  buildMediaFilterQuery,
+  filterMediaAssets,
+  isMediaAccessDenied,
   MEDIA_MONTHS,
+  MEDIA_PLATFORMS,
+  MEDIA_SECTORS,
   MEDIA_YEARS,
   type MediaAsset,
   type MediaFilters,
 } from '@/lib/media-config'
 import { MediaAssetCard } from '@/components/media/MediaAssetCard'
-import { MediaSectorPicker } from '@/components/media/MediaSectorPicker'
-import { MediaPlatformPicker } from '@/components/media/MediaPlatformPicker'
+import { MediaMultiSelect } from '@/components/media/MediaMultiSelect'
+import { mediaFetch } from '@/lib/media-api-client'
 
 const NONE = '__none__'
 
 type MediaBrowsePanelProps = {
-  configured: boolean
+  enabled: boolean
   refreshKey?: number
 }
 
-export function MediaBrowsePanel({ configured, refreshKey = 0 }: MediaBrowsePanelProps) {
+export function MediaBrowsePanel({ enabled, refreshKey = 0 }: MediaBrowsePanelProps) {
   const [filters, setFilters] = React.useState<MediaFilters>({ sectors: [], platforms: [] })
   const [clientInput, setClientInput] = React.useState('')
   const [campaignInput, setCampaignInput] = React.useState('')
-  const [items, setItems] = React.useState<MediaAsset[]>([])
+  const [allItems, setAllItems] = React.useState<MediaAsset[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -58,9 +61,9 @@ export function MediaBrowsePanel({ configured, refreshKey = 0 }: MediaBrowsePane
     return () => clearTimeout(timer)
   }, [campaignInput])
 
-  const loadItems = React.useCallback(async (activeFilters: MediaFilters) => {
-    if (!configured) {
-      setItems([])
+  const loadAllItems = React.useCallback(async () => {
+    if (!enabled) {
+      setAllItems([])
       return
     }
 
@@ -68,131 +71,154 @@ export function MediaBrowsePanel({ configured, refreshKey = 0 }: MediaBrowsePane
     setError(null)
 
     try {
-      const res = await fetch(`/api/media${buildMediaFilterQuery(activeFilters)}`)
+      const res = await mediaFetch('/api/media')
       const json = await res.json().catch(() => ({}))
 
       if (!res.ok) {
+        if (isMediaAccessDenied(res.status)) {
+          setAllItems([])
+          return
+        }
         setError(json.error || 'Impossible de charger les médias')
-        setItems([])
+        setAllItems([])
         return
       }
 
-      setItems(json.items ?? [])
+      setAllItems(json.items ?? [])
     } catch {
       setError('Erreur réseau')
-      setItems([])
+      setAllItems([])
     } finally {
       setLoading(false)
     }
-  }, [configured])
+  }, [enabled])
 
   React.useEffect(() => {
-    loadItems(filters)
-  }, [filters, refreshKey, loadItems])
+    loadAllItems()
+  }, [refreshKey, loadAllItems])
+
+  const filteredItems = React.useMemo(
+    () => filterMediaAssets(allItems, filters),
+    [allItems, filters],
+  )
+
+  const hasActiveFilters =
+    (filters.sectors?.length ?? 0) > 0 ||
+    (filters.platforms?.length ?? 0) > 0 ||
+    !!filters.month ||
+    !!filters.year ||
+    !!filters.client_name ||
+    !!filters.campaign_name
 
   return (
     <Card className="overflow-hidden border-border/80 shadow-sm">
-      <CardHeader className="border-b bg-muted/20">
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="border-b bg-muted/20 py-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <Search className="h-5 w-5 text-[#E94C16]" aria-hidden />
           Consulter les médias
         </CardTitle>
-        <CardDescription>
-          Filtrez par secteur, plateforme ou critères métier. Les résultats se mettent à jour automatiquement.
+        <CardDescription className="text-sm">
+          Tous les médias sont affichés par défaut. Affinez la liste en cochant des filtres.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div className="rounded-xl border border-border/70 bg-muted/15 p-4 space-y-5">
-          <div className="space-y-3">
-            <Label>Secteurs d&apos;activité</Label>
-            <MediaSectorPicker
-              compact
+      <CardContent className="space-y-4 pt-4">
+        <section className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-sectors">Secteurs d&apos;activité</Label>
+            <MediaMultiSelect
+              id="filter-sectors"
+              options={MEDIA_SECTORS}
               value={filters.sectors ?? []}
               onChange={(sectors) => setFilters((prev) => ({ ...prev, sectors }))}
-              disabled={!configured}
+              placeholder="Tous les secteurs"
+              selectedLabel={(count) => `${count} secteurs sélectionnés`}
+              disabled={!enabled || loading}
             />
           </div>
 
-          <div className="space-y-3">
-            <Label>Plateformes</Label>
-            <MediaPlatformPicker
-              compact
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-platforms">Plateformes</Label>
+            <MediaMultiSelect
+              id="filter-platforms"
+              options={MEDIA_PLATFORMS}
               value={filters.platforms ?? []}
               onChange={(platforms) => setFilters((prev) => ({ ...prev, platforms }))}
-              disabled={!configured}
+              placeholder="Toutes les plateformes"
+              selectedLabel={(count) => `${count} plateformes sélectionnées`}
+              disabled={!enabled || loading}
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Mois</Label>
-              <Select
-                value={filters.month || NONE}
-                onValueChange={(v) =>
-                  setFilters((prev) => ({ ...prev, month: v === NONE ? undefined : v }))
-                }
-                disabled={!configured}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Tous" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Tous</SelectItem>
-                  {MEDIA_MONTHS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Année</Label>
-              <Select
-                value={filters.year || NONE}
-                onValueChange={(v) =>
-                  setFilters((prev) => ({ ...prev, year: v === NONE ? undefined : v }))
-                }
-                disabled={!configured}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Toutes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>Toutes</SelectItem>
-                  {MEDIA_YEARS.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="filter-client">Nom du client</Label>
-              <Input
-                id="filter-client"
-                value={clientInput}
-                onChange={(e) => setClientInput(e.target.value)}
-                placeholder="Rechercher…"
-                disabled={!configured}
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-2 lg:col-span-4">
-              <Label htmlFor="filter-campaign">Nom de la campagne</Label>
-              <Input
-                id="filter-campaign"
-                value={campaignInput}
-                onChange={(e) => setCampaignInput(e.target.value)}
-                placeholder="Rechercher…"
-                disabled={!configured}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-client">Nom du client</Label>
+            <Input
+              id="filter-client"
+              value={clientInput}
+              onChange={(e) => setClientInput(e.target.value)}
+              placeholder="Rechercher…"
+              disabled={!enabled || loading}
+              className="h-9"
+            />
           </div>
-        </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="filter-campaign">Nom de la campagne</Label>
+            <Input
+              id="filter-campaign"
+              value={campaignInput}
+              onChange={(e) => setCampaignInput(e.target.value)}
+              placeholder="Rechercher…"
+              disabled={!enabled || loading}
+              className="h-9"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Mois de diffusion</Label>
+            <Select
+              value={filters.month || NONE}
+              onValueChange={(v) =>
+                setFilters((prev) => ({ ...prev, month: v === NONE ? undefined : v }))
+              }
+              disabled={!enabled || loading}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Tous" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Tous</SelectItem>
+                {MEDIA_MONTHS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Année de diffusion</Label>
+            <Select
+              value={filters.year || NONE}
+              onValueChange={(v) =>
+                setFilters((prev) => ({ ...prev, year: v === NONE ? undefined : v }))
+              }
+              disabled={!enabled || loading}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Toutes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Toutes</SelectItem>
+                {MEDIA_YEARS.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </section>
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -202,17 +228,29 @@ export function MediaBrowsePanel({ configured, refreshKey = 0 }: MediaBrowsePane
         ) : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        {!loading && !error && items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun média trouvé pour ces critères.</p>
+        {!loading && !error && allItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun média enregistré pour le moment.</p>
         ) : null}
 
-        {!loading && items.length > 0 ? (
-          <p className="text-xs text-muted-foreground">{items.length} média{items.length > 1 ? 's' : ''}</p>
+        {!loading && !error && allItems.length > 0 && filteredItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun média ne correspond à ces filtres.</p>
+        ) : null}
+
+        {!loading && filteredItems.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {filteredItems.length} média{filteredItems.length > 1 ? 's' : ''}
+            {hasActiveFilters ? ` sur ${allItems.length}` : ''}
+          </p>
         ) : null}
 
         <div className="space-y-3">
-          {items.map((item) => (
-            <MediaAssetCard key={item.id} item={item} />
+          {filteredItems.map((item) => (
+            <MediaAssetCard
+              key={item.id}
+              item={item}
+              canDelete={enabled}
+              onDeleted={(id) => setAllItems((prev) => prev.filter((entry) => entry.id !== id))}
+            />
           ))}
         </div>
       </CardContent>

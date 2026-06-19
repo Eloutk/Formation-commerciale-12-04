@@ -46,8 +46,6 @@ export const MEDIA_PLATFORMS = [
   'Snapchat',
   'YouTube',
   'Display / Programmatique',
-  'SMS / RCS',
-  'Autre',
 ] as const
 
 export type MediaPlatform = (typeof MEDIA_PLATFORMS)[number]
@@ -63,8 +61,6 @@ export const MEDIA_PLATFORM_STYLES: Record<
   Snapchat: { background: '#FFFC00', color: '#1a1a1a' },
   YouTube: { background: '#FF0000', color: '#ffffff' },
   'Display / Programmatique': { background: '#6366F1', color: '#ffffff' },
-  'SMS / RCS': { background: '#E94C16', color: '#ffffff' },
-  Autre: { background: '#64748b', color: '#ffffff' },
 }
 
 export function getMediaPlatformStyle(platform: string) {
@@ -147,6 +143,10 @@ export function formatMediaPeriod(month: number | null, year: number | null): st
   return null
 }
 
+export function isMediaAccessDenied(status: number) {
+  return status === 401 || status === 403
+}
+
 export function buildMediaFilterQuery(filters: MediaFilters): string {
   const params = new URLSearchParams()
   filters.sectors?.forEach((sector) => params.append('sector', sector))
@@ -157,4 +157,27 @@ export function buildMediaFilterQuery(filters: MediaFilters): string {
   if (filters.campaign_name) params.set('campaign_name', filters.campaign_name)
   const query = params.toString()
   return query ? `?${query}` : ''
+}
+
+export function filterMediaAssets(items: MediaAsset[], filters: MediaFilters): MediaAsset[] {
+  const sectors = filters.sectors?.filter(Boolean) ?? []
+  const platforms = filters.platforms?.filter(Boolean) ?? []
+  const month = filters.month?.trim()
+  const year = filters.year?.trim()
+  const clientName = filters.client_name?.trim().toLowerCase()
+  const campaignName = filters.campaign_name?.trim().toLowerCase()
+
+  return items.filter((item) => {
+    if (sectors.length > 0 && !sectors.some((sector) => item.sectors.includes(sector))) {
+      return false
+    }
+    if (platforms.length > 0 && !platforms.some((platform) => item.platforms.includes(platform))) {
+      return false
+    }
+    if (month && item.month !== Number(month)) return false
+    if (year && item.year !== Number(year)) return false
+    if (clientName && !item.client_name.toLowerCase().includes(clientName)) return false
+    if (campaignName && !item.campaign_name.toLowerCase().includes(campaignName)) return false
+    return true
+  })
 }

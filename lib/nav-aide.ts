@@ -1,6 +1,7 @@
 export type NavAideLink = {
   href: string
   label: string
+  adminOnly?: boolean
 }
 
 export type TutoItem = {
@@ -14,7 +15,7 @@ export const AIDE_LINKS: NavAideLink[] = [
   { href: '/documents', label: 'Document' },
   { href: '/glossaire', label: 'Glossaire' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/tuto', label: 'Tuto' },
+  { href: '/tuto', label: 'Tuto', adminOnly: true },
 ]
 
 export const TUTO_ITEMS: TutoItem[] = [

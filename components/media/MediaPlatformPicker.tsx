@@ -23,7 +23,7 @@ export function MediaPlatformPicker({ value, onChange, disabled, compact }: Medi
     <div
       className={cn(
         'grid gap-2 rounded-lg border border-border/80 bg-muted/30 p-3',
-        compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3',
+        compact ? 'grid-cols-2' : 'grid-cols-4',
       )}
     >
       {MEDIA_PLATFORMS.map((platform) => {

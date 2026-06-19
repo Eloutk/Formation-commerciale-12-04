@@ -1,35 +1,78 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type SupabaseClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { isAdminRole } from '@/lib/admin'
 
-export async function getServerSupabase() {
+function getBearerToken(req?: Request) {
+  const header = req?.headers.get('Authorization')
+  if (!header) return null
+  const match = header.match(/^Bearer\s+(.+)$/i)
+  return match?.[1]?.trim() || null
+}
+
+export async function getServerSupabase(req?: Request): Promise<SupabaseClient> {
+  const bearer = getBearerToken(req)
+  if (bearer) {
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${bearer}`,
+          },
+        },
+        cookies: {
+          getAll: () => [],
+          setAll: () => {},
+        },
+      },
+    )
+  }
+
   const cookieStore = cookies()
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: () => {},
-        remove: () => {},
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // Route Handler en lecture seule : la session est gérée ailleurs.
+          }
+        },
       },
     },
   )
 }
 
-export async function getPrimarySessionUser() {
-  const supabase = await getServerSupabase()
+export async function getPrimarySessionUser(req?: Request) {
+  const supabase = await getServerSupabase(req)
+  const bearer = getBearerToken(req)
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = bearer
+    ? await supabase.auth.getUser(bearer)
+    : await supabase.auth.getUser()
 
   if (!user) return null
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('full_name, display_name')
+    .select('full_name, display_name, role')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (profileError) {
+    console.error('Media auth profile lookup failed:', profileError.message, user.id)
+  }
 
   const displayName =
     (profile as { display_name?: string; full_name?: string } | null)?.display_name ||
@@ -37,11 +80,45 @@ export async function getPrimarySessionUser() {
     user.email?.split('@')[0] ||
     'Utilisateur'
 
+  const role = (profile as { role?: string } | null)?.role
+  const isAdmin = await resolveIsAdmin(supabase, user.id, role)
+
   return {
     id: user.id,
     email: user.email || '',
     name: displayName,
+    role,
+    isAdmin,
   }
+}
+
+async function resolveIsAdmin(
+  supabase: SupabaseClient,
+  userId: string,
+  role?: string | null,
+): Promise<boolean> {
+  if (isAdminRole(role)) return true
+
+  const { data, error } = await supabase.rpc('is_admin', { user_id: userId })
+  if (error) {
+    console.error('Media auth is_admin rpc failed:', error.message, userId)
+    return false
+  }
+
+  return data === true
+}
+
+export async function requireAuthenticatedSessionUser(req?: Request) {
+  const user = await getPrimarySessionUser(req)
+  if (!user) return { user: null, status: 401 as const }
+  return { user, status: null }
+}
+
+export async function requireAdminSessionUser(req?: Request) {
+  const user = await getPrimarySessionUser(req)
+  if (!user) return { user: null, status: 401 as const }
+  if (!user.isAdmin) return { user: null, status: 403 as const }
+  return { user, status: null }
 }
 
 export function isMediaTableMissingError(error: { code?: string; message?: string } | null) {
