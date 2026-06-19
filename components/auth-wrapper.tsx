@@ -477,15 +477,17 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               </div>
               {user ? (
                 <>
-                  <Link
-                    href={MON_ESPACE_HREF}
-                    className={cn(
-                      'hidden sm:inline text-sm font-medium rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground',
-                      pathname && isMonEspacePath(pathname) && 'text-[#E94C16]',
-                    )}
-                  >
-                    Mon espace
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      href={MON_ESPACE_HREF}
+                      className={cn(
+                        'hidden sm:inline text-sm font-medium rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground',
+                        pathname && isMonEspacePath(pathname) && 'text-[#E94C16]',
+                      )}
+                    >
+                      Mon espace
+                    </Link>
+                  )}
                   <span className="text-sm text-gray-600 max-w-[180px] truncate">
                     {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
                   </span>

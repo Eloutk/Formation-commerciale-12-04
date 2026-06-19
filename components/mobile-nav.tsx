@@ -105,13 +105,15 @@ export function MobileNav({
                     <div className="text-xs text-muted-foreground truncate">
                       {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
                     </div>
-                    <Link
-                      href={MON_ESPACE_HREF}
-                      className="block rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                      onClick={handleNav}
-                    >
-                      Mon espace
-                    </Link>
+                    {isAdmin && (
+                      <Link
+                        href={MON_ESPACE_HREF}
+                        className="block rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
+                        onClick={handleNav}
+                      >
+                        Mon espace
+                      </Link>
+                    )}
                     <Button
                       variant="outline"
                       className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"

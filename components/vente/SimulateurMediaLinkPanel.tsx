@@ -227,27 +227,42 @@ function SynthesisTable({ synthesis }: { synthesis: SimulateurResult['synthesis'
 
 function CustomSynthesisTable({
   synthesis,
+  customMode,
 }: {
   synthesis: SimulateurResult['synthesis']['custom']
+  customMode: SimulateurCustomMode
 }) {
-  const rows: { label: string; value: string }[] = [
+  const allRows: {
+    key: 'impressions' | 'clics' | 'rate' | 'pressure'
+    label: string
+    value: string
+  }[] = [
     {
+      key: 'impressions',
       label: 'Impressions totales',
       value: formatInt(synthesis.totalImpressions),
     },
     {
+      key: 'clics',
       label: 'Clics totaux estimés',
       value: formatInt(synthesis.totalClicks),
     },
     {
+      key: 'rate',
       label: 'Taux de pénétration estimé (multi-plateformes)',
       value: formatRate(synthesis.globalRate),
     },
     {
+      key: 'pressure',
       label: 'Niveau de pression global',
       value: synthesis.pressureLevel,
     },
   ]
+
+  const rows = allRows.filter((row) => {
+    if (row.key === 'rate' || row.key === 'pressure') return true
+    return customMode === 'impressions' ? row.key === 'impressions' : row.key === 'clics'
+  })
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border/70">
@@ -684,7 +699,10 @@ export function SimulateurMediaLinkPanel() {
 
                   <div>
                     <h3 className="mb-4 text-sm font-semibold">Synthèse — stratégie personnalisée</h3>
-                    <CustomSynthesisTable synthesis={customResult.synthesis.custom} />
+                    <CustomSynthesisTable
+                      synthesis={customResult.synthesis.custom}
+                      customMode={customMode}
+                    />
                   </div>
                 </section>
               )}

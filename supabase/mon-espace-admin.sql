@@ -12,6 +12,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+GRANT EXECUTE ON FUNCTION public.is_admin(UUID) TO authenticated;
+
 -- Admins : lire tous les profils (noms pour le filtre par auteur)
 DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles"
@@ -32,3 +34,46 @@ CREATE POLICY "Admins select all sms devis"
   ON public.sms_devis FOR SELECT
   TO authenticated
   USING (public.is_admin(auth.uid()));
+
+-- RPC : contourne RLS si les policies ci-dessus ne sont pas encore actives
+CREATE OR REPLACE FUNCTION public.admin_list_vente2_strategies()
+RETURNS SETOF public.vente2_strategies
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT vs.*
+  FROM public.vente2_strategies vs
+  WHERE public.is_admin(auth.uid())
+  ORDER BY vs.updated_at DESC;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_list_sms_devis()
+RETURNS SETOF public.sms_devis
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT sd.*
+  FROM public.sms_devis sd
+  WHERE public.is_admin(auth.uid())
+  ORDER BY sd.updated_at DESC;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_list_profiles_for_mon_espace()
+RETURNS TABLE (id UUID, full_name TEXT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT p.id, p.full_name
+  FROM public.profiles p
+  WHERE public.is_admin(auth.uid());
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_list_vente2_strategies() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_sms_devis() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_profiles_for_mon_espace() TO authenticated;
