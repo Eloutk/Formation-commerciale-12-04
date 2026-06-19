@@ -1,13 +1,22 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { BarChart3, Info } from 'lucide-react'
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { BarChart3, Info, Loader2, Save } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -46,6 +55,13 @@ import {
   type SimulateurPlatformId,
   type SimulateurPlatformRow,
 } from '@/lib/simulateur-media-link'
+import type { SimulateurMediaSaveContent } from '@/lib/simulateur-media-saves'
+import {
+  createSimulateurMediaSave,
+  getSimulateurMediaSaveById,
+  updateSimulateurMediaSave,
+} from '@/lib/simulateur-media-saves-storage'
+import { STRATEGIE_SOCIAL_HREF } from '@/lib/nav-config'
 import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
@@ -373,12 +389,36 @@ function defaultFormState(): FormState {
 }
 
 export function SimulateurMediaLinkPanel() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Chargement du simulateur…
+        </div>
+      }
+    >
+      <SimulateurMediaLinkPanelInner />
+    </Suspense>
+  )
+}
+
+function SimulateurMediaLinkPanelInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const simulateurIdFromUrl = searchParams.get('simulateur')
   const [form, setForm] = useState<FormState>(defaultFormState)
   const [customPanelOpen, setCustomPanelOpen] = useState(false)
   const [customMode, setCustomMode] = useState<SimulateurCustomMode>('impressions')
   const [customValues, setCustomValues] = useState<Record<SimulateurPlatformId, string>>(
     defaultCustomValues,
   )
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedName, setSavedName] = useState('')
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveNameInput, setSaveNameInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [loadingSave, setLoadingSave] = useState(false)
   const { isAdmin, authReady } = useAuthAccess()
   const showAdminSections = authReady && isAdmin
 
@@ -400,6 +440,118 @@ export function SimulateurMediaLinkPanel() {
     [customPanelOpen, form.enabled, customValues],
   )
 
+  const applySavedContent = useCallback((content: SimulateurMediaSaveContent, name: string, id: string) => {
+    setForm({
+      diffusionDays: content.form.diffusionDays,
+      potentielMeta: content.form.potentielMeta,
+      potentielLinkedin: content.form.potentielLinkedin,
+      potentielSnapchat: content.form.potentielSnapchat,
+      potentielTiktok: content.form.potentielTiktok,
+      enabled: { ...content.form.enabled },
+    })
+    setCustomPanelOpen(content.customPanelOpen)
+    setCustomMode(content.customMode)
+    setCustomValues({ ...content.customValues })
+    setSavedId(id)
+    setSavedName(name)
+  }, [])
+
+  useEffect(() => {
+    if (!simulateurIdFromUrl) return
+    let cancelled = false
+    setLoadingSave(true)
+    void getSimulateurMediaSaveById(simulateurIdFromUrl)
+      .then((record) => {
+        if (cancelled || !record) return
+        applySavedContent(record.content, record.name, record.id)
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          alert(e instanceof Error ? e.message : 'Impossible de charger la simulation.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSave(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [simulateurIdFromUrl, applySavedContent])
+
+  const buildSaveContent = (): SimulateurMediaSaveContent => ({
+    version: 1,
+    form: {
+      diffusionDays: form.diffusionDays,
+      potentielMeta: form.potentielMeta,
+      potentielLinkedin: form.potentielLinkedin,
+      potentielSnapchat: form.potentielSnapchat,
+      potentielTiktok: form.potentielTiktok,
+      enabled: { ...form.enabled },
+    },
+    customPanelOpen,
+    customMode,
+    customValues: { ...customValues },
+  })
+
+  const summaryImpressions =
+    customPanelOpen && customResult
+      ? customResult.synthesis.custom.totalImpressions
+      : result?.synthesis.ideal.totalImpressions ?? 0
+
+  const handleOpenSaveDialog = () => {
+    if (!result) {
+      alert('Complétez les paramètres de campagne avant d’enregistrer.')
+      return
+    }
+    const hasPlatform = Object.values(form.enabled).some(Boolean)
+    if (!hasPlatform) {
+      alert('Activez au moins une plateforme avant d’enregistrer.')
+      return
+    }
+    setSaveNameInput(savedName || 'Simulation média Link')
+    setSaveDialogOpen(true)
+  }
+
+  const handleConfirmSave = async () => {
+    const name = saveNameInput.trim()
+    if (!name) {
+      alert('Veuillez renseigner un nom pour la simulation.')
+      return
+    }
+    if (!result) return
+
+    setSaving(true)
+    try {
+      const content = buildSaveContent()
+      const wasUpdate = !!savedId
+      const record = savedId
+        ? await updateSimulateurMediaSave({
+            id: savedId,
+            name,
+            summaryImpressions,
+            content,
+          })
+        : await createSimulateurMediaSave({
+            name,
+            summaryImpressions,
+            content,
+          })
+      setSavedId(record.id)
+      setSavedName(record.name)
+      setSaveDialogOpen(false)
+      router.replace(`${STRATEGIE_SOCIAL_HREF}?simulateur=${record.id}`)
+      alert(
+        wasUpdate
+          ? 'Simulation mise à jour dans Mon espace.'
+          : 'Simulation enregistrée dans Mon espace.',
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const showMetaPotentiel = needsMetaPotentiel(form.enabled)
   const showLinkedinPotentiel = form.enabled.linkedin
   const showSnapchatPotentiel = form.enabled.snapchat
@@ -407,18 +559,38 @@ export function SimulateurMediaLinkPanel() {
 
   return (
     <div className="space-y-8">
+      {loadingSave && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Chargement de la simulation enregistrée…
+        </div>
+      )}
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent pb-5">
-          <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
-              <BarChart3 className="h-5 w-5" aria-hidden />
-            </span>
-            Simulateur Média — Link
-          </CardTitle>
-          <CardDescription className="max-w-3xl text-sm leading-relaxed">
-            Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
-            idéale, MAX et personnalisée.
-          </CardDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
+                  <BarChart3 className="h-5 w-5" aria-hidden />
+                </span>
+                Simulateur Média — Link
+              </CardTitle>
+              <CardDescription className="max-w-3xl text-sm leading-relaxed">
+                Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
+                idéale, MAX et personnalisée.
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+              onClick={handleOpenSaveDialog}
+              disabled={loadingSave || !result}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Sauvegarder
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-10 pt-6">
@@ -794,6 +966,48 @@ export function SimulateurMediaLinkPanel() {
         </AccordionItem>
       </Accordion>
       )}
+
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {savedId ? 'Mettre à jour la simulation' : 'Enregistrer la simulation'}
+            </DialogTitle>
+            <DialogDescription>
+              La simulation sera sauvegardée dans Mon espace avec tous les paramètres et objectifs
+              saisis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-simulateur-name">Nom de la simulation *</Label>
+              <Input
+                id="save-simulateur-name"
+                placeholder="Ex. Campagne Client X"
+                value={saveNameInput}
+                onChange={(e) => setSaveNameInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleConfirmSave()}
+              disabled={!saveNameInput.trim() || saving}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {savedId ? 'Mettre à jour' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

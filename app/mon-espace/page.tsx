@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
+  BarChart3,
   Calculator,
   Copy,
   ExternalLink,
@@ -43,7 +44,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -62,26 +63,45 @@ import {
   listUserVente2Strategies,
 } from '@/lib/vente2-strategies-storage'
 import {
+  countEnabledPlatforms,
+  formatSimulateurMediaImpressions,
+  formatSimulateurMediaSaveDate,
+  type SimulateurMediaSaveRecord,
+} from '@/lib/simulateur-media-saves'
+import {
+  deleteSimulateurMediaSave,
+  duplicateSimulateurMediaSave,
+  listUserSimulateurMediaSaves,
+} from '@/lib/simulateur-media-saves-storage'
+import {
   loadMonEspaceAdminItems,
   type MonEspaceAdminItem,
   type MonEspaceAuthor,
   type MonEspaceCategory,
 } from '@/lib/mon-espace-admin'
+import { getMonEspacePagination } from '@/lib/mon-espace-pagination'
+import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
 
 export default function MonEspacePage() {
   const router = useRouter()
   const { isAdmin, authReady } = useAuthAccess()
   const [devis, setDevis] = useState<SmsDevisRecord[]>([])
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
+  const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
+  const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
+  const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
+  const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
   const [deleteDevisTarget, setDeleteDevisTarget] = useState<SmsDevisRecord | null>(null)
   const [deleteStrategyTarget, setDeleteStrategyTarget] = useState<Vente2StrategyRecord | null>(null)
+  const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
+    useState<SimulateurMediaSaveRecord | null>(null)
   const [adminItems, setAdminItems] = useState<MonEspaceAdminItem[]>([])
   const [adminAuthors, setAdminAuthors] = useState<MonEspaceAuthor[]>([])
   const [loadingAdmin, setLoadingAdmin] = useState(false)
@@ -89,6 +109,10 @@ export default function MonEspacePage() {
   const [adminCategory, setAdminCategory] = useState<MonEspaceCategory>('all')
   const [adminAuthorId, setAdminAuthorId] = useState<string>('all')
   const [adminSearch, setAdminSearch] = useState('')
+  const [adminPage, setAdminPage] = useState(1)
+  const [strategiesPage, setStrategiesPage] = useState(1)
+  const [simulateurPage, setSimulateurPage] = useState(1)
+  const [devisPage, setDevisPage] = useState(1)
 
   const loadDevis = useCallback(async () => {
     setLoadingDevis(true)
@@ -116,10 +140,26 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadSimulateurSaves = useCallback(async () => {
+    setLoadingSimulateurSaves(true)
+    setSimulateurSavesError(null)
+    try {
+      const rows = await listUserSimulateurMediaSaves()
+      setSimulateurSaves(rows)
+    } catch (e) {
+      setSimulateurSavesError(
+        e instanceof Error ? e.message : 'Impossible de charger vos simulations.',
+      )
+    } finally {
+      setLoadingSimulateurSaves(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadDevis()
     void loadStrategies()
-  }, [loadDevis, loadStrategies])
+    void loadSimulateurSaves()
+  }, [loadDevis, loadStrategies, loadSimulateurSaves])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -144,6 +184,7 @@ export default function MonEspacePage() {
     const q = adminSearch.trim().toLowerCase()
     return adminItems.filter((item) => {
       if (adminCategory === 'strategy' && item.kind !== 'strategy') return false
+      if (adminCategory === 'simulateur' && item.kind !== 'simulateur') return false
       if (adminCategory === 'sms' && item.kind !== 'sms') return false
       if (adminAuthorId !== 'all' && item.record.user_id !== adminAuthorId) return false
       if (q && !item.record.name.toLowerCase().includes(q)) return false
@@ -162,6 +203,69 @@ export default function MonEspacePage() {
     if (!q) return strategies
     return strategies.filter((s) => s.name.toLowerCase().includes(q))
   }, [strategies, strategiesSearch])
+
+  const filteredSimulateurSaves = useMemo(() => {
+    const q = simulateurSavesSearch.trim().toLowerCase()
+    if (!q) return simulateurSaves
+    return simulateurSaves.filter((s) => s.name.toLowerCase().includes(q))
+  }, [simulateurSaves, simulateurSavesSearch])
+
+  const adminPagination = useMemo(
+    () => getMonEspacePagination(filteredAdminItems, adminPage),
+    [filteredAdminItems, adminPage],
+  )
+  const strategiesPagination = useMemo(
+    () => getMonEspacePagination(filteredStrategies, strategiesPage),
+    [filteredStrategies, strategiesPage],
+  )
+  const simulateurPagination = useMemo(
+    () => getMonEspacePagination(filteredSimulateurSaves, simulateurPage),
+    [filteredSimulateurSaves, simulateurPage],
+  )
+  const devisPagination = useMemo(
+    () => getMonEspacePagination(filteredDevis, devisPage),
+    [filteredDevis, devisPage],
+  )
+
+  useEffect(() => {
+    setAdminPage(1)
+  }, [adminCategory, adminAuthorId, adminSearch])
+
+  useEffect(() => {
+    setStrategiesPage(1)
+  }, [strategiesSearch])
+
+  useEffect(() => {
+    setSimulateurPage(1)
+  }, [simulateurSavesSearch])
+
+  useEffect(() => {
+    setDevisPage(1)
+  }, [devisSearch])
+
+  useEffect(() => {
+    if (adminPage > adminPagination.totalPages) {
+      setAdminPage(adminPagination.totalPages)
+    }
+  }, [adminPage, adminPagination.totalPages])
+
+  useEffect(() => {
+    if (strategiesPage > strategiesPagination.totalPages) {
+      setStrategiesPage(strategiesPagination.totalPages)
+    }
+  }, [strategiesPage, strategiesPagination.totalPages])
+
+  useEffect(() => {
+    if (simulateurPage > simulateurPagination.totalPages) {
+      setSimulateurPage(simulateurPagination.totalPages)
+    }
+  }, [simulateurPage, simulateurPagination.totalPages])
+
+  useEffect(() => {
+    if (devisPage > devisPagination.totalPages) {
+      setDevisPage(devisPagination.totalPages)
+    }
+  }, [devisPage, devisPagination.totalPages])
 
   const handleDuplicateDevis = async (row: SmsDevisRecord) => {
     setActionId(row.id)
@@ -215,13 +319,40 @@ export default function MonEspacePage() {
     }
   }
 
+  const handleDuplicateSimulateur = async (row: SimulateurMediaSaveRecord) => {
+    setActionId(row.id)
+    try {
+      await duplicateSimulateurMediaSave(row)
+      await loadSimulateurSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la duplication.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDeleteSimulateur = async () => {
+    if (!deleteSimulateurTarget) return
+    setActionId(deleteSimulateurTarget.id)
+    try {
+      await deleteSimulateurMediaSave(deleteSimulateurTarget.id)
+      setDeleteSimulateurTarget(null)
+      await loadSimulateurSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Mon espace</h1>
           <p className="text-muted-foreground">
-            Retrouvez et gérez vos stratégies du calculateur de vente et vos devis SMS / RCS.
+            Retrouvez et gérez vos stratégies du calculateur de vente, vos simulations média Link et
+            vos devis SMS / RCS.
             {isAdmin
               ? ' En tant qu’administrateur, vous pouvez aussi consulter tous les enregistrements.'
               : ' Seul vous pouvez accéder à vos documents.'}
@@ -252,7 +383,8 @@ export default function MonEspacePage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Toutes</SelectItem>
-                      <SelectItem value="strategy">Stratégies (Social)</SelectItem>
+                      <SelectItem value="strategy">Calculateur de vente</SelectItem>
+                      <SelectItem value="simulateur">Simulateur média</SelectItem>
                       <SelectItem value="sms">SMS / RCS</SelectItem>
                     </SelectContent>
                   </Select>
@@ -293,12 +425,25 @@ export default function MonEspacePage() {
                   Chargement de tous les enregistrements…
                 </div>
               ) : adminError ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {adminError}
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                  <p>{adminError}</p>
                   <p className="mt-2 text-muted-foreground">
-                    Exécutez <code className="text-xs">supabase/mon-espace-admin.sql</code> dans
-                    Supabase si les droits admin ne sont pas encore configurés.
+                    Dans Supabase → <strong>SQL Editor</strong>, exécutez dans l&apos;ordre :
                   </p>
+                  <ol className="mt-2 list-decimal list-inside text-muted-foreground space-y-1 text-xs sm:text-sm">
+                    <li>
+                      <code>supabase/vente2-strategies.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/sms-devis.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/simulateur-media-saves.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/mon-espace-admin.sql</code>
+                    </li>
+                  </ol>
                 </div>
               ) : filteredAdminItems.length === 0 ? (
                 <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
@@ -309,6 +454,7 @@ export default function MonEspacePage() {
                   )}
                 </div>
               ) : (
+                <>
                 <div className="overflow-x-auto rounded-xl border border-border/70">
                   <Table>
                     <TableHeader>
@@ -316,28 +462,97 @@ export default function MonEspacePage() {
                         <TableHead className="font-semibold">Nom</TableHead>
                         <TableHead className="font-semibold">Catégorie</TableHead>
                         <TableHead className="font-semibold">Enregistré par</TableHead>
-                        <TableHead className="font-semibold">Montant HT</TableHead>
+                        <TableHead className="font-semibold">Résumé</TableHead>
                         <TableHead className="font-semibold">Créé le</TableHead>
                         <TableHead className="font-semibold">Modifié le</TableHead>
                         <TableHead className="font-semibold text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAdminItems.map((item) => {
-                        const row = item.record
-                        const href =
-                          item.kind === 'strategy'
-                            ? `${VENTE2_SOCIAL_HREF}?strategy=${row.id}`
-                            : `${VENTE2_SMS_HREF}?devis=${row.id}`
-                        const amount =
-                          item.kind === 'strategy'
-                            ? formatVente2StrategyAmount(Number(row.total_amount))
-                            : formatSmsDevisAmount(Number(row.total_amount))
-                        const formatDate =
-                          item.kind === 'strategy'
-                            ? formatVente2StrategyDate
-                            : formatSmsDevisDate
+                      {adminPagination.items.map((item) => {
+                        if (item.kind === 'strategy') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.id}`}>
+                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Calculateur de vente
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="tabular-nums whitespace-nowrap">
+                                {formatVente2StrategyAmount(Number(row.total_amount))}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatVente2StrategyDate(row.created_at)}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatVente2StrategyDate(row.updated_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      router.push(`${VENTE2_SOCIAL_HREF}?strategy=${row.id}`)
+                                    }
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
 
+                        if (item.kind === 'simulateur') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.id}`}>
+                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Simulateur média
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="tabular-nums whitespace-nowrap">
+                                {formatSimulateurMediaImpressions(Number(row.summary_impressions))}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatSimulateurMediaSaveDate(row.created_at)}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatSimulateurMediaSaveDate(row.updated_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      router.push(`${STRATEGIE_SOCIAL_HREF}?simulateur=${row.id}`)
+                                    }
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+
+                        const row = item.record
                         return (
                           <TableRow key={`${item.kind}-${row.id}`}>
                             <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
@@ -345,18 +560,18 @@ export default function MonEspacePage() {
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline" className="font-normal">
-                                {item.kind === 'strategy'
-                                  ? 'Stratégie Social'
-                                  : 'SMS / RCS'}
+                                SMS / RCS
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm">{item.authorLabel}</TableCell>
-                            <TableCell className="tabular-nums whitespace-nowrap">{amount}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {formatDate(row.created_at)}
+                            <TableCell className="tabular-nums whitespace-nowrap">
+                              {formatSmsDevisAmount(Number(row.total_amount))}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {formatDate(row.updated_at)}
+                              {formatSmsDevisDate(row.created_at)}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {formatSmsDevisDate(row.updated_at)}
                             </TableCell>
                             <TableCell>
                               <div className="flex justify-end">
@@ -364,7 +579,7 @@ export default function MonEspacePage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => router.push(href)}
+                                  onClick={() => router.push(`${VENTE2_SMS_HREF}?devis=${row.id}`)}
                                 >
                                   <ExternalLink className="h-3.5 w-3.5 mr-1" />
                                   Ouvrir
@@ -377,6 +592,12 @@ export default function MonEspacePage() {
                     </TableBody>
                   </Table>
                 </div>
+                <MonEspaceListPagination
+                  page={adminPagination.page}
+                  totalPages={adminPagination.totalPages}
+                  onPageChange={setAdminPage}
+                />
+                </>
               )}
             </CardContent>
           </Card>
@@ -439,6 +660,7 @@ export default function MonEspacePage() {
                 )}
               </div>
             ) : (
+              <>
               <div className="overflow-x-auto rounded-xl border border-border/70">
                 <Table>
                   <TableHeader>
@@ -452,7 +674,7 @@ export default function MonEspacePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStrategies.map((row) => (
+                    {strategiesPagination.items.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
                           {row.name}
@@ -521,6 +743,153 @@ export default function MonEspacePage() {
                   </TableBody>
                 </Table>
               </div>
+              <MonEspaceListPagination
+                page={strategiesPagination.page}
+                totalPages={strategiesPagination.totalPages}
+                onPageChange={setStrategiesPage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <BarChart3 className="h-5 w-5 text-[#E94C16]" />
+              Simulateur média Link
+            </CardTitle>
+            <CardDescription>
+              Simulations Stratégie Social Media enregistrées — ouvrez, modifiez, dupliquez ou
+              supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom de simulation…"
+                  value={simulateurSavesSearch}
+                  onChange={(e) => setSimulateurSavesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
+                <Link href={STRATEGIE_SOCIAL_HREF}>Nouvelle simulation</Link>
+              </Button>
+            </div>
+
+            {loadingSimulateurSaves ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Chargement de vos simulations…
+              </div>
+            ) : simulateurSavesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {simulateurSavesError}
+                <p className="mt-2 text-muted-foreground">
+                  Si la table n&apos;existe pas encore, exécutez{' '}
+                  <code className="text-xs">supabase/simulateur-media-saves.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredSimulateurSaves.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {simulateurSaves.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucune simulation enregistrée</p>
+                    <p className="text-sm mt-1">
+                      Utilisez le simulateur Stratégie Social Media puis « Sauvegarder ».
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucune simulation ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Plateformes</TableHead>
+                      <TableHead className="font-semibold">Impressions</TableHead>
+                      <TableHead className="font-semibold">Créé le</TableHead>
+                      <TableHead className="font-semibold">Modifié le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {simulateurPagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {countEnabledPlatforms(row.content)} plateforme
+                            {countEnabledPlatforms(row.content) > 1 ? 's' : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="tabular-nums whitespace-nowrap">
+                          {formatSimulateurMediaImpressions(Number(row.summary_impressions))}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatSimulateurMediaSaveDate(row.created_at)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatSimulateurMediaSaveDate(row.updated_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() =>
+                                router.push(`${STRATEGIE_SOCIAL_HREF}?simulateur=${row.id}`)
+                              }
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={actionId === row.id}
+                              onClick={() => void handleDuplicateSimulateur(row)}
+                              aria-label={`Dupliquer ${row.name}`}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeleteSimulateurTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={simulateurPagination.page}
+                totalPages={simulateurPagination.totalPages}
+                onPageChange={setSimulateurPage}
+              />
+              </>
             )}
           </CardContent>
         </Card>
@@ -578,6 +947,7 @@ export default function MonEspacePage() {
                 )}
               </div>
             ) : (
+              <>
               <div className="overflow-x-auto rounded-xl border border-border/70">
                 <Table>
                   <TableHeader>
@@ -591,7 +961,7 @@ export default function MonEspacePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredDevis.map((row) => (
+                    {devisPagination.items.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
                           {row.name}
@@ -653,6 +1023,12 @@ export default function MonEspacePage() {
                   </TableBody>
                 </Table>
               </div>
+              <MonEspaceListPagination
+                page={devisPagination.page}
+                totalPages={devisPagination.totalPages}
+                onPageChange={setDevisPage}
+              />
+              </>
             )}
           </CardContent>
         </Card>
@@ -696,6 +1072,30 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteDevis()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteSimulateurTarget}
+        onOpenChange={(open) => !open && setDeleteSimulateurTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette simulation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deleteSimulateurTarget?.name} » sera définitivement supprimée de Mon espace. Cette
+              action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeleteSimulateur()}
             >
               Supprimer
             </AlertDialogAction>

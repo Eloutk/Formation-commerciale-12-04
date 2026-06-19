@@ -1,5 +1,5 @@
--- Mon espace — accès admin à tous les enregistrements (stratégies + devis SMS/RCS)
--- À exécuter dans Supabase > SQL Editor (après vente2-strategies.sql et sms-devis.sql)
+-- Mon espace — accès admin à tous les enregistrements (stratégies + devis SMS/RCS + simulateur média)
+-- À exécuter dans Supabase > SQL Editor (après vente2-strategies.sql, sms-devis.sql et simulateur-media-saves.sql)
 
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
 RETURNS BOOLEAN AS $$
@@ -74,6 +74,27 @@ AS $$
   WHERE public.is_admin(auth.uid());
 $$;
 
+-- Admins : lire toutes les simulations Simulateur Média Link
+DROP POLICY IF EXISTS "Admins select all simulateur media saves" ON public.simulateur_media_saves;
+CREATE POLICY "Admins select all simulateur media saves"
+  ON public.simulateur_media_saves FOR SELECT
+  TO authenticated
+  USING (public.is_admin(auth.uid()));
+
+CREATE OR REPLACE FUNCTION public.admin_list_simulateur_media_saves()
+RETURNS SETOF public.simulateur_media_saves
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT sms.*
+  FROM public.simulateur_media_saves sms
+  WHERE public.is_admin(auth.uid())
+  ORDER BY sms.updated_at DESC;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.admin_list_vente2_strategies() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_list_sms_devis() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_simulateur_media_saves() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_list_profiles_for_mon_espace() TO authenticated;

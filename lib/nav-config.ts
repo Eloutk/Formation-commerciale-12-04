@@ -30,6 +30,7 @@ export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
 
 export const VENTE2_SOCIAL_HREF = '/calculateur-vente-2/social-media'
 export const VENTE2_SMS_HREF = '/calculateur-vente-2/sms-rcs'
+export const STRATEGIE_SOCIAL_HREF = '/strategie/social-media'
 export const MON_ESPACE_HREF = '/mon-espace'
 
 export const VENTE2_LINKS: NavMenuItem[] = [
@@ -38,7 +39,7 @@ export const VENTE2_LINKS: NavMenuItem[] = [
 ]
 
 export const STRATEGIE_LINKS: NavMenuItem[] = [
-  { href: '/strategie/social-media', label: 'Social Media' },
+  { href: STRATEGIE_SOCIAL_HREF, label: 'Social Media' },
   { href: '/strategie/retroplanning', label: 'Rétroplanning' },
 ]
 
