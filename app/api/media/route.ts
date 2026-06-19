@@ -159,10 +159,10 @@ export async function POST(req: Request) {
     if (sectors.length === 0 || platforms.length === 0 || !clientName || !campaignName || !monthRaw || !yearRaw) {
       return NextResponse.json({ error: 'Tous les champs obligatoires doivent être renseignés' }, { status: 400 })
     }
-    if (!Number.isInteger(month) || month < 1 || month > 12) {
+    if (month === null || !Number.isInteger(month) || month < 1 || month > 12) {
       return NextResponse.json({ error: 'Mois invalide' }, { status: 400 })
     }
-    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    if (year === null || !Number.isInteger(year) || year < 2000 || year > 2100) {
       return NextResponse.json({ error: 'Année invalide' }, { status: 400 })
     }
 
@@ -263,7 +263,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       configured: true,
-      items: (data ?? []).map((row) => mapMediaRow(row as Record<string, unknown>)),
+      items: (data ?? []).map((row: Record<string, unknown>) => mapMediaRow(row)),
     })
   } catch (error) {
     console.error('Media list route error:', error)
