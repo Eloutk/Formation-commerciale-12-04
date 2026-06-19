@@ -12,6 +12,7 @@ import {
   RESSOURCES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
+  MON_ESPACE_HREF,
   filterNavItemsByAdmin,
   isAidePath,
   isRessourcesPath,
@@ -98,21 +99,19 @@ export function MobileNav({
                   onNavigate={handleNav}
                 />
               )}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="rounded-md px-2 py-2.5 text-sm text-orange-600 transition-colors hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40"
-                  onClick={handleNav}
-                >
-                  Admin
-                </Link>
-              )}
               <div className="pt-4 mt-4 border-t">
                 {user ? (
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground truncate">
                       {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
                     </div>
+                    <Link
+                      href={MON_ESPACE_HREF}
+                      className="block rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
+                      onClick={handleNav}
+                    >
+                      Mon espace
+                    </Link>
                     <Button
                       variant="outline"
                       className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"

@@ -3,11 +3,11 @@
 import React, { useMemo, useState } from 'react'
 import { BarChart3, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -46,6 +46,7 @@ import {
   type SimulateurPlatformId,
   type SimulateurPlatformRow,
 } from '@/lib/simulateur-media-link'
+import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
 
@@ -59,37 +60,6 @@ function formatInt(n: number | null | undefined): string {
 function formatRate(n: number | null | undefined): string {
   if (n === null || n === undefined) return '—'
   return `${(n * 100).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`
-}
-
-function formatSaturationScore(n: number | null | undefined): string {
-  if (n === null || n === undefined) return '—'
-  return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function pressureBadgeClass(level: PressureLevel): string {
-  switch (level) {
-    case 'Pression faible':
-      return 'bg-sky-100 text-sky-800 border-sky-200'
-    case 'Pression correcte':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-200'
-    case 'Bonne couverture':
-      return 'bg-amber-100 text-amber-900 border-amber-200'
-    case 'Pression forte':
-      return 'bg-orange-100 text-orange-900 border-orange-200'
-    case '⚠ Surpression':
-      return 'bg-red-100 text-red-800 border-red-200'
-    default:
-      return 'bg-muted text-muted-foreground'
-  }
-}
-
-function PressureBadge({ level }: { level: PressureLevel }) {
-  if (level === '—') return <span className="text-muted-foreground">—</span>
-  return (
-    <Badge variant="outline" className={cn('font-normal whitespace-nowrap', pressureBadgeClass(level))}>
-      {level}
-    </Badge>
-  )
 }
 
 function StrategyCell({
@@ -110,11 +80,11 @@ function StrategyCell({
         <span className="font-medium tabular-nums">{formatInt(impressions)}</span>
       </div>
       <div>
-        <span className="text-muted-foreground">Taux </span>
+        <span className="text-muted-foreground">Taux de pénétration </span>
         <span className="font-medium tabular-nums">{formatRate(rate)}</span>
       </div>
       <div className="flex flex-wrap items-center gap-1">
-        <span className="text-muted-foreground">Sat. </span>
+        <span className="text-muted-foreground">Pression publicitaire </span>
         <PressureBadge level={saturation} />
       </div>
       <div>
@@ -125,18 +95,11 @@ function StrategyCell({
   )
 }
 
-function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
-  if (!row.enabled) {
-    return (
-      <TableRow className="opacity-50">
-        <TableCell className="font-medium">{row.label}</TableCell>
-        <TableCell colSpan={5} className="text-muted-foreground text-sm">
-          Plateforme désactivée
-        </TableCell>
-      </TableRow>
-    )
-  }
+function needsMetaPotentiel(enabled: Record<SimulateurPlatformId, boolean>): boolean {
+  return enabled.meta || enabled.display || enabled.youtube
+}
 
+function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
   return (
     <TableRow>
       <TableCell className="font-medium">{row.label}</TableCell>
@@ -148,20 +111,52 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
       <TableCell>
         <StrategyCell {...row.max} />
       </TableCell>
+    </TableRow>
+  )
+}
+
+function CustomStrategyRow({
+  row,
+  customMode,
+  customValue,
+  onCustomValueChange,
+}: {
+  row: SimulateurPlatformRow
+  customMode: SimulateurCustomMode
+  customValue: string
+  onCustomValueChange: (value: string) => void
+}) {
+  const valueLabel =
+    customMode === 'impressions' ? 'Impressions visées' : 'Clics visés'
+
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{row.label}</TableCell>
+      <TableCell className="tabular-nums">{formatInt(row.potentiel)}</TableCell>
+      <TableCell className="tabular-nums">{row.diffusionDays ?? '—'}</TableCell>
+      <TableCell>
+        <div className="space-y-1">
+          <Label htmlFor={`custom-value-${row.id}`} className="text-xs text-muted-foreground">
+            {valueLabel}
+          </Label>
+          <Input
+            id={`custom-value-${row.id}`}
+            type="number"
+            min={0}
+            className={cellInputClass}
+            value={customValue}
+            onChange={(e) => onCustomValueChange(e.target.value)}
+          />
+        </div>
+      </TableCell>
       <TableCell>
         <div className="space-y-1 text-xs sm:text-sm">
           <div>
-            <span className="text-muted-foreground">Valeur </span>
-            <span className="font-medium tabular-nums">
-              {row.custom.customValue !== null ? formatInt(row.custom.customValue) : '—'}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Taux </span>
+            <span className="text-muted-foreground">Taux de pénétration </span>
             <span className="font-medium tabular-nums">{formatRate(row.custom.rate)}</span>
           </div>
           <div className="flex flex-wrap items-center gap-1">
-            <span className="text-muted-foreground">Sat. </span>
+            <span className="text-muted-foreground">Pression publicitaire </span>
             <PressureBadge level={row.custom.saturation} />
           </div>
         </div>
@@ -171,36 +166,26 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
 }
 
 function SynthesisTable({ synthesis }: { synthesis: SimulateurResult['synthesis'] }) {
-  const rows: { label: string; ideal: string; max: string; custom: string }[] = [
+  const rows: { label: string; ideal: string; max: string }[] = [
     {
       label: 'Impressions totales',
       ideal: formatInt(synthesis.ideal.totalImpressions),
       max: formatInt(synthesis.max.totalImpressions),
-      custom: formatInt(synthesis.custom.totalImpressions),
     },
     {
       label: 'Clics totaux estimés',
       ideal: formatInt(synthesis.ideal.totalClicks),
       max: formatInt(synthesis.max.totalClicks),
-      custom: formatInt(synthesis.custom.totalClicks),
     },
     {
-      label: 'Taux global estimé (multi-plateformes)',
+      label: 'Taux de pénétration estimé (multi-plateformes)',
       ideal: formatRate(synthesis.ideal.globalRate),
       max: formatRate(synthesis.max.globalRate),
-      custom: formatRate(synthesis.custom.globalRate),
-    },
-    {
-      label: 'Saturation globale (pression mensuelle)',
-      ideal: formatSaturationScore(synthesis.ideal.globalSaturation),
-      max: formatSaturationScore(synthesis.max.globalSaturation),
-      custom: formatSaturationScore(synthesis.custom.globalSaturation),
     },
     {
       label: 'Niveau de pression global',
       ideal: synthesis.ideal.pressureLevel,
       max: synthesis.max.pressureLevel,
-      custom: synthesis.custom.pressureLevel,
     },
   ]
 
@@ -212,7 +197,6 @@ function SynthesisTable({ synthesis }: { synthesis: SimulateurResult['synthesis'
             <TableHead className="min-w-[12rem] font-semibold">Indicateur</TableHead>
             <TableHead className="min-w-[8rem] font-semibold text-center">Stratégie idéale</TableHead>
             <TableHead className="min-w-[8rem] font-semibold text-center">Stratégie MAX</TableHead>
-            <TableHead className="min-w-[8rem] font-semibold text-center">Strat. personnalisée</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -233,11 +217,58 @@ function SynthesisTable({ synthesis }: { synthesis: SimulateurResult['synthesis'
                   row.max
                 )}
               </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function CustomSynthesisTable({
+  synthesis,
+}: {
+  synthesis: SimulateurResult['synthesis']['custom']
+}) {
+  const rows: { label: string; value: string }[] = [
+    {
+      label: 'Impressions totales',
+      value: formatInt(synthesis.totalImpressions),
+    },
+    {
+      label: 'Clics totaux estimés',
+      value: formatInt(synthesis.totalClicks),
+    },
+    {
+      label: 'Taux de pénétration estimé (multi-plateformes)',
+      value: formatRate(synthesis.globalRate),
+    },
+    {
+      label: 'Niveau de pression global',
+      value: synthesis.pressureLevel,
+    },
+  ]
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border/70">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/30 hover:bg-muted/30">
+            <TableHead className="min-w-[12rem] font-semibold">Indicateur</TableHead>
+            <TableHead className="min-w-[8rem] font-semibold text-center">
+              Stratégie personnalisée
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.label}>
+              <TableCell className="font-medium">{row.label}</TableCell>
               <TableCell className="text-center tabular-nums">
                 {row.label === 'Niveau de pression global' ? (
-                  <PressureBadge level={row.custom as PressureLevel} />
+                  <PressureBadge level={row.value as PressureLevel} />
                 ) : (
-                  row.custom
+                  row.value
                 )}
               </TableCell>
             </TableRow>
@@ -248,7 +279,34 @@ function SynthesisTable({ synthesis }: { synthesis: SimulateurResult['synthesis'
   )
 }
 
-function buildInputsFromState(state: FormState): SimulateurInputs | null {
+function buildCustomAlerts(
+  enabled: Record<SimulateurPlatformId, boolean>,
+  customValues: Record<SimulateurPlatformId, string>,
+): string[] {
+  const missing: string[] = []
+  for (const { id, label } of SIMULATEUR_PLATFORM_ORDER) {
+    if (enabled[id] && parseSimulateurNumber(customValues[id]) === null) {
+      missing.push(label)
+    }
+  }
+  if (missing.length === 0) return []
+  return [`⚠ Valeur personnalisée manquante pour : ${missing.join(' ')}`]
+}
+
+function defaultCustomValues(): Record<SimulateurPlatformId, string> {
+  return SIMULATEUR_PLATFORM_ORDER.reduce(
+    (acc, { id }) => {
+      acc[id] = ''
+      return acc
+    },
+    {} as Record<SimulateurPlatformId, string>,
+  )
+}
+
+function buildInputsFromState(
+  state: FormState,
+  custom?: { mode: SimulateurCustomMode; values: Record<SimulateurPlatformId, string> },
+): SimulateurInputs | null {
   const diffusionDays = parseSimulateurDiffusionDays(state.diffusionDays)
   if (diffusionDays === null) return null
 
@@ -256,13 +314,15 @@ function buildInputsFromState(state: FormState): SimulateurInputs | null {
   for (const { id } of SIMULATEUR_PLATFORM_ORDER) {
     platforms[id] = {
       enabled: state.enabled[id],
-      customValue: parseSimulateurNumber(state.customValues[id]),
+      customValue: custom
+        ? parseSimulateurNumber(custom.values[id])
+        : null,
     }
   }
 
   return {
     diffusionDays,
-    customMode: state.customMode,
+    customMode: custom?.mode ?? 'impressions',
     potentiels: {
       meta: parseSimulateurPositiveInt(state.potentielMeta),
       linkedin: parseSimulateurPositiveInt(state.potentielLinkedin),
@@ -279,33 +339,31 @@ type FormState = {
   potentielLinkedin: string
   potentielSnapchat: string
   potentielTiktok: string
-  customMode: SimulateurCustomMode
   enabled: Record<SimulateurPlatformId, boolean>
-  customValues: Record<SimulateurPlatformId, string>
 }
 
 function defaultFormState(): FormState {
   const enabled = {} as Record<SimulateurPlatformId, boolean>
-  const customValues = {} as Record<SimulateurPlatformId, string>
   for (const { id } of SIMULATEUR_PLATFORM_ORDER) {
     enabled[id] = SIMULATEUR_DEFAULT_INPUTS.platforms[id].enabled
-    const cv = SIMULATEUR_DEFAULT_INPUTS.platforms[id].customValue
-    customValues[id] = cv !== null ? String(cv) : ''
   }
   return {
-    diffusionDays: String(SIMULATEUR_DEFAULT_INPUTS.diffusionDays),
-    potentielMeta: String(SIMULATEUR_DEFAULT_INPUTS.potentiels.meta ?? ''),
-    potentielLinkedin: String(SIMULATEUR_DEFAULT_INPUTS.potentiels.linkedin ?? ''),
-    potentielSnapchat: String(SIMULATEUR_DEFAULT_INPUTS.potentiels.snapchat ?? ''),
-    potentielTiktok: String(SIMULATEUR_DEFAULT_INPUTS.potentiels.tiktok ?? ''),
-    customMode: SIMULATEUR_DEFAULT_INPUTS.customMode,
+    diffusionDays: '30',
+    potentielMeta: '',
+    potentielLinkedin: '',
+    potentielSnapchat: '',
+    potentielTiktok: '',
     enabled,
-    customValues,
   }
 }
 
 export function SimulateurMediaLinkPanel() {
   const [form, setForm] = useState<FormState>(defaultFormState)
+  const [customPanelOpen, setCustomPanelOpen] = useState(false)
+  const [customMode, setCustomMode] = useState<SimulateurCustomMode>('impressions')
+  const [customValues, setCustomValues] = useState<Record<SimulateurPlatformId, string>>(
+    defaultCustomValues,
+  )
   const { isAdmin, authReady } = useAuthAccess()
   const showAdminSections = authReady && isAdmin
 
@@ -315,10 +373,22 @@ export function SimulateurMediaLinkPanel() {
     return computeSimulateurMediaLink(inputs)
   }, [form])
 
-  const customValueLabel =
-    form.customMode === 'impressions'
-      ? 'Valeur personnalisée (impressions)'
-      : 'Valeur personnalisée (clics)'
+  const customResult = useMemo(() => {
+    if (!customPanelOpen) return null
+    const inputs = buildInputsFromState(form, { mode: customMode, values: customValues })
+    if (!inputs) return null
+    return computeSimulateurMediaLink(inputs)
+  }, [form, customPanelOpen, customMode, customValues])
+
+  const customAlerts = useMemo(
+    () => (customPanelOpen ? buildCustomAlerts(form.enabled, customValues) : []),
+    [customPanelOpen, form.enabled, customValues],
+  )
+
+  const showMetaPotentiel = needsMetaPotentiel(form.enabled)
+  const showLinkedinPotentiel = form.enabled.linkedin
+  const showSnapchatPotentiel = form.enabled.snapchat
+  const showTiktokPotentiel = form.enabled.tiktok
 
   return (
     <div className="space-y-8">
@@ -332,7 +402,7 @@ export function SimulateurMediaLinkPanel() {
           </CardTitle>
           <CardDescription className="max-w-3xl text-sm leading-relaxed">
             Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
-            idéale, MAX et personnalisée. Formules alignées sur le fichier Excel de référence.
+            idéale, MAX et personnalisée.
           </CardDescription>
         </CardHeader>
 
@@ -342,7 +412,36 @@ export function SimulateurMediaLinkPanel() {
             <h2 id="sim-inputs-heading" className="mb-4 text-base font-semibold">
               Paramètres de la campagne
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+            <div className="space-y-3">
+              <Label>Plateformes activées</Label>
+              <div className="flex flex-wrap gap-2">
+                {SIMULATEUR_PLATFORM_ORDER.map(({ id, label }) => (
+                  <label
+                    key={id}
+                    htmlFor={`sim-platform-${id}`}
+                    className={cn(
+                      'flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm cursor-pointer',
+                      form.enabled[id] && 'border-[#E94C16]/40 bg-orange-50/40',
+                    )}
+                  >
+                    <Checkbox
+                      id={`sim-platform-${id}`}
+                      checked={form.enabled[id]}
+                      onCheckedChange={(checked) =>
+                        setForm((f) => ({
+                          ...f,
+                          enabled: { ...f.enabled, [id]: checked === true },
+                        }))
+                      }
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="sim-diffusion-days">Durée de diffusion (jours)</Label>
                 <Input
@@ -354,128 +453,67 @@ export function SimulateurMediaLinkPanel() {
                   onChange={(e) => setForm((f) => ({ ...f, diffusionDays: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="sim-potentiel-meta">Potentiel Meta</Label>
-                <Input
-                  id="sim-potentiel-meta"
-                  type="number"
-                  min={1}
-                  className={cellInputClass}
-                  placeholder="Taille audience Meta Ads"
-                  value={form.potentielMeta}
-                  onChange={(e) => setForm((f) => ({ ...f, potentielMeta: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sim-potentiel-linkedin">Potentiel LinkedIn</Label>
-                <Input
-                  id="sim-potentiel-linkedin"
-                  type="number"
-                  min={1}
-                  className={cellInputClass}
-                  placeholder="Taille audience LinkedIn Ads"
-                  value={form.potentielLinkedin}
-                  onChange={(e) => setForm((f) => ({ ...f, potentielLinkedin: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sim-potentiel-snapchat">Potentiel Snapchat</Label>
-                <Input
-                  id="sim-potentiel-snapchat"
-                  type="number"
-                  min={1}
-                  className={cellInputClass}
-                  placeholder="Taille audience Snapchat Ads"
-                  value={form.potentielSnapchat}
-                  onChange={(e) => setForm((f) => ({ ...f, potentielSnapchat: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sim-potentiel-tiktok">Potentiel TikTok</Label>
-                <Input
-                  id="sim-potentiel-tiktok"
-                  type="number"
-                  min={1}
-                  className={cellInputClass}
-                  placeholder="Taille audience TikTok Ads"
-                  value={form.potentielTiktok}
-                  onChange={(e) => setForm((f) => ({ ...f, potentielTiktok: e.target.value }))}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Activation plateformes */}
-          <section aria-labelledby="sim-platforms-heading">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 id="sim-platforms-heading" className="text-base font-semibold">
-                Activation des plateformes &amp; saisie personnalisée
-              </h2>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="sim-custom-mode" className="text-sm text-muted-foreground shrink-0">
-                  Mode strat. personnalisée
-                </Label>
-                <Select
-                  value={form.customMode}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, customMode: v as SimulateurCustomMode }))
-                  }
-                >
-                  <SelectTrigger id="sim-custom-mode" className="w-[10rem]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="impressions">Impressions</SelectItem>
-                    <SelectItem value="clics">Clics</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="font-semibold">Plateforme</TableHead>
-                    <TableHead className="w-24 text-center font-semibold">Activée</TableHead>
-                    <TableHead className="min-w-[10rem] font-semibold">{customValueLabel}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {SIMULATEUR_PLATFORM_ORDER.map(({ id, label }) => (
-                    <TableRow key={id}>
-                      <TableCell className="font-medium">{label}</TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={form.enabled[id]}
-                          onCheckedChange={(checked) =>
-                            setForm((f) => ({
-                              ...f,
-                              enabled: { ...f.enabled, [id]: checked },
-                            }))
-                          }
-                          aria-label={`Activer ${label}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min={0}
-                          className={cellInputClass}
-                          disabled={!form.enabled[id]}
-                          value={form.customValues[id]}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              customValues: { ...f.customValues, [id]: e.target.value },
-                            }))
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {showMetaPotentiel && (
+                <div className="space-y-2">
+                  <Label htmlFor="sim-potentiel-meta">Potentiel Meta</Label>
+                  <Input
+                    id="sim-potentiel-meta"
+                    type="number"
+                    min={1}
+                    className={cellInputClass}
+                    placeholder="Taille audience Meta Ads"
+                    value={form.potentielMeta}
+                    onChange={(e) => setForm((f) => ({ ...f, potentielMeta: e.target.value }))}
+                  />
+                  {(form.enabled.display || form.enabled.youtube) && !form.enabled.meta && (
+                    <p className="text-xs text-muted-foreground">
+                      Utilisé pour Display et YouTube.
+                    </p>
+                  )}
+                </div>
+              )}
+              {showLinkedinPotentiel && (
+                <div className="space-y-2">
+                  <Label htmlFor="sim-potentiel-linkedin">Potentiel LinkedIn</Label>
+                  <Input
+                    id="sim-potentiel-linkedin"
+                    type="number"
+                    min={1}
+                    className={cellInputClass}
+                    placeholder="Taille audience LinkedIn Ads"
+                    value={form.potentielLinkedin}
+                    onChange={(e) => setForm((f) => ({ ...f, potentielLinkedin: e.target.value }))}
+                  />
+                </div>
+              )}
+              {showSnapchatPotentiel && (
+                <div className="space-y-2">
+                  <Label htmlFor="sim-potentiel-snapchat">Potentiel Snapchat</Label>
+                  <Input
+                    id="sim-potentiel-snapchat"
+                    type="number"
+                    min={1}
+                    className={cellInputClass}
+                    placeholder="Taille audience Snapchat Ads"
+                    value={form.potentielSnapchat}
+                    onChange={(e) => setForm((f) => ({ ...f, potentielSnapchat: e.target.value }))}
+                  />
+                </div>
+              )}
+              {showTiktokPotentiel && (
+                <div className="space-y-2">
+                  <Label htmlFor="sim-potentiel-tiktok">Potentiel TikTok</Label>
+                  <Input
+                    id="sim-potentiel-tiktok"
+                    type="number"
+                    min={1}
+                    className={cellInputClass}
+                    placeholder="Taille audience TikTok Ads"
+                    value={form.potentielTiktok}
+                    onChange={(e) => setForm((f) => ({ ...f, potentielTiktok: e.target.value }))}
+                  />
+                </div>
+              )}
             </div>
           </section>
 
@@ -499,6 +537,13 @@ export function SimulateurMediaLinkPanel() {
           {/* Résultats */}
           {result && (
             <>
+              <section aria-labelledby="sim-pressure-scale-heading" className="rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5">
+                <h2 id="sim-pressure-scale-heading" className="sr-only">
+                  Échelle de pression publicitaire
+                </h2>
+                <PressureScaleLegend />
+              </section>
+
               <section aria-labelledby="sim-results-heading">
                 <h2 id="sim-results-heading" className="mb-4 text-base font-semibold">
                   Résultats par plateforme
@@ -512,13 +557,20 @@ export function SimulateurMediaLinkPanel() {
                         <TableHead className="font-semibold">Durée</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie idéale</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie MAX</TableHead>
-                        <TableHead className="min-w-[9rem] font-semibold">Strat. personnalisée</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {result.rows.map((row) => (
-                        <PlatformResultRow key={row.id} row={row} />
-                      ))}
+                      {result.rows.filter((row) => row.enabled).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Activez au moins une plateforme pour afficher les résultats.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        result.rows
+                          .filter((row) => row.enabled)
+                          .map((row) => <PlatformResultRow key={row.id} row={row} />)
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -530,6 +582,112 @@ export function SimulateurMediaLinkPanel() {
                 </h2>
                 <SynthesisTable synthesis={result.synthesis} />
               </section>
+
+              <div className="flex justify-center pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    customPanelOpen && 'border-[#E94C16] bg-orange-50/50 text-[#E94C16] hover:bg-orange-50',
+                  )}
+                  onClick={() => setCustomPanelOpen((open) => !open)}
+                >
+                  Besoin d&apos;une stratégie personnalisée ?
+                </Button>
+              </div>
+
+              {customPanelOpen && customResult && (
+                <section
+                  aria-labelledby="sim-custom-heading"
+                  className="rounded-xl border-2 border-[#E94C16]/25 bg-gradient-to-br from-orange-50/40 via-white to-white p-4 sm:p-6 space-y-6"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 id="sim-custom-heading" className="text-base font-semibold">
+                        Stratégie personnalisée
+                      </h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Saisissez vos objectifs par plateforme pour comparer avec les stratégies
+                        idéale et MAX — sans modifier ces dernières.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Label htmlFor="sim-custom-mode" className="text-sm text-muted-foreground">
+                        Mode de saisie
+                      </Label>
+                      <Select
+                        value={customMode}
+                        onValueChange={(v) => setCustomMode(v as SimulateurCustomMode)}
+                      >
+                        <SelectTrigger id="sim-custom-mode" className="w-[10rem]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="impressions">Impressions</SelectItem>
+                          <SelectItem value="clics">Clics</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {customAlerts.length > 0 && (
+                    <div className="space-y-2">
+                      {customAlerts.map((alert) => (
+                        <Alert
+                          key={alert}
+                          variant="destructive"
+                          className="border-amber-300 bg-amber-50 text-amber-900"
+                        >
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>{alert}</AlertDescription>
+                        </Alert>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="overflow-x-auto rounded-xl border border-border/70 bg-white">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableHead className="font-semibold">Plateforme</TableHead>
+                          <TableHead className="font-semibold">Potentiel</TableHead>
+                          <TableHead className="font-semibold">Durée</TableHead>
+                          <TableHead className="min-w-[10rem] font-semibold">Votre objectif</TableHead>
+                          <TableHead className="min-w-[9rem] font-semibold">Résultats</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customResult.rows.filter((row) => row.enabled).length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                              Activez au moins une plateforme pour construire votre stratégie.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          customResult.rows
+                            .filter((row) => row.enabled)
+                            .map((row) => (
+                              <CustomStrategyRow
+                                key={row.id}
+                                row={row}
+                                customMode={customMode}
+                                customValue={customValues[row.id]}
+                                onCustomValueChange={(value) =>
+                                  setCustomValues((prev) => ({ ...prev, [row.id]: value }))
+                                }
+                              />
+                            ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-4 text-sm font-semibold">Synthèse — stratégie personnalisée</h3>
+                    <CustomSynthesisTable synthesis={customResult.synthesis.custom} />
+                  </div>
+                </section>
+              )}
             </>
           )}
         </CardContent>
@@ -558,8 +716,8 @@ export function SimulateurMediaLinkPanel() {
               <p className="font-medium text-foreground mb-1">Saturation (pression mensuelle)</p>
               <p>
                 Saturation = (Part audience × Fréquence mensuelle) / Coef fréquence — indépendant de la
-                durée. &lt; 0,5 faible · 0,5–1 correcte · 1–1,5 bonne couverture · 1,5–2,2 forte ·
-                &gt; 2,2 surpression.
+                durée. &lt; 0,5 : Pression faible · 0,5–1 : Pression correcte · 1–1,5 : Bonne pression ·
+                1,5–2,2 : Pression forte · &gt; 2,2 : Surpression.
               </p>
             </div>
             <div>

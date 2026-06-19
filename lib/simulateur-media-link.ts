@@ -16,10 +16,48 @@ export type SimulateurCustomMode = 'impressions' | 'clics'
 export type PressureLevel =
   | 'Pression faible'
   | 'Pression correcte'
-  | 'Bonne couverture'
+  | 'Bonne pression'
   | 'Pression forte'
-  | '⚠ Surpression'
+  | 'Surpression'
   | '—'
+
+/** Échelle de pression publicitaire — ordre du plus faible au plus élevé. */
+export const SIMULATEUR_PRESSURE_SCALE: ReadonlyArray<{
+  level: Exclude<PressureLevel, '—'>
+  segmentClass: string
+  badgeClass: string
+}> = [
+  {
+    level: 'Pression faible',
+    segmentClass: 'bg-sky-400',
+    badgeClass: 'bg-sky-400 text-white',
+  },
+  {
+    level: 'Pression correcte',
+    segmentClass: 'bg-yellow-500',
+    badgeClass: 'bg-yellow-500 text-white',
+  },
+  {
+    level: 'Bonne pression',
+    segmentClass: 'bg-emerald-500',
+    badgeClass: 'bg-emerald-500 text-white',
+  },
+  {
+    level: 'Pression forte',
+    segmentClass: 'bg-orange-500',
+    badgeClass: 'bg-orange-500 text-white',
+  },
+  {
+    level: 'Surpression',
+    segmentClass: 'bg-red-600',
+    badgeClass: 'bg-red-600 text-white',
+  },
+]
+
+export function pressureLevelBadgeClass(level: PressureLevel): string {
+  if (level === '—') return 'bg-muted text-muted-foreground'
+  return SIMULATEUR_PRESSURE_SCALE.find((s) => s.level === level)?.badgeClass ?? 'bg-muted text-muted-foreground'
+}
 
 export type SimulateurPlatformParams = {
   penetrationCap: number
@@ -122,6 +160,9 @@ export const SIMULATEUR_PLATFORM_ORDER: { id: SimulateurPlatformId; label: strin
   { id: 'snapchat', label: 'Snapchat' },
   { id: 'tiktok', label: 'TikTok' },
 ]
+
+/** Seuil en dessous duquel Link ne s'engage pas sur les KPIs. */
+export const SIMULATEUR_POTENTIEL_KPI_MIN = 50_000
 
 export type SimulateurPotentiels = {
   meta: number | null
@@ -255,9 +296,9 @@ export function simulateurSaturationScoreFromImpressions(
 export function simulateurPressureLevel(score: number): PressureLevel {
   if (score < 0.5) return 'Pression faible'
   if (score <= 1) return 'Pression correcte'
-  if (score <= 1.5) return 'Bonne couverture'
+  if (score <= 1.5) return 'Bonne pression'
   if (score <= 2.2) return 'Pression forte'
-  return '⚠ Surpression'
+  return 'Surpression'
 }
 
 /** Impressions équivalentes pour stratégie personnalisée. */
@@ -399,8 +440,11 @@ function buildAlerts(inputs: SimulateurInputs): string[] {
   const alerts: string[] = []
   const { platforms, potentiels } = inputs
 
-  if (platforms.meta.enabled && potentiels.meta === null) {
-    alerts.push('⚠ Potentiel Meta manquant — requis si Meta activé')
+  if (
+    (platforms.meta.enabled || platforms.display.enabled || platforms.youtube.enabled) &&
+    potentiels.meta === null
+  ) {
+    alerts.push('⚠ Potentiel Meta manquant — requis si Meta, Display ou YouTube est activé')
   }
   if (platforms.linkedin.enabled && potentiels.linkedin === null) {
     alerts.push('⚠ Potentiel LinkedIn manquant — requis si LinkedIn activé')
@@ -412,15 +456,30 @@ function buildAlerts(inputs: SimulateurInputs): string[] {
     alerts.push('⚠ Potentiel TikTok manquant — requis si TikTok activé')
   }
 
-  const missingCustom: string[] = []
-  for (const { id, label } of SIMULATEUR_PLATFORM_ORDER) {
-    const p = platforms[id]
-    if (p.enabled && p.customValue === null) {
-      missingCustom.push(label)
-    }
+  const metaPlatforms = SIMULATEUR_PLATFORM_ORDER.filter(
+    ({ id }) => usesMetaPotentiel(id) && platforms[id].enabled,
+  )
+  if (
+    metaPlatforms.length > 0 &&
+    potentiels.meta !== null &&
+    potentiels.meta < SIMULATEUR_POTENTIEL_KPI_MIN
+  ) {
+    alerts.push(
+      `⚠ Potentiel inférieur à 50 000 (${metaPlatforms.map((p) => p.label).join(', ')}) — nous ne nous engageons pas sur les KPIs`,
+    )
   }
-  if (missingCustom.length > 0) {
-    alerts.push(`⚠ Valeur personnalisée manquante pour : ${missingCustom.join(' ')}`)
+
+  const potentielChecks: { enabled: boolean; value: number | null; label: string }[] = [
+    { enabled: platforms.linkedin.enabled, value: potentiels.linkedin, label: 'LinkedIn' },
+    { enabled: platforms.snapchat.enabled, value: potentiels.snapchat, label: 'Snapchat' },
+    { enabled: platforms.tiktok.enabled, value: potentiels.tiktok, label: 'TikTok' },
+  ]
+  for (const { enabled, value, label } of potentielChecks) {
+    if (enabled && value !== null && value < SIMULATEUR_POTENTIEL_KPI_MIN) {
+      alerts.push(
+        `⚠ Potentiel ${label} inférieur à 50 000 — nous ne nous engageons pas sur les KPIs`,
+      )
+    }
   }
 
   return alerts
@@ -572,23 +631,23 @@ export function computeSimulateurMediaLink(
   }
 }
 
-/** Valeurs par défaut — Simulateur!B5:B20 */
+/** État initial vide — l'utilisateur saisit tous les chiffres. */
 export const SIMULATEUR_DEFAULT_INPUTS: SimulateurInputs = {
-  diffusionDays: 150,
+  diffusionDays: 1,
   potentiels: {
-    meta: 100_000,
-    linkedin: 35_000,
-    snapchat: 400_000,
-    tiktok: 80_000,
+    meta: null,
+    linkedin: null,
+    snapchat: null,
+    tiktok: null,
   },
   customMode: 'impressions',
   platforms: {
-    meta: { enabled: true, customValue: 80_000 },
-    display: { enabled: true, customValue: 150_000 },
-    youtube: { enabled: false, customValue: 70_000 },
-    linkedin: { enabled: false, customValue: 25_000 },
-    snapchat: { enabled: true, customValue: 35_000 },
-    tiktok: { enabled: true, customValue: 60_000 },
+    meta: { enabled: false, customValue: null },
+    display: { enabled: false, customValue: null },
+    youtube: { enabled: false, customValue: null },
+    linkedin: { enabled: false, customValue: null },
+    snapchat: { enabled: false, customValue: null },
+    tiktok: { enabled: false, customValue: null },
   },
 }
 

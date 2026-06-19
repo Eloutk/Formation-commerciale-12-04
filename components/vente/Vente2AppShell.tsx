@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { usePathname } from 'next/navigation'
 import { Vente2Calculator } from '@/components/vente/Vente2Calculator'
 
@@ -44,10 +45,18 @@ export function Vente2AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Vente2Calculator
-      view={config.view}
-      pageTitle={config.pageTitle}
-      pageDescription={config.pageDescription ?? DEFAULT_DESCRIPTION}
-    />
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-24 flex items-center justify-center text-muted-foreground">
+          Chargement…
+        </div>
+      }
+    >
+      <Vente2Calculator
+        view={config.view}
+        pageTitle={config.pageTitle}
+        pageDescription={config.pageDescription ?? DEFAULT_DESCRIPTION}
+      />
+    </Suspense>
   )
 }

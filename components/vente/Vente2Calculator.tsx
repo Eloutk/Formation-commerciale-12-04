@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2 } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -47,6 +47,19 @@ import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/a
 import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
+import { VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
+import { buildSmsDevisContent, defaultSmsDevisSendWaves, type SmsDevisContent } from '@/lib/sms-devis'
+import {
+  createSmsDevis,
+  getSmsDevisById,
+  updateSmsDevis,
+} from '@/lib/sms-devis-storage'
+import type { Vente2StrategyContent } from '@/lib/vente2-strategies'
+import {
+  createVente2Strategy,
+  getVente2StrategyById,
+  updateVente2Strategy,
+} from '@/lib/vente2-strategies-storage'
 import {
   computeKpiMaxRowsForEnabledPlatforms,
   kpiMaxValidateInputs,
@@ -1042,6 +1055,39 @@ const formatBaseClientsTariffDescription = (unitLabel: 'SMS' | 'RCS'): string =>
 
 const formatCiblageOptionLabel = (unitLabel: 'SMS' | 'RCS'): string =>
   `+${CIBLAGE_UNIT_PRICE.toFixed(2).replace('.', ',')} € / ${unitLabel}`
+
+const SMS_RCS_DEVIS_INCLUDED = 'Inclus'
+
+function appendSmsRcsIncludedOptionLines(
+  lines: SmsRcsMiniDevisLine[],
+  type: 'sms' | 'rcs',
+  options: {
+    ciblage: boolean
+    baseClients: boolean
+    richSms: boolean
+    agent: boolean
+    creaByLink: boolean
+    tarifIntermarche: boolean
+    duplicateCampaign: boolean
+  },
+  campaignCount: number,
+) {
+  if (type === 'sms') {
+    if (options.ciblage) lines.push({ label: 'Ciblage', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.baseClients) lines.push({ label: 'Base clients', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.richSms) lines.push({ label: 'Rich SMS', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.tarifIntermarche) lines.push({ label: 'Tarif Intermarché', value: SMS_RCS_DEVIS_INCLUDED })
+  } else {
+    if (options.ciblage) lines.push({ label: 'Ciblage', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.baseClients) lines.push({ label: 'Base clients', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.agent) lines.push({ label: "Création d'agent", value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.creaByLink) lines.push({ label: 'CREA BY LINK', value: SMS_RCS_DEVIS_INCLUDED })
+    if (options.tarifIntermarche) lines.push({ label: 'Tarif Intermarché', value: SMS_RCS_DEVIS_INCLUDED })
+  }
+  if (options.duplicateCampaign && campaignCount > 1) {
+    lines.push({ label: 'Nombre de campagnes', value: `× ${campaignCount}`, muted: true })
+  }
+}
 
 const formatRcsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string => {
   if (baseClients) return formatBaseClientsUnitPriceEuro(unitPrice)
@@ -2049,13 +2095,15 @@ const SMSRCSPDFDocument = ({
   imageBase64?: string | null
 }) => {
   const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
-  const setupFee = type === 'sms' ? 190 : 250
   const documentTitle = fileName.trim() || `Devis ${typeLabel}`
-  
-  // Calculer le prix de base avant duplication
-  const basePriceBeforeDuplication = options.duplicateCampaign && campaignMonths && campaignMonths > 1
-    ? totalPrice / campaignMonths
-    : totalPrice
+
+  const hasIncludedOptions =
+    options.ciblage ||
+    options.baseClients ||
+    options.richSms ||
+    options.agent ||
+    options.creaByLink ||
+    options.tarifIntermarche
 
   return (
     <Document>
@@ -2097,79 +2145,66 @@ const SMSRCSPDFDocument = ({
               </Text>
             </View>
           ))}
-          <View style={styles.itemRow}>
-            <Text style={styles.itemLabel}>Prix unitaire HT :</Text>
-            <Text style={styles.itemValue}>
-              {unitPrice > 0
-                ? type === 'sms'
-                  ? formatSmsUnitPriceEuro(unitPrice, !!options.baseClients)
-                  : formatRcsUnitPriceEuro(unitPrice, !!options.baseClients)
-                : '--'}
-            </Text>
-          </View>
 
-          {/* Séparateur pour les options */}
-          <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
-            <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
-              Frais de mise en place :
-            </Text>
-            <Text style={styles.itemValue}>{setupFee} €</Text>
-          </View>
-
-          {/* Options - affichées seulement si cochées (dont = inclus dans le total) */}
+          {hasIncludedOptions && (
+            <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
+              <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
+                Options incluses :
+              </Text>
+              <Text style={styles.itemValue} />
+            </View>
+          )}
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>dont Ciblage :</Text>
-              <Text style={styles.itemValue}>{formatCiblageOptionLabel('SMS')}</Text>
+              <Text style={styles.itemLabel}>Ciblage</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>dont Rich SMS :</Text>
-              <Text style={styles.itemValue}>+0,021 € / SMS</Text>
+              <Text style={styles.itemLabel}>Rich SMS</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'sms' && options.baseClients && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
-              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('SMS')}</Text>
+              <Text style={styles.itemLabel}>Base clients</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'rcs' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>dont Ciblage :</Text>
-              <Text style={styles.itemValue}>{formatCiblageOptionLabel('RCS')}</Text>
+              <Text style={styles.itemLabel}>Ciblage</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'rcs' && options.baseClients && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
-              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('RCS')}</Text>
+              <Text style={styles.itemLabel}>Base clients</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'rcs' && options.agent && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Création d'agent :</Text>
-              <Text style={styles.itemValue}>+550 €</Text>
+              <Text style={styles.itemLabel}>Création d'agent</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {type === 'rcs' && options.creaByLink && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>CREA BY LINK :</Text>
-              <Text style={styles.itemValue}>+{100 * (creaByLinkCount || 1)} € {(creaByLinkCount || 1) > 1 ? `(${creaByLinkCount} × 100 €)` : ''}</Text>
+              <Text style={styles.itemLabel}>CREA BY LINK</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {options.tarifIntermarche && (
             <View style={styles.itemRow}>
-              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
-                Tarif Intermarché :
-              </Text>
-              <Text style={[styles.itemValue, { color: '#E94C16', fontWeight: 'bold' }]}>Activé</Text>
+              <Text style={styles.itemLabel}>Tarif Intermarché</Text>
+              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
             </View>
           )}
           {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
             <View style={styles.itemRow}>
-              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagne(s) :</Text>
+              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagne(s)</Text>
               <Text style={[styles.itemValue, { fontWeight: 'bold' }]}>× {campaignMonths}</Text>
             </View>
           )}
@@ -2348,6 +2383,9 @@ export function Vente2Calculator({
   pageDescription?: string
 }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const devisIdFromUrl = searchParams.get('devis')
+  const strategyIdFromUrl = searchParams.get('strategy')
   const [kpiSubSection, setKpiSubSection] = useState<'kpiMax' | 'kpiMax2'>('kpiMax')
   const pdvSection: PdvSection =
     view === 'kpiMax' ? kpiSubSection : view === 'calendar' ? 'calendar' : view === 'sms' ? 'sms' : 'social'
@@ -2531,6 +2569,18 @@ export function Vente2Calculator({
     | null
   >(null)
   const [currentSmsType, setCurrentSmsType] = useState<'sms' | 'rcs'>('sms')
+  const [savedDevisId, setSavedDevisId] = useState<string | null>(null)
+  const [savedDevisName, setSavedDevisName] = useState('')
+  const [saveDevisDialogOpen, setSaveDevisDialogOpen] = useState(false)
+  const [saveDevisNameInput, setSaveDevisNameInput] = useState('')
+  const [savingDevis, setSavingDevis] = useState(false)
+  const [loadingDevis, setLoadingDevis] = useState(false)
+  const [savedStrategyId, setSavedStrategyId] = useState<string | null>(null)
+  const [savedStrategyName, setSavedStrategyName] = useState('')
+  const [saveStrategyDialogOpen, setSaveStrategyDialogOpen] = useState(false)
+  const [saveStrategyNameInput, setSaveStrategyNameInput] = useState('')
+  const [savingStrategy, setSavingStrategy] = useState(false)
+  const [loadingStrategy, setLoadingStrategy] = useState(false)
   
   // État pour la modale Validation TM
   const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
@@ -2686,52 +2736,7 @@ export function Vente2Calculator({
       })
     }
     appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'SMS')
-    if (smsUnitPrice <= 0) return { lines, totalHt: null }
-    lines.push({
-      label: 'Prix unitaire HT',
-      value: formatSmsUnitPriceLabel(smsUnitPrice, smsOptions.baseClients),
-      emphasis: true,
-    })
-    if (smsOptions.baseClients) {
-      lines.push({
-        label: 'Mode tarifaire',
-        value: formatBaseClientsTariffDescription('SMS'),
-        muted: true,
-      })
-    } else if (smsOptions.tarifIntermarche) {
-      lines.push({
-        label: 'Mode tarifaire',
-        value: 'Tarif Intermarché — 0,13 € fixe / SMS',
-        muted: true,
-      })
-    } else {
-      if (smsBasePU > 0) {
-        lines.push({
-          label: 'Tarif de base',
-          value: `${smsBasePU.toFixed(4).replace('.', ',')} € / SMS`,
-          muted: true,
-        })
-      }
-      if (smsOptions.ciblage) {
-        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('SMS'), muted: true })
-      }
-      if (smsOptions.richSms) {
-        lines.push({ label: 'Option Rich SMS', value: '+0,021 € / SMS', muted: true })
-      }
-    }
-    const variablePerCampaign = smsUnitPrice * smsVolumeNumber
-    lines.push({
-      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
-      value: formatEuro(variablePerCampaign),
-    })
-    if (smsCampaignCount > 1) {
-      lines.push({
-        label: 'Coût envoie (toutes campagnes)',
-        value: formatEuro(variablePerCampaign * smsCampaignCount),
-        muted: true,
-      })
-    }
-    lines.push({ label: 'Frais de mise en place', value: '190 €' })
+    appendSmsRcsIncludedOptionLines(lines, 'sms', smsOptions, smsCampaignCount)
     return {
       lines,
       totalHt: smsTotalPrice > 0 ? smsTotalPrice : null,
@@ -2739,16 +2744,10 @@ export function Vente2Calculator({
   }, [
     smsType,
     smsVolumeNumber,
-    smsUnitPrice,
-    smsBasePU,
-    smsOptionPU,
     smsTotalPrice,
     smsCampaignCount,
     totalUnitsNumber,
-    smsOptions.tarifIntermarche,
-    smsOptions.baseClients,
-    smsOptions.ciblage,
-    smsOptions.richSms,
+    smsOptions,
     smsRcsPdfSendWaves,
   ])
 
@@ -2778,62 +2777,7 @@ export function Vente2Calculator({
       })
     }
     appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'RCS')
-    if (rcsUnitPrice <= 0) return { lines, totalHt: null, forbidden: false }
-    lines.push({
-      label: 'Prix unitaire HT',
-      value: formatRcsUnitPriceLabel(rcsUnitPrice, smsOptions.baseClients),
-      emphasis: true,
-    })
-    if (smsOptions.baseClients) {
-      lines.push({
-        label: 'Mode tarifaire',
-        value: formatBaseClientsTariffDescription('RCS'),
-        muted: true,
-      })
-    } else {
-      if (rcsBasePU > 0) {
-        lines.push({
-          label: 'Tarif de base',
-          value: `${rcsBasePU.toFixed(2).replace('.', ',')} € / RCS`,
-          muted: true,
-        })
-      }
-      if (smsOptions.ciblage) {
-        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('RCS'), muted: true })
-      }
-    }
-    const messagesPerCampaign = rcsUnitPrice * smsVolumeNumber
-    lines.push({
-      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
-      value: formatEuro(messagesPerCampaign),
-    })
-    if (smsCampaignCount > 1) {
-      lines.push({
-        label: 'Coût envoie (toutes campagnes)',
-        value: formatEuro(messagesPerCampaign * smsCampaignCount),
-        muted: true,
-      })
-    }
-    if (smsOptions.agent) {
-      lines.push({
-        label: 'Création d’agent',
-        value:
-          smsCampaignCount > 1
-            ? `${formatEuro(550)} × ${smsCampaignCount} campagnes = ${formatEuro(550 * smsCampaignCount)}`
-            : formatEuro(550),
-      })
-    }
-    if (smsOptions.creaByLink) {
-      const creaFee = 100 * creaByLinkCountNumber
-      lines.push({
-        label: 'CREA BY LINK',
-        value:
-          smsCampaignCount > 1
-            ? `${formatEuro(creaFee)} × ${smsCampaignCount} campagnes = ${formatEuro(creaFee * smsCampaignCount)}`
-            : `${creaByLinkCountNumber} × 100 € = ${formatEuro(creaFee)}`,
-      })
-    }
-    lines.push({ label: 'Frais de set up (obligatoires)', value: '250 €' })
+    appendSmsRcsIncludedOptionLines(lines, 'rcs', smsOptions, smsCampaignCount)
     return {
       lines,
       totalHt: rcsTotalPrice > 0 ? rcsTotalPrice : null,
@@ -2842,16 +2786,10 @@ export function Vente2Calculator({
   }, [
     smsType,
     smsVolumeNumber,
-    rcsUnitPrice,
-    rcsBasePU,
     rcsTotalPrice,
     smsCampaignCount,
     totalUnitsNumber,
-    creaByLinkCountNumber,
-    smsOptions.baseClients,
-    smsOptions.ciblage,
-    smsOptions.agent,
-    smsOptions.creaByLink,
+    smsOptions,
     smsRcsPdfSendWaves,
   ])
 
@@ -2863,6 +2801,101 @@ export function Vente2Calculator({
     smsVolumeNumber > 0 && smsUnitPrice > 0 && smsTotalPrice > 0
   const rcsDevisPdfEligible =
     smsVolumeNumber >= 10_000 && rcsUnitPrice > 0 && rcsTotalPrice > 0
+  const smsDevisSaveEligible =
+    smsType === 'sms' ? smsDevisPdfEligible : rcsDevisPdfEligible
+
+  const applySmsDevisContent = useCallback((content: SmsDevisContent) => {
+    setSmsType(content.smsType)
+    setSmsVolume(content.smsVolume)
+    setSmsOptions({ ...content.smsOptions })
+    setCampaignMonths(content.campaignMonths)
+    setCreaByLinkCount(content.creaByLinkCount)
+    setSmsPdfComment(content.smsPdfComment)
+    setSmsRcsSendWaves(
+      content.smsRcsSendWaves.length > 0
+        ? content.smsRcsSendWaves.map((w) => ({ ...w }))
+        : defaultSmsDevisSendWaves(),
+    )
+    setSmsPdfImage(content.smsPdfImage)
+  }, [])
+
+  useEffect(() => {
+    if (view !== 'sms' || !devisIdFromUrl) return
+    let cancelled = false
+    setLoadingDevis(true)
+    void getSmsDevisById(devisIdFromUrl)
+      .then((record) => {
+        if (cancelled) return
+        if (!record) {
+          alert('Devis introuvable ou accès non autorisé.')
+          return
+        }
+        applySmsDevisContent(record.content)
+        setSavedDevisId(record.id)
+        setSavedDevisName(record.name)
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          alert(e instanceof Error ? e.message : 'Impossible de charger le devis.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDevis(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [view, devisIdFromUrl, applySmsDevisContent])
+
+  const applySocialStrategyContent = useCallback((content: Vente2StrategyContent) => {
+    setCalculationMode(content.calculationMode)
+    setMainValue(content.mainValue)
+    setAePercentage(content.aePercentage)
+    setDiffusionDays(content.diffusionDays)
+    setTarifsDirection(content.tarifsDirection)
+    setSelectedPlatforms([...content.selectedPlatforms])
+    setSearchClicsStudyValue(content.searchClicsStudyValue)
+    setCustomRows({ ...content.customRows })
+    setStrategies(content.strategies as unknown as StrategyBlock[])
+    setActiveStrategyId(content.activeStrategyId)
+    setExpandedStrategies({ ...content.expandedStrategies })
+    setRetroSocialByStrategy(
+      content.retroSocialByStrategy as Record<string, RetroSocialState>,
+    )
+    setDefineDatesPerStrategy(
+      Object.fromEntries(
+        Object.entries(content.defineDatesPerStrategy).map(([k, v]) => [k, { ...v }]),
+      ),
+    )
+  }, [])
+
+  useEffect(() => {
+    if (view !== 'social' || !strategyIdFromUrl) return
+    let cancelled = false
+    setLoadingStrategy(true)
+    void getVente2StrategyById(strategyIdFromUrl)
+      .then((record) => {
+        if (cancelled) return
+        if (!record) {
+          alert('Stratégie introuvable ou accès non autorisé.')
+          return
+        }
+        applySocialStrategyContent(record.content)
+        setSavedStrategyId(record.id)
+        setSavedStrategyName(record.name)
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          alert(e instanceof Error ? e.message : 'Impossible de charger la stratégie.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingStrategy(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [view, strategyIdFromUrl, applySocialStrategyContent])
 
   // Récupérer le nom de l'utilisateur connecté
   useEffect(() => {
@@ -3596,6 +3629,172 @@ export function Vente2Calculator({
     setSmsPdfDialogOpen(false)
     setSmsPdfFileName('')
     setSmsPdfImage(null)
+  }
+
+  const buildCurrentSmsDevisPayload = () => {
+    const unitPrice = smsType === 'sms' ? smsUnitPrice : rcsUnitPrice
+    const totalPrice = smsType === 'sms' ? smsTotalPrice : rcsTotalPrice
+    return {
+      smsType,
+      totalAmount: totalPrice,
+      content: buildSmsDevisContent({
+        smsType,
+        smsVolume,
+        smsOptions,
+        campaignMonths,
+        creaByLinkCount,
+        smsPdfComment,
+        smsRcsSendWaves,
+        smsPdfImage,
+        unitPrice,
+        totalPrice,
+      }),
+    }
+  }
+
+  const handleOpenSaveDevisDialog = () => {
+    if (!smsDevisSaveEligible) {
+      alert(
+        smsType === 'sms'
+          ? 'Veuillez configurer une campagne SMS valide avant d\'enregistrer.'
+          : 'Veuillez configurer une campagne RCS valide avant d\'enregistrer.',
+      )
+      return
+    }
+    setSaveDevisNameInput(
+      savedDevisName || smsPdfFileName || `Devis ${smsType.toUpperCase()}`,
+    )
+    setSaveDevisDialogOpen(true)
+  }
+
+  const handleConfirmSaveDevis = async () => {
+    const name = saveDevisNameInput.trim()
+    if (!name) {
+      alert('Veuillez renseigner un nom pour le devis.')
+      return
+    }
+
+    const existingId = savedDevisId
+    setSavingDevis(true)
+    try {
+      const payload = buildCurrentSmsDevisPayload()
+      const record = existingId
+        ? await updateSmsDevis({
+            id: existingId,
+            name,
+            smsType: payload.smsType,
+            totalAmount: payload.totalAmount,
+            content: payload.content,
+          })
+        : await createSmsDevis({
+            name,
+            smsType: payload.smsType,
+            totalAmount: payload.totalAmount,
+            content: payload.content,
+          })
+      setSavedDevisId(record.id)
+      setSavedDevisName(record.name)
+      setSaveDevisDialogOpen(false)
+      router.replace(`${VENTE2_SMS_HREF}?devis=${record.id}`)
+      alert(
+        existingId
+          ? 'Devis mis à jour dans votre espace personnel.'
+          : 'Devis enregistré dans votre espace personnel.',
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de l\'enregistrement.')
+    } finally {
+      setSavingDevis(false)
+    }
+  }
+
+  const buildCurrentSocialStrategyPayload = () => {
+    const content: Vente2StrategyContent = {
+      version: 1,
+      calculationMode,
+      mainValue,
+      aePercentage,
+      diffusionDays,
+      tarifsDirection,
+      selectedPlatforms: [...selectedPlatforms],
+      searchClicsStudyValue,
+      customRows: JSON.parse(JSON.stringify(customRows)) as Vente2StrategyContent['customRows'],
+      strategies: strategies.map((block) => ({
+        id: block.id,
+        name: block.name,
+        items: block.items.map((item) => ({ ...item })),
+        calendar: block.calendar ?? null,
+        comment: block.comment,
+        additionalSales: block.additionalSales ? { ...block.additionalSales } : undefined,
+      })),
+      activeStrategyId,
+      expandedStrategies: { ...expandedStrategies },
+      retroSocialByStrategy: JSON.parse(
+        JSON.stringify(retroSocialByStrategy),
+      ) as Vente2StrategyContent['retroSocialByStrategy'],
+      defineDatesPerStrategy: JSON.parse(
+        JSON.stringify(defineDatesPerStrategy),
+      ) as Vente2StrategyContent['defineDatesPerStrategy'],
+    }
+    const totalAmount = strategies.reduce(
+      (sum, block) => sum + getStrategyBlockBudgetTotal(block),
+      0,
+    )
+    return { content, totalAmount }
+  }
+
+  const handleOpenSaveStrategyDialog = () => {
+    const activeBlock = strategies.find((s) => s.id === activeStrategyId)
+    const activeHasSummary =
+      !!activeBlock &&
+      (activeBlock.items.length > 0 || getAdditionalSalesTotal(activeBlock) > 0)
+    if (!activeHasSummary) {
+      alert('Ajoutez au moins une ligne ou une vente additionnelle avant d\'enregistrer.')
+      return
+    }
+    setSaveStrategyNameInput(
+      savedStrategyName || activeBlock?.name || clientName || 'Stratégie Social media',
+    )
+    setSaveStrategyDialogOpen(true)
+  }
+
+  const handleConfirmSaveStrategy = async () => {
+    const name = saveStrategyNameInput.trim()
+    if (!name) {
+      alert('Veuillez renseigner un nom pour la stratégie.')
+      return
+    }
+
+    const existingId = savedStrategyId
+    setSavingStrategy(true)
+    try {
+      const payload = buildCurrentSocialStrategyPayload()
+      const record = existingId
+        ? await updateVente2Strategy({
+            id: existingId,
+            name,
+            totalAmount: payload.totalAmount,
+            content: payload.content,
+          })
+        : await createVente2Strategy({
+            name,
+            totalAmount: payload.totalAmount,
+            content: payload.content,
+          })
+      setSavedStrategyId(record.id)
+      setSavedStrategyName(record.name)
+      setSaveStrategyDialogOpen(false)
+      router.replace(`${VENTE2_SOCIAL_HREF}?strategy=${record.id}`)
+      alert(
+        existingId
+          ? 'Stratégie mise à jour dans votre espace personnel.'
+          : 'Stratégie enregistrée dans votre espace personnel.',
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de l\'enregistrement.')
+    } finally {
+      setSavingStrategy(false)
+    }
   }
 
   const handleConfirmRetroPdf = async () => {
@@ -5021,12 +5220,12 @@ export function Vente2Calculator({
 
                           {/* Boutons d'export pour la stratégie active */}
                           {isActive && (
-                            <div className="flex gap-2 flex-shrink-0">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setValidationTMDialogOpen(true)}
-                                className="flex-1"
+                                className="w-full"
                                 disabled={!hasSummary}
                               >
                                 Validation TM
@@ -5035,12 +5234,40 @@ export function Vente2Calculator({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setPdfDialogOpen(true)}
-                                className="flex-1"
+                                className="w-full"
                               >
                                 <Download className="h-4 w-4 mr-2" />
                                 PDF
                               </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleOpenSaveStrategyDialog}
+                                className="w-full"
+                                disabled={!hasSummary || savingStrategy || loadingStrategy}
+                              >
+                                {savingStrategy ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Save className="h-4 w-4 mr-2" />
+                                )}
+                                Sauvegarder
+                              </Button>
                             </div>
+                          )}
+                          {isActive && loadingStrategy && (
+                            <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Chargement de la stratégie…
+                            </p>
+                          )}
+                          {isActive && !loadingStrategy && savedStrategyId && (
+                            <p className="text-center text-xs text-muted-foreground">
+                              Stratégie chargée :{' '}
+                              <span className="font-medium text-foreground">{savedStrategyName}</span>
+                              {' '}— modifiez puis réenregistrez pour mettre à jour.
+                            </p>
                           )}
                         </>
                       ) : (
@@ -5170,7 +5397,7 @@ export function Vente2Calculator({
                         title="Devis SMS"
                         lines={smsMiniDevis.lines}
                         totalHt={smsMiniDevis.totalHt}
-                        emptyMessage="Saisissez un volume de SMS pour afficher le détail des coûts."
+                        emptyMessage="Saisissez un volume de SMS pour afficher le devis."
                       />
                     ) : rcsMiniDevis.forbidden ? (
                       <SmsRcsMiniDevisPanel
@@ -5183,7 +5410,7 @@ export function Vente2Calculator({
                         title="Devis RCS"
                         lines={rcsMiniDevis.lines}
                         totalHt={rcsMiniDevis.totalHt}
-                        emptyMessage="Saisissez un volume de RCS pour afficher le détail des coûts."
+                        emptyMessage="Saisissez un volume de RCS pour afficher le devis."
                       />
                     )}
 
@@ -5616,8 +5843,21 @@ export function Vente2Calculator({
                   )}
                 </div>
 
-                {/* Bouton de téléchargement PDF */}
-                <div className="mt-6 flex justify-center">
+                {/* Boutons enregistrement & PDF */}
+                <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleOpenSaveDevisDialog}
+                    disabled={!smsDevisSaveEligible || savingDevis || loadingDevis}
+                  >
+                    {savingDevis ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Sauvegarder
+                  </Button>
                   {smsType === 'sms' ? (
                     <Button
                       onClick={handleOpenSMSPDFDialog}
@@ -5638,6 +5878,17 @@ export function Vente2Calculator({
                     </Button>
                   )}
                 </div>
+                {loadingDevis ? (
+                  <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Chargement du devis…
+                  </p>
+                ) : savedDevisId ? (
+                  <p className="text-center text-xs text-muted-foreground mt-2">
+                    Devis chargé : <span className="font-medium text-foreground">{savedDevisName}</span>
+                    {' '}— modifiez puis réenregistrez pour mettre à jour.
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -6807,6 +7058,90 @@ export function Vente2Calculator({
             >
               <Download className="h-4 w-4 mr-2" />
               Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale enregistrement devis dans l'espace personnel */}
+      <Dialog open={saveDevisDialogOpen} onOpenChange={setSaveDevisDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {savedDevisId ? 'Mettre à jour le devis' : 'Enregistrer le devis'}
+            </DialogTitle>
+            <DialogDescription>
+              Le devis sera sauvegardé dans votre espace personnel. Seul vous pourrez y accéder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-devis-name">Nom du devis *</Label>
+              <EditableInput
+                id="save-devis-name"
+                placeholder="Ex. Devis SMS Client X"
+                value={saveDevisNameInput}
+                onChange={(e) => setSaveDevisNameInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDevisDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleConfirmSaveDevis()}
+              disabled={!saveDevisNameInput.trim() || savingDevis}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {savingDevis ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {savedDevisId ? 'Mettre à jour' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale enregistrement stratégie Social media dans l'espace personnel */}
+      <Dialog open={saveStrategyDialogOpen} onOpenChange={setSaveStrategyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {savedStrategyId ? 'Mettre à jour la stratégie' : 'Enregistrer la stratégie'}
+            </DialogTitle>
+            <DialogDescription>
+              La stratégie sera sauvegardée dans votre espace personnel. Seul vous pourrez y accéder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-strategy-name">Nom de la stratégie *</Label>
+              <EditableInput
+                id="save-strategy-name"
+                placeholder="Ex. Stratégie Client X"
+                value={saveStrategyNameInput}
+                onChange={(e) => setSaveStrategyNameInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveStrategyDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleConfirmSaveStrategy()}
+              disabled={!saveStrategyNameInput.trim() || savingStrategy}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {savingStrategy ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {savedStrategyId ? 'Mettre à jour' : 'Enregistrer'}
             </Button>
           </DialogFooter>
         </DialogContent>

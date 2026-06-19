@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
+import { cn } from '@/lib/utils'
 import {
   AIDE_LINKS,
   RESSOURCES_LINKS,
@@ -19,6 +20,8 @@ import {
   isRessourcesPath,
   isStrategiePath,
   isVente2Path,
+  MON_ESPACE_HREF,
+  isMonEspacePath,
   withActiveItems,
 } from '@/lib/nav-config'
 
@@ -466,12 +469,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                 active={aideActive}
                 items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, isAdmin))}
               />
-
-              {isAdmin && (
-                <Link href="/admin" className="rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700">
-                  Admin
-                </Link>
-              )}
             </nav>
 
             <div className="flex items-center gap-4">
@@ -480,6 +477,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               </div>
               {user ? (
                 <>
+                  <Link
+                    href={MON_ESPACE_HREF}
+                    className={cn(
+                      'hidden sm:inline text-sm font-medium rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground',
+                      pathname && isMonEspacePath(pathname) && 'text-[#E94C16]',
+                    )}
+                  >
+                    Mon espace
+                  </Link>
                   <span className="text-sm text-gray-600 max-w-[180px] truncate">
                     {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
                   </span>

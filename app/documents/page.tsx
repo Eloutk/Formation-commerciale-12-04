@@ -61,6 +61,33 @@ export default function DocumentsPage() {
               </Button>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Présentation Link 2026</CardTitle>
+              <CardDescription>
+                Base de présentation Keynote — mise à jour du 28/04/26
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/Link 2026 (maj 280426).key';
+                  link.download = 'Link 2026 (maj 280426).key';
+                  link.onerror = () => {
+                    alert('Le document n\'est pas disponible pour le moment. Veuillez réessayer plus tard.');
+                  };
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Télécharger la présentation
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
