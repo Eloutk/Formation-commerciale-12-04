@@ -16,6 +16,12 @@ Si la table existe avec une seule colonne `platform`, exécutez :
 
 [`supabase/media-library-migration-platforms.sql`](./supabase/media-library-migration-platforms.sql)
 
+## Migration — suppression des médias
+
+Si la suppression semble réussir mais les médias réapparaissent après rechargement, exécutez :
+
+[`supabase/media-library-migration-delete.sql`](./supabase/media-library-migration-delete.sql)
+
 ---
 
 ## Étape 1 — Créer la table et le bucket
