@@ -18,12 +18,6 @@ const ROUTE_CONFIG: Record<string, RouteConfig> = {
     view: 'sms',
     pageTitle: 'Calculateur Vente 2 — SMS & RCS',
   },
-  '/strategie/social-media': {
-    view: 'kpiMax',
-    pageTitle: 'Stratégie — Social Media',
-    pageDescription:
-      'Estimez les KPIs max par plateforme pour construire votre stratégie media.',
-  },
   '/strategie/retroplanning': {
     view: 'calendar',
     pageTitle: 'Stratégie — Rétroplanning',
