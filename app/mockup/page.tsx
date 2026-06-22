@@ -1,0 +1,394 @@
+'use client'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Download, ImageIcon, Loader2, Sparkles, ImagePlus } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { MockupPreviewFrame } from '@/components/mockup/MockupPreviewFrame'
+import { MockupPlatformIcon } from '@/components/mockup/MockupPreviews'
+import { exportMockupImage } from '@/lib/mockup-export'
+import {
+  MOCKUP_FORMAT_OPTIONS,
+  MOCKUP_PLATFORMS,
+  getDefaultMockupCaption,
+  getMockupCtaLabel,
+  getMockupCtaOptions,
+  mockupExportFilename,
+  resolveMockupCaption,
+  resolveMockupCta,
+  type MockupCtaId,
+  type MockupPlatformId,
+  type MockupVisualFormat,
+} from '@/lib/mockup'
+
+const DEFAULT_PLACEHOLDER =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+      <rect width="800" height="800" fill="#f4f4f5"/>
+      <text x="400" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#a1a1aa">Votre visuel</text>
+      <text x="400" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#d4d4d8">Importez une image</text>
+    </svg>`,
+  )
+
+export default function MockupPage() {
+  const previewRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [clientName, setClientName] = useState('')
+  const [customText, setCustomText] = useState('')
+  const [platform, setPlatform] = useState<MockupPlatformId>('instagram')
+  const [visualFormat, setVisualFormat] = useState<MockupVisualFormat>('square')
+  const [ctaId, setCtaId] = useState<MockupCtaId>('learn_more')
+  const [imageSrc, setImageSrc] = useState<string | null>(null)
+  const [imageName, setImageName] = useState<string | null>(null)
+  const [logoSrc, setLogoSrc] = useState<string | null>(null)
+  const [logoName, setLogoName] = useState<string | null>(null)
+  const [exporting, setExporting] = useState<'png' | 'jpeg' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  const previewImage = imageSrc ?? DEFAULT_PLACEHOLDER
+  const canExport = clientName.trim().length > 0 && imageSrc != null
+
+  const selectedPlatform = useMemo(
+    () => MOCKUP_PLATFORMS.find((item) => item.id === platform) ?? MOCKUP_PLATFORMS[0],
+    [platform],
+  )
+
+  const defaultCaption = useMemo(
+    () => getDefaultMockupCaption(platform, clientName),
+    [platform, clientName],
+  )
+
+  const caption = useMemo(
+    () => resolveMockupCaption(customText, platform, clientName),
+    [customText, platform, clientName],
+  )
+
+  const ctaOptions = useMemo(() => getMockupCtaOptions(visualFormat), [visualFormat])
+
+  const resolvedCtaId = useMemo(
+    () => resolveMockupCta(ctaId, visualFormat),
+    [ctaId, visualFormat],
+  )
+
+  const ctaLabel = useMemo(() => getMockupCtaLabel(resolvedCtaId), [resolvedCtaId])
+
+  const selectedFormat = useMemo(
+    () => MOCKUP_FORMAT_OPTIONS.find((item) => item.id === visualFormat) ?? MOCKUP_FORMAT_OPTIONS[0],
+    [visualFormat],
+  )
+
+  useEffect(() => {
+    if (!ctaOptions.some((option) => option.id === ctaId)) {
+      setCtaId(ctaOptions[0]?.id ?? 'learn_more')
+    }
+  }, [ctaId, ctaOptions])
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setExportError('Veuillez sélectionner un fichier image (PNG, JPEG, WebP…).')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImageSrc(typeof reader.result === 'string' ? reader.result : null)
+      setImageName(file.name)
+      setExportError(null)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setExportError('Le logo doit être une image (PNG, JPEG, WebP…).')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setLogoSrc(typeof reader.result === 'string' ? reader.result : null)
+      setLogoName(file.name)
+      setExportError(null)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleExport = async (format: 'png' | 'jpeg') => {
+    if (!previewRef.current || !canExport) return
+
+    setExporting(format)
+    setExportError(null)
+    try {
+      await exportMockupImage(
+        previewRef.current,
+        format,
+        mockupExportFilename(clientName, platform, visualFormat, format),
+      )
+    } catch {
+      setExportError('L’export a échoué. Réessayez ou choisissez une autre image.')
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold">Mockup</h1>
+          <p className="text-muted-foreground">
+            Générez une prévisualisation réaliste pour montrer à un prospect à quoi pourrait ressembler sa publication.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#E94C16]" aria-hidden />
+                Paramètres
+              </CardTitle>
+              <CardDescription>
+                Renseignez le client, la plateforme et importez le visuel à intégrer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="client-name">Nom du client</Label>
+                <Input
+                  id="client-name"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Ex. Boulangerie Martin"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Plateforme</Label>
+                <Select value={platform} onValueChange={(value) => setPlatform(value as MockupPlatformId)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOCKUP_PLATFORMS.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        <span className="flex items-center gap-2">
+                          <MockupPlatformIcon platform={item.id} />
+                          {item.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{selectedPlatform.description}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Format</Label>
+                <Select
+                  value={visualFormat}
+                  onValueChange={(value) => setVisualFormat(value as MockupVisualFormat)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOCKUP_FORMAT_OPTIONS.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{selectedFormat.description}</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>CTA</Label>
+                <Select
+                  value={resolvedCtaId}
+                  onValueChange={(value) => setCtaId(value as MockupCtaId)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ctaOptions.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Bouton d&apos;action affiché sur le mockup.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mockup-logo">Logo du client</Label>
+                <input
+                  ref={logoInputRef}
+                  id="mockup-logo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" aria-hidden />
+                  {logoName ? 'Changer le logo' : 'Importer un logo'}
+                </Button>
+                {logoSrc ? (
+                  <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={logoSrc} alt="" className="h-10 w-10 rounded-full border object-cover" />
+                    <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{logoName}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 text-xs"
+                      onClick={() => {
+                        setLogoSrc(null)
+                        setLogoName(null)
+                        if (logoInputRef.current) logoInputRef.current.value = ''
+                      }}
+                    >
+                      Retirer
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Optionnel — remplace l&apos;initiale du client dans l&apos;avatar du mockup.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mockup-text">Texte de la publication</Label>
+                <Textarea
+                  id="mockup-text"
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  placeholder={defaultCaption}
+                  rows={4}
+                  className="resize-y min-h-[96px]"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Laissez vide pour utiliser le texte par défaut adapté à la plateforme et au client.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="mockup-image">Image du mockup</Label>
+                <input
+                  ref={fileInputRef}
+                  id="mockup-image"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-4 w-4" aria-hidden />
+                  {imageName ? 'Changer l’image' : 'Importer une image'}
+                </Button>
+                {imageName ? (
+                  <p className="truncate text-xs text-muted-foreground">{imageName}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <Label>Export</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    disabled={!canExport || exporting != null}
+                    onClick={() => void handleExport('png')}
+                  >
+                    {exporting === 'png' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                    )}
+                    PNG
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={!canExport || exporting != null}
+                    onClick={() => void handleExport('jpeg')}
+                  >
+                    {exporting === 'jpeg' ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                    )}
+                    JPEG
+                  </Button>
+                </div>
+                {!canExport ? (
+                  <p className="text-xs text-muted-foreground">
+                    Renseignez le nom du client et importez une image pour activer l’export.
+                  </p>
+                ) : null}
+                {exportError ? <p className="text-xs text-destructive">{exportError}</p> : null}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Aperçu</CardTitle>
+              <CardDescription>
+                Simulation {selectedPlatform.label} — format {selectedFormat.label.toLowerCase()} pour{' '}
+                {clientName.trim() || 'votre client'}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center overflow-auto rounded-lg bg-neutral-50 p-4 md:p-8">
+                <div ref={previewRef} className="inline-block">
+                  <MockupPreviewFrame
+                    platform={platform}
+                    clientName={clientName}
+                    imageSrc={previewImage}
+                    logoSrc={logoSrc}
+                    caption={caption}
+                    visualFormat={visualFormat}
+                    ctaLabel={ctaLabel}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
