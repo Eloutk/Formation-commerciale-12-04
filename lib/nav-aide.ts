@@ -16,6 +16,7 @@ export const AIDE_LINKS: NavAideLink[] = [
   { href: '/glossaire', label: 'Glossaire' },
   { href: '/faq', label: 'FAQ' },
   { href: '/tuto', label: 'Tuto', adminOnly: true },
+  { href: '/calcul-cpm-cpc', label: 'Calcul des coûts', adminOnly: true },
 ]
 
 export const TUTO_ITEMS: TutoItem[] = [

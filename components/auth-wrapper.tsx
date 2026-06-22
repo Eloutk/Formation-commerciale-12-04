@@ -270,10 +270,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         } catch {
           setUser(null)
           setIsAdmin(false)
+          setAdminResolved(true)
           return false
         }
       }
     })().finally(() => {
+      setAdminResolved(true)
       checkPseudoInFlightRef.current = null
     })
 
