@@ -9,6 +9,11 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '12mb',
+    },
+  },
   /**
    * En dev, le cache Webpack des bundles serveur peut parfois référencer des chunks
    * supprimés (ex. Cannot find module './9276.js' sur une route API). Désactiver le

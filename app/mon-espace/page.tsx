@@ -13,6 +13,7 @@ import {
   Loader2,
   Search,
   Shield,
+  Sparkles,
   Trash2,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,7 +46,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, IA_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -81,6 +82,9 @@ import {
   deleteMockupSave,
   listUserMockupSaves,
 } from '@/lib/mockup-saves-storage'
+import { getIaActionLabel } from '@/lib/ia-actions'
+import { formatIaAnalysisDate, type IaAnalysisRecord } from '@/lib/ia-analyses'
+import { deleteIaAnalysis, listUserIaAnalyses } from '@/lib/ia-analyses-storage'
 import {
   loadMonEspaceAdminItems,
   type MonEspaceAdminItem,
@@ -92,7 +96,7 @@ import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
-type MonEspaceSection = 'admin' | 'strategy' | 'simulateur' | 'mockups' | 'devis'
+type MonEspaceSection = 'admin' | 'strategy' | 'simulateur' | 'mockups' | 'ia' | 'devis'
 
 const MON_ESPACE_SECTIONS: {
   id: MonEspaceSection
@@ -104,6 +108,7 @@ const MON_ESPACE_SECTIONS: {
   { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
   { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
+  { id: 'ia', label: 'Analyses IA', icon: Sparkles, adminOnly: true },
   { id: 'devis', label: 'SMS / RCS', icon: FolderOpen },
 ]
 
@@ -114,24 +119,29 @@ export default function MonEspacePage() {
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
+  const [iaAnalyses, setIaAnalyses] = useState<IaAnalysisRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
   const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
   const [loadingMockupSaves, setLoadingMockupSaves] = useState(true)
+  const [loadingIaAnalyses, setLoadingIaAnalyses] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
   const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
   const [mockupSavesError, setMockupSavesError] = useState<string | null>(null)
+  const [iaAnalysesError, setIaAnalysesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
   const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
   const [mockupSavesSearch, setMockupSavesSearch] = useState('')
+  const [iaAnalysesSearch, setIaAnalysesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
   const [deleteDevisTarget, setDeleteDevisTarget] = useState<SmsDevisRecord | null>(null)
   const [deleteStrategyTarget, setDeleteStrategyTarget] = useState<Vente2StrategyRecord | null>(null)
   const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
     useState<SimulateurMediaSaveRecord | null>(null)
   const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
+  const [deleteIaTarget, setDeleteIaTarget] = useState<IaAnalysisRecord | null>(null)
   const [adminItems, setAdminItems] = useState<MonEspaceAdminItem[]>([])
   const [adminAuthors, setAdminAuthors] = useState<MonEspaceAuthor[]>([])
   const [loadingAdmin, setLoadingAdmin] = useState(false)
@@ -143,6 +153,7 @@ export default function MonEspacePage() {
   const [strategiesPage, setStrategiesPage] = useState(1)
   const [simulateurPage, setSimulateurPage] = useState(1)
   const [mockupPage, setMockupPage] = useState(1)
+  const [iaPage, setIaPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
   const [activeSection, setActiveSection] = useState<MonEspaceSection>('strategy')
 
@@ -211,12 +222,26 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadIaAnalyses = useCallback(async () => {
+    setLoadingIaAnalyses(true)
+    setIaAnalysesError(null)
+    try {
+      const rows = await listUserIaAnalyses()
+      setIaAnalyses(rows)
+    } catch (e) {
+      setIaAnalysesError(e instanceof Error ? e.message : 'Impossible de charger vos analyses IA.')
+    } finally {
+      setLoadingIaAnalyses(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadDevis()
     void loadStrategies()
     void loadSimulateurSaves()
     void loadMockupSaves()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves])
+    void loadIaAnalyses()
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadIaAnalyses])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -284,6 +309,18 @@ export default function MonEspacePage() {
     )
   }, [mockupSaves, mockupSavesSearch])
 
+  const filteredIaAnalyses = useMemo(() => {
+    const q = iaAnalysesSearch.trim().toLowerCase()
+    if (!q) return iaAnalyses
+    return iaAnalyses.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        (row.client_name?.toLowerCase().includes(q) ?? false) ||
+        getIaActionLabel(row.action_id).toLowerCase().includes(q) ||
+        (row.input_label?.toLowerCase().includes(q) ?? false),
+    )
+  }, [iaAnalyses, iaAnalysesSearch])
+
   const adminPagination = useMemo(
     () => getMonEspacePagination(filteredAdminItems, adminPage),
     [filteredAdminItems, adminPage],
@@ -299,6 +336,10 @@ export default function MonEspacePage() {
   const mockupPagination = useMemo(
     () => getMonEspacePagination(filteredMockupSaves, mockupPage),
     [filteredMockupSaves, mockupPage],
+  )
+  const iaPagination = useMemo(
+    () => getMonEspacePagination(filteredIaAnalyses, iaPage),
+    [filteredIaAnalyses, iaPage],
   )
   const devisPagination = useMemo(
     () => getMonEspacePagination(filteredDevis, devisPage),
@@ -320,6 +361,10 @@ export default function MonEspacePage() {
   useEffect(() => {
     setMockupPage(1)
   }, [mockupSavesSearch])
+
+  useEffect(() => {
+    setIaPage(1)
+  }, [iaAnalysesSearch])
 
   useEffect(() => {
     setDevisPage(1)
@@ -348,6 +393,12 @@ export default function MonEspacePage() {
       setMockupPage(mockupPagination.totalPages)
     }
   }, [mockupPage, mockupPagination.totalPages])
+
+  useEffect(() => {
+    if (iaPage > iaPagination.totalPages) {
+      setIaPage(iaPagination.totalPages)
+    }
+  }, [iaPage, iaPagination.totalPages])
 
   useEffect(() => {
     if (devisPage > devisPagination.totalPages) {
@@ -404,6 +455,20 @@ export default function MonEspacePage() {
       await deleteMockupSave(deleteMockupTarget.id)
       setDeleteMockupTarget(null)
       await loadMockupSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDeleteIa = async () => {
+    if (!deleteIaTarget) return
+    setActionId(deleteIaTarget.id)
+    try {
+      await deleteIaAnalysis(deleteIaTarget.id)
+      setDeleteIaTarget(null)
+      await loadIaAnalyses()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
     } finally {
@@ -1139,6 +1204,133 @@ export default function MonEspacePage() {
         </Card>
         )}
 
+        {activeSection === 'ia' && (
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-violet-600/[0.08] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-violet-600" />
+              Analyses IA
+            </CardTitle>
+            <CardDescription>
+              Résultats Claude enregistrés depuis l&apos;onglet IA — ouvrez ou supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom, action, client ou source…"
+                  value={iaAnalysesSearch}
+                  onChange={(e) => setIaAnalysesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white shrink-0">
+                <Link href={IA_HREF}>Nouvelle analyse</Link>
+              </Button>
+            </div>
+
+            {loadingIaAnalyses ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Chargement de vos analyses IA…
+              </div>
+            ) : iaAnalysesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {iaAnalysesError}
+                <p className="mt-2 text-muted-foreground">
+                  Exécutez <code className="text-xs">supabase/ia-analyses.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredIaAnalyses.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {iaAnalyses.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucune analyse enregistrée</p>
+                    <p className="text-sm mt-1">
+                      Lancez une action depuis l&apos;onglet IA pour enregistrer un résultat ici.
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucune analyse ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Action</TableHead>
+                      <TableHead className="font-semibold">Source</TableHead>
+                      <TableHead className="font-semibold">Client</TableHead>
+                      <TableHead className="font-semibold">Créé le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {iaPagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal border-violet-300 text-violet-700">
+                            {getIaActionLabel(row.action_id)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[12rem] truncate text-sm" title={row.input_label ?? undefined}>
+                          {row.input_label ?? '—'}
+                        </TableCell>
+                        <TableCell className="max-w-[10rem] truncate">
+                          {row.client_name || '—'}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatIaAnalysisDate(row.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() => router.push(`${IA_HREF}?analysis=${row.id}`)}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeleteIaTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={iaPagination.page}
+                totalPages={iaPagination.totalPages}
+                onPageChange={setIaPage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
         {activeSection === 'devis' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
@@ -1358,6 +1550,29 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteMockup()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!deleteIaTarget}
+        onOpenChange={(open) => !open && setDeleteIaTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette analyse IA ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deleteIaTarget?.name} » sera définitivement supprimée de Mon espace. Cette action
+              est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeleteIa()}
             >
               Supprimer
             </AlertDialogAction>

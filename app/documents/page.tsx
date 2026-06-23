@@ -1,8 +1,17 @@
 'use client'
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download } from "lucide-react"
+import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { IA_HREF } from '@/lib/nav-config'
+import {
+  formatDocumentLabel,
+  SITE_DOCUMENT_SECTIONS,
+  type SiteDocument,
+} from '@/lib/site-documents'
+import { cn } from '@/lib/utils'
+import { Download, FileText, Presentation, Sparkles } from 'lucide-react'
 
 function downloadFile(href: string, filename: string) {
   const link = document.createElement('a')
@@ -16,142 +25,106 @@ function downloadFile(href: string, filename: string) {
   document.body.removeChild(link)
 }
 
-const FICHES_PLATEFORMES = [
-  'Instagram.pdf',
-  'LinkedIn.pdf',
-  'Youtube.pdf',
-  'Snapchat.pdf',
-  'Spotify.pdf',
-  'Tiktok.pdf',
-  'Search.pdf',
-] as const
+function DocumentCard({ doc }: { doc: SiteDocument }) {
+  const isKeynote = doc.format === 'keynote'
+
+  return (
+    <Card
+      className={cn(
+        'overflow-hidden transition-colors',
+        doc.featured && 'border-violet-300 bg-gradient-to-br from-violet-50/80 to-transparent',
+      )}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {isKeynote ? (
+              <Presentation className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+            ) : (
+              <FileText className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+            )}
+            <CardTitle className="text-lg">{doc.title}</CardTitle>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="font-normal">
+              {formatDocumentLabel(doc.format)}
+            </Badge>
+            {doc.badge ? (
+              <Badge className="bg-violet-600 hover:bg-violet-600">{doc.badge}</Badge>
+            ) : null}
+          </div>
+        </div>
+        <CardDescription>{doc.description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <Button
+          onClick={() => downloadFile(doc.href, doc.downloadFilename)}
+          className={cn(doc.featured && 'bg-violet-600 hover:bg-violet-700')}
+        >
+          <Download className="mr-2 h-4 w-4" aria-hidden />
+          Télécharger
+        </Button>
+        {doc.featured ? (
+          <Button asChild variant="outline">
+            <Link href={IA_HREF}>
+              <Sparkles className="mr-2 h-4 w-4" aria-hidden />
+              Générer avec l&apos;IA
+            </Link>
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function DocumentsPage() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Documents</h1>
-        <p className="text-muted-foreground mb-8">Consultez les documents disponibles</p>
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8">
+          <h1 className="mb-2 text-3xl font-bold">Documents</h1>
+          <p className="text-muted-foreground">
+            Guides, templates Keynote et fiches plateformes Link Academy. La base de présentation 2026
+            sert aussi de template pour les présentations générées depuis l&apos;onglet IA.
+          </p>
+        </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Guide des formats</CardTitle>
-              <CardDescription>Documentation sur les formats publicitaires et leurs contraintes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => downloadFile(
-                  '/Guide des formats visuels et des contraintes.pdf',
-                  'Guide des formats visuels et des contraintes.pdf'
-                )}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger le guide des formats
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Guide de la chefferie de projet diffusion et production</CardTitle>
-              <CardDescription>Chefferie de projet, Monday, rapports, devis et besoins n'auront plus de secret pour vous</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => downloadFile(
-                  '/Guide de la Chefferie de Projet - V1.pdf',
-                  'Guide de la chefferie de projet - V1.pdf'
-                )}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger le guide des chefs de projet
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Guide Performance Ads</CardTitle>
-              <CardDescription>Guide des performances publicitaires — version 1.2</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => downloadFile(
-                  '/Guide Performance Ads V1.2.pdf',
-                  'Guide Performance Ads V1.2.pdf'
-                )}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger le guide Performance Ads
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Présentation Link 2026</CardTitle>
-              <CardDescription>
-                Base de présentation Keynote — mise à jour du 28/04/26
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => downloadFile(
-                  '/Link 2026 (maj 280426).key',
-                  'Link 2026 (maj 280426).key'
-                )}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger la présentation
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Formation studio janvier 2026</CardTitle>
-              <CardDescription>
-                Présentation Keynote — version 3.5 LITE
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => downloadFile(
-                  '/Formation studio janvier 2026 3.5 Version LITE.key',
-                  'Formation studio janvier 2026 3.5 Version LITE.key'
-                )}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Télécharger la formation studio
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Fiches plateformes</CardTitle>
-              <CardDescription>
-                Fiches récapitulatives par plateforme publicitaire
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {FICHES_PLATEFORMES.map((filename) => {
-                  const label = filename.replace('.pdf', '')
-                  return (
-                    <Button
-                      key={filename}
-                      onClick={() => downloadFile(`/${filename}`, filename)}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      {label}
-                    </Button>
-                  )
-                })}
+        <div className="space-y-10">
+          {SITE_DOCUMENT_SECTIONS.map((section) => (
+            <section key={section.id} aria-labelledby={`section-${section.id}`}>
+              <div className="mb-4">
+                <h2 id={`section-${section.id}`} className="text-xl font-semibold">
+                  {section.title}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">{section.description}</p>
               </div>
-            </CardContent>
-          </Card>
+
+              {section.id === 'fiches-plateformes' ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex flex-wrap gap-2">
+                      {section.items.map((doc) => (
+                        <Button
+                          key={doc.id}
+                          variant="outline"
+                          onClick={() => downloadFile(doc.href, doc.downloadFilename)}
+                        >
+                          <Download className="mr-2 h-4 w-4" aria-hidden />
+                          {doc.title}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {section.items.map((doc) => (
+                    <DocumentCard key={doc.id} doc={doc} />
+                  ))}
+                </div>
+              )}
+            </section>
+          ))}
         </div>
       </div>
     </div>
