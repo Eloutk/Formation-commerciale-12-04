@@ -426,11 +426,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       isAdmin,
       isClient: role === 'client',
       role,
+      userName: user?.name?.trim()
+        ? user.name.trim()
+        : user?.email
+          ? user.email.split('@')[0]
+          : null,
       authReady: !loading && adminResolved,
       hasPermission: (permission: Parameters<typeof hasAppPermission>[1]) =>
         hasAppPermission(role, permission),
     }),
-    [isAdmin, role, loading, adminResolved],
+    [isAdmin, role, user, loading, adminResolved],
   )
 
   if (loading && !isPublicPath) {
@@ -503,9 +508,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                       Mon espace
                     </Link>
                   )}
-                  <span className="text-sm text-gray-600 max-w-[180px] truncate">
-                    {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
-                  </span>
                   <Button
                     variant="outline"
                     size="sm"

@@ -1056,39 +1056,6 @@ const formatBaseClientsTariffDescription = (unitLabel: 'SMS' | 'RCS'): string =>
 const formatCiblageOptionLabel = (unitLabel: 'SMS' | 'RCS'): string =>
   `+${CIBLAGE_UNIT_PRICE.toFixed(2).replace('.', ',')} € / ${unitLabel}`
 
-const SMS_RCS_DEVIS_INCLUDED = 'Inclus'
-
-function appendSmsRcsIncludedOptionLines(
-  lines: SmsRcsMiniDevisLine[],
-  type: 'sms' | 'rcs',
-  options: {
-    ciblage: boolean
-    baseClients: boolean
-    richSms: boolean
-    agent: boolean
-    creaByLink: boolean
-    tarifIntermarche: boolean
-    duplicateCampaign: boolean
-  },
-  campaignCount: number,
-) {
-  if (type === 'sms') {
-    if (options.ciblage) lines.push({ label: 'Ciblage', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.baseClients) lines.push({ label: 'Base clients', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.richSms) lines.push({ label: 'Rich SMS', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.tarifIntermarche) lines.push({ label: 'Tarif Intermarché', value: SMS_RCS_DEVIS_INCLUDED })
-  } else {
-    if (options.ciblage) lines.push({ label: 'Ciblage', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.baseClients) lines.push({ label: 'Base clients', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.agent) lines.push({ label: "Création d'agent", value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.creaByLink) lines.push({ label: 'CREA BY LINK', value: SMS_RCS_DEVIS_INCLUDED })
-    if (options.tarifIntermarche) lines.push({ label: 'Tarif Intermarché', value: SMS_RCS_DEVIS_INCLUDED })
-  }
-  if (options.duplicateCampaign && campaignCount > 1) {
-    lines.push({ label: 'Nombre de campagnes', value: `× ${campaignCount}`, muted: true })
-  }
-}
-
 const formatRcsUnitPriceEuro = (unitPrice: number, baseClients: boolean): string => {
   if (baseClients) return formatBaseClientsUnitPriceEuro(unitPrice)
   return `${unitPrice.toFixed(2).replace('.', ',')} €`
@@ -2095,15 +2062,8 @@ const SMSRCSPDFDocument = ({
   imageBase64?: string | null
 }) => {
   const typeLabel = type === 'sms' ? 'SMS' : 'RCS'
+  const setupFee = type === 'sms' ? 190 : 250
   const documentTitle = fileName.trim() || `Devis ${typeLabel}`
-
-  const hasIncludedOptions =
-    options.ciblage ||
-    options.baseClients ||
-    options.richSms ||
-    options.agent ||
-    options.creaByLink ||
-    options.tarifIntermarche
 
   return (
     <Document>
@@ -2146,65 +2106,80 @@ const SMSRCSPDFDocument = ({
             </View>
           ))}
 
-          {hasIncludedOptions && (
-            <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
-              <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
-                Options incluses :
-              </Text>
-              <Text style={styles.itemValue} />
-            </View>
-          )}
+          <View style={styles.itemRow}>
+            <Text style={styles.itemLabel}>Prix unitaire HT :</Text>
+            <Text style={styles.itemValue}>
+              {unitPrice > 0
+                ? type === 'sms'
+                  ? formatSmsUnitPriceEuro(unitPrice, !!options.baseClients)
+                  : formatRcsUnitPriceEuro(unitPrice, !!options.baseClients)
+                : '--'}
+            </Text>
+          </View>
+
+          <View style={[styles.itemRow, { marginTop: 6, paddingTop: 6, borderTop: '1 solid #e5e5e5' }]}>
+            <Text style={[styles.itemLabel, { fontSize: 10, fontWeight: 'bold' }]}>
+              Frais de mise en place :
+            </Text>
+            <Text style={styles.itemValue}>{setupFee} €</Text>
+          </View>
+
           {type === 'sms' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Ciblage</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>dont Ciblage :</Text>
+              <Text style={styles.itemValue}>{formatCiblageOptionLabel('SMS')}</Text>
             </View>
           )}
           {type === 'sms' && options.richSms && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Rich SMS</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>dont Rich SMS :</Text>
+              <Text style={styles.itemValue}>+0,021 € / SMS</Text>
             </View>
           )}
           {type === 'sms' && options.baseClients && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Base clients</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
+              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('SMS')}</Text>
             </View>
           )}
           {type === 'rcs' && options.ciblage && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Ciblage</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>dont Ciblage :</Text>
+              <Text style={styles.itemValue}>{formatCiblageOptionLabel('RCS')}</Text>
             </View>
           )}
           {type === 'rcs' && options.baseClients && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Base clients</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>Tarif Base clients :</Text>
+              <Text style={styles.itemValue}>{formatBaseClientsUnitPriceLabel('RCS')}</Text>
             </View>
           )}
           {type === 'rcs' && options.agent && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Création d'agent</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>Création d'agent :</Text>
+              <Text style={styles.itemValue}>+550 €</Text>
             </View>
           )}
           {type === 'rcs' && options.creaByLink && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>CREA BY LINK</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={styles.itemLabel}>CREA BY LINK :</Text>
+              <Text style={styles.itemValue}>
+                +{100 * (creaByLinkCount || 1)} €{' '}
+                {(creaByLinkCount || 1) > 1 ? `(${creaByLinkCount} × 100 €)` : ''}
+              </Text>
             </View>
           )}
           {options.tarifIntermarche && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>Tarif Intermarché</Text>
-              <Text style={styles.itemValue}>{SMS_RCS_DEVIS_INCLUDED}</Text>
+              <Text style={[styles.itemLabel, { color: '#E94C16', fontWeight: 'bold' }]}>
+                Tarif Intermarché :
+              </Text>
+              <Text style={[styles.itemValue, { color: '#E94C16', fontWeight: 'bold' }]}>Activé</Text>
             </View>
           )}
           {options.duplicateCampaign && campaignMonths && campaignMonths > 1 && (
             <View style={styles.itemRow}>
-              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagne(s)</Text>
+              <Text style={[styles.itemLabel, { fontWeight: 'bold' }]}>Nombre de campagne(s) :</Text>
               <Text style={[styles.itemValue, { fontWeight: 'bold' }]}>× {campaignMonths}</Text>
             </View>
           )}
@@ -2736,7 +2711,52 @@ export function Vente2Calculator({
       })
     }
     appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'SMS')
-    appendSmsRcsIncludedOptionLines(lines, 'sms', smsOptions, smsCampaignCount)
+    if (smsUnitPrice <= 0) return { lines, totalHt: null }
+    lines.push({
+      label: 'Prix unitaire HT',
+      value: formatSmsUnitPriceLabel(smsUnitPrice, smsOptions.baseClients),
+      emphasis: true,
+    })
+    if (smsOptions.baseClients) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: formatBaseClientsTariffDescription('SMS'),
+        muted: true,
+      })
+    } else if (smsOptions.tarifIntermarche) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: 'Tarif Intermarché — 0,13 € fixe / SMS',
+        muted: true,
+      })
+    } else {
+      if (smsBasePU > 0) {
+        lines.push({
+          label: 'Tarif de base',
+          value: `${smsBasePU.toFixed(4).replace('.', ',')} € / SMS`,
+          muted: true,
+        })
+      }
+      if (smsOptions.ciblage) {
+        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('SMS'), muted: true })
+      }
+      if (smsOptions.richSms) {
+        lines.push({ label: 'Option Rich SMS', value: '+0,021 € / SMS', muted: true })
+      }
+    }
+    const variablePerCampaign = smsUnitPrice * smsVolumeNumber
+    lines.push({
+      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
+      value: formatEuro(variablePerCampaign),
+    })
+    if (smsCampaignCount > 1) {
+      lines.push({
+        label: 'Coût envoie (toutes campagnes)',
+        value: formatEuro(variablePerCampaign * smsCampaignCount),
+        muted: true,
+      })
+    }
+    lines.push({ label: 'Frais de mise en place', value: '190 €' })
     return {
       lines,
       totalHt: smsTotalPrice > 0 ? smsTotalPrice : null,
@@ -2744,10 +2764,15 @@ export function Vente2Calculator({
   }, [
     smsType,
     smsVolumeNumber,
+    smsUnitPrice,
+    smsBasePU,
     smsTotalPrice,
     smsCampaignCount,
     totalUnitsNumber,
-    smsOptions,
+    smsOptions.tarifIntermarche,
+    smsOptions.baseClients,
+    smsOptions.ciblage,
+    smsOptions.richSms,
     smsRcsPdfSendWaves,
   ])
 
@@ -2777,7 +2802,62 @@ export function Vente2Calculator({
       })
     }
     appendSmsRcsSendWaveDevisLines(lines, smsRcsPdfSendWaves, 'RCS')
-    appendSmsRcsIncludedOptionLines(lines, 'rcs', smsOptions, smsCampaignCount)
+    if (rcsUnitPrice <= 0) return { lines, totalHt: null, forbidden: false }
+    lines.push({
+      label: 'Prix unitaire HT',
+      value: formatRcsUnitPriceLabel(rcsUnitPrice, smsOptions.baseClients),
+      emphasis: true,
+    })
+    if (smsOptions.baseClients) {
+      lines.push({
+        label: 'Mode tarifaire',
+        value: formatBaseClientsTariffDescription('RCS'),
+        muted: true,
+      })
+    } else {
+      if (rcsBasePU > 0) {
+        lines.push({
+          label: 'Tarif de base',
+          value: `${rcsBasePU.toFixed(2).replace('.', ',')} € / RCS`,
+          muted: true,
+        })
+      }
+      if (smsOptions.ciblage) {
+        lines.push({ label: 'Option Ciblage', value: formatCiblageOptionLabel('RCS'), muted: true })
+      }
+    }
+    const messagesPerCampaign = rcsUnitPrice * smsVolumeNumber
+    lines.push({
+      label: smsCampaignCount > 1 ? 'Coût envoie (par campagne)' : 'Coût envoie',
+      value: formatEuro(messagesPerCampaign),
+    })
+    if (smsCampaignCount > 1) {
+      lines.push({
+        label: 'Coût envoie (toutes campagnes)',
+        value: formatEuro(messagesPerCampaign * smsCampaignCount),
+        muted: true,
+      })
+    }
+    if (smsOptions.agent) {
+      lines.push({
+        label: 'Création d’agent',
+        value:
+          smsCampaignCount > 1
+            ? `${formatEuro(550)} × ${smsCampaignCount} campagnes = ${formatEuro(550 * smsCampaignCount)}`
+            : formatEuro(550),
+      })
+    }
+    if (smsOptions.creaByLink) {
+      const creaFee = 100 * creaByLinkCountNumber
+      lines.push({
+        label: 'CREA BY LINK',
+        value:
+          smsCampaignCount > 1
+            ? `${formatEuro(creaFee)} × ${smsCampaignCount} campagnes = ${formatEuro(creaFee * smsCampaignCount)}`
+            : `${creaByLinkCountNumber} × 100 € = ${formatEuro(creaFee)}`,
+      })
+    }
+    lines.push({ label: 'Frais de set up (obligatoires)', value: '250 €' })
     return {
       lines,
       totalHt: rcsTotalPrice > 0 ? rcsTotalPrice : null,
@@ -2786,10 +2866,16 @@ export function Vente2Calculator({
   }, [
     smsType,
     smsVolumeNumber,
+    rcsUnitPrice,
+    rcsBasePU,
     rcsTotalPrice,
     smsCampaignCount,
     totalUnitsNumber,
-    smsOptions,
+    creaByLinkCountNumber,
+    smsOptions.baseClients,
+    smsOptions.ciblage,
+    smsOptions.agent,
+    smsOptions.creaByLink,
     smsRcsPdfSendWaves,
   ])
 

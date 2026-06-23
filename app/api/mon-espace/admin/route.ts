@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSupabase, requireAdminSessionUser } from '@/lib/media-session'
+import type { MockupSaveRecord } from '@/lib/mockup-saves'
 import type { SimulateurMediaSaveRecord } from '@/lib/simulateur-media-saves'
 import type { SmsDevisRecord } from '@/lib/sms-devis'
 import type { Vente2StrategyRecord } from '@/lib/vente2-strategies'
@@ -31,15 +32,20 @@ export async function GET() {
 
   const supabase = await getServerSupabase()
 
-  const [strategiesRes, simulateurRes, devisRes, profilesRes] = await Promise.all([
+  const [strategiesRes, simulateurRes, mockupsRes, devisRes, profilesRes] = await Promise.all([
     supabase.rpc('admin_list_vente2_strategies'),
     supabase.rpc('admin_list_simulateur_media_saves'),
+    supabase.rpc('admin_list_mockup_saves'),
     supabase.rpc('admin_list_sms_devis'),
     supabase.rpc('admin_list_profiles_for_mon_espace'),
   ])
 
   const rpcError =
-    strategiesRes.error ?? simulateurRes.error ?? devisRes.error ?? profilesRes.error
+    strategiesRes.error ??
+    simulateurRes.error ??
+    mockupsRes.error ??
+    devisRes.error ??
+    profilesRes.error
   if (rpcError) {
     if (isMissingRpcError(rpcError.message)) {
       return NextResponse.json(
@@ -55,6 +61,7 @@ export async function GET() {
 
   const strategies = (strategiesRes.data ?? []) as Vente2StrategyRecord[]
   const simulateurSaves = (simulateurRes.data ?? []) as SimulateurMediaSaveRecord[]
+  const mockupSaves = (mockupsRes.data ?? []) as MockupSaveRecord[]
   const devis = (devisRes.data ?? []) as SmsDevisRecord[]
 
   const labelMap = new Map<string, string>()
@@ -66,6 +73,7 @@ export async function GET() {
     ...new Set([
       ...strategies.map((s) => s.user_id),
       ...simulateurSaves.map((s) => s.user_id),
+      ...mockupSaves.map((m) => m.user_id),
       ...devis.map((d) => d.user_id),
     ]),
   ]
@@ -81,6 +89,11 @@ export async function GET() {
     })),
     ...simulateurSaves.map((record) => ({
       kind: 'simulateur' as const,
+      record,
+      authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
+    })),
+    ...mockupSaves.map((record) => ({
+      kind: 'mockup' as const,
       record,
       authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
     })),

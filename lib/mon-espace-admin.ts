@@ -1,8 +1,9 @@
+import type { MockupSaveRecord } from '@/lib/mockup-saves'
 import type { SimulateurMediaSaveRecord } from '@/lib/simulateur-media-saves'
 import type { SmsDevisRecord } from '@/lib/sms-devis'
 import type { Vente2StrategyRecord } from '@/lib/vente2-strategies'
 
-export type MonEspaceCategory = 'all' | 'strategy' | 'simulateur' | 'sms'
+export type MonEspaceCategory = 'all' | 'strategy' | 'simulateur' | 'mockup' | 'sms'
 
 export type MonEspaceAuthor = {
   id: string
@@ -12,6 +13,7 @@ export type MonEspaceAuthor = {
 export type MonEspaceAdminItem =
   | { kind: 'strategy'; record: Vente2StrategyRecord; authorLabel: string }
   | { kind: 'simulateur'; record: SimulateurMediaSaveRecord; authorLabel: string }
+  | { kind: 'mockup'; record: MockupSaveRecord; authorLabel: string }
   | { kind: 'sms'; record: SmsDevisRecord; authorLabel: string }
 
 export function authorLabelFromProfile(profile: {

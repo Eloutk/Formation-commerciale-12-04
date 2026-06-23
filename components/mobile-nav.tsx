@@ -102,9 +102,6 @@ export function MobileNav({
               <div className="pt-4 mt-4 border-t">
                 {user ? (
                   <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground truncate">
-                      {user.name?.trim() ? user.name : (user.email || '').split('@')[0]}
-                    </div>
                     {isAdmin && (
                       <Link
                         href={MON_ESPACE_HREF}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import type { LucideIcon } from 'lucide-react'
 import {
   BarChart3,
   Calculator,
@@ -88,10 +89,27 @@ import {
 } from '@/lib/mon-espace-admin'
 import { getMonEspacePagination } from '@/lib/mon-espace-pagination'
 import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn } from '@/lib/utils'
+
+type MonEspaceSection = 'admin' | 'strategy' | 'simulateur' | 'mockups' | 'devis'
+
+const MON_ESPACE_SECTIONS: {
+  id: MonEspaceSection
+  label: string
+  icon: LucideIcon
+  adminOnly?: boolean
+}[] = [
+  { id: 'admin', label: 'Vue admin', icon: Shield, adminOnly: true },
+  { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
+  { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
+  { id: 'mockups', label: 'Mockups', icon: ImageIcon },
+  { id: 'devis', label: 'SMS / RCS', icon: FolderOpen },
+]
 
 export default function MonEspacePage() {
   const router = useRouter()
-  const { isAdmin, authReady } = useAuthAccess()
+  const { isAdmin, authReady, userName } = useAuthAccess()
   const [devis, setDevis] = useState<SmsDevisRecord[]>([])
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
@@ -126,6 +144,18 @@ export default function MonEspacePage() {
   const [simulateurPage, setSimulateurPage] = useState(1)
   const [mockupPage, setMockupPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
+  const [activeSection, setActiveSection] = useState<MonEspaceSection>('strategy')
+
+  const visibleSections = useMemo(
+    () => MON_ESPACE_SECTIONS.filter((section) => !section.adminOnly || isAdmin),
+    [isAdmin],
+  )
+
+  useEffect(() => {
+    if (!visibleSections.some((section) => section.id === activeSection)) {
+      setActiveSection(visibleSections[0]?.id ?? 'strategy')
+    }
+  }, [activeSection, visibleSections])
 
   const loadDevis = useCallback(async () => {
     setLoadingDevis(true)
@@ -212,9 +242,15 @@ export default function MonEspacePage() {
     return adminItems.filter((item) => {
       if (adminCategory === 'strategy' && item.kind !== 'strategy') return false
       if (adminCategory === 'simulateur' && item.kind !== 'simulateur') return false
+      if (adminCategory === 'mockup' && item.kind !== 'mockup') return false
       if (adminCategory === 'sms' && item.kind !== 'sms') return false
       if (adminAuthorId !== 'all' && item.record.user_id !== adminAuthorId) return false
-      if (q && !item.record.name.toLowerCase().includes(q)) return false
+      if (q) {
+        const nameMatch = item.record.name.toLowerCase().includes(q)
+        const clientMatch =
+          item.kind === 'mockup' && item.record.client_name.toLowerCase().includes(q)
+        if (!nameMatch && !clientMatch) return false
+      }
       return true
     })
   }, [adminItems, adminCategory, adminAuthorId, adminSearch])
@@ -377,9 +413,11 @@ export default function MonEspacePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Mon espace</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {userName ? `Espace perso de ${userName}` : 'Espace perso'}
+          </h1>
           <p className="text-muted-foreground">
             Retrouvez et gérez vos stratégies du calculateur de vente, vos mockups publicitaires, vos
             simulations média Link et vos devis SMS / RCS.
@@ -389,7 +427,37 @@ export default function MonEspacePage() {
           </p>
         </div>
 
-        {isAdmin && (
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+          <aside className="w-full md:w-52 shrink-0 md:sticky md:top-20">
+            <nav aria-label="Catégories Mon espace">
+              <ToggleGroup
+                type="single"
+                value={activeSection}
+                onValueChange={(value) => {
+                  if (value) setActiveSection(value as MonEspaceSection)
+                }}
+                className="flex flex-col items-stretch gap-1 w-full rounded-xl border border-border/70 bg-muted/20 p-1.5"
+              >
+                {visibleSections.map(({ id, label, icon: Icon }) => (
+                  <ToggleGroupItem
+                    key={id}
+                    value={id}
+                    aria-label={label}
+                    className={cn(
+                      'justify-start gap-2.5 h-auto min-h-10 py-2.5 px-3 w-full rounded-lg border border-transparent',
+                      'data-[state=on]:bg-[#E94C16]/10 data-[state=on]:text-[#E94C16] data-[state=on]:border-[#E94C16]/30 data-[state=on]:shadow-sm',
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="text-sm font-medium text-left leading-snug">{label}</span>
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </nav>
+          </aside>
+
+          <div className="flex-1 min-w-0 w-full">
+        {activeSection === 'admin' && isAdmin && (
           <Card className="overflow-hidden border-border/80 shadow-sm border-[#E94C16]/30">
             <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.1] to-transparent">
               <CardTitle className="flex items-center gap-2 text-xl">
@@ -397,7 +465,7 @@ export default function MonEspacePage() {
                 Vue administrateur — tous les enregistrements
               </CardTitle>
               <CardDescription>
-                Filtrez par catégorie (stratégie Social ou SMS/RCS) et par personne.
+                Filtrez par catégorie et par personne pour consulter tous les enregistrements.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
@@ -415,6 +483,7 @@ export default function MonEspacePage() {
                       <SelectItem value="all">Toutes</SelectItem>
                       <SelectItem value="strategy">Calculateur de vente</SelectItem>
                       <SelectItem value="simulateur">Simulateur média</SelectItem>
+                      <SelectItem value="mockup">Mockups</SelectItem>
                       <SelectItem value="sms">SMS / RCS</SelectItem>
                     </SelectContent>
                   </Select>
@@ -471,7 +540,13 @@ export default function MonEspacePage() {
                       <code>supabase/simulateur-media-saves.sql</code>
                     </li>
                     <li>
+                      <code>supabase/mockup-saves.sql</code>
+                    </li>
+                    <li>
                       <code>supabase/mon-espace-admin.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/mon-espace-admin-mockups.sql</code> (si admin déjà déployé)
                     </li>
                   </ol>
                 </div>
@@ -494,7 +569,6 @@ export default function MonEspacePage() {
                         <TableHead className="font-semibold">Enregistré par</TableHead>
                         <TableHead className="font-semibold">Résumé</TableHead>
                         <TableHead className="font-semibold">Créé le</TableHead>
-                        <TableHead className="font-semibold">Modifié le</TableHead>
                         <TableHead className="font-semibold text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -518,9 +592,6 @@ export default function MonEspacePage() {
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                                 {formatVente2StrategyDate(row.created_at)}
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                                {formatVente2StrategyDate(row.updated_at)}
                               </TableCell>
                               <TableCell>
                                 <div className="flex justify-end">
@@ -560,9 +631,6 @@ export default function MonEspacePage() {
                               <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                                 {formatSimulateurMediaSaveDate(row.created_at)}
                               </TableCell>
-                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                                {formatSimulateurMediaSaveDate(row.updated_at)}
-                              </TableCell>
                               <TableCell>
                                 <div className="flex justify-end">
                                   <Button
@@ -582,8 +650,46 @@ export default function MonEspacePage() {
                           )
                         }
 
-                        const row = item.record
-                        return (
+                        if (item.kind === 'mockup') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.id}`}>
+                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Mockups
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap max-w-[16rem] truncate" title={row.client_name}>
+                                {formatMockupPlatformLabel(row.platform)} — {formatMockupFormatLabel(row.content)}
+                                {row.client_name ? ` — ${row.client_name}` : ''}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatMockupSaveDate(row.created_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => router.push(`${MOCKUP_HREF}?mockup=${row.id}`)}
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+
+                        if (item.kind === 'sms') {
+                          const row = item.record
+                          return (
                           <TableRow key={`${item.kind}-${row.id}`}>
                             <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
                               {row.name}
@@ -600,9 +706,6 @@ export default function MonEspacePage() {
                             <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                               {formatSmsDevisDate(row.created_at)}
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {formatSmsDevisDate(row.updated_at)}
-                            </TableCell>
                             <TableCell>
                               <div className="flex justify-end">
                                 <Button
@@ -617,7 +720,10 @@ export default function MonEspacePage() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        )
+                          )
+                        }
+
+                        return null
                       })}
                     </TableBody>
                   </Table>
@@ -633,10 +739,7 @@ export default function MonEspacePage() {
           </Card>
         )}
 
-        {isAdmin && (
-          <h2 className="text-lg font-semibold text-muted-foreground">Mes enregistrements personnels</h2>
-        )}
-
+        {activeSection === 'strategy' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -771,7 +874,9 @@ export default function MonEspacePage() {
             )}
           </CardContent>
         </Card>
+        )}
 
+        {activeSection === 'simulateur' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -900,7 +1005,9 @@ export default function MonEspacePage() {
             )}
           </CardContent>
         </Card>
+        )}
 
+        {activeSection === 'mockups' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -1030,7 +1137,9 @@ export default function MonEspacePage() {
             )}
           </CardContent>
         </Card>
+        )}
 
+        {activeSection === 'devis' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -1158,6 +1267,9 @@ export default function MonEspacePage() {
             )}
           </CardContent>
         </Card>
+        )}
+          </div>
+        </div>
       </div>
 
       <AlertDialog
