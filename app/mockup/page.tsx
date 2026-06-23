@@ -1,12 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Download, ImageIcon, Loader2, Sparkles, ImagePlus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Download, ImageIcon, Loader2, Save, Sparkles, ImagePlus } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -14,22 +23,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { MockupPreviewFrame } from '@/components/mockup/MockupPreviewFrame'
+import { supportsFeedPreview } from '@/components/mockup/MockupFeedShell'
 import { MockupPlatformIcon } from '@/components/mockup/MockupPreviews'
-import { exportMockupImage } from '@/lib/mockup-export'
+import { exportMockupImage, renderMockupPngBlob } from '@/lib/mockup-export'
 import {
-  MOCKUP_FORMAT_OPTIONS,
   MOCKUP_PLATFORMS,
   getDefaultMockupCaption,
   getMockupCtaLabel,
   getMockupCtaOptions,
+  getMockupFormatOptions,
   mockupExportFilename,
   resolveMockupCaption,
   resolveMockupCta,
+  resolveMockupVisualFormat,
   type MockupCtaId,
   type MockupPlatformId,
   type MockupVisualFormat,
 } from '@/lib/mockup'
+import {
+  buildMockupSaveContent,
+  getDefaultMockupSaveName,
+  type MockupSaveContent,
+} from '@/lib/mockup-saves'
+import {
+  createMockupSave,
+  getCurrentUserId,
+  getMockupSaveById,
+  updateMockupSave,
+  uploadMockupPng,
+} from '@/lib/mockup-saves-storage'
+import { MOCKUP_HREF } from '@/lib/nav-config'
 
 const DEFAULT_PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
@@ -42,6 +67,9 @@ const DEFAULT_PLACEHOLDER =
   )
 
 export default function MockupPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const mockupIdFromUrl = searchParams.get('mockup')
   const previewRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -54,11 +82,19 @@ export default function MockupPage() {
   const [imageName, setImageName] = useState<string | null>(null)
   const [logoSrc, setLogoSrc] = useState<string | null>(null)
   const [logoName, setLogoName] = useState<string | null>(null)
-  const [exporting, setExporting] = useState<'png' | 'jpeg' | null>(null)
+  const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [feedPreview, setFeedPreview] = useState(false)
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedName, setSavedName] = useState<string | null>(null)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveNameInput, setSaveNameInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [loadingSave, setLoadingSave] = useState(false)
 
   const previewImage = imageSrc ?? DEFAULT_PLACEHOLDER
   const canExport = clientName.trim().length > 0 && imageSrc != null
+  const canSave = canExport
 
   const selectedPlatform = useMemo(
     () => MOCKUP_PLATFORMS.find((item) => item.id === platform) ?? MOCKUP_PLATFORMS[0],
@@ -75,25 +111,169 @@ export default function MockupPage() {
     [customText, platform, clientName],
   )
 
-  const ctaOptions = useMemo(() => getMockupCtaOptions(visualFormat), [visualFormat])
+  const formatOptions = useMemo(() => getMockupFormatOptions(platform), [platform])
+
+  const resolvedVisualFormat = useMemo(
+    () => resolveMockupVisualFormat(platform, visualFormat),
+    [platform, visualFormat],
+  )
+
+  const ctaOptions = useMemo(
+    () => getMockupCtaOptions(resolvedVisualFormat),
+    [resolvedVisualFormat],
+  )
 
   const resolvedCtaId = useMemo(
-    () => resolveMockupCta(ctaId, visualFormat),
-    [ctaId, visualFormat],
+    () => resolveMockupCta(ctaId, resolvedVisualFormat),
+    [ctaId, resolvedVisualFormat],
   )
 
   const ctaLabel = useMemo(() => getMockupCtaLabel(resolvedCtaId), [resolvedCtaId])
 
   const selectedFormat = useMemo(
-    () => MOCKUP_FORMAT_OPTIONS.find((item) => item.id === visualFormat) ?? MOCKUP_FORMAT_OPTIONS[0],
-    [visualFormat],
+    () => formatOptions.find((item) => item.id === resolvedVisualFormat) ?? formatOptions[0],
+    [formatOptions, resolvedVisualFormat],
   )
+
+  const showFeedOption = supportsFeedPreview(platform, resolvedVisualFormat)
+
+  useEffect(() => {
+    if (!showFeedOption && feedPreview) {
+      setFeedPreview(false)
+    }
+  }, [showFeedOption, feedPreview])
+
+  useEffect(() => {
+    const nextFormat = resolveMockupVisualFormat(platform, visualFormat)
+    if (nextFormat !== visualFormat) {
+      setVisualFormat(nextFormat)
+    }
+  }, [platform, visualFormat])
 
   useEffect(() => {
     if (!ctaOptions.some((option) => option.id === ctaId)) {
       setCtaId(ctaOptions[0]?.id ?? 'learn_more')
     }
   }, [ctaId, ctaOptions])
+
+  const applySavedContent = useCallback((content: MockupSaveContent, name: string, id: string) => {
+    setClientName(content.clientName)
+    setCustomText(content.customText)
+    setPlatform(content.platform)
+    setVisualFormat(content.visualFormat)
+    setCtaId(content.ctaId)
+    setFeedPreview(content.feedPreview)
+    setImageSrc(content.imageSrc)
+    setImageName(content.imageName)
+    setLogoSrc(content.logoSrc)
+    setLogoName(content.logoName)
+    setSavedId(id)
+    setSavedName(name)
+    setExportError(null)
+  }, [])
+
+  useEffect(() => {
+    if (!mockupIdFromUrl) return
+    let cancelled = false
+    setLoadingSave(true)
+    void getMockupSaveById(mockupIdFromUrl)
+      .then((record) => {
+        if (cancelled || !record) return
+        applySavedContent(record.content, record.name, record.id)
+      })
+      .catch(() => {
+        if (!cancelled) setExportError('Impossible de charger le mockup enregistré.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSave(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [mockupIdFromUrl, applySavedContent])
+
+  const buildSaveContent = () =>
+    buildMockupSaveContent({
+      clientName,
+      customText,
+      platform,
+      visualFormat: resolvedVisualFormat,
+      ctaId: resolvedCtaId,
+      feedPreview,
+      imageSrc,
+      imageName,
+      logoSrc,
+      logoName,
+    })
+
+  const handleOpenSaveDialog = () => {
+    if (!canSave) {
+      alert('Renseignez le nom du client et importez une image avant d’enregistrer.')
+      return
+    }
+    setSaveNameInput(savedName || getDefaultMockupSaveName(clientName, platform))
+    setSaveDialogOpen(true)
+  }
+
+  const handleConfirmSave = async () => {
+    const name = saveNameInput.trim()
+    if (!name) {
+      alert('Veuillez renseigner un nom pour le mockup.')
+      return
+    }
+    if (!canSave || !previewRef.current) return
+
+    setSaving(true)
+    try {
+      const userId = await getCurrentUserId()
+      if (!userId) throw new Error('Vous devez être connecté pour enregistrer un mockup.')
+
+      const content = buildSaveContent()
+      const wasUpdate = !!savedId
+      let record = savedId
+        ? await updateMockupSave({
+            id: savedId,
+            name,
+            clientName,
+            platform,
+            content,
+          })
+        : await createMockupSave({
+            name,
+            clientName,
+            platform,
+            content,
+          })
+
+      const pngBlob = await renderMockupPngBlob(previewRef.current)
+      const previewPngPath = await uploadMockupPng({
+        userId,
+        mockupId: record.id,
+        blob: pngBlob,
+      })
+
+      record = await updateMockupSave({
+        id: record.id,
+        name,
+        clientName,
+        platform,
+        content,
+        previewPngPath,
+      })
+
+      setSavedId(record.id)
+      setSavedName(record.name)
+      setSaveDialogOpen(false)
+      router.replace(`${MOCKUP_HREF}?mockup=${record.id}`)
+      alert(
+        wasUpdate ? 'Mockup mis à jour dans Mon espace.' : 'Mockup enregistré dans Mon espace.',
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -129,35 +309,46 @@ export default function MockupPage() {
     reader.readAsDataURL(file)
   }
 
-  const handleExport = async (format: 'png' | 'jpeg') => {
+  const handleExport = async () => {
     if (!previewRef.current || !canExport) return
 
-    setExporting(format)
+    setExporting(true)
     setExportError(null)
     try {
       await exportMockupImage(
         previewRef.current,
-        format,
-        mockupExportFilename(clientName, platform, visualFormat, format),
+        'png',
+        mockupExportFilename(clientName, platform, resolvedVisualFormat, 'png'),
       )
     } catch {
       setExportError('L’export a échoué. Réessayez ou choisissez une autre image.')
     } finally {
-      setExporting(null)
+      setExporting(false)
     }
   }
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-6xl space-y-8">
+        {loadingSave ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Chargement du mockup enregistré…
+          </div>
+        ) : null}
         <div>
           <h1 className="mb-2 text-3xl font-bold">Mockup</h1>
           <p className="text-muted-foreground">
             Générez une prévisualisation réaliste pour montrer à un prospect à quoi pourrait ressembler sa publication.
           </p>
+          {savedName ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Enregistré sous : <span className="font-medium text-foreground">{savedName}</span>
+            </p>
+          ) : null}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -202,14 +393,14 @@ export default function MockupPage() {
               <div className="space-y-2">
                 <Label>Format</Label>
                 <Select
-                  value={visualFormat}
+                  value={resolvedVisualFormat}
                   onValueChange={(value) => setVisualFormat(value as MockupVisualFormat)}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOCKUP_FORMAT_OPTIONS.map((item) => (
+                    {formatOptions.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.label}
                       </SelectItem>
@@ -330,10 +521,10 @@ export default function MockupPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
-                    disabled={!canExport || exporting != null}
-                    onClick={() => void handleExport('png')}
+                    disabled={!canExport || exporting || saving}
+                    onClick={() => void handleExport()}
                   >
-                    {exporting === 'png' ? (
+                    {exporting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                     ) : (
                       <Download className="mr-2 h-4 w-4" aria-hidden />
@@ -342,20 +533,23 @@ export default function MockupPage() {
                   </Button>
                   <Button
                     type="button"
-                    disabled={!canExport || exporting != null}
-                    onClick={() => void handleExport('jpeg')}
+                    variant="outline"
+                    className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                    disabled={!canSave || loadingSave || saving || exporting}
+                    onClick={handleOpenSaveDialog}
                   >
-                    {exporting === 'jpeg' ? (
+                    {saving ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
                     ) : (
-                      <Download className="mr-2 h-4 w-4" aria-hidden />
+                      <Save className="mr-2 h-4 w-4" aria-hidden />
                     )}
-                    JPEG
+                    Sauvegarder
                   </Button>
                 </div>
                 {!canExport ? (
                   <p className="text-xs text-muted-foreground">
-                    Renseignez le nom du client et importez une image pour activer l’export.
+                    Renseignez le nom du client et importez une image pour activer l’export et la
+                    sauvegarde.
                   </p>
                 ) : null}
                 {exportError ? <p className="text-xs text-destructive">{exportError}</p> : null}
@@ -363,7 +557,7 @@ export default function MockupPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle>Aperçu</CardTitle>
               <CardDescription>
@@ -371,17 +565,33 @@ export default function MockupPage() {
                 {clientName.trim() || 'votre client'}.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex justify-center overflow-auto rounded-lg bg-neutral-50 p-4 md:p-8">
-                <div ref={previewRef} className="inline-block">
+            <CardContent className="min-w-0 overflow-hidden">
+              {showFeedOption ? (
+                <div className="mb-4 flex items-center gap-2">
+                  <Checkbox
+                    id="feed-preview"
+                    checked={feedPreview}
+                    onCheckedChange={(checked) => setFeedPreview(checked === true)}
+                  />
+                  <Label htmlFor="feed-preview" className="cursor-pointer text-sm font-normal">
+                    Afficher la version fil d&apos;actu
+                  </Label>
+                </div>
+              ) : null}
+              <div className="w-full min-w-0 overflow-hidden rounded-lg bg-neutral-50 p-3 md:p-4">
+                <div
+                  ref={previewRef}
+                  className={`w-full min-w-0 max-w-full ${feedPreview ? '' : 'flex justify-center'}`}
+                >
                   <MockupPreviewFrame
                     platform={platform}
                     clientName={clientName}
                     imageSrc={previewImage}
                     logoSrc={logoSrc}
                     caption={caption}
-                    visualFormat={visualFormat}
+                    visualFormat={resolvedVisualFormat}
                     ctaLabel={ctaLabel}
+                    feedPreview={feedPreview}
                   />
                 </div>
               </div>
@@ -389,6 +599,36 @@ export default function MockupPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{savedId ? 'Mettre à jour le mockup' : 'Enregistrer le mockup'}</DialogTitle>
+            <DialogDescription>
+              Le mockup sera accessible depuis Mon espace avec le visuel, le logo et les paramètres
+              actuels.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="save-mockup-name">Nom du mockup *</Label>
+            <Input
+              id="save-mockup-name"
+              placeholder="Ex. Mockup Boulangerie Martin — Instagram"
+              value={saveNameInput}
+              onChange={(e) => setSaveNameInput(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button type="button" disabled={saving} onClick={() => void handleConfirmSave()}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : null}
+              {savedId ? 'Mettre à jour' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,9 +1,7 @@
 import supabase from '@/utils/supabase/client'
+import { isAdminRole, normalizeUserRole, type UserRole } from '@/lib/roles'
 
-export function isAdminRole(role: string | undefined | null): boolean {
-  const roleNorm = typeof role === 'string' ? role.trim().toLowerCase() : ''
-  return roleNorm === 'admin' || roleNorm === 'super_admin'
-}
+export { isAdminRole } from '@/lib/roles'
 
 /**
  * Vérifie si l'utilisateur connecté a un rôle admin
@@ -26,6 +24,29 @@ export async function checkIsAdmin(): Promise<boolean> {
   } catch (error) {
     console.error('Error checking admin status:', error)
     return false
+  }
+}
+
+export async function getCurrentUserRole(): Promise<UserRole | null> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return null
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (error || !profile?.role) return null
+
+    return normalizeUserRole(profile.role as string)
+  } catch (error) {
+    console.error('Error fetching user role:', error)
+    return null
   }
 }
 

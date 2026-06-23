@@ -174,9 +174,6 @@ export default function CalculCpmCpcPage() {
               <Calculator className="h-5 w-5 text-[#E94C16]" aria-hidden />
               Comparatif KPIs atteints / Objectif vendu
             </CardTitle>
-            <CardDescription>
-              CPM = (Prix de vente / volume) × 1000 — CPC = Prix de vente / clics — Delta = KPIs atteints / Objectif vendu
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

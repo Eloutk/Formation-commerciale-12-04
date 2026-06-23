@@ -1,6 +1,9 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { MockupPlatformId, MockupVisualFormat } from '@/lib/mockup'
+import { resolveMockupVisualFormat } from '@/lib/mockup'
+import { MockupFeedShell } from '@/components/mockup/MockupFeedShell'
 import {
   FacebookPostMockup,
   InstagramFeedMockup,
@@ -17,6 +20,7 @@ type MockupPreviewFrameProps = {
   caption: string
   visualFormat: MockupVisualFormat
   ctaLabel: string
+  feedPreview?: boolean
 }
 
 export function MockupPreviewFrame({
@@ -27,21 +31,44 @@ export function MockupPreviewFrame({
   caption,
   visualFormat,
   ctaLabel,
+  feedPreview = false,
 }: MockupPreviewFrameProps) {
-  const props = { clientName, imageSrc, logoSrc, caption, visualFormat, ctaLabel }
+  const resolvedFormat = resolveMockupVisualFormat(platform, visualFormat)
+  const props = {
+    platform,
+    clientName,
+    imageSrc,
+    logoSrc,
+    caption,
+    visualFormat: resolvedFormat,
+    ctaLabel,
+  }
+
+  let mockup: ReactNode
 
   switch (platform) {
     case 'instagram':
-      return <InstagramFeedMockup {...props} />
+      mockup = <InstagramFeedMockup {...props} />
+      break
     case 'facebook':
-      return <FacebookPostMockup {...props} />
+      mockup = <FacebookPostMockup {...props} />
+      break
     case 'linkedin':
-      return <LinkedInPostMockup {...props} />
+      mockup = <LinkedInPostMockup {...props} />
+      break
     case 'tiktok':
-      return <TikTokFeedMockup {...props} />
+      mockup = <TikTokFeedMockup {...props} />
+      break
     case 'snapchat':
-      return <SnapchatStoryMockup {...props} />
+      mockup = <SnapchatStoryMockup {...props} />
+      break
     default:
       return null
   }
+
+  if (feedPreview && resolvedFormat === 'square') {
+    return <MockupFeedShell platform={platform}>{mockup}</MockupFeedShell>
+  }
+
+  return mockup
 }

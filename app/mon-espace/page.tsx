@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation'
 import {
   BarChart3,
   Calculator,
-  Copy,
   ExternalLink,
   FolderOpen,
+  ImageIcon,
   Loader2,
   Search,
   Shield,
@@ -44,7 +44,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -54,12 +54,10 @@ import {
 } from '@/lib/vente2-strategies'
 import {
   deleteSmsDevis,
-  duplicateSmsDevis,
   listUserSmsDevis,
 } from '@/lib/sms-devis-storage'
 import {
   deleteVente2Strategy,
-  duplicateVente2Strategy,
   listUserVente2Strategies,
 } from '@/lib/vente2-strategies-storage'
 import {
@@ -70,9 +68,18 @@ import {
 } from '@/lib/simulateur-media-saves'
 import {
   deleteSimulateurMediaSave,
-  duplicateSimulateurMediaSave,
   listUserSimulateurMediaSaves,
 } from '@/lib/simulateur-media-saves-storage'
+import {
+  formatMockupFormatLabel,
+  formatMockupPlatformLabel,
+  formatMockupSaveDate,
+  type MockupSaveRecord,
+} from '@/lib/mockup-saves'
+import {
+  deleteMockupSave,
+  listUserMockupSaves,
+} from '@/lib/mockup-saves-storage'
 import {
   loadMonEspaceAdminItems,
   type MonEspaceAdminItem,
@@ -88,20 +95,25 @@ export default function MonEspacePage() {
   const [devis, setDevis] = useState<SmsDevisRecord[]>([])
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
+  const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
   const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
+  const [loadingMockupSaves, setLoadingMockupSaves] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
   const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
+  const [mockupSavesError, setMockupSavesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
   const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
+  const [mockupSavesSearch, setMockupSavesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
   const [deleteDevisTarget, setDeleteDevisTarget] = useState<SmsDevisRecord | null>(null)
   const [deleteStrategyTarget, setDeleteStrategyTarget] = useState<Vente2StrategyRecord | null>(null)
   const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
     useState<SimulateurMediaSaveRecord | null>(null)
+  const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
   const [adminItems, setAdminItems] = useState<MonEspaceAdminItem[]>([])
   const [adminAuthors, setAdminAuthors] = useState<MonEspaceAuthor[]>([])
   const [loadingAdmin, setLoadingAdmin] = useState(false)
@@ -112,6 +124,7 @@ export default function MonEspacePage() {
   const [adminPage, setAdminPage] = useState(1)
   const [strategiesPage, setStrategiesPage] = useState(1)
   const [simulateurPage, setSimulateurPage] = useState(1)
+  const [mockupPage, setMockupPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
 
   const loadDevis = useCallback(async () => {
@@ -155,11 +168,25 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadMockupSaves = useCallback(async () => {
+    setLoadingMockupSaves(true)
+    setMockupSavesError(null)
+    try {
+      const rows = await listUserMockupSaves()
+      setMockupSaves(rows)
+    } catch (e) {
+      setMockupSavesError(e instanceof Error ? e.message : 'Impossible de charger vos mockups.')
+    } finally {
+      setLoadingMockupSaves(false)
+    }
+  }, [])
+
   useEffect(() => {
     void loadDevis()
     void loadStrategies()
     void loadSimulateurSaves()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves])
+    void loadMockupSaves()
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -210,6 +237,17 @@ export default function MonEspacePage() {
     return simulateurSaves.filter((s) => s.name.toLowerCase().includes(q))
   }, [simulateurSaves, simulateurSavesSearch])
 
+  const filteredMockupSaves = useMemo(() => {
+    const q = mockupSavesSearch.trim().toLowerCase()
+    if (!q) return mockupSaves
+    return mockupSaves.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.client_name.toLowerCase().includes(q) ||
+        formatMockupPlatformLabel(s.platform).toLowerCase().includes(q),
+    )
+  }, [mockupSaves, mockupSavesSearch])
+
   const adminPagination = useMemo(
     () => getMonEspacePagination(filteredAdminItems, adminPage),
     [filteredAdminItems, adminPage],
@@ -221,6 +259,10 @@ export default function MonEspacePage() {
   const simulateurPagination = useMemo(
     () => getMonEspacePagination(filteredSimulateurSaves, simulateurPage),
     [filteredSimulateurSaves, simulateurPage],
+  )
+  const mockupPagination = useMemo(
+    () => getMonEspacePagination(filteredMockupSaves, mockupPage),
+    [filteredMockupSaves, mockupPage],
   )
   const devisPagination = useMemo(
     () => getMonEspacePagination(filteredDevis, devisPage),
@@ -238,6 +280,10 @@ export default function MonEspacePage() {
   useEffect(() => {
     setSimulateurPage(1)
   }, [simulateurSavesSearch])
+
+  useEffect(() => {
+    setMockupPage(1)
+  }, [mockupSavesSearch])
 
   useEffect(() => {
     setDevisPage(1)
@@ -262,34 +308,16 @@ export default function MonEspacePage() {
   }, [simulateurPage, simulateurPagination.totalPages])
 
   useEffect(() => {
+    if (mockupPage > mockupPagination.totalPages) {
+      setMockupPage(mockupPagination.totalPages)
+    }
+  }, [mockupPage, mockupPagination.totalPages])
+
+  useEffect(() => {
     if (devisPage > devisPagination.totalPages) {
       setDevisPage(devisPagination.totalPages)
     }
   }, [devisPage, devisPagination.totalPages])
-
-  const handleDuplicateDevis = async (row: SmsDevisRecord) => {
-    setActionId(row.id)
-    try {
-      await duplicateSmsDevis(row)
-      await loadDevis()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erreur lors de la duplication.')
-    } finally {
-      setActionId(null)
-    }
-  }
-
-  const handleDuplicateStrategy = async (row: Vente2StrategyRecord) => {
-    setActionId(row.id)
-    try {
-      await duplicateVente2Strategy(row)
-      await loadStrategies()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erreur lors de la duplication.')
-    } finally {
-      setActionId(null)
-    }
-  }
 
   const handleDeleteDevis = async () => {
     if (!deleteDevisTarget) return
@@ -319,18 +347,6 @@ export default function MonEspacePage() {
     }
   }
 
-  const handleDuplicateSimulateur = async (row: SimulateurMediaSaveRecord) => {
-    setActionId(row.id)
-    try {
-      await duplicateSimulateurMediaSave(row)
-      await loadSimulateurSaves()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erreur lors de la duplication.')
-    } finally {
-      setActionId(null)
-    }
-  }
-
   const handleDeleteSimulateur = async () => {
     if (!deleteSimulateurTarget) return
     setActionId(deleteSimulateurTarget.id)
@@ -345,14 +361,28 @@ export default function MonEspacePage() {
     }
   }
 
+  const handleDeleteMockup = async () => {
+    if (!deleteMockupTarget) return
+    setActionId(deleteMockupTarget.id)
+    try {
+      await deleteMockupSave(deleteMockupTarget.id)
+      setDeleteMockupTarget(null)
+      await loadMockupSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Mon espace</h1>
           <p className="text-muted-foreground">
-            Retrouvez et gérez vos stratégies du calculateur de vente, vos simulations média Link et
-            vos devis SMS / RCS.
+            Retrouvez et gérez vos stratégies du calculateur de vente, vos mockups publicitaires, vos
+            simulations média Link et vos devis SMS / RCS.
             {isAdmin
               ? ' En tant qu’administrateur, vous pouvez aussi consulter tous les enregistrements.'
               : ' Seul vous pouvez accéder à vos documents.'}
@@ -614,7 +644,7 @@ export default function MonEspacePage() {
               Calculateur de vente
             </CardTitle>
             <CardDescription>
-              Stratégies Social media enregistrées — ouvrez, modifiez, dupliquez ou supprimez.
+              Stratégies Social media enregistrées — ouvrez, modifiez ou supprimez.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
@@ -718,17 +748,6 @@ export default function MonEspacePage() {
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
-                              disabled={actionId === row.id}
-                              onClick={() => void handleDuplicateStrategy(row)}
-                              aria-label={`Dupliquer ${row.name}`}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
                               disabled={actionId === row.id}
                               onClick={() => setDeleteStrategyTarget(row)}
@@ -760,8 +779,7 @@ export default function MonEspacePage() {
               Simulateur média Link
             </CardTitle>
             <CardDescription>
-              Simulations Stratégie Social Media enregistrées — ouvrez, modifiez, dupliquez ou
-              supprimez.
+              Simulations Stratégie Social Media enregistrées — ouvrez, modifiez ou supprimez.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
@@ -859,17 +877,6 @@ export default function MonEspacePage() {
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
-                              disabled={actionId === row.id}
-                              onClick={() => void handleDuplicateSimulateur(row)}
-                              aria-label={`Dupliquer ${row.name}`}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
                               disabled={actionId === row.id}
                               onClick={() => setDeleteSimulateurTarget(row)}
@@ -897,11 +904,141 @@ export default function MonEspacePage() {
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
+              <ImageIcon className="h-5 w-5 text-[#E94C16]" />
+              Mockups publicitaires
+            </CardTitle>
+            <CardDescription>
+              Prévisualisations enregistrées — ouvrez, modifiez ou supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom, client ou plateforme…"
+                  value={mockupSavesSearch}
+                  onChange={(e) => setMockupSavesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
+                <Link href={MOCKUP_HREF}>Nouveau mockup</Link>
+              </Button>
+            </div>
+
+            {loadingMockupSaves ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Chargement de vos mockups…
+              </div>
+            ) : mockupSavesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {mockupSavesError}
+                <p className="mt-2 text-muted-foreground">
+                  Si la table n&apos;existe pas encore, exécutez{' '}
+                  <code className="text-xs">supabase/mockup-saves.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredMockupSaves.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {mockupSaves.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucun mockup enregistré</p>
+                    <p className="text-sm mt-1">
+                      Créez un mockup puis utilisez « Sauvegarder » pour le retrouver ici.
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucun mockup ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Client</TableHead>
+                      <TableHead className="font-semibold">Plateforme</TableHead>
+                      <TableHead className="font-semibold">Format</TableHead>
+                      <TableHead className="font-semibold">Créé le</TableHead>
+                      <TableHead className="font-semibold">Modifié le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockupPagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell className="max-w-[10rem] truncate" title={row.client_name}>
+                          {row.client_name || '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {formatMockupPlatformLabel(row.platform)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {formatMockupFormatLabel(row.content)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatMockupSaveDate(row.created_at)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatMockupSaveDate(row.updated_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() => router.push(`${MOCKUP_HREF}?mockup=${row.id}`)}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeleteMockupTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={mockupPagination.page}
+                totalPages={mockupPagination.totalPages}
+                onPageChange={setMockupPage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
               <FolderOpen className="h-5 w-5 text-[#E94C16]" />
               Mes devis SMS / RCS
             </CardTitle>
             <CardDescription>
-              Ouvrez un devis pour le modifier, dupliquez-le ou supprimez-le.
+              Ouvrez un devis pour le modifier ou le supprimer.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
@@ -998,17 +1135,6 @@ export default function MonEspacePage() {
                               type="button"
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
-                              disabled={actionId === row.id}
-                              onClick={() => void handleDuplicateDevis(row)}
-                              aria-label={`Dupliquer ${row.name}`}
-                            >
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
                               disabled={actionId === row.id}
                               onClick={() => setDeleteDevisTarget(row)}
@@ -1096,6 +1222,30 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteSimulateur()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteMockupTarget}
+        onOpenChange={(open) => !open && setDeleteMockupTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce mockup ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deleteMockupTarget?.name} » sera définitivement supprimé de Mon espace. Cette action
+              est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeleteMockup()}
             >
               Supprimer
             </AlertDialogAction>

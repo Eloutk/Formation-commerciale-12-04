@@ -1,20 +1,26 @@
-import { toJpeg, toPng } from 'html-to-image'
+import { toBlob, toJpeg, toPng } from 'html-to-image'
+
+const RENDER_OPTIONS = {
+  cacheBust: true,
+  pixelRatio: 2,
+  backgroundColor: '#ffffff',
+} as const
+
+export async function renderMockupPngBlob(element: HTMLElement): Promise<Blob> {
+  const blob = await toBlob(element, RENDER_OPTIONS)
+  if (!blob) throw new Error('Impossible de générer le PNG du mockup.')
+  return blob
+}
 
 export async function exportMockupImage(
   element: HTMLElement,
   format: 'png' | 'jpeg',
   filename: string,
 ): Promise<void> {
-  const options = {
-    cacheBust: true,
-    pixelRatio: 2,
-    backgroundColor: '#ffffff',
-  }
-
   const dataUrl =
     format === 'png'
-      ? await toPng(element, options)
-      : await toJpeg(element, { ...options, quality: 0.92 })
+      ? await toPng(element, RENDER_OPTIONS)
+      : await toJpeg(element, { ...RENDER_OPTIONS, quality: 0.92 })
 
   const link = document.createElement('a')
   link.download = filename

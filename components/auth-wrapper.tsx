@@ -27,8 +27,10 @@ import {
 
 // ✅ On utilise uniquement le client Supabase centralisé
 import supabase from "@/utils/supabase/client"
-import { checkIsAdmin } from "@/lib/admin"
+import { checkIsAdmin, getCurrentUserRole } from "@/lib/admin"
 import { AuthAccessContext } from "@/components/auth-context"
+import { hasAppPermission } from "@/lib/permissions"
+import { isAdminRole, normalizeUserRole, type UserRole } from "@/lib/roles"
 
 interface User {
   id: string
@@ -40,6 +42,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [role, setRole] = useState<UserRole | null>(null)
   const [adminResolved, setAdminResolved] = useState(false)
   const [mustCompleteName, setMustCompleteName] = useState(false)
   const [nickname, setNickname] = useState("")
@@ -198,6 +201,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (!u && !hasTokens) {
           setUser(null)
           setIsAdmin(false)
+          setRole(null)
           setAdminResolved(true)
           return false
         }
@@ -215,6 +219,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         if (!stableUser) {
           setUser(null)
           setIsAdmin(false)
+          setRole(null)
           setAdminResolved(true)
           return false
         }
@@ -240,9 +245,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         const profileName = profile?.full_name as string | undefined
         currentName = (displayName || metaName || profileName || fallbackName).trim()
         setUser({ id: (stableUser as any).id, name: currentName, email: (stableUser as any).email || '' })
-        const role = (profile as any)?.role as string | undefined
-        const roleNorm = typeof role === 'string' ? role.trim().toLowerCase() : ''
-        setIsAdmin(roleNorm === 'admin' || roleNorm === 'super_admin')
+        const roleValue = normalizeUserRole((profile as any)?.role as string | undefined)
+        setRole(roleValue)
+        setIsAdmin(isAdminRole(roleValue))
         setAdminResolved(true)
       } catch {
         // Garder l'état admin précédent en cas de timeout / erreur réseau
@@ -270,6 +275,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         } catch {
           setUser(null)
           setIsAdmin(false)
+          setRole(null)
           setAdminResolved(true)
           return false
         }
@@ -314,6 +320,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setIsAdmin(false)
+        setRole(null)
         setAdminResolved(true)
         setMustCompleteName(false)
         router.replace('/login')
@@ -327,9 +334,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!user || loading) return
     let cancelled = false
-    checkIsAdmin().then((ok: boolean) => {
+    Promise.all([checkIsAdmin(), getCurrentUserRole()]).then(([ok, nextRole]) => {
       if (!cancelled) {
         setIsAdmin(ok)
+        setRole(nextRole)
         setAdminResolved(true)
       }
     })
@@ -357,6 +365,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     // Make logout immediate in the UI, then best-effort clear cookies + local session.
     setUser(null)
     setIsAdmin(false)
+    setRole(null)
     setMustCompleteName(false)
 
     // Clear local storage immediately (prevents re-hydration loops)
@@ -415,9 +424,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const authAccessValue = useMemo(
     () => ({
       isAdmin,
+      isClient: role === 'client',
+      role,
       authReady: !loading && adminResolved,
+      hasPermission: (permission: Parameters<typeof hasAppPermission>[1]) =>
+        hasAppPermission(role, permission),
     }),
-    [isAdmin, loading, adminResolved],
+    [isAdmin, role, loading, adminResolved],
   )
 
   if (loading && !isPublicPath) {

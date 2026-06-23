@@ -177,7 +177,7 @@ END $$;
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-        CREATE TYPE user_role AS ENUM ('user', 'admin', 'super_admin');
+        CREATE TYPE user_role AS ENUM ('user', 'client', 'admin', 'super_admin');
     END IF;
 END $$;
 
@@ -275,6 +275,28 @@ FROM public.profiles p
 JOIN auth.users u ON u.id = p.id
 WHERE p.role IN ('admin'::user_role, 'super_admin'::user_role);
 ```
+
+## 7.1 Profil « Client »
+
+Exécuter `supabase/user-role-client.sql` pour ajouter la valeur `client` à l'enum `user_role` et les fonctions SQL `is_client()` / `get_user_role()`.
+
+```sql
+-- Attribuer le rôle client à un utilisateur
+UPDATE public.profiles
+SET role = 'client'::user_role
+WHERE id = (
+  SELECT id FROM auth.users
+  WHERE email = 'client@example.com'
+);
+
+-- Lister les comptes client
+SELECT p.id, u.email, p.full_name, p.role
+FROM public.profiles p
+JOIN auth.users u ON u.id = p.id
+WHERE p.role = 'client'::user_role;
+```
+
+Les autorisations applicatives du profil client se configurent dans `lib/permissions.ts` (tableau `ROLE_PERMISSIONS.client`).
 
 ## 8. 🚨 DÉBLOCAGE COMPLET - Retour à l'état stable
 

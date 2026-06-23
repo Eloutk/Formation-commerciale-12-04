@@ -1,15 +1,23 @@
 'use client'
 
 import { createContext, useContext } from 'react'
+import type { AppPermission } from '@/lib/permissions'
+import type { UserRole } from '@/lib/roles'
 
 type AuthAccessContextValue = {
   isAdmin: boolean
+  isClient: boolean
+  role: UserRole | null
   authReady: boolean
+  hasPermission: (permission: AppPermission) => boolean
 }
 
 export const AuthAccessContext = createContext<AuthAccessContextValue>({
   isAdmin: false,
+  isClient: false,
+  role: null,
   authReady: false,
+  hasPermission: () => false,
 })
 
 export function useAuthAccess() {

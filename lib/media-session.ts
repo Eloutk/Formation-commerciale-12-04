@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { isAdminRole } from '@/lib/admin'
+import { isClientRole, normalizeUserRole } from '@/lib/roles'
 
 function getBearerToken(req?: Request) {
   const header = req?.headers.get('Authorization')
@@ -83,7 +84,7 @@ export async function getPrimarySessionUser(req?: Request) {
     user.email?.split('@')[0] ||
     'Utilisateur'
 
-  const role = (profile as { role?: string } | null)?.role
+  const role = normalizeUserRole((profile as { role?: string } | null)?.role)
   const isAdmin = await resolveIsAdmin(supabase, user.id, role)
 
   return {
@@ -92,6 +93,7 @@ export async function getPrimarySessionUser(req?: Request) {
     name: displayName,
     role,
     isAdmin,
+    isClient: isClientRole(role),
   }
 }
 

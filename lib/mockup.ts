@@ -53,17 +53,17 @@ export const MOCKUP_PLATFORMS: MockupPlatform[] = [
   {
     id: 'linkedin',
     label: 'LinkedIn',
-    description: 'Fil ou Story LinkedIn — format professionnel',
+    description: 'Fil LinkedIn — format publication sponsorisée',
   },
   {
     id: 'tiktok',
     label: 'TikTok',
-    description: 'Fil ou Story TikTok — contenu sponsorisé',
+    description: 'Fil TikTok vertical — contenu sponsorisé',
   },
   {
     id: 'snapchat',
     label: 'Snapchat',
-    description: 'Story ou format carré Snapchat — publicité',
+    description: 'Story Snapchat — publicité verticale',
   },
 ]
 
@@ -71,6 +71,47 @@ export const MOCKUP_FORMAT_OPTIONS: { id: MockupVisualFormat; label: string; des
   { id: 'square', label: 'Carré', description: 'Format 1:1 — fil d’actualité / publication' },
   { id: 'story', label: 'Story', description: 'Format 9:16 — plein écran vertical' },
 ]
+
+export function supportsStoryFormat(platform: MockupPlatformId): boolean {
+  return platform === 'instagram' || platform === 'facebook'
+}
+
+export function isVerticalOnlyPlatform(platform: MockupPlatformId): boolean {
+  return platform === 'tiktok' || platform === 'snapchat'
+}
+
+export function getMockupFormatOptions(
+  platform: MockupPlatformId,
+): { id: MockupVisualFormat; label: string; description: string }[] {
+  if (supportsStoryFormat(platform)) return MOCKUP_FORMAT_OPTIONS
+
+  if (isVerticalOnlyPlatform(platform)) {
+    return [{ id: 'story', label: 'Vertical', description: 'Format 9:16 — plein écran vertical' }]
+  }
+
+  return [MOCKUP_FORMAT_OPTIONS[0]]
+}
+
+export function resolveMockupVisualFormat(
+  platform: MockupPlatformId,
+  visualFormat: MockupVisualFormat,
+): MockupVisualFormat {
+  const available = getMockupFormatOptions(platform)
+  if (available.some((option) => option.id === visualFormat)) return visualFormat
+  return available[0]?.id ?? 'square'
+}
+
+export function mockupUsesVerticalAspect(platform: MockupPlatformId, visualFormat: MockupVisualFormat): boolean {
+  return isVerticalOnlyPlatform(platform) || visualFormat === 'story'
+}
+
+export function mockupRootWidthPx(platform: MockupPlatformId, visualFormat: MockupVisualFormat): number {
+  const resolved = resolveMockupVisualFormat(platform, visualFormat)
+  if (mockupUsesVerticalAspect(platform, resolved)) return 340
+  if (platform === 'linkedin') return 552
+  if (platform === 'facebook') return 500
+  return 390
+}
 
 export function clientDisplayName(name: string): string {
   return name.trim() || 'Votre client'
