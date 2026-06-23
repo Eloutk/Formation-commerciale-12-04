@@ -45,9 +45,13 @@ CREATE POLICY "Admins can manage birthdays"
     )
   );
 
--- Exemples d'inserts
--- INSERT INTO public.birthdays (name, month, day) VALUES
--- ('Gautier', 2, 6),
--- ('Morgan', 2, 16),
--- ('François', 2, 20);
+-- Exemples d'inserts / mises à jour
+-- Martin P : 25 novembre | Stephanie L : 11 août
+INSERT INTO public.birthdays (name, month, day) VALUES
+  ('Martin P', 11, 25),
+  ('Stephanie L', 8, 11)
+ON CONFLICT (name, month, day) DO NOTHING;
+
+UPDATE public.birthdays SET month = 11, day = 25 WHERE name = 'Martin P';
+UPDATE public.birthdays SET month = 8, day = 11 WHERE name = 'Stephanie L';
 

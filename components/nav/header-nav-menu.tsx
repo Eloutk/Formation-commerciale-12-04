@@ -3,21 +3,24 @@
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { adminNavItemClass, adminNavTriggerClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
 const triggerClassName = (active?: boolean, accent?: boolean) =>
   cn(
     'inline-flex items-center gap-1 rounded-md px-3 py-2 font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-    accent || active
-      ? 'text-orange-600 hover:bg-orange-50 hover:text-orange-700'
-      : 'hover:bg-accent hover:text-accent-foreground',
+    accent
+      ? adminNavTriggerClass(active, true)
+      : active
+        ? 'text-orange-600 hover:bg-orange-50 hover:text-orange-700'
+        : 'hover:bg-accent hover:text-accent-foreground',
   )
 
-const itemClassName = (isActive?: boolean) =>
+const itemClassName = (isActive?: boolean, adminOnly?: boolean) =>
   cn(
     'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
-    isActive && 'bg-orange-50 text-orange-700',
+    adminOnly ? adminNavItemClass(isActive) : isActive && 'bg-orange-50 text-orange-700',
   )
 
 export function HeaderNavMenu({
@@ -75,7 +78,7 @@ export function HeaderNavMenu({
               key={item.href}
               type="button"
               role="menuitem"
-              className={itemClassName(item.isActive)}
+              className={itemClassName(item.isActive, item.adminOnly)}
               onClick={() => handleSelect(item.href)}
             >
               {item.label}
@@ -92,7 +95,7 @@ export function HeaderNavMenu({
                   key={item.href}
                   type="button"
                   role="menuitem"
-                  className={itemClassName(item.isActive)}
+                  className={itemClassName(item.isActive, item.adminOnly)}
                   onClick={() => handleSelect(item.href)}
                 >
                   {item.label}

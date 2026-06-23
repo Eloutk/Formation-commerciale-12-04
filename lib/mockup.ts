@@ -161,21 +161,50 @@ export function mockupExportFilename(
   return `mockup-${platform}-${visualFormat}-${slug}.${format === 'jpeg' ? 'jpg' : 'png'}`
 }
 
-export function getDefaultMockupCaption(platform: MockupPlatformId, clientName: string): string {
-  const displayName = clientDisplayName(clientName)
+const MOCKUP_DEFAULT_CAPTIONS = [
+  'Une offre à ne pas manquer.',
+  'Découvrez notre nouveauté.',
+  'Profitez-en dès maintenant.',
+  'Du nouveau pour vous.',
+  'À voir absolument.',
+  'La bonne idée du moment.',
+  'Simple, efficace, pour vous.',
+  'Prêt à en savoir plus ?',
+  'Votre prochain coup de cœur.',
+  "L'essentiel, en un coup d'œil.",
+  'On a pensé à vous.',
+  'Une invitation à découvrir.',
+  'Le bon plan du moment.',
+  'À ne pas manquer.',
+  'Découvrez la différence.',
+]
 
-  switch (platform) {
-    case 'instagram':
-      return `Découvrez l'univers de ${displayName} — une expérience pensée pour vous.`
-    case 'facebook':
-      return `${displayName} vous présente sa nouvelle offre. Une campagne conçue pour capter l'attention de votre audience.`
-    case 'linkedin':
-      return `Chez ${displayName}, nous accompagnons nos clients avec des contenus à forte valeur ajoutée. Voici un aperçu de ce que pourrait donner votre prochaine activation digitale.`
-    case 'tiktok':
-      return `${displayName} vous présente son offre. Découvrez le contenu sponsorisé dans votre fil.`
-    case 'snapchat':
-      return `Découvrez l'univers de ${displayName} — une expérience pensée pour vous.`
+function hashMockupCaptionKey(value: string): number {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0
   }
+  return Math.abs(hash)
+}
+
+function buildMockupCaptionPool(clientName: string): string[] {
+  const displayName = clientDisplayName(clientName)
+  const namedCaptions =
+    displayName !== 'Votre client'
+      ? [`Nouveau chez ${displayName}.`, `${displayName}, à découvrir.`]
+      : []
+  return [...MOCKUP_DEFAULT_CAPTIONS, ...namedCaptions]
+}
+
+export function pickRandomMockupCaption(clientName: string): string {
+  const pool = buildMockupCaptionPool(clientName)
+  return pool[Math.floor(Math.random() * pool.length)]!
+}
+
+export function getDefaultMockupCaption(platform: MockupPlatformId, clientName: string): string {
+  const pool = buildMockupCaptionPool(clientName)
+  const key = `${platform}:${clientName.trim().toLowerCase()}`
+  return pool[hashMockupCaptionKey(key) % pool.length]!
 }
 
 export function resolveMockupCaption(

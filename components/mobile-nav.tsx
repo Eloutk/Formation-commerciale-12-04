@@ -7,14 +7,18 @@ import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { MobileNavMenu } from "@/components/nav/mobile-nav-menu"
+import { AdminNavTab } from "@/components/nav/admin-nav-tab"
 import {
   AIDE_LINKS,
   RESSOURCES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   MON_ESPACE_HREF,
+  IA_HREF,
   filterNavItemsByAdmin,
   isAidePath,
+  isIaPath,
+  isMonEspacePath,
   isRessourcesPath,
   isStrategiePath,
   isVente2Path,
@@ -99,17 +103,26 @@ export function MobileNav({
                   onNavigate={handleNav}
                 />
               )}
+              {isAdmin && (
+                <AdminNavTab
+                  href={IA_HREF}
+                  label="IA"
+                  active={isIaPath(pathname)}
+                  className="mt-1 block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
+                  onClick={handleNav}
+                />
+              )}
               <div className="pt-4 mt-4 border-t">
                 {user ? (
                   <div className="space-y-2">
                     {isAdmin && (
-                      <Link
+                      <AdminNavTab
                         href={MON_ESPACE_HREF}
-                        className="block rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
+                        label="Mon espace"
+                        active={isMonEspacePath(pathname)}
+                        className="block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
                         onClick={handleNav}
-                      >
-                        Mon espace
-                      </Link>
+                      />
                     )}
                     <Button
                       variant="outline"

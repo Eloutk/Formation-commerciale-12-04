@@ -240,7 +240,7 @@ export function LinkedInPostMockup({
     >
       <div className="flex items-start justify-between px-3 pt-3">
         <div className="flex items-center gap-2.5">
-          <ClientAvatar name={clientName} logoSrc={logoSrc} variant="plain" shape="square" />
+          <ClientAvatar name={clientName} logoSrc={logoSrc} variant="plain" shape="circle" />
           <div>
             <p className="text-[14px] font-semibold leading-tight">{displayName}</p>
             <p className="text-[12px] text-neutral-500">Promu</p>
@@ -249,7 +249,7 @@ export function LinkedInPostMockup({
         <MoreHorizontal className="h-5 w-5 text-neutral-600" aria-hidden />
       </div>
 
-      <p className="px-3 pb-3 pt-2 text-[14px] leading-relaxed">{caption}</p>
+      <p className="px-3 pb-2 pt-1 text-[14px] leading-snug">{caption}</p>
       <MockupImageArea visualFormat="square" imageSrc={imageSrc} />
       <LinkedInLinkPreviewCard title={linkTitle} domain={domain} ctaLabel={ctaLabel} />
       <LinkedInEngagementBar />

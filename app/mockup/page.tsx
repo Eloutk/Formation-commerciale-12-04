@@ -30,12 +30,11 @@ import { MockupPlatformIcon } from '@/components/mockup/MockupPreviews'
 import { exportMockupImage, renderMockupPngBlob } from '@/lib/mockup-export'
 import {
   MOCKUP_PLATFORMS,
-  getDefaultMockupCaption,
   getMockupCtaLabel,
   getMockupCtaOptions,
   getMockupFormatOptions,
   mockupExportFilename,
-  resolveMockupCaption,
+  pickRandomMockupCaption,
   resolveMockupCta,
   resolveMockupVisualFormat,
   type MockupCtaId,
@@ -85,12 +84,12 @@ export default function MockupPage() {
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [feedPreview, setFeedPreview] = useState(false)
-  const [savedId, setSavedId] = useState<string | null>(null)
   const [savedName, setSavedName] = useState<string | null>(null)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [saveNameInput, setSaveNameInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
+  const [autoCaption, setAutoCaption] = useState(() => pickRandomMockupCaption(''))
 
   const previewImage = imageSrc ?? DEFAULT_PLACEHOLDER
   const canExport = clientName.trim().length > 0 && imageSrc != null
@@ -101,15 +100,26 @@ export default function MockupPage() {
     [platform],
   )
 
-  const defaultCaption = useMemo(
-    () => getDefaultMockupCaption(platform, clientName),
-    [platform, clientName],
-  )
+  const refreshAutoCaption = useCallback(() => {
+    if (!customText.trim()) {
+      setAutoCaption(pickRandomMockupCaption(clientName))
+    }
+  }, [clientName, customText])
 
-  const caption = useMemo(
-    () => resolveMockupCaption(customText, platform, clientName),
-    [customText, platform, clientName],
-  )
+  useEffect(() => {
+    refreshAutoCaption()
+    // Nouvelle accroche uniquement au changement de plateforme, pas à chaque lettre du client.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platform])
+
+  useEffect(() => {
+    if (!customText.trim()) {
+      setAutoCaption(pickRandomMockupCaption(clientName))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customText])
+
+  const caption = customText.trim() || autoCaption
 
   const formatOptions = useMemo(() => getMockupFormatOptions(platform), [platform])
 
@@ -156,9 +166,8 @@ export default function MockupPage() {
     }
   }, [ctaId, ctaOptions])
 
-  const applySavedContent = useCallback((content: MockupSaveContent, name: string, id: string) => {
+  const applySavedContent = useCallback((content: MockupSaveContent, name: string) => {
     setClientName(content.clientName)
-    setCustomText(content.customText)
     setPlatform(content.platform)
     setVisualFormat(content.visualFormat)
     setCtaId(content.ctaId)
@@ -167,7 +176,12 @@ export default function MockupPage() {
     setImageName(content.imageName)
     setLogoSrc(content.logoSrc)
     setLogoName(content.logoName)
-    setSavedId(id)
+    if (content.customText.trim()) {
+      setCustomText(content.customText)
+    } else {
+      setCustomText('')
+      setAutoCaption(pickRandomMockupCaption(content.clientName))
+    }
     setSavedName(name)
     setExportError(null)
   }, [])
@@ -179,7 +193,7 @@ export default function MockupPage() {
     void getMockupSaveById(mockupIdFromUrl)
       .then((record) => {
         if (cancelled || !record) return
-        applySavedContent(record.content, record.name, record.id)
+        applySavedContent(record.content, record.name)
       })
       .catch(() => {
         if (!cancelled) setExportError('Impossible de charger le mockup enregistré.')
@@ -195,7 +209,7 @@ export default function MockupPage() {
   const buildSaveContent = () =>
     buildMockupSaveContent({
       clientName,
-      customText,
+      customText: customText.trim() || caption,
       platform,
       visualFormat: resolvedVisualFormat,
       ctaId: resolvedCtaId,
@@ -211,7 +225,7 @@ export default function MockupPage() {
       alert('Renseignez le nom du client et importez une image avant d’enregistrer.')
       return
     }
-    setSaveNameInput(savedName || getDefaultMockupSaveName(clientName, platform))
+    setSaveNameInput(getDefaultMockupSaveName(clientName, platform))
     setSaveDialogOpen(true)
   }
 
@@ -229,21 +243,12 @@ export default function MockupPage() {
       if (!userId) throw new Error('Vous devez être connecté pour enregistrer un mockup.')
 
       const content = buildSaveContent()
-      const wasUpdate = !!savedId
-      let record = savedId
-        ? await updateMockupSave({
-            id: savedId,
-            name,
-            clientName,
-            platform,
-            content,
-          })
-        : await createMockupSave({
-            name,
-            clientName,
-            platform,
-            content,
-          })
+      let record = await createMockupSave({
+        name,
+        clientName,
+        platform,
+        content,
+      })
 
       const pngBlob = await renderMockupPngBlob(previewRef.current)
       const previewPngPath = await uploadMockupPng({
@@ -261,13 +266,15 @@ export default function MockupPage() {
         previewPngPath,
       })
 
-      setSavedId(record.id)
       setSavedName(record.name)
       setSaveDialogOpen(false)
-      router.replace(`${MOCKUP_HREF}?mockup=${record.id}`)
-      alert(
-        wasUpdate ? 'Mockup mis à jour dans Mon espace.' : 'Mockup enregistré dans Mon espace.',
-      )
+      if (mockupIdFromUrl) {
+        router.replace(MOCKUP_HREF)
+      }
+      if (!customText.trim()) {
+        setAutoCaption(pickRandomMockupCaption(clientName))
+      }
+      alert('Mockup enregistré dans Mon espace.')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.')
     } finally {
@@ -343,7 +350,7 @@ export default function MockupPage() {
           </p>
           {savedName ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              Enregistré sous : <span className="font-medium text-foreground">{savedName}</span>
+              Dernier enregistrement : <span className="font-medium text-foreground">{savedName}</span>
             </p>
           ) : null}
         </div>
@@ -366,6 +373,7 @@ export default function MockupPage() {
                   id="client-name"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
+                  onBlur={refreshAutoCaption}
                   placeholder="Ex. Boulangerie Martin"
                 />
               </div>
@@ -483,12 +491,12 @@ export default function MockupPage() {
                   id="mockup-text"
                   value={customText}
                   onChange={(e) => setCustomText(e.target.value)}
-                  placeholder={defaultCaption}
-                  rows={4}
-                  className="resize-y min-h-[96px]"
+                  placeholder={autoCaption}
+                  rows={3}
+                  className="resize-y min-h-[72px]"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Laissez vide pour utiliser le texte par défaut adapté à la plateforme et au client.
+                  Laissez vide pour une accroche courte générée automatiquement.
                 </p>
               </div>
 
@@ -603,10 +611,10 @@ export default function MockupPage() {
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{savedId ? 'Mettre à jour le mockup' : 'Enregistrer le mockup'}</DialogTitle>
+            <DialogTitle>Enregistrer le mockup</DialogTitle>
             <DialogDescription>
-              Le mockup sera accessible depuis Mon espace avec le visuel, le logo et les paramètres
-              actuels.
+              Une nouvelle entrée sera créée dans Mon espace avec le visuel, le logo et les
+              paramètres actuels.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
@@ -624,7 +632,7 @@ export default function MockupPage() {
             </Button>
             <Button type="button" disabled={saving} onClick={() => void handleConfirmSave()}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : null}
-              {savedId ? 'Mettre à jour' : 'Enregistrer'}
+              Enregistrer
             </Button>
           </DialogFooter>
         </DialogContent>

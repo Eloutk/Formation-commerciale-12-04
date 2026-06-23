@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
+import { adminNavTabClass } from '@/lib/nav-admin-styles'
 
 export function AdminNavTab({
   href,
@@ -17,15 +17,7 @@ export function AdminNavTab({
   onClick?: () => void
 }) {
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={cn(
-        'rounded-md px-3 py-2 font-medium text-orange-600 hover:bg-orange-50 hover:text-orange-700',
-        active && 'bg-orange-50',
-        className,
-      )}
-    >
+    <Link href={href} onClick={onClick} className={adminNavTabClass(active, className)}>
       {label}
     </Link>
   )

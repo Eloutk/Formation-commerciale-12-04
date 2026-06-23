@@ -247,8 +247,8 @@ function LinkedInFeedShell({ children }: { children: ReactNode }) {
       style={{ width: FEED_SHELL_WIDTH }}
     >
       {/* Barre de navigation */}
-      <div className="flex items-center gap-1 bg-white px-2 py-1.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-[#0A66C2] text-[15px] font-bold text-white">
+      <div className="flex items-center gap-0.5 border-b border-neutral-200 bg-white px-1.5 py-1">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[4px] bg-[#0A66C2] text-[14px] font-bold text-white">
           in
         </div>
         <div className="flex min-w-0 flex-1 items-end justify-around">
@@ -264,23 +264,21 @@ function LinkedInFeedShell({ children }: { children: ReactNode }) {
           <LinkedInNavIcon>
             <Briefcase className="h-[20px] w-[20px]" aria-hidden />
           </LinkedInNavIcon>
-          <LinkedInNavIcon badge="1">
+          <LinkedInNavIcon>
             <MessageCircle className="h-[20px] w-[20px]" aria-hidden />
           </LinkedInNavIcon>
-          <LinkedInNavIcon badge="22">
+          <LinkedInNavIcon badge="23">
             <Bell className="h-[22px] w-[22px]" aria-hidden />
           </LinkedInNavIcon>
           <div className="mb-1 h-7 w-7 shrink-0 rounded-full bg-neutral-300" />
         </div>
       </div>
 
-      <div className="h-2 bg-[#eef3f8]" />
-
       {/* Commencer un post */}
-      <div className="bg-white px-3 pb-3 pt-3">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="h-12 w-12 shrink-0 rounded-full bg-neutral-300" />
-          <div className="flex-1 rounded-full border border-neutral-500 px-4 py-3 text-[14px] font-semibold text-neutral-600">
+      <div className="border-b border-neutral-200 bg-white px-3 pb-2.5 pt-2.5">
+        <div className="mb-2.5 flex items-center gap-2">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-300" />
+          <div className="flex-1 rounded-full border border-neutral-400 px-4 py-2.5 text-[14px] font-semibold text-neutral-600">
             Commencer un post
           </div>
         </div>
@@ -306,71 +304,32 @@ function LinkedInFeedShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <div className="border-t border-neutral-200 bg-white px-3 py-2.5 text-[12px] leading-snug text-neutral-600">
+      <div className="px-3 py-2 text-[12px] leading-snug text-neutral-600">
         Sélectionnez la vue du fil d&apos;actualité :{' '}
         <span className="font-semibold text-neutral-800">Les plus pertinents d&apos;abord</span>
         <ChevronDown className="ml-0.5 inline h-3.5 w-3.5 align-middle" aria-hidden />
       </div>
 
-      <div className="h-2 bg-[#eef3f8]" />
-
-      {/* Suggestion (publication organique) */}
-      <div className="border-b-[8px] border-[#eef3f8] bg-white opacity-60">
-        <div className="flex items-center justify-between px-3 py-2 text-[13px] font-semibold text-neutral-700">
-          <span>Suggestions</span>
-          <div className="flex items-center gap-2 text-neutral-500">
-            <span>···</span>
-            <X className="h-4 w-4" aria-hidden />
-          </div>
-        </div>
-        <div className="flex items-start gap-2 px-3 pb-2">
-          <div className="h-12 w-12 shrink-0 rounded-full bg-neutral-200" />
-          <div className="min-w-0 flex-1">
-            <div className="h-3 w-36 rounded bg-neutral-200" />
-            <div className="mt-1.5 h-2 w-full max-w-[280px] rounded bg-neutral-100" />
-            <div className="mt-1 h-2 w-24 rounded bg-neutral-100" />
-          </div>
-          <span className="shrink-0 text-[13px] font-semibold text-[#0A66C2]">+ Suivre</span>
-        </div>
-        <div className="mx-3 mb-2 space-y-1">
-          <div className="h-2 w-full rounded bg-neutral-100" />
-          <div className="h-2 w-4/5 rounded bg-neutral-100" />
-        </div>
-        <div className="mx-3 mb-3 aspect-[1.1/1] rounded bg-neutral-100" />
-        <div className="mx-3 mb-2 flex items-center justify-between text-[11px] text-neutral-500">
-          <span>👍💡 218</span>
-          <span>646 commentaires · 3 republications</span>
-        </div>
-        <div className="flex items-center justify-around border-t border-neutral-200 py-1 text-[11px] font-semibold text-neutral-600">
-          {["J'aime", 'Commenter', 'Republier', 'Envoyer'].map((label) => (
-            <span key={label}>{label}</span>
-          ))}
-        </div>
-      </div>
-
       {/* Publication sponsorisée (mockup client) */}
-      <div className="border-b-[8px] border-[#eef3f8] bg-white">
+      <div className="border-b-[8px] border-[#f3f2ef] bg-white">
         <EmbeddedPost>{children}</EmbeddedPost>
       </div>
 
       {/* Publication suivante (aperçu) */}
-      <div className="bg-white opacity-50">
-        <div className="flex items-start gap-2 px-3 py-3">
-          <div className="h-12 w-12 shrink-0 rounded-md bg-neutral-200" />
-          <div className="min-w-0 flex-1">
-            <div className="h-3 w-40 rounded bg-neutral-200" />
-            <div className="mt-1.5 h-2 w-28 rounded bg-neutral-100" />
-            <div className="mt-1 h-2 w-20 rounded bg-neutral-100" />
+      <div className="bg-white opacity-45">
+        <div className="flex items-start gap-2 px-3 py-2.5">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200" />
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="h-2.5 w-32 rounded bg-neutral-200" />
+            <div className="mt-1.5 h-2 w-44 rounded bg-neutral-100" />
           </div>
-          <span className="text-neutral-500">···</span>
+          <span className="text-[13px] font-semibold text-[#0A66C2]">+ Suivre</span>
         </div>
-        <div className="mx-3 mb-3 space-y-1">
+        <div className="mx-3 mb-2.5 space-y-1">
           <div className="h-2 w-full rounded bg-neutral-100" />
-          <div className="h-2 w-3/4 rounded bg-neutral-100" />
+          <div className="h-2 w-2/3 rounded bg-neutral-100" />
         </div>
       </div>
-
-      <div className="h-4 bg-[#f3f2ef]" />
     </div>
   )
 }

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
-import { cn } from '@/lib/utils'
+import { AdminNavTab } from '@/components/nav/admin-nav-tab'
 import {
   AIDE_LINKS,
   RESSOURCES_LINKS,
@@ -22,6 +22,8 @@ import {
   isVente2Path,
   MON_ESPACE_HREF,
   isMonEspacePath,
+  IA_HREF,
+  isIaPath,
   withActiveItems,
 } from '@/lib/nav-config'
 
@@ -421,6 +423,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const vente2Active = isVente2Path(pathname)
   const strategieActive = isStrategiePath(pathname)
   const aideActive = isAidePath(pathname)
+  const iaActive = isIaPath(pathname)
   const authAccessValue = useMemo(
     () => ({
       isAdmin,
@@ -483,6 +486,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                   items={withActiveItems(pathname, STRATEGIE_LINKS)}
                 />
               )}
+              {isAdmin && (
+                <AdminNavTab href={IA_HREF} label="IA" active={iaActive} className="px-3 py-2" />
+              )}
 
               <HeaderNavMenu
                 label="Aide"
@@ -498,15 +504,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               {user ? (
                 <>
                   {isAdmin && (
-                    <Link
+                    <AdminNavTab
                       href={MON_ESPACE_HREF}
-                      className={cn(
-                        'hidden sm:inline text-sm font-medium rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground',
-                        pathname && isMonEspacePath(pathname) && 'text-[#E94C16]',
-                      )}
-                    >
-                      Mon espace
-                    </Link>
+                      label="Mon espace"
+                      active={!!pathname && isMonEspacePath(pathname)}
+                      className="hidden sm:inline px-2 py-1 text-sm"
+                    />
                   )}
                   <Button
                     variant="outline"
