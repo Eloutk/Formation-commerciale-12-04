@@ -3,10 +3,13 @@
 import { useSearchParams } from 'next/navigation'
 import { IaActionsPanel } from '@/components/ia/ia-actions-panel'
 import { IaGenerationProvider } from '@/components/ia/ia-generation-context'
+import { isIaActionId } from '@/lib/ia-actions'
 
 export default function IaPage() {
   const searchParams = useSearchParams()
   const analysisId = searchParams.get('analysis')
+  const actionParam = searchParams.get('action')
+  const initialActionId = actionParam && isIaActionId(actionParam) ? actionParam : null
 
   return (
     <IaGenerationProvider>
@@ -20,7 +23,7 @@ export default function IaPage() {
             </p>
           </div>
 
-          <IaActionsPanel initialAnalysisId={analysisId} />
+          <IaActionsPanel initialAnalysisId={analysisId} initialActionId={initialActionId} />
         </div>
       </div>
     </IaGenerationProvider>

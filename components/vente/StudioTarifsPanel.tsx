@@ -43,6 +43,7 @@ import {
   formatStudioEuro,
   formatStudioPrestationLabel,
   getStudioTarifsSelectionBlockReason,
+  getStudioTarifsRequiredRows,
   parseStudioQuantity,
   type StudioTarifsRow,
   type StudioTarifsSectionId,
@@ -472,6 +473,7 @@ function StudioTarifsPanelInner() {
   const [selectionBlockedDialogRow, setSelectionBlockedDialogRow] =
     useState<StudioTarifsRow | null>(null)
   const [selectionBlockedDialogMessage, setSelectionBlockedDialogMessage] = useState('')
+  const [selectionBlockedRequiredIds, setSelectionBlockedRequiredIds] = useState<string[]>([])
 
   const computed = useMemo(() => computeStudioTarifsGrid(state), [state])
   const selectedSummaryBySection = useMemo(
@@ -515,6 +517,9 @@ function StudioTarifsPanelInner() {
       if (blockReason) {
         setSelectionBlockedDialogRow(row)
         setSelectionBlockedDialogMessage(blockReason)
+        setSelectionBlockedRequiredIds(
+          (row.requiresAnySelected ?? []).filter((id) => state[id]?.selected),
+        )
         setSelectionBlockedDialogOpen(true)
         return
       }
@@ -549,6 +554,55 @@ function StudioTarifsPanelInner() {
       ...current,
       [id]: { ...current[id]!, quantity: value },
     }))
+  }
+
+  const closeSelectionBlockedDialog = () => {
+    setSelectionBlockedDialogOpen(false)
+    setSelectionBlockedDialogRow(null)
+    setSelectionBlockedDialogMessage('')
+    setSelectionBlockedRequiredIds([])
+  }
+
+  const toggleSelectionBlockedRequired = (id: string, checked: boolean) => {
+    setSelectionBlockedRequiredIds((current) =>
+      checked ? [...new Set([...current, id])] : current.filter((entryId) => entryId !== id),
+    )
+  }
+
+  const handleConfirmSelectionBlockedDialog = () => {
+    if (!selectionBlockedDialogRow) return
+
+    const requiredIds = selectionBlockedDialogRow.requiresAnySelected ?? []
+    if (requiredIds.length > 0 && selectionBlockedRequiredIds.length === 0) {
+      alert('Cochez au moins une prestation Créa - Fixe associée.')
+      return
+    }
+
+    setState((current) => {
+      const next: StudioTarifsSelectionState = { ...current }
+
+      for (const id of requiredIds) {
+        const entry = next[id]
+        if (!entry) continue
+        const shouldSelect = selectionBlockedRequiredIds.includes(id)
+        const quantity = shouldSelect && !entry.quantity.trim() ? '1' : entry.quantity
+        next[id] = { ...entry, selected: shouldSelect, quantity }
+      }
+
+      const blockedEntry = next[selectionBlockedDialogRow.id]
+      if (blockedEntry && selectionBlockedRequiredIds.length > 0) {
+        const quantity = !blockedEntry.quantity.trim() ? '1' : blockedEntry.quantity
+        next[selectionBlockedDialogRow.id] = {
+          ...blockedEntry,
+          selected: true,
+          quantity,
+        }
+      }
+
+      return next
+    })
+
+    closeSelectionBlockedDialog()
   }
 
   const openRowBudgetRequestDialog = (row: StudioTarifsRow) => {
@@ -1258,10 +1312,15 @@ function StudioTarifsPanelInner() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={selectionBlockedDialogOpen} onOpenChange={setSelectionBlockedDialogOpen}>
+      <Dialog
+        open={selectionBlockedDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSelectionBlockedDialog()
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Sélection impossible</DialogTitle>
+            <DialogTitle>Prestations requises</DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-3 pt-1 text-sm text-muted-foreground">
                 {selectionBlockedDialogRow ? (
@@ -1270,7 +1329,47 @@ function StudioTarifsPanelInner() {
                   </p>
                 ) : null}
                 <p>{selectionBlockedDialogMessage}</p>
-                {selectionBlockedDialogRow?.conditions ? (
+                {selectionBlockedDialogRow &&
+                getStudioTarifsRequiredRows(selectionBlockedDialogRow).length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">
+                      Cochez une ou les deux prestations Créa - Fixe :
+                    </p>
+                    {getStudioTarifsRequiredRows(selectionBlockedDialogRow).map((requiredRow) => {
+                      const checked = selectionBlockedRequiredIds.includes(requiredRow.id)
+                      return (
+                        <label
+                          key={requiredRow.id}
+                          className={cn(
+                            'flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors',
+                            checked
+                              ? 'border-[#E94C16]/40 bg-[#E94C16]/5'
+                              : 'border-border/70 bg-muted/20 hover:bg-muted/40',
+                          )}
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(value) =>
+                              toggleSelectionBlockedRequired(requiredRow.id, value === true)
+                            }
+                            className="mt-0.5"
+                            aria-label={`Sélectionner ${formatStudioPrestationLabel(requiredRow)}`}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium text-foreground">
+                              {formatStudioPrestationLabel(requiredRow)}
+                            </span>
+                            {requiredRow.rateHT !== undefined ? (
+                              <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
+                                {formatStudioEuro(requiredRow.rateHT)} HT / unité
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                ) : selectionBlockedDialogRow?.conditions ? (
                   <p className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs leading-relaxed">
                     {selectionBlockedDialogRow.conditions}
                   </p>
@@ -1279,12 +1378,20 @@ function StudioTarifsPanelInner() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeSelectionBlockedDialog}>
+              Annuler
+            </Button>
             <Button
               type="button"
               className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-              onClick={() => setSelectionBlockedDialogOpen(false)}
+              onClick={handleConfirmSelectionBlockedDialog}
+              disabled={
+                Boolean(selectionBlockedDialogRow) &&
+                getStudioTarifsRequiredRows(selectionBlockedDialogRow!).length > 0 &&
+                selectionBlockedRequiredIds.length === 0
+              }
             >
-              Compris
+              Ajouter au devis
             </Button>
           </DialogFooter>
         </DialogContent>

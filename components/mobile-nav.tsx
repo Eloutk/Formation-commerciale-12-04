@@ -14,11 +14,13 @@ import {
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   MON_ESPACE_HREF,
+  HOME_PAGE_2_HREF,
   IA_HREF,
   filterNavItemsByAdmin,
   filterVente2LinksByRole,
   canShowVente2Nav,
   isAidePath,
+  isHomePage2Path,
   isIaPath,
   isMonEspacePath,
   isRessourcesPath,
@@ -113,6 +115,15 @@ export function MobileNav({
                   href={IA_HREF}
                   label="IA"
                   active={isIaPath(pathname)}
+                  className="mt-1 block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
+                  onClick={handleNav}
+                />
+              )}
+              {isAdmin && (
+                <AdminNavTab
+                  href={HOME_PAGE_2_HREF}
+                  label="Home page 2"
+                  active={isHomePage2Path(pathname)}
                   className="mt-1 block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
                   onClick={handleNav}
                 />

@@ -378,6 +378,13 @@ export function getStudioTarifsSelectionBlockReason(
   return 'Cette prestation ne peut pas être sélectionnée seule. Cochez d’abord une Mise au format ou une Création complète dans la rubrique Créa - Fixe.'
 }
 
+export function getStudioTarifsRequiredRows(row: StudioTarifsRow): StudioTarifsRow[] {
+  if (!row.requiresAnySelected?.length) return []
+  return row.requiresAnySelected
+    .map((id) => STUDIO_TARIFS_ROWS.find((entry) => entry.id === id))
+    .filter((entry): entry is StudioTarifsRow => entry !== undefined)
+}
+
 export function parseStudioQuantity(raw: string): number {
   const normalized = raw.trim().replace(/\s/g, '').replace(',', '.')
   if (!normalized) return 0

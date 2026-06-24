@@ -421,11 +421,12 @@ function ActionForm({
 
 type IaActionsPanelProps = {
   initialAnalysisId?: string | null
+  initialActionId?: IaActionId | null
 }
 
-export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
+export function IaActionsPanel({ initialAnalysisId, initialActionId }: IaActionsPanelProps) {
   const { requestLeave } = useIaGeneration()
-  const [selectedId, setSelectedId] = useState<IaActionId | null>(null)
+  const [selectedId, setSelectedId] = useState<IaActionId | null>(initialActionId ?? null)
   const [result, setResult] = useState<string | null>(null)
   const [resultRecord, setResultRecord] = useState<IaAnalysisRecord | null>(null)
   const [resultOutputMode, setResultOutputMode] = useState<IaPrezOutputMode | null>(null)

@@ -52,6 +52,7 @@ export const STRATEGIE_SOCIAL_HREF = '/strategie/social-media'
 export const MOCKUP_HREF = '/mockup'
 export const IA_HREF = '/ia'
 export const MON_ESPACE_HREF = '/mon-espace'
+export const HOME_PAGE_2_HREF = '/home-page-2'
 
 export const VENTE2_LINKS: NavMenuItem[] = [
   { href: VENTE2_SOCIAL_HREF, label: 'Social Media' },
@@ -82,6 +83,11 @@ export function isVente2Path(pathname: string | null | undefined): boolean {
 export function isStrategiePath(pathname: string | null | undefined): boolean {
   if (!pathname) return false
   return pathname.startsWith('/strategie')
+}
+
+export function isHomePage2Path(pathname: string | null | undefined): boolean {
+  if (!pathname) return false
+  return pathname === HOME_PAGE_2_HREF || pathname.startsWith(`${HOME_PAGE_2_HREF}/`)
 }
 
 export function isMonEspacePath(pathname: string | null | undefined): boolean {
