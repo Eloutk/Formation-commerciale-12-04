@@ -19,6 +19,10 @@ export type StudioTarifsRow = {
   kind: StudioTarifsRowKind
   /** Exclu du sous-total I (SUM H7:H38) — Conception / Tournage / Montage. */
   excludeFromSubtotalI?: boolean
+  /** Si true, le champ nombre reste vide jusqu'à saisie manuelle. */
+  startsWithEmptyQuantity?: boolean
+  /** Identifiants de lignes dont au moins une doit être cochée pour sélectionner celle-ci. */
+  requiresAnySelected?: string[]
   /** Formule spéciale PSD : (tarif × qté) + 20 % du sous-total I. */
   psdSurcharge?: boolean
 }
@@ -144,12 +148,13 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'animation-visuels',
     sectionId: 'video',
     label: 'Animation de visuels',
-    defaultQuantity: 1,
+    startsWithEmptyQuantity: true,
     explanation:
       'Animation d’un visuel fixe/caroussel déjà validé (ne peut être vendu seul)',
     rateHT: 250,
-    conditions: 'Vendue avec une mise au format ou création complète',
+    conditions: 'Vendue avec une mise au format ou création complète (Créa - Fixe)',
     kind: 'priced',
+    requiresAnySelected: ['mise-au-format', 'creation-complete'],
   },
   {
     id: 'remontage-teaser',
@@ -185,7 +190,8 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'mise-au-format',
     sectionId: 'fixe',
     label: 'Mise au format',
-    defaultQuantity: 1,
+    variant: 'Avec créa client',
+    startsWithEmptyQuantity: true,
     explanation: "Mise au format d'un visuel source (PSD / Ai / Affiche)",
     rateHT: 200,
     conditions: 'Média fourni par le client',
@@ -195,7 +201,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'creation-complete',
     sectionId: 'fixe',
     label: 'Création complète',
-    defaultQuantity: 1,
+    startsWithEmptyQuantity: true,
     explanation:
       'Création originale avec juste des photos et/ou une charte graphique et/ou des typos',
     rateHT: 490,
@@ -285,8 +291,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
   {
     id: 'print-affiche',
     sectionId: 'graphisme',
-    label: 'Print',
-    variant: 'Affiche ou Flyer ou Roll-up (Flamme - Oriflamme)',
+    label: 'Affiche ou Flyer ou Roll-up (Flamme - Oriflamme)',
     explanation: "En version prête pour l'impression",
     rateHT: 780,
     kind: 'priced',
@@ -294,8 +299,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
   {
     id: 'print-depliant',
     sectionId: 'graphisme',
-    label: 'Print',
-    variant: 'dépliant (2/3 volets)',
+    label: 'dépliant (2/3 volets)',
     explanation: "Affiche ou un dépliant en version prête pour l'impression",
     rateHT: 1560,
     kind: 'priced',
@@ -303,8 +307,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
   {
     id: 'print-kit-papeterie',
     sectionId: 'graphisme',
-    label: 'Print',
-    variant: 'Kit papeterie entreprise',
+    label: 'Kit papeterie entreprise',
     explanation: 'Carte de visite + Papier en-tête + tampons',
     rateHT: 1170,
     kind: 'priced',
@@ -312,27 +315,26 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
   {
     id: 'habillage-rs',
     sectionId: 'graphisme',
-    label: 'Habillage',
-    variant: 'RS',
-    explanation: 'Photo de profil + Photo de couverture',
+    label: 'Habillage réseaux sociaux',
+    variant: 'Photo de profil et photo de couverture',
+    explanation: '',
     rateHT: 150,
     kind: 'priced',
   },
   {
     id: 'habillage-youtube-bandeau',
     sectionId: 'graphisme',
-    label: 'Habillage',
-    variant: 'Youtube',
-    explanation: 'Bandeau + Photo de profil',
+    label: 'Habillage Youtube',
+    variant: 'Photo de profil et photo de couverture',
+    explanation: '',
     rateHT: 150,
     kind: 'priced',
   },
   {
     id: 'habillage-youtube-vignette',
     sectionId: 'graphisme',
-    label: 'Habillage',
-    variant: 'Youtube',
-    explanation: 'Vignette vidéo',
+    label: 'Vignette Youtube',
+    explanation: '',
     rateHT: 150,
     kind: 'priced',
   },
@@ -348,7 +350,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'vente-psd',
     sectionId: 'graphisme',
     label: "Vente d'un fichier PSD complet",
-    defaultQuantity: 3,
+    startsWithEmptyQuantity: true,
     explanation: 'Vente du PSD complet pour exploitation par le client',
     rateHT: 1000,
     kind: 'priced',
@@ -366,10 +368,22 @@ export function createInitialStudioTarifsState(): StudioTarifsSelectionState {
   for (const row of STUDIO_TARIFS_ROWS) {
     state[row.id] = {
       selected: false,
-      quantity: String(row.defaultQuantity ?? 1),
+      quantity: row.startsWithEmptyQuantity
+        ? ''
+        : String(row.defaultQuantity ?? 1),
     }
   }
   return state
+}
+
+export function getStudioTarifsSelectionBlockReason(
+  row: StudioTarifsRow,
+  state: StudioTarifsSelectionState,
+): string | null {
+  if (!row.requiresAnySelected?.length) return null
+  const hasRequired = row.requiresAnySelected.some((id) => state[id]?.selected)
+  if (hasRequired) return null
+  return 'Cochez d’abord une mise au format ou une création complète (Créa - Fixe).'
 }
 
 export function parseStudioQuantity(raw: string): number {

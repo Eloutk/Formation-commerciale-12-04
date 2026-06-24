@@ -35,6 +35,7 @@ import {
   createInitialStudioTarifsState,
   formatStudioEuro,
   formatStudioPrestationLabel,
+  getStudioTarifsSelectionBlockReason,
   parseStudioQuantity,
   type StudioTarifsRow,
   type StudioTarifsSectionId,
@@ -200,10 +201,10 @@ function StudioQuantityInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2 text-center tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-1 text-center tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         aria-label={label}
       />
-      <div className="flex w-5 shrink-0 flex-col border-l border-border">
+      <div className="flex w-3.5 shrink-0 flex-col border-l border-border">
         <button
           type="button"
           className="flex flex-1 items-center justify-center text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
@@ -211,7 +212,7 @@ function StudioQuantityInput({
           disabled={disabled}
           aria-label={`Augmenter ${label}`}
         >
-          <ChevronUp className="h-3 w-3" aria-hidden />
+          <ChevronUp className="h-2.5 w-2.5" aria-hidden />
         </button>
         <button
           type="button"
@@ -220,7 +221,7 @@ function StudioQuantityInput({
           disabled={!canDecrease}
           aria-label={`Diminuer ${label}`}
         >
-          <ChevronDown className="h-3 w-3" aria-hidden />
+          <ChevronDown className="h-2.5 w-2.5" aria-hidden />
         </button>
       </div>
     </div>
@@ -268,7 +269,7 @@ function StudioTarifsTable({
               <TableHead className="min-w-[180px] border-r border-border/60 font-semibold text-foreground">
                 Prestation
               </TableHead>
-              <TableHead className="w-[88px] border-r border-border/60 font-semibold text-foreground">
+              <TableHead className="w-[60px] border-r border-border/60 font-semibold text-foreground">
                 Nombre
               </TableHead>
               <TableHead className="min-w-[220px] border-r border-border/60 font-semibold text-foreground">
@@ -286,6 +287,8 @@ function StudioTarifsTable({
             {sectionLines.map(({ row, selected }, index) => {
               const entry = state[row.id]!
               const isPriced = row.kind === 'priced'
+              const selectionBlockReason = getStudioTarifsSelectionBlockReason(row, state)
+              const selectionBlocked = Boolean(selectionBlockReason)
               return (
                 <TableRow
                   key={row.id}
@@ -299,8 +302,10 @@ function StudioTarifsTable({
                     <div className="flex justify-center">
                       <Checkbox
                         checked={selected}
+                        disabled={selectionBlocked}
                         onCheckedChange={(checked) => onToggle(row.id, checked === true)}
                         aria-label={`Sélectionner ${row.label}`}
+                        title={selectionBlockReason ?? undefined}
                       />
                     </div>
                   </TableCell>
@@ -314,7 +319,7 @@ function StudioTarifsTable({
                         onChange={(nextValue) => onQuantityChange(row.id, nextValue)}
                         disabled={!selected}
                         label={`Quantité pour ${row.label}`}
-                        className="w-[4.75rem]"
+                        className="w-[3rem]"
                       />
                     ) : (
                       <span className="text-foreground/50">—</span>
@@ -344,6 +349,8 @@ function StudioTarifsTable({
         {sectionLines.map(({ row, selected }) => {
           const entry = state[row.id]!
           const isPriced = row.kind === 'priced'
+          const selectionBlockReason = getStudioTarifsSelectionBlockReason(row, state)
+          const selectionBlocked = Boolean(selectionBlockReason)
           return (
             <Card
               key={row.id}
@@ -356,8 +363,10 @@ function StudioTarifsTable({
                 <div className="flex items-start gap-3">
                   <Checkbox
                     checked={selected}
+                    disabled={selectionBlocked}
                     onCheckedChange={(checked) => onToggle(row.id, checked === true)}
                     aria-label={`Sélectionner ${row.label}`}
+                    title={selectionBlockReason ?? undefined}
                     className="mt-1"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
@@ -482,14 +491,38 @@ function StudioTarifsPanelInner() {
   ).length
 
   const onToggle = (id: string, checked: boolean) => {
+    const row = STUDIO_TARIFS_ROWS.find((entry) => entry.id === id)
+    if (checked && row) {
+      const blockReason = getStudioTarifsSelectionBlockReason(row, state)
+      if (blockReason) {
+        alert(blockReason)
+        return
+      }
+    }
+
     setState((current) => {
       const entry = current[id]!
       const quantity =
-        checked && !entry.quantity.trim() ? '1' : entry.quantity
-      return {
+        checked && !entry.quantity.trim() && !row?.startsWithEmptyQuantity
+          ? '1'
+          : entry.quantity
+      const next: StudioTarifsSelectionState = {
         ...current,
         [id]: { ...entry, selected: checked, quantity },
       }
+
+      if (!checked) {
+        for (const dependent of STUDIO_TARIFS_ROWS) {
+          if (!dependent.requiresAnySelected?.includes(id)) continue
+          const dependentEntry = next[dependent.id]
+          if (!dependentEntry?.selected) continue
+          if (getStudioTarifsSelectionBlockReason(dependent, next)) {
+            next[dependent.id] = { ...dependentEntry, selected: false }
+          }
+        }
+      }
+
+      return next
     })
   }
 
