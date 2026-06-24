@@ -19,8 +19,6 @@ export type StudioTarifsRow = {
   kind: StudioTarifsRowKind
   /** Exclu du sous-total I (SUM H7:H38) — Conception / Tournage / Montage. */
   excludeFromSubtotalI?: boolean
-  /** Si true, le champ nombre reste vide jusqu'à saisie manuelle. */
-  startsWithEmptyQuantity?: boolean
   /** Identifiants de lignes dont au moins une doit être cochée pour sélectionner celle-ci. */
   requiresAnySelected?: string[]
   /** Formule spéciale PSD : (tarif × qté) + 20 % du sous-total I. */
@@ -148,7 +146,6 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'animation-visuels',
     sectionId: 'video',
     label: 'Animation de visuels',
-    startsWithEmptyQuantity: true,
     explanation:
       'Animation d’un visuel fixe/caroussel déjà validé (ne peut être vendu seul)',
     rateHT: 250,
@@ -191,7 +188,6 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     sectionId: 'fixe',
     label: 'Mise au format',
     variant: 'Avec créa client',
-    startsWithEmptyQuantity: true,
     explanation: "Mise au format d'un visuel source (PSD / Ai / Affiche)",
     rateHT: 200,
     conditions: 'Média fourni par le client',
@@ -201,7 +197,6 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'creation-complete',
     sectionId: 'fixe',
     label: 'Création complète',
-    startsWithEmptyQuantity: true,
     explanation:
       'Création originale avec juste des photos et/ou une charte graphique et/ou des typos',
     rateHT: 490,
@@ -350,7 +345,6 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     id: 'vente-psd',
     sectionId: 'graphisme',
     label: "Vente d'un fichier PSD complet",
-    startsWithEmptyQuantity: true,
     explanation: 'Vente du PSD complet pour exploitation par le client',
     rateHT: 1000,
     kind: 'priced',
@@ -368,9 +362,7 @@ export function createInitialStudioTarifsState(): StudioTarifsSelectionState {
   for (const row of STUDIO_TARIFS_ROWS) {
     state[row.id] = {
       selected: false,
-      quantity: row.startsWithEmptyQuantity
-        ? ''
-        : String(row.defaultQuantity ?? 1),
+      quantity: String(row.defaultQuantity ?? 1),
     }
   }
   return state
@@ -383,7 +375,7 @@ export function getStudioTarifsSelectionBlockReason(
   if (!row.requiresAnySelected?.length) return null
   const hasRequired = row.requiresAnySelected.some((id) => state[id]?.selected)
   if (hasRequired) return null
-  return 'Cochez d’abord une mise au format ou une création complète (Créa - Fixe).'
+  return 'Cette prestation ne peut pas être sélectionnée seule. Cochez d’abord une Mise au format ou une Création complète dans la rubrique Créa - Fixe.'
 }
 
 export function parseStudioQuantity(raw: string): number {

@@ -312,8 +312,6 @@ function StudioTarifsTable({
             {sectionLines.map(({ row, selected }, index) => {
               const entry = state[row.id]!
               const isPriced = row.kind === 'priced'
-              const selectionBlockReason = getStudioTarifsSelectionBlockReason(row, state)
-              const selectionBlocked = Boolean(selectionBlockReason)
               return (
                 <TableRow
                   key={row.id}
@@ -327,10 +325,8 @@ function StudioTarifsTable({
                     <div className="flex justify-center">
                       <Checkbox
                         checked={selected}
-                        disabled={selectionBlocked}
                         onCheckedChange={(checked) => onToggle(row.id, checked === true)}
                         aria-label={`Sélectionner ${row.label}`}
-                        title={selectionBlockReason ?? undefined}
                       />
                     </div>
                   </TableCell>
@@ -367,8 +363,6 @@ function StudioTarifsTable({
         {sectionLines.map(({ row, selected }) => {
           const entry = state[row.id]!
           const isPriced = row.kind === 'priced'
-          const selectionBlockReason = getStudioTarifsSelectionBlockReason(row, state)
-          const selectionBlocked = Boolean(selectionBlockReason)
           return (
             <Card
               key={row.id}
@@ -381,10 +375,8 @@ function StudioTarifsTable({
                 <div className="flex items-start gap-3">
                   <Checkbox
                     checked={selected}
-                    disabled={selectionBlocked}
                     onCheckedChange={(checked) => onToggle(row.id, checked === true)}
                     aria-label={`Sélectionner ${row.label}`}
-                    title={selectionBlockReason ?? undefined}
                     className="mt-1"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
@@ -476,6 +468,10 @@ function StudioTarifsPanelInner() {
   const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
   const [budgetAttachment, setBudgetAttachment] = useState<File | null>(null)
   const [submittingBudgetRequest, setSubmittingBudgetRequest] = useState(false)
+  const [selectionBlockedDialogOpen, setSelectionBlockedDialogOpen] = useState(false)
+  const [selectionBlockedDialogRow, setSelectionBlockedDialogRow] =
+    useState<StudioTarifsRow | null>(null)
+  const [selectionBlockedDialogMessage, setSelectionBlockedDialogMessage] = useState('')
 
   const computed = useMemo(() => computeStudioTarifsGrid(state), [state])
   const selectedSummaryBySection = useMemo(
@@ -517,7 +513,9 @@ function StudioTarifsPanelInner() {
     if (checked && row) {
       const blockReason = getStudioTarifsSelectionBlockReason(row, state)
       if (blockReason) {
-        alert(blockReason)
+        setSelectionBlockedDialogRow(row)
+        setSelectionBlockedDialogMessage(blockReason)
+        setSelectionBlockedDialogOpen(true)
         return
       }
     }
@@ -525,9 +523,7 @@ function StudioTarifsPanelInner() {
     setState((current) => {
       const entry = current[id]!
       const quantity =
-        checked && !entry.quantity.trim() && !row?.startsWithEmptyQuantity
-          ? '1'
-          : entry.quantity
+        checked && !entry.quantity.trim() ? '1' : entry.quantity
       const next: StudioTarifsSelectionState = {
         ...current,
         [id]: { ...entry, selected: checked, quantity },
@@ -1257,6 +1253,38 @@ function StudioTarifsPanelInner() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
               ) : null}
               Envoyer aux créas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={selectionBlockedDialogOpen} onOpenChange={setSelectionBlockedDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sélection impossible</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-1 text-sm text-muted-foreground">
+                {selectionBlockedDialogRow ? (
+                  <p className="font-medium text-foreground">
+                    {formatStudioPrestationLabel(selectionBlockedDialogRow)}
+                  </p>
+                ) : null}
+                <p>{selectionBlockedDialogMessage}</p>
+                {selectionBlockedDialogRow?.conditions ? (
+                  <p className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs leading-relaxed">
+                    {selectionBlockedDialogRow.conditions}
+                  </p>
+                ) : null}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              onClick={() => setSelectionBlockedDialogOpen(false)}
+            >
+              Compris
             </Button>
           </DialogFooter>
         </DialogContent>
