@@ -370,7 +370,11 @@ function StudioTarifsPanelInner() {
   const [loadingSave, setLoadingSave] = useState(false)
   const [comment, setComment] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
-  const [budgetRequestRowId, setBudgetRequestRowId] = useState<string | null>(null)
+  const [budgetRequestDialogOpen, setBudgetRequestDialogOpen] = useState(false)
+  const [budgetRequestRow, setBudgetRequestRow] = useState<StudioTarifsRow | null>(null)
+  const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
+  const [budgetAttachment, setBudgetAttachment] = useState<File | null>(null)
+  const [submittingBudgetRequest, setSubmittingBudgetRequest] = useState(false)
 
   const computed = useMemo(() => computeStudioTarifsGrid(state), [state])
   const selectedSummaryBySection = useMemo(
@@ -409,17 +413,42 @@ function StudioTarifsPanelInner() {
     }))
   }
 
-  const handleBudgetRequest = async (row: StudioTarifsRow) => {
-    if (!usesStudioBudgetSlackRequest(row) || budgetRequestRowId) return
+  const openBudgetRequestDialog = (row: StudioTarifsRow) => {
+    if (!usesStudioBudgetSlackRequest(row)) return
+    setBudgetRequestRow(row)
+    setBudgetNeedDescription('')
+    setBudgetAttachment(null)
+    setBudgetRequestDialogOpen(true)
+  }
 
-    setBudgetRequestRowId(row.id)
+  const closeBudgetRequestDialog = () => {
+    if (submittingBudgetRequest) return
+    setBudgetRequestDialogOpen(false)
+    setBudgetRequestRow(null)
+    setBudgetNeedDescription('')
+    setBudgetAttachment(null)
+  }
+
+  const handleConfirmBudgetRequest = async () => {
+    if (!budgetRequestRow || submittingBudgetRequest) return
+
+    setSubmittingBudgetRequest(true)
     try {
-      await sendStudioBudgetRequest({ row, userName })
-      alert('Demande d’approche budgétaire envoyée au studio (Slack #demande-studio).')
+      await sendStudioBudgetRequest({
+        row: budgetRequestRow,
+        needDescription: budgetNeedDescription,
+        attachment: budgetAttachment,
+        userName,
+      })
+      alert('Demande envoyée aux créas sur Slack (#demande-studio).')
+      setBudgetRequestDialogOpen(false)
+      setBudgetRequestRow(null)
+      setBudgetNeedDescription('')
+      setBudgetAttachment(null)
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Erreur lors de l’envoi de la demande.')
     } finally {
-      setBudgetRequestRowId(null)
+      setSubmittingBudgetRequest(false)
     }
   }
 
@@ -630,8 +659,10 @@ function StudioTarifsPanelInner() {
                 state={state}
                 onToggle={onToggle}
                 onQuantityChange={onQuantityChange}
-                budgetRequestRowId={budgetRequestRowId}
-                onBudgetRequest={(row) => void handleBudgetRequest(row)}
+                budgetRequestRowId={
+                  submittingBudgetRequest && budgetRequestRow ? budgetRequestRow.id : null
+                }
+                onBudgetRequest={openBudgetRequestDialog}
               />
             </section>
           </div>
@@ -833,6 +864,85 @@ function StudioTarifsPanelInner() {
                 <Save className="mr-2 h-4 w-4" aria-hidden />
               )}
               {savedId ? 'Mettre à jour' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={budgetRequestDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeBudgetRequestDialog()
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Demande d’approche budgétaire</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <span className="block">
+                {budgetRequestRow
+                  ? formatStudioPrestationLabel(budgetRequestRow)
+                  : 'Prestation studio'}
+              </span>
+              <span className="block text-muted-foreground">
+                Décrivez votre besoin : un message sera envoyé aux créas sur Slack (
+                <span className="font-medium">#demande-studio</span>).
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="studio-budget-need">Décris ton besoin *</Label>
+              <Textarea
+                id="studio-budget-need"
+                placeholder="Contexte, délais, contraintes, budget indicatif…"
+                rows={4}
+                value={budgetNeedDescription}
+                onChange={(event) => setBudgetNeedDescription(event.target.value)}
+                disabled={submittingBudgetRequest}
+                className="resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studio-budget-attachment">Joindre un fichier (optionnel)</Label>
+              <Input
+                id="studio-budget-attachment"
+                type="file"
+                disabled={submittingBudgetRequest}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  setBudgetAttachment(file)
+                }}
+              />
+              {budgetAttachment ? (
+                <p className="text-xs text-muted-foreground">
+                  Fichier sélectionné : {budgetAttachment.name} (
+                  {(budgetAttachment.size / (1024 * 1024)).toFixed(2)} Mo)
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">PDF, images ou documents — max. 20 Mo</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeBudgetRequestDialog}
+              disabled={submittingBudgetRequest}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              onClick={() => void handleConfirmBudgetRequest()}
+              disabled={!budgetNeedDescription.trim() || submittingBudgetRequest}
+            >
+              {submittingBudgetRequest ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
+              Envoyer aux créas
             </Button>
           </DialogFooter>
         </DialogContent>
