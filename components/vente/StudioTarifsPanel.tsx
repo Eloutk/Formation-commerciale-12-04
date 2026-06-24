@@ -17,6 +17,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
@@ -49,6 +56,7 @@ import {
 import {
   getStudioBudgetRequestHref,
   sendStudioBudgetRequest,
+  STUDIO_VIDEO_BUDGET_MONDAY_URL,
   usesStudioBudgetSlackRequest,
 } from '@/lib/studio-budget-request'
 import {
@@ -59,7 +67,7 @@ import {
 import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { formatUserRoleLabel } from '@/lib/roles'
 import { useAuthAccess } from '@/components/auth-context'
-import { Clapperboard, ChevronDown, ChevronUp, Download, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2 } from 'lucide-react'
+import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
 import { buildStudioTarifsPdfLine } from '@/lib/studio-tarifs-pdf-lines'
@@ -68,6 +76,29 @@ const STUDIO_SECTION_ICONS: Record<StudioTarifsSectionId, LucideIcon> = {
   video: Clapperboard,
   graphisme: PenTool,
   fixe: ImageIcon,
+}
+
+function SlackIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="#E01E5A"
+        d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"
+      />
+      <path
+        fill="#36C5F0"
+        d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"
+      />
+      <path
+        fill="#2EB67D"
+        d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z"
+      />
+      <path
+        fill="#ECB22E"
+        d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.528 2.528 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.528 2.528 0 0 1-2.52-2.523 2.528 2.528 0 0 1 2.52-2.52h6.313A2.528 2.528 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"
+      />
+    </svg>
+  )
 }
 
 function sanitizeStudioPdfFilename(name: string): string {
@@ -108,56 +139,16 @@ function PrestationCell({ row }: { row: StudioTarifsRow }) {
   )
 }
 
-function TarifCell({
-  row,
-  requesting,
-  onBudgetRequest,
-}: {
-  row: StudioTarifsRow
-  requesting: boolean
-  onBudgetRequest: (row: StudioTarifsRow) => void
-}) {
-  if (row.kind === 'on_demand') {
-    const label = row.rateLabel ?? row.onDemandPriceNote ?? 'Faire demande approche budgétaire'
-
-    if (usesStudioBudgetSlackRequest(row)) {
-      return (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="h-auto px-0 text-left whitespace-normal"
-          disabled={requesting}
-          onClick={() => onBudgetRequest(row)}
-        >
-          {requesting ? (
-            <>
-              <Loader2 className="mr-2 inline h-3.5 w-3.5 animate-spin" aria-hidden />
-              Envoi…
-            </>
-          ) : (
-            label
-          )}
-        </Button>
-      )
-    }
-
-    return (
-      <Button asChild variant="link" size="sm" className="h-auto px-0 text-left whitespace-normal">
-        <a
-          href={getStudioBudgetRequestHref(row) ?? '#'}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {label}
-        </a>
-      </Button>
-    )
+function createSectionBudgetRequestRow(sectionId: StudioTarifsSectionId): StudioTarifsRow {
+  const sectionLabel =
+    STUDIO_TARIFS_SECTIONS.find((section) => section.id === sectionId)?.label ?? sectionId
+  return {
+    id: `demande-budget-${sectionId}`,
+    sectionId,
+    label: sectionLabel,
+    explanation: '',
+    kind: 'on_demand',
   }
-  if (row.rateHT !== undefined) {
-    return <span className="font-semibold tabular-nums">{formatStudioEuro(row.rateHT)}</span>
-  }
-  return <span className="text-muted-foreground">—</span>
 }
 
 function formatStudioQuantityValue(value: number): string {
@@ -228,6 +219,47 @@ function StudioQuantityInput({
   )
 }
 
+function StudioSummaryOnDemandLabel({
+  row,
+  onSlackRequest,
+}: {
+  row: StudioTarifsRow
+  onSlackRequest: (row: StudioTarifsRow) => void
+}) {
+  const mondayHref = getStudioBudgetRequestHref(row)
+  const className =
+    'shrink-0 text-sm font-semibold tabular-nums text-[#E94C16] underline-offset-2 hover:underline'
+
+  if (mondayHref) {
+    return (
+      <a
+        href={mondayHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        title="Ouvrir l’approche budgétaire vidéo (Monday)"
+      >
+        Sur demande
+      </a>
+    )
+  }
+
+  if (usesStudioBudgetSlackRequest(row)) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSlackRequest(row)}
+        className={className}
+        title="Demander une approche budgétaire (Slack)"
+      >
+        Sur demande
+      </button>
+    )
+  }
+
+  return <span className={className}>Sur demande</span>
+}
+
 function formatStudioSummaryQuantity(row: StudioTarifsRow, quantity: number): string | null {
   if (row.kind !== 'priced' || quantity <= 0) return null
   return Number.isInteger(quantity)
@@ -241,8 +273,6 @@ type StudioTarifsTableProps = {
   state: StudioTarifsSelectionState
   onToggle: (id: string, checked: boolean) => void
   onQuantityChange: (id: string, value: string) => void
-  budgetRequestRowId: string | null
-  onBudgetRequest: (row: StudioTarifsRow) => void
 }
 
 function StudioTarifsTable({
@@ -251,8 +281,6 @@ function StudioTarifsTable({
   state,
   onToggle,
   onQuantityChange,
-  budgetRequestRowId,
-  onBudgetRequest,
 }: StudioTarifsTableProps) {
   const sectionLines = lines.filter((line) => line.row.sectionId === sectionId)
   if (sectionLines.length === 0) return null
@@ -274,9 +302,6 @@ function StudioTarifsTable({
               </TableHead>
               <TableHead className="min-w-[220px] border-r border-border/60 font-semibold text-foreground">
                 Explication
-              </TableHead>
-              <TableHead className="min-w-[120px] border-r border-border/60 bg-amber-100 font-semibold text-foreground dark:bg-amber-950/50">
-                Tarif unitaire (HT)
               </TableHead>
               <TableHead className="min-w-[160px] font-semibold text-foreground">
                 Conditions
@@ -328,13 +353,6 @@ function StudioTarifsTable({
                   <TableCell className="border-r border-border/50 text-sm text-foreground/80">
                     <MultilineText text={row.explanation} />
                   </TableCell>
-                  <TableCell className="border-r border-border/50 bg-amber-50 text-sm dark:bg-amber-950/25">
-                    <TarifCell
-                      row={row}
-                      requesting={budgetRequestRowId === row.id}
-                      onBudgetRequest={onBudgetRequest}
-                    />
-                  </TableCell>
                   <TableCell className="text-sm text-foreground/80">
                     {row.conditions ? <MultilineText text={row.conditions} /> : '—'}
                   </TableCell>
@@ -379,7 +397,7 @@ function StudioTarifsTable({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 gap-3 text-sm">
                   <div className="rounded-md border border-border/70 bg-muted/30 p-3">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
                       Nombre
@@ -390,21 +408,11 @@ function StudioTarifsTable({
                         onChange={(nextValue) => onQuantityChange(row.id, nextValue)}
                         disabled={!selected}
                         label={`Quantité pour ${row.label}`}
-                        className="w-full"
+                        className="w-full max-w-[8rem]"
                       />
                     ) : (
                       <span className="text-foreground/50">—</span>
                     )}
-                  </div>
-                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
-                      Tarif unitaire (HT)
-                    </p>
-                    <TarifCell
-                      row={row}
-                      requesting={budgetRequestRowId === row.id}
-                      onBudgetRequest={onBudgetRequest}
-                    />
                   </div>
                   {row.conditions ? (
                     <div className="col-span-2 rounded-md border border-border/70 bg-muted/30 p-3">
@@ -462,6 +470,8 @@ function StudioTarifsPanelInner() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [pdfFileNameInput, setPdfFileNameInput] = useState('')
   const [budgetRequestDialogOpen, setBudgetRequestDialogOpen] = useState(false)
+  const [budgetRequestSectionId, setBudgetRequestSectionId] =
+    useState<StudioTarifsSectionId>('graphisme')
   const [budgetRequestRow, setBudgetRequestRow] = useState<StudioTarifsRow | null>(null)
   const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
   const [budgetAttachment, setBudgetAttachment] = useState<File | null>(null)
@@ -489,6 +499,18 @@ function StudioTarifsPanelInner() {
   const activeSectionLineCount = STUDIO_TARIFS_ROWS.filter(
     (row) => row.sectionId === activeSection,
   ).length
+  const slackBudgetSections = useMemo(
+    () => ['graphisme', 'fixe'] as const satisfies readonly StudioTarifsSectionId[],
+    [],
+  )
+  const slackBudgetRowsForDialog = useMemo(
+    () =>
+      STUDIO_TARIFS_ROWS.filter(
+        (row) =>
+          row.sectionId === budgetRequestSectionId && usesStudioBudgetSlackRequest(row),
+      ),
+    [budgetRequestSectionId],
+  )
 
   const onToggle = (id: string, checked: boolean) => {
     const row = STUDIO_TARIFS_ROWS.find((entry) => entry.id === id)
@@ -533,12 +555,36 @@ function StudioTarifsPanelInner() {
     }))
   }
 
-  const openBudgetRequestDialog = (row: StudioTarifsRow) => {
+  const openRowBudgetRequestDialog = (row: StudioTarifsRow) => {
     if (!usesStudioBudgetSlackRequest(row)) return
+    setBudgetRequestSectionId(row.sectionId)
     setBudgetRequestRow(row)
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
     setBudgetRequestDialogOpen(true)
+  }
+
+  const openSectionBudgetRequestDialog = () => {
+    const section =
+      activeSection === 'graphisme' || activeSection === 'fixe'
+        ? activeSection
+        : 'graphisme'
+    const rows = STUDIO_TARIFS_ROWS.filter(
+      (row) => row.sectionId === section && usesStudioBudgetSlackRequest(row),
+    )
+    setBudgetRequestSectionId(section)
+    setBudgetRequestRow(rows[0] ?? createSectionBudgetRequestRow(section))
+    setBudgetNeedDescription('')
+    setBudgetAttachment(null)
+    setBudgetRequestDialogOpen(true)
+  }
+
+  const handleBudgetRequestSectionChange = (sectionId: StudioTarifsSectionId) => {
+    const rows = STUDIO_TARIFS_ROWS.filter(
+      (row) => row.sectionId === sectionId && usesStudioBudgetSlackRequest(row),
+    )
+    setBudgetRequestSectionId(sectionId)
+    setBudgetRequestRow(rows[0] ?? createSectionBudgetRequestRow(sectionId))
   }
 
   const closeBudgetRequestDialog = () => {
@@ -785,10 +831,6 @@ function StudioTarifsPanelInner() {
                 state={state}
                 onToggle={onToggle}
                 onQuantityChange={onQuantityChange}
-                budgetRequestRowId={
-                  submittingBudgetRequest && budgetRequestRow ? budgetRequestRow.id : null
-                }
-                onBudgetRequest={openBudgetRequestDialog}
               />
             </section>
           </div>
@@ -798,24 +840,61 @@ function StudioTarifsPanelInner() {
             <div className="space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
               <Card className="border-border/80 shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Palette className="h-4 w-4 text-[#E94C16]" aria-hidden />
-                    Synthèse devis
-                  </CardTitle>
-                  <CardDescription className="text-xs leading-relaxed">
-                    {savedId ? (
-                      <>
-                        Enregistré : « {savedName} »
-                        {computed.selectedCount > 0
-                          ? ` — ${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''}`
-                          : ''}
-                      </>
-                    ) : computed.selectedCount > 0 ? (
-                      `${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''} sélectionnée${computed.selectedCount > 1 ? 's' : ''}`
-                    ) : (
-                      'Aucune prestation sélectionnée'
-                    )}
-                  </CardDescription>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Palette className="h-4 w-4 text-[#E94C16]" aria-hidden />
+                        Synthèse devis
+                      </CardTitle>
+                      <CardDescription className="mt-1.5 text-xs leading-relaxed">
+                        {savedId ? (
+                          <>
+                            Enregistré : « {savedName} »
+                            {computed.selectedCount > 0
+                              ? ` — ${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''}`
+                              : ''}
+                          </>
+                        ) : computed.selectedCount > 0 ? (
+                          `${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''} sélectionnée${computed.selectedCount > 1 ? 's' : ''}`
+                        ) : (
+                          'Aucune prestation sélectionnée'
+                        )}
+                      </CardDescription>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
+                      <Button
+                        asChild
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-auto whitespace-normal px-2.5 py-1.5 text-[11px] leading-tight"
+                      >
+                        <a
+                          href={STUDIO_VIDEO_BUDGET_MONDAY_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="mr-1.5 inline h-3 w-3" aria-hidden />
+                          Approche budg. vidéo
+                        </a>
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-auto whitespace-normal px-2.5 py-1.5 text-[11px] leading-tight"
+                        disabled={submittingBudgetRequest}
+                        onClick={openSectionBudgetRequestDialog}
+                      >
+                        {submittingBudgetRequest ? (
+                          <Loader2 className="mr-1.5 inline h-3 w-3 animate-spin" aria-hidden />
+                        ) : (
+                          <SlackIcon className="mr-1.5 inline h-3 w-3" />
+                        )}
+                        Approche budg. graphisme/fixe
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {selectedSummaryBySection.length > 0 ? (
@@ -856,11 +935,16 @@ function StudioTarifsPanelInner() {
                                     <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
                                       {qtyLabel ? `× ${qtyLabel}` : ''}
                                     </span>
-                                    <span className="shrink-0 text-sm font-semibold tabular-nums text-[#E94C16]">
-                                      {row.kind === 'on_demand'
-                                        ? 'Sur demande'
-                                        : formatStudioEuro(linePrice)}
-                                    </span>
+                                    {row.kind === 'on_demand' ? (
+                                      <StudioSummaryOnDemandLabel
+                                        row={row}
+                                        onSlackRequest={openRowBudgetRequestDialog}
+                                      />
+                                    ) : (
+                                      <span className="shrink-0 text-sm font-semibold tabular-nums text-[#E94C16]">
+                                        {formatStudioEuro(linePrice)}
+                                      </span>
+                                    )}
                                   </div>
                                   <Button
                                     type="button"
@@ -1071,6 +1155,56 @@ function StudioTarifsPanelInner() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+                <Label htmlFor="studio-budget-section">Rubrique concernée *</Label>
+                <Select
+                  value={budgetRequestSectionId}
+                  onValueChange={(value) =>
+                    handleBudgetRequestSectionChange(value as StudioTarifsSectionId)
+                  }
+                  disabled={submittingBudgetRequest}
+                >
+                  <SelectTrigger id="studio-budget-section">
+                    <SelectValue placeholder="Choisir une rubrique" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {slackBudgetSections.map((sectionId) => {
+                      const sectionLabel =
+                        STUDIO_TARIFS_SECTIONS.find((section) => section.id === sectionId)
+                          ?.label ?? sectionId
+                      return (
+                        <SelectItem key={sectionId} value={sectionId}>
+                          {sectionLabel}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            {slackBudgetRowsForDialog.length > 1 ? (
+              <div className="space-y-2">
+                <Label htmlFor="studio-budget-prestation">Prestation concernée *</Label>
+                <Select
+                  value={budgetRequestRow?.id ?? ''}
+                  onValueChange={(value) => {
+                    const row = slackBudgetRowsForDialog.find((entry) => entry.id === value)
+                    if (row) setBudgetRequestRow(row)
+                  }}
+                  disabled={submittingBudgetRequest}
+                >
+                  <SelectTrigger id="studio-budget-prestation">
+                    <SelectValue placeholder="Choisir une prestation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {slackBudgetRowsForDialog.map((row) => (
+                      <SelectItem key={row.id} value={row.id}>
+                        {formatStudioPrestationLabel(row)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="studio-budget-need">Décris ton besoin *</Label>
               <Textarea
