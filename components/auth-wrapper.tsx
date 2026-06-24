@@ -16,6 +16,8 @@ import {
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   filterNavItemsByAdmin,
+  filterVente2LinksByRole,
+  canShowVente2Nav,
   isAidePath,
   isRessourcesPath,
   isStrategiePath,
@@ -470,12 +472,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <Link href="/vente" className="rounded-md px-3 py-2 font-medium hover:bg-accent hover:text-accent-foreground">
                 Vente
               </Link>
-              {isAdmin && (
+              {canShowVente2Nav(role, isAdmin) && (
                 <HeaderNavMenu
                   label="Vente 2"
                   active={vente2Active}
                   accent
-                  items={withActiveItems(pathname, VENTE2_LINKS)}
+                  items={withActiveItems(pathname, filterVente2LinksByRole(VENTE2_LINKS, role, isAdmin))}
                 />
               )}
               {isAdmin && (
@@ -499,7 +501,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
             <div className="flex items-center gap-4">
               <div className="md:hidden">
-                <MobileNav user={user} isAdmin={isAdmin} onLogout={handleLogout} />
+                <MobileNav user={user} isAdmin={isAdmin} role={role} onLogout={handleLogout} />
               </div>
               {user ? (
                 <>

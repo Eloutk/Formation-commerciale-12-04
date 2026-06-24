@@ -11,7 +11,7 @@ export type StudioTarifsRow = {
   explanation: string
   /** Tarif HT unitaire — absent pour les lignes « sur demande ». */
   rateHT?: number
-  /** Texte affiché dans la colonne Tarif (HT) pour les lignes sur demande. */
+  /** Texte affiché dans la colonne Tarif unitaire (HT) pour les lignes sur demande. */
   rateLabel?: string
   conditions?: string
   /** Texte affiché dans Prix de vente pour les lignes sur demande. */
@@ -28,8 +28,8 @@ export const STUDIO_TARIFS_VALIDATION_NOTE =
 
 export const STUDIO_TARIFS_SECTIONS: { id: StudioTarifsSectionId; label: string }[] = [
   { id: 'video', label: 'Créa - Vidéo' },
-  { id: 'fixe', label: 'Créa - Fixe' },
   { id: 'graphisme', label: 'Graphisme' },
+  { id: 'fixe', label: 'Créa - Fixe' },
 ]
 
 /** Grille extraite de « VALIDÉE Nouvelle grille PDV studio » (Numbers). */
@@ -467,4 +467,9 @@ export function formatStudioEuro(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })} €`
+}
+
+export function formatStudioPrestationLabel(row: StudioTarifsRow): string {
+  if (row.variant) return `${row.label} — ${row.variant}`
+  return row.label
 }

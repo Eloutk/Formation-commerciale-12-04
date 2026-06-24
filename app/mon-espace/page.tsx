@@ -11,6 +11,7 @@ import {
   FolderOpen,
   ImageIcon,
   Loader2,
+  Palette,
   Search,
   Shield,
   Sparkles,
@@ -46,7 +47,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, IA_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF, IA_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -82,6 +83,15 @@ import {
   deleteMockupSave,
   listUserMockupSaves,
 } from '@/lib/mockup-saves-storage'
+import {
+  formatStudioTarifsSaveDate,
+  type StudioTarifsSaveRecord,
+} from '@/lib/studio-tarifs-saves'
+import { formatStudioEuro } from '@/lib/studio-tarifs-grid'
+import {
+  deleteStudioTarifsSave,
+  listUserStudioTarifsSaves,
+} from '@/lib/studio-tarifs-saves-storage'
 import { getIaActionLabel } from '@/lib/ia-actions'
 import { formatIaAnalysisDate, type IaAnalysisRecord } from '@/lib/ia-analyses'
 import { deleteIaAnalysis, listUserIaAnalyses } from '@/lib/ia-analyses-storage'
@@ -96,7 +106,7 @@ import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
-type MonEspaceSection = 'admin' | 'strategy' | 'simulateur' | 'mockups' | 'ia' | 'devis'
+type MonEspaceSection = 'admin' | 'strategy' | 'studioTarifs' | 'simulateur' | 'mockups' | 'ia' | 'devis'
 
 const MON_ESPACE_SECTIONS: {
   id: MonEspaceSection
@@ -106,6 +116,7 @@ const MON_ESPACE_SECTIONS: {
 }[] = [
   { id: 'admin', label: 'Vue admin', icon: Shield, adminOnly: true },
   { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
+  { id: 'studioTarifs', label: 'Tarifs studio', icon: Palette, adminOnly: true },
   { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
   { id: 'ia', label: 'Analyses IA', icon: Sparkles, adminOnly: true },
@@ -119,21 +130,25 @@ export default function MonEspacePage() {
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
+  const [studioTarifsSaves, setStudioTarifsSaves] = useState<StudioTarifsSaveRecord[]>([])
   const [iaAnalyses, setIaAnalyses] = useState<IaAnalysisRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
   const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
   const [loadingMockupSaves, setLoadingMockupSaves] = useState(true)
+  const [loadingStudioTarifsSaves, setLoadingStudioTarifsSaves] = useState(true)
   const [loadingIaAnalyses, setLoadingIaAnalyses] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
   const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
   const [mockupSavesError, setMockupSavesError] = useState<string | null>(null)
+  const [studioTarifsSavesError, setStudioTarifsSavesError] = useState<string | null>(null)
   const [iaAnalysesError, setIaAnalysesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
   const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
   const [mockupSavesSearch, setMockupSavesSearch] = useState('')
+  const [studioTarifsSavesSearch, setStudioTarifsSavesSearch] = useState('')
   const [iaAnalysesSearch, setIaAnalysesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
   const [deleteDevisTarget, setDeleteDevisTarget] = useState<SmsDevisRecord | null>(null)
@@ -141,6 +156,8 @@ export default function MonEspacePage() {
   const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
     useState<SimulateurMediaSaveRecord | null>(null)
   const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
+  const [deleteStudioTarifsTarget, setDeleteStudioTarifsTarget] =
+    useState<StudioTarifsSaveRecord | null>(null)
   const [deleteIaTarget, setDeleteIaTarget] = useState<IaAnalysisRecord | null>(null)
   const [adminItems, setAdminItems] = useState<MonEspaceAdminItem[]>([])
   const [adminAuthors, setAdminAuthors] = useState<MonEspaceAuthor[]>([])
@@ -153,6 +170,7 @@ export default function MonEspacePage() {
   const [strategiesPage, setStrategiesPage] = useState(1)
   const [simulateurPage, setSimulateurPage] = useState(1)
   const [mockupPage, setMockupPage] = useState(1)
+  const [studioTarifsPage, setStudioTarifsPage] = useState(1)
   const [iaPage, setIaPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
   const [activeSection, setActiveSection] = useState<MonEspaceSection>('strategy')
@@ -222,6 +240,21 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadStudioTarifsSaves = useCallback(async () => {
+    setLoadingStudioTarifsSaves(true)
+    setStudioTarifsSavesError(null)
+    try {
+      const rows = await listUserStudioTarifsSaves()
+      setStudioTarifsSaves(rows)
+    } catch (e) {
+      setStudioTarifsSavesError(
+        e instanceof Error ? e.message : 'Impossible de charger vos devis studio.',
+      )
+    } finally {
+      setLoadingStudioTarifsSaves(false)
+    }
+  }, [])
+
   const loadIaAnalyses = useCallback(async () => {
     setLoadingIaAnalyses(true)
     setIaAnalysesError(null)
@@ -240,8 +273,9 @@ export default function MonEspacePage() {
     void loadStrategies()
     void loadSimulateurSaves()
     void loadMockupSaves()
+    void loadStudioTarifsSaves()
     void loadIaAnalyses()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadIaAnalyses])
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadIaAnalyses])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -309,6 +343,12 @@ export default function MonEspacePage() {
     )
   }, [mockupSaves, mockupSavesSearch])
 
+  const filteredStudioTarifsSaves = useMemo(() => {
+    const q = studioTarifsSavesSearch.trim().toLowerCase()
+    if (!q) return studioTarifsSaves
+    return studioTarifsSaves.filter((s) => s.name.toLowerCase().includes(q))
+  }, [studioTarifsSaves, studioTarifsSavesSearch])
+
   const filteredIaAnalyses = useMemo(() => {
     const q = iaAnalysesSearch.trim().toLowerCase()
     if (!q) return iaAnalyses
@@ -336,6 +376,10 @@ export default function MonEspacePage() {
   const mockupPagination = useMemo(
     () => getMonEspacePagination(filteredMockupSaves, mockupPage),
     [filteredMockupSaves, mockupPage],
+  )
+  const studioTarifsPagination = useMemo(
+    () => getMonEspacePagination(filteredStudioTarifsSaves, studioTarifsPage),
+    [filteredStudioTarifsSaves, studioTarifsPage],
   )
   const iaPagination = useMemo(
     () => getMonEspacePagination(filteredIaAnalyses, iaPage),
@@ -393,6 +437,12 @@ export default function MonEspacePage() {
       setMockupPage(mockupPagination.totalPages)
     }
   }, [mockupPage, mockupPagination.totalPages])
+
+  useEffect(() => {
+    if (studioTarifsPage > studioTarifsPagination.totalPages) {
+      setStudioTarifsPage(studioTarifsPagination.totalPages)
+    }
+  }, [studioTarifsPage, studioTarifsPagination.totalPages])
 
   useEffect(() => {
     if (iaPage > iaPagination.totalPages) {
@@ -455,6 +505,20 @@ export default function MonEspacePage() {
       await deleteMockupSave(deleteMockupTarget.id)
       setDeleteMockupTarget(null)
       await loadMockupSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDeleteStudioTarifs = async () => {
+    if (!deleteStudioTarifsTarget) return
+    setActionId(deleteStudioTarifsTarget.id)
+    try {
+      await deleteStudioTarifsSave(deleteStudioTarifsTarget.id)
+      setDeleteStudioTarifsTarget(null)
+      await loadStudioTarifsSaves()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
     } finally {
@@ -934,6 +998,136 @@ export default function MonEspacePage() {
                 page={strategiesPagination.page}
                 totalPages={strategiesPagination.totalPages}
                 onPageChange={setStrategiesPage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
+        {activeSection === 'studioTarifs' && isAdmin && (
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Palette className="h-5 w-5 text-[#E94C16]" />
+              Tarifs studio
+            </CardTitle>
+            <CardDescription>
+              Devis studio enregistrés — ouvrez, modifiez ou supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom de devis…"
+                  value={studioTarifsSavesSearch}
+                  onChange={(e) => setStudioTarifsSavesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
+                <Link href={VENTE2_STUDIO_TARIFS_HREF}>Nouveau devis studio</Link>
+              </Button>
+            </div>
+
+            {loadingStudioTarifsSaves ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Chargement de vos devis studio…
+              </div>
+            ) : studioTarifsSavesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {studioTarifsSavesError}
+                <p className="mt-2 text-muted-foreground">
+                  Si la table n&apos;existe pas encore, exécutez{' '}
+                  <code className="text-xs">supabase/studio-tarifs-saves.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredStudioTarifsSaves.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {studioTarifsSaves.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucun devis studio enregistré</p>
+                    <p className="text-sm mt-1">
+                      Composez un devis dans Tarifs studio puis « Enregistrer ».
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucun devis ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Prestations</TableHead>
+                      <TableHead className="font-semibold">Total HT</TableHead>
+                      <TableHead className="font-semibold">Total TTC</TableHead>
+                      <TableHead className="font-semibold">Modifié le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {studioTarifsPagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {row.selected_count} prestation{row.selected_count > 1 ? 's' : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="tabular-nums whitespace-nowrap">
+                          {formatStudioEuro(Number(row.summary_total_ht))}
+                        </TableCell>
+                        <TableCell className="tabular-nums whitespace-nowrap">
+                          {formatStudioEuro(Number(row.summary_total_ttc))}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatStudioTarifsSaveDate(row.updated_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() =>
+                                router.push(`${VENTE2_STUDIO_TARIFS_HREF}?studio=${row.id}`)
+                              }
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeleteStudioTarifsTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={studioTarifsPagination.page}
+                totalPages={studioTarifsPagination.totalPages}
+                onPageChange={setStudioTarifsPage}
               />
               </>
             )}
@@ -1526,6 +1720,30 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteSimulateur()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteStudioTarifsTarget}
+        onOpenChange={(open) => !open && setDeleteStudioTarifsTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce devis studio ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deleteStudioTarifsTarget?.name} » sera définitivement supprimé de Mon espace. Cette
+              action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeleteStudioTarifs()}
             >
               Supprimer
             </AlertDialogAction>

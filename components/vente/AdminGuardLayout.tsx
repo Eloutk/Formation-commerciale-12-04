@@ -1,17 +1,27 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuthAccess } from '@/components/auth-context'
+import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
+import { canAccessStudioTarifs } from '@/lib/roles'
+
+function canAccessAdminCalculatorRoute(pathname: string | null, role: ReturnType<typeof useAuthAccess>['role'], isAdmin: boolean): boolean {
+  if (isAdmin) return true
+  if (!pathname?.startsWith(VENTE2_STUDIO_TARIFS_HREF)) return false
+  return canAccessStudioTarifs(role)
+}
 
 export function AdminGuardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { isAdmin, authReady } = useAuthAccess()
+  const pathname = usePathname()
+  const { isAdmin, role, authReady } = useAuthAccess()
+  const allowed = canAccessAdminCalculatorRoute(pathname, role, isAdmin)
 
   useEffect(() => {
     if (!authReady) return
-    if (!isAdmin) router.replace('/home')
-  }, [authReady, isAdmin, router])
+    if (!allowed) router.replace('/home')
+  }, [authReady, allowed, router])
 
   if (!authReady) {
     return (
@@ -21,7 +31,7 @@ export function AdminGuardLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!isAdmin) {
+  if (!allowed) {
     return null
   }
 

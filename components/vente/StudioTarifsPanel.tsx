@@ -1,12 +1,23 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -23,14 +34,36 @@ import {
   computeStudioTarifsGrid,
   createInitialStudioTarifsState,
   formatStudioEuro,
+  formatStudioPrestationLabel,
   type StudioTarifsRow,
   type StudioTarifsSectionId,
   type StudioTarifsSelectionState,
 } from '@/lib/studio-tarifs-grid'
-import { ExternalLink, Mail, Palette, RotateCcw } from 'lucide-react'
+import {
+  buildStudioTarifsSaveContent,
+  getDefaultStudioTarifsSaveName,
+  type StudioTarifsSaveContent,
+} from '@/lib/studio-tarifs-saves'
+import {
+  createStudioTarifsSave,
+  getStudioTarifsSaveById,
+  updateStudioTarifsSave,
+} from '@/lib/studio-tarifs-saves-storage'
+import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
+import { formatUserRoleLabel } from '@/lib/roles'
+import { useAuthAccess } from '@/components/auth-context'
+import { Clapperboard, Download, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
 
 const STUDIO_BUDGET_MAILTO =
   'mailto:?subject=Demande%20approche%20budg%C3%A9taire%20studio%20Link%20Academy'
+
+const STUDIO_SECTION_ICONS: Record<StudioTarifsSectionId, LucideIcon> = {
+  video: Clapperboard,
+  graphisme: PenTool,
+  fixe: ImageIcon,
+}
 
 function MultilineText({ text }: { text: string }) {
   const parts = text.split('\n').filter(Boolean)
@@ -51,7 +84,7 @@ function PrestationCell({ row }: { row: StudioTarifsRow }) {
     <div className="space-y-0.5">
       <span className="font-medium text-foreground">{row.label}</span>
       {row.variant ? (
-        <span className="block text-sm text-muted-foreground">{row.variant}</span>
+        <span className="block text-sm text-foreground/70">{row.variant}</span>
       ) : null}
     </div>
   )
@@ -73,36 +106,11 @@ function TarifCell({ row }: { row: StudioTarifsRow }) {
   return <span className="text-muted-foreground">—</span>
 }
 
-function LinePriceCell({
-  row,
-  linePrice,
-  selected,
-}: {
-  row: StudioTarifsRow
-  linePrice: number
-  selected: boolean
-}) {
-  if (row.kind === 'on_demand') {
-    return (
-      <span className="text-xs text-muted-foreground">
-        {row.onDemandPriceNote ? (
-          <Button asChild variant="link" size="sm" className="h-auto px-0 text-left whitespace-normal">
-            <a href={STUDIO_BUDGET_MAILTO}>{row.onDemandPriceNote}</a>
-          </Button>
-        ) : (
-          '—'
-        )}
-      </span>
-    )
-  }
-  if (!selected || linePrice <= 0) {
-    return <span className="text-muted-foreground">—</span>
-  }
-  return (
-    <span className="font-semibold tabular-nums text-[#E94C16]">
-      {formatStudioEuro(linePrice)}
-    </span>
-  )
+function formatStudioSummaryQuantity(row: StudioTarifsRow, quantity: number): string | null {
+  if (row.kind !== 'priced' || quantity <= 0) return null
+  return Number.isInteger(quantity)
+    ? String(quantity)
+    : quantity.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 }
 
 type StudioTarifsTableProps = {
@@ -125,43 +133,56 @@ function StudioTarifsTable({
 
   return (
     <>
-      <div className="hidden lg:block overflow-x-auto rounded-lg border border-border/70">
-        <Table>
+      <div className="hidden lg:block overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+        <Table className="border-collapse">
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[52px]">Besoin</TableHead>
-              <TableHead className="min-w-[180px]">Prestation</TableHead>
-              <TableHead className="w-[88px]">Nombre</TableHead>
-              <TableHead className="min-w-[220px]">Explication</TableHead>
-              <TableHead className="min-w-[120px] bg-amber-50/80 dark:bg-amber-950/20">
-                Tarif (HT)
+            <TableRow className="border-b-2 border-border bg-neutral-100 hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-800">
+              <TableHead className="w-10 max-w-10 border-r border-border/60 px-1 text-center text-xs font-semibold text-foreground">
+                Besoin
               </TableHead>
-              <TableHead className="min-w-[160px]">Conditions</TableHead>
-              <TableHead className="min-w-[120px] bg-amber-50/80 dark:bg-amber-950/20 text-right">
-                Prix de vente
+              <TableHead className="min-w-[180px] border-r border-border/60 font-semibold text-foreground">
+                Prestation
+              </TableHead>
+              <TableHead className="w-[88px] border-r border-border/60 font-semibold text-foreground">
+                Nombre
+              </TableHead>
+              <TableHead className="min-w-[220px] border-r border-border/60 font-semibold text-foreground">
+                Explication
+              </TableHead>
+              <TableHead className="min-w-[120px] border-r border-border/60 bg-amber-100 font-semibold text-foreground dark:bg-amber-950/50">
+                Tarif unitaire (HT)
+              </TableHead>
+              <TableHead className="min-w-[160px] font-semibold text-foreground">
+                Conditions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sectionLines.map(({ row, selected, linePrice }) => {
+            {sectionLines.map(({ row, selected }, index) => {
               const entry = state[row.id]!
               const isPriced = row.kind === 'priced'
               return (
                 <TableRow
                   key={row.id}
-                  className={cn(selected && 'bg-[#E94C16]/5 hover:bg-[#E94C16]/8')}
+                  className={cn(
+                    'border-border hover:bg-muted/40',
+                    index % 2 === 1 && 'bg-muted/20',
+                    selected && 'bg-[#E94C16]/10 hover:bg-[#E94C16]/12',
+                  )}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selected}
-                      onCheckedChange={(checked) => onToggle(row.id, checked === true)}
-                      aria-label={`Sélectionner ${row.label}`}
-                    />
+                  <TableCell className="w-10 max-w-10 px-1 text-center border-r border-border/50">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={selected}
+                        onCheckedChange={(checked) => onToggle(row.id, checked === true)}
+                        aria-label={`Sélectionner ${row.label}`}
+                      />
+                    </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="border-r border-border/50">
                     <PrestationCell row={row} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="border-r border-border/50">
                     {isPriced ? (
                       <Input
                         type="text"
@@ -169,24 +190,21 @@ function StudioTarifsTable({
                         value={entry.quantity}
                         onChange={(event) => onQuantityChange(row.id, event.target.value)}
                         disabled={!selected}
-                        className="h-9 w-20 tabular-nums"
+                        className="h-9 w-20 border-border bg-background tabular-nums"
                         aria-label={`Quantité pour ${row.label}`}
                       />
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-foreground/50">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="border-r border-border/50 text-sm text-foreground/80">
                     <MultilineText text={row.explanation} />
                   </TableCell>
-                  <TableCell className="bg-amber-50/50 dark:bg-amber-950/10 text-sm">
+                  <TableCell className="border-r border-border/50 bg-amber-50 text-sm dark:bg-amber-950/25">
                     <TarifCell row={row} />
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-foreground/80">
                     {row.conditions ? <MultilineText text={row.conditions} /> : '—'}
-                  </TableCell>
-                  <TableCell className="bg-amber-50/50 dark:bg-amber-950/10 text-right">
-                    <LinePriceCell row={row} linePrice={linePrice} selected={selected} />
                   </TableCell>
                 </TableRow>
               )
@@ -196,15 +214,15 @@ function StudioTarifsTable({
       </div>
 
       <div className="space-y-3 lg:hidden">
-        {sectionLines.map(({ row, selected, linePrice }) => {
+        {sectionLines.map(({ row, selected }) => {
           const entry = state[row.id]!
           const isPriced = row.kind === 'priced'
           return (
             <Card
               key={row.id}
               className={cn(
-                'border-border/70',
-                selected && 'border-[#E94C16]/40 bg-[#E94C16]/5',
+                'border-border bg-card shadow-sm',
+                selected && 'border-[#E94C16]/50 bg-[#E94C16]/10',
               )}
             >
               <CardContent className="space-y-3 p-4">
@@ -218,7 +236,7 @@ function StudioTarifsTable({
                   <div className="min-w-0 flex-1 space-y-2">
                     <PrestationCell row={row} />
                     {row.explanation ? (
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-foreground/80">
                         <MultilineText text={row.explanation} />
                       </p>
                     ) : null}
@@ -226,8 +244,8 @@ function StudioTarifsTable({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <div className="rounded-md border border-border/70 bg-muted/30 p-3">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
                       Nombre
                     </p>
                     {isPriced ? (
@@ -237,34 +255,28 @@ function StudioTarifsTable({
                         value={entry.quantity}
                         onChange={(event) => onQuantityChange(row.id, event.target.value)}
                         disabled={!selected}
-                        className="h-9 tabular-nums"
+                        className="h-9 border-border bg-background tabular-nums"
                       />
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-foreground/50">—</span>
                     )}
                   </div>
-                  <div>
-                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Tarif (HT)
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                      Tarif unitaire (HT)
                     </p>
                     <TarifCell row={row} />
                   </div>
                   {row.conditions ? (
-                    <div className="col-span-2">
-                      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <div className="col-span-2 rounded-md border border-border/70 bg-muted/30 p-3">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
                         Conditions
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-foreground/80">
                         <MultilineText text={row.conditions} />
                       </p>
                     </div>
                   ) : null}
-                  <div className="col-span-2 rounded-md bg-amber-50/80 px-3 py-2 dark:bg-amber-950/20">
-                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Prix de vente
-                    </p>
-                    <LinePriceCell row={row} linePrice={linePrice} selected={selected} />
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -276,11 +288,61 @@ function StudioTarifsTable({
 }
 
 export function StudioTarifsPanel() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+          Chargement des tarifs studio…
+        </div>
+      }
+    >
+      <StudioTarifsPanelInner />
+    </Suspense>
+  )
+}
+
+function StudioTarifsPanelInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { role } = useAuthAccess()
+  const studioIdFromUrl = searchParams.get('studio')
+
+  const [activeSection, setActiveSection] = useState<StudioTarifsSectionId>('video')
   const [state, setState] = useState<StudioTarifsSelectionState>(() =>
     createInitialStudioTarifsState(),
   )
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedName, setSavedName] = useState('')
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveNameInput, setSaveNameInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [loadingSave, setLoadingSave] = useState(false)
+  const [comment, setComment] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   const computed = useMemo(() => computeStudioTarifsGrid(state), [state])
+  const selectedSummaryBySection = useMemo(
+    () =>
+      STUDIO_TARIFS_SECTIONS.map((section) => {
+        const lines = computed.lines.filter(
+          ({ selected, linePrice, row }) =>
+            row.sectionId === section.id &&
+            selected &&
+            (linePrice > 0 || row.kind === 'on_demand'),
+        )
+        const subtotal = lines.reduce(
+          (sum, { linePrice, row }) => (row.kind === 'on_demand' ? sum : sum + linePrice),
+          0,
+        )
+        return { section, lines, subtotal }
+      }).filter((group) => group.lines.length > 0),
+    [computed.lines],
+  )
+  const activeSectionMeta = STUDIO_TARIFS_SECTIONS.find((section) => section.id === activeSection)
+  const activeSectionLineCount = STUDIO_TARIFS_ROWS.filter(
+    (row) => row.sectionId === activeSection,
+  ).length
 
   const onToggle = (id: string, checked: boolean) => {
     setState((current) => ({
@@ -296,120 +358,418 @@ export function StudioTarifsPanel() {
     }))
   }
 
-  const resetSelection = () => setState(createInitialStudioTarifsState())
+  const resetSelection = () => {
+    setState(createInitialStudioTarifsState())
+    setComment('')
+    setSavedId(null)
+    setSavedName('')
+    router.replace(VENTE2_STUDIO_TARIFS_HREF, { scroll: false })
+  }
+
+  const applySavedContent = useCallback(
+    (content: StudioTarifsSaveContent, name: string, id: string) => {
+      setState(content.state)
+      setActiveSection(content.activeSection)
+      setComment(content.comment ?? '')
+      setSavedId(id)
+      setSavedName(name)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (!studioIdFromUrl) return
+    let cancelled = false
+    setLoadingSave(true)
+    void getStudioTarifsSaveById(studioIdFromUrl)
+      .then((record) => {
+        if (cancelled || !record) return
+        applySavedContent(record.content, record.name, record.id)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          alert(error instanceof Error ? error.message : 'Impossible de charger le devis studio.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSave(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [studioIdFromUrl, applySavedContent])
+
+  const handleOpenSaveDialog = () => {
+    if (computed.selectedCount === 0) {
+      alert('Sélectionnez au moins une prestation avant d’enregistrer.')
+      return
+    }
+    setSaveNameInput(
+      savedName ||
+        getDefaultStudioTarifsSaveName({
+          selectedCount: computed.selectedCount,
+          totalHT: computed.subtotalJ,
+        }),
+    )
+    setSaveDialogOpen(true)
+  }
+
+  const handleDownloadPdf = async () => {
+    if (computed.selectedCount === 0) {
+      alert('Sélectionnez au moins une prestation avant de télécharger le PDF.')
+      return
+    }
+
+    setExportingPdf(true)
+    try {
+      const date = new Date().toISOString().split('T')[0]
+      const safeName = (savedName.trim() || 'devis-studio')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9-_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 60)
+
+      await downloadStudioTarifsPdf({
+        title: savedName.trim() || 'Devis studio — Tarifs PDV',
+        dateLabel: new Date().toLocaleDateString('fr-FR'),
+        comment: comment.trim() || undefined,
+        sections: selectedSummaryBySection.map(({ section, lines, subtotal }) => ({
+          label: section.label,
+          subtotalLabel: subtotal > 0 ? formatStudioEuro(subtotal) : null,
+          lines: lines.map(({ row, linePrice, quantity }) => {
+            const qtyLabel = formatStudioSummaryQuantity(row, quantity)
+            return {
+              label: formatStudioPrestationLabel(row),
+              quantityLabel: qtyLabel ? `× ${qtyLabel}` : null,
+              priceLabel:
+                row.kind === 'on_demand' ? 'Sur demande' : formatStudioEuro(linePrice),
+            }
+          }),
+        })),
+        totalHtLabel: formatStudioEuro(computed.subtotalJ),
+        totalTtcLabel: formatStudioEuro(computed.ttc),
+        filename: `${safeName || 'devis-studio'}-${date}.pdf`,
+      })
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erreur lors de la génération du PDF.')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  const handleConfirmSave = async () => {
+    const name = saveNameInput.trim()
+    if (!name) return
+
+    setSaving(true)
+    try {
+      const content = buildStudioTarifsSaveContent({ state, activeSection, comment })
+      const wasUpdate = !!savedId
+      const record = savedId
+        ? await updateStudioTarifsSave({
+            id: savedId,
+            name,
+            summaryTotalHt: computed.subtotalJ,
+            summaryTotalTtc: computed.ttc,
+            selectedCount: computed.selectedCount,
+            content,
+          })
+        : await createStudioTarifsSave({
+            name,
+            summaryTotalHt: computed.subtotalJ,
+            summaryTotalTtc: computed.ttc,
+            selectedCount: computed.selectedCount,
+            content,
+          })
+
+      setSavedId(record.id)
+      setSavedName(record.name)
+      setSaveDialogOpen(false)
+      router.replace(`${VENTE2_STUDIO_TARIFS_HREF}?studio=${record.id}`, { scroll: false })
+      alert(wasUpdate ? 'Devis studio mis à jour dans Mon espace.' : 'Devis studio enregistré dans Mon espace.')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erreur lors de l’enregistrement.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-12">
-      <div className="mx-auto max-w-[1400px]">
-        <div className="mb-8 text-center">
+    <div className="mx-auto w-full max-w-[1520px] px-6 py-6 md:px-8 md:py-10 lg:px-10">
+      <div className="w-full">
+        <div className="mb-6 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
             <Palette className="h-8 w-8 text-[#E94C16]" aria-hidden />
             <Badge variant="secondary" className="text-xs">
-              Admin
+              {formatUserRoleLabel(role)}
             </Badge>
           </div>
-          <h1 className="mb-3 text-4xl font-bold">Calculateur Vente 2 — Tarifs studio</h1>
-          <p className="mx-auto max-w-3xl text-lg text-muted-foreground">
+          <h1 className="mb-2 text-3xl font-bold md:text-4xl">Calculateur Vente 2 — Tarifs studio</h1>
+          <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-lg">
             Grille PDV studio Link Academy — cochez les prestations, saisissez les quantités et
             obtenez un total HT/TTC conforme à la grille de référence.
           </p>
+          <p className="mt-3 text-xs text-muted-foreground">{STUDIO_TARIFS_VALIDATION_NOTE}</p>
         </div>
 
-        <div className="mb-6 flex flex-col gap-4 lg:sticky lg:top-4 lg:z-10 lg:flex-row lg:items-stretch">
-          <Card className="flex-1 border-[#E94C16]/30 bg-[#E94C16]/5">
-            <CardContent className="flex h-full items-center p-4 text-sm font-medium">
-              {STUDIO_TARIFS_VALIDATION_NOTE}
-            </CardContent>
-          </Card>
+        {loadingSave ? (
+          <div className="mb-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Chargement du devis enregistré…
+          </div>
+        ) : null}
 
-          <Card className="w-full lg:w-[320px] border-border/80 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Synthèse devis</CardTitle>
-              <CardDescription>
-                {computed.selectedCount > 0
-                  ? `${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''} sélectionnée${computed.selectedCount > 1 ? 's' : ''}`
-                  : 'Aucune prestation sélectionnée'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Total HT (hors sur demande vidéo)</span>
-                <span className="font-semibold tabular-nums">{formatStudioEuro(computed.subtotalI)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Total HT</span>
-                <span className="font-semibold tabular-nums">{formatStudioEuro(computed.subtotalJ)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-t pt-2">
-                <span className="font-medium">Total TTC (20 %)</span>
-                <span className="text-lg font-bold tabular-nums text-[#E94C16]">
-                  {formatStudioEuro(computed.ttc)}
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2 w-full"
-                onClick={resetSelection}
-                disabled={computed.selectedCount === 0}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
-                Réinitialiser
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_500px] xl:grid-cols-[minmax(0,1fr)_540px]">
+          {/* Colonne gauche — grille tarifaire */}
+          <div className="space-y-4 min-w-0">
+            <Tabs
+              value={activeSection}
+              onValueChange={(value) => setActiveSection(value as StudioTarifsSectionId)}
+              className="w-full"
+            >
+              <TabsList className="grid h-auto w-full grid-cols-1 gap-1 border-2 border-gray-300 p-1 sm:grid-cols-3">
+                {STUDIO_TARIFS_SECTIONS.map(({ id, label }) => {
+                  const Icon = STUDIO_SECTION_ICONS[id]
+                  return (
+                    <TabsTrigger
+                      key={id}
+                      value={id}
+                      className="h-auto min-h-10 gap-2 px-3 py-2.5 data-[state=active]:bg-[#E94C16] data-[state=active]:text-white"
+                    >
+                      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                      <span className="text-sm font-medium">{label}</span>
+                    </TabsTrigger>
+                  )
+                })}
+              </TabsList>
+            </Tabs>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <a href={STUDIO_BUDGET_MAILTO}>
-              <Mail className="mr-2 h-4 w-4" aria-hidden />
-              Demander une approche budgétaire
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/studio">
-              Guide des formats studio
-              <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/documents">Documents de référence</Link>
-          </Button>
-        </div>
-
-        <div className="space-y-8">
-          {STUDIO_TARIFS_SECTIONS.map((section) => (
-            <section key={section.id} aria-labelledby={`studio-section-${section.id}`}>
-              <div className="mb-4 flex items-center gap-3">
+            <section aria-labelledby={`studio-section-${activeSection}`}>
+              <div className="mb-4 flex flex-wrap items-center gap-3">
                 <div className="h-8 w-1.5 rounded-full bg-[#E94C16]" aria-hidden />
                 <h2
-                  id={`studio-section-${section.id}`}
+                  id={`studio-section-${activeSection}`}
                   className="text-xl font-semibold tracking-tight"
                 >
-                  {section.label}
+                  {activeSectionMeta?.label}
                 </h2>
                 <Badge variant="outline" className="text-xs">
-                  {STUDIO_TARIFS_ROWS.filter((row) => row.sectionId === section.id).length} lignes
+                  {activeSectionLineCount} lignes
                 </Badge>
               </div>
               <StudioTarifsTable
-                sectionId={section.id}
+                sectionId={activeSection}
                 lines={computed.lines}
                 state={state}
                 onToggle={onToggle}
                 onQuantityChange={onQuantityChange}
               />
             </section>
-          ))}
-        </div>
+          </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          Formules alignées sur la grille Numbers « Nouvelle grille PDV studio » — ligne tarifée :
-          cochée × (tarif HT × quantité) ; PSD : base + 20 % du sous-total HT hors sur demande vidéo.
-        </p>
+          {/* Colonne droite — synthèse devis, sticky comme social-media */}
+          <div className="min-w-0 lg:w-[500px] xl:w-[540px]">
+            <div className="space-y-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+              <Card className="border-border/80 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Palette className="h-4 w-4 text-[#E94C16]" aria-hidden />
+                    Synthèse devis
+                  </CardTitle>
+                  <CardDescription className="text-xs leading-relaxed">
+                    {savedId ? (
+                      <>
+                        Enregistré : « {savedName} »
+                        {computed.selectedCount > 0
+                          ? ` — ${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''}`
+                          : ''}
+                      </>
+                    ) : computed.selectedCount > 0 ? (
+                      `${computed.selectedCount} prestation${computed.selectedCount > 1 ? 's' : ''} sélectionnée${computed.selectedCount > 1 ? 's' : ''}`
+                    ) : (
+                      'Aucune prestation sélectionnée'
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedSummaryBySection.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedSummaryBySection.map(({ section, lines, subtotal }) => {
+                        const SectionIcon = STUDIO_SECTION_ICONS[section.id]
+                        return (
+                          <div
+                            key={section.id}
+                            className="overflow-hidden rounded-lg border border-border/70 bg-card"
+                          >
+                            <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <div className="h-4 w-1 shrink-0 rounded-full bg-[#E94C16]" aria-hidden />
+                                <SectionIcon className="h-3.5 w-3.5 shrink-0 text-[#E94C16]" aria-hidden />
+                                <span className="truncate text-xs font-semibold text-foreground">
+                                  {section.label}
+                                </span>
+                              </div>
+                              {subtotal > 0 ? (
+                                <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+                                  {formatStudioEuro(subtotal)}
+                                </span>
+                              ) : null}
+                            </div>
+                            <ul className="divide-y divide-border/50 text-sm">
+                              {lines.map(({ row, linePrice, quantity }) => {
+                                const qtyLabel = formatStudioSummaryQuantity(row, quantity)
+                                return (
+                                <li
+                                  key={row.id}
+                                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 px-3 py-2.5"
+                                >
+                                  <span className="min-w-0 text-sm leading-snug text-foreground">
+                                    {formatStudioPrestationLabel(row)}
+                                  </span>
+                                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                                    {qtyLabel ? `× ${qtyLabel}` : ''}
+                                  </span>
+                                  <span className="shrink-0 text-sm font-semibold tabular-nums text-[#E94C16]">
+                                    {row.kind === 'on_demand'
+                                      ? 'Sur demande'
+                                      : formatStudioEuro(linePrice)}
+                                  </span>
+                                </li>
+                                )
+                              })}
+                            </ul>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                      Cochez des prestations dans le tableau pour composer votre devis.
+                    </p>
+                  )}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
+                      <span className="text-muted-foreground">Total HT</span>
+                      <span className="font-semibold tabular-nums">
+                        {formatStudioEuro(computed.subtotalJ)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-[#E94C16]/30 bg-[#E94C16]/5 px-3 py-2.5">
+                      <span className="font-medium">Total TTC (20 %)</span>
+                      <span className="text-base font-bold tabular-nums text-[#E94C16]">
+                        {formatStudioEuro(computed.ttc)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border bg-muted/30 p-2.5">
+                    <Label htmlFor="studio-devis-comment" className="mb-1.5 block text-sm">
+                      Commentaire
+                    </Label>
+                    <Textarea
+                      id="studio-devis-comment"
+                      placeholder="Commentaire visible sur le PDF"
+                      rows={2}
+                      value={comment}
+                      onChange={(event) => setComment(event.target.value)}
+                      className="min-h-0 resize-none bg-background py-1.5 text-xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      title="Télécharger le PDF"
+                      className="h-auto min-h-10 w-full flex-col gap-1 bg-[#E94C16] px-1.5 py-2 text-[11px] leading-tight hover:bg-[#d43f12] text-white whitespace-normal"
+                      onClick={() => void handleDownloadPdf()}
+                      disabled={loadingSave || exportingPdf || computed.selectedCount === 0}
+                    >
+                      {exportingPdf ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <Download className="h-4 w-4 shrink-0" aria-hidden />
+                      )}
+                      <span>PDF</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-auto min-h-10 w-full flex-col gap-1 px-1.5 py-2 text-[11px] leading-tight whitespace-normal"
+                      onClick={handleOpenSaveDialog}
+                      disabled={loadingSave || saving || computed.selectedCount === 0}
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <Save className="h-4 w-4 shrink-0" aria-hidden />
+                      )}
+                      <span>Sauvegarder</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-auto min-h-10 w-full flex-col gap-1 px-1.5 py-2 text-[11px] leading-tight whitespace-normal"
+                      onClick={resetSelection}
+                      disabled={computed.selectedCount === 0 && !savedId}
+                    >
+                      <RotateCcw className="h-4 w-4 shrink-0" aria-hidden />
+                      <span>Réinitialiser</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {savedId ? 'Mettre à jour le devis studio' : 'Sauvegarder le devis studio'}
+            </DialogTitle>
+            <DialogDescription>
+              Le devis sera sauvegardé dans Mon espace avec les prestations sélectionnées et les
+              totaux calculés.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="save-studio-tarifs-name">Nom du devis *</Label>
+              <Input
+                id="save-studio-tarifs-name"
+                placeholder="Ex. Devis studio Client X"
+                value={saveNameInput}
+                onChange={(event) => setSaveNameInput(event.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleConfirmSave()}
+              disabled={!saveNameInput.trim() || saving}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Save className="mr-2 h-4 w-4" aria-hidden />
+              )}
+              {savedId ? 'Mettre à jour' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

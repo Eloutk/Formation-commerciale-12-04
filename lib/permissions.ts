@@ -41,6 +41,7 @@ export type AppPermission =
 export const ROLE_PERMISSIONS: Record<UserRole, readonly AppPermission[]> = {
   user: [],
   client: [],
+  crea: [],
   admin: ['*'],
   super_admin: ['*'],
 }

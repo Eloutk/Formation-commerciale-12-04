@@ -16,6 +16,8 @@ import {
   MON_ESPACE_HREF,
   IA_HREF,
   filterNavItemsByAdmin,
+  filterVente2LinksByRole,
+  canShowVente2Nav,
   isAidePath,
   isIaPath,
   isMonEspacePath,
@@ -24,6 +26,7 @@ import {
   isVente2Path,
   withActiveItems,
 } from "@/lib/nav-config"
+import type { UserRole } from "@/lib/roles"
 
 type MobileNavUser = {
   name?: string
@@ -33,10 +36,12 @@ type MobileNavUser = {
 export function MobileNav({
   user,
   isAdmin,
+  role = null,
   onLogout,
 }: {
   user?: MobileNavUser
   isAdmin?: boolean
+  role?: UserRole | null
   onLogout?: () => void | Promise<void>
 }) {
   const [open, setOpen] = React.useState(false)
@@ -85,12 +90,12 @@ export function MobileNav({
               >
                 Vente
               </Link>
-              {isAdmin && (
+              {canShowVente2Nav(role, !!isAdmin) && (
                 <MobileNavMenu
                   label="Vente 2"
                   active={isVente2Path(pathname)}
                   accent
-                  items={withActiveItems(pathname, VENTE2_LINKS)}
+                  items={withActiveItems(pathname, filterVente2LinksByRole(VENTE2_LINKS, role, !!isAdmin))}
                   onNavigate={handleNav}
                 />
               )}
