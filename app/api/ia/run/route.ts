@@ -94,6 +94,7 @@ export async function POST(req: Request) {
       clientImage: imageFile,
       url: url || null,
       clientName: clientName || null,
+      maxTokens: outputMode === 'presentation' ? 16384 : 4096,
     })
 
     const { inputKind, inputLabel, inputUrl } = resolveIaInputLabel({
@@ -144,8 +145,8 @@ export async function POST(req: Request) {
       record: data,
       model: IA_MODEL,
       outputMode,
-      keynoteDownloadUrl:
-        outputMode === 'presentation' && data?.id ? `/api/ia/keynote/${data.id}` : null,
+      presentationDownloadUrl:
+        outputMode === 'presentation' && data?.id ? `/api/ia/pptx/${data.id}` : null,
     })
   } catch (error) {
     console.error('IA run error:', error)

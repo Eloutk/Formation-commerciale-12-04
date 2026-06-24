@@ -17,6 +17,7 @@ type RunIaActionParams = {
   clientImage?: File | null
   url?: string | null
   clientName?: string | null
+  maxTokens?: number
 }
 
 function isImageFile(file: File): boolean {
@@ -190,7 +191,7 @@ export async function runIaAction(params: RunIaActionParams): Promise<string> {
 
   const message = await client.messages.create({
     model: IA_MODEL,
-    max_tokens: 4096,
+    max_tokens: params.maxTokens ?? 4096,
     system: buildIaSystemPrompt(getIaActionSystemHint(params.actionId)),
     messages: [{ role: 'user', content }],
   })

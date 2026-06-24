@@ -20,7 +20,7 @@ export function buildPrezFinalPrompt(
 
 **Mode demandé par l'utilisateur : analyse écrite**
 
-Produis un document d'analyse structuré en markdown (pas de slides Keynote).
+Produis un document d'analyse structuré en markdown (pas de slides PowerPoint).
 Reste factuel, orienté recommandations commerciales média Link Academy.`
   }
 
@@ -30,11 +30,17 @@ Reste factuel, orienté recommandations commerciales média Link Academy.`
 
 **Mode demandé par l'utilisateur : présentation globale**
 
-Template cible : Keynote « Base de présentation 2026 » (Link Academy).
+Template cible : PowerPoint « Base de présentation 2026 » (Link Academy).
 
 Le pré-prompt maître ci-dessus prime sur toute autre consigne en cas de conflit.
 
-Produis le contenu slide par slide en respectant strictement le format suivant pour chaque slide :
+**IMPORTANT — format de sortie obligatoire**
+
+Ta réponse doit être UNIQUEMENT la présentation slide par slide, sans introduction ni commentaire meta.
+Commence directement par \`## Slide 1 — …\`.
+Produis au minimum 10 slides (ou plus si les données le justifient), couvrant synthèse, contexte, KPIs, analyses par plateforme, enseignements, recommandations et conclusion.
+
+Respecte strictement ce format pour CHAQUE slide :
 
 ## Slide X — [Titre de la slide]
 
@@ -56,9 +62,9 @@ Suggestion de visuel :
 Note de présentation :
 [texte]
 
-Ce format est obligatoire : il sert à générer automatiquement le fichier Keynote (.key).
-
-Indique si une slide du template doit être supprimée ou dupliquée.`
+Ce format alimente automatiquement le fichier PowerPoint (.pptx).
+Remplis chaque section avec le contenu réel issu des documents joints (chiffres, analyses, recommandations).
+Ne laisse aucune section vide si l'information est disponible dans les PDF.`
 }
 
 export function prezOutputModeLabel(mode: IaPrezOutputMode): string {

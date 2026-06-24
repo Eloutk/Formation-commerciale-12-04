@@ -10,8 +10,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   experimental: {
+    serverComponentsExternalPackages: ['pptx-automizer'],
     serverActions: {
-      bodySizeLimit: '12mb',
+      bodySizeLimit: '80mb',
     },
   },
   /**

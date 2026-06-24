@@ -2,9 +2,9 @@
 export const IA_MODEL =
   process.env.ANTHROPIC_MODEL?.trim() || 'claude-sonnet-4-6'
 
-/** Limite par PDF — total cumulé plafonné pour rester sous ~12 Mo de requête */
-export const IA_MAX_PDF_BYTES = 5 * 1024 * 1024
-export const IA_MAX_PDF_TOTAL_BYTES = 10 * 1024 * 1024
+/** Limite par PDF — jusqu'à 15 Mo/fichier, 75 Mo cumulés (5 PDF max) */
+export const IA_MAX_PDF_BYTES = 15 * 1024 * 1024
+export const IA_MAX_PDF_TOTAL_BYTES = 75 * 1024 * 1024
 export const IA_MAX_PDF_FILES = 5
 export const IA_MAX_IMAGE_BYTES = 5 * 1024 * 1024
 

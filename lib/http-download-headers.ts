@@ -10,7 +10,7 @@ export function toAsciiHeaderValue(value: string): string {
 
 /** Content-Disposition compatible navigateurs, avec nom UTF-8. */
 export function buildContentDisposition(filename: string): string {
-  const asciiFallback = toAsciiHeaderValue(filename).replace(/["\\]/g, '') || 'download.key'
+  const asciiFallback = toAsciiHeaderValue(filename).replace(/["\\]/g, '') || 'download.pptx'
   const encoded = encodeURIComponent(filename)
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`
 }
@@ -28,5 +28,5 @@ export function parseContentDispositionFilename(disposition: string): string {
   const asciiMatch = disposition.match(/filename="([^"]+)"/i)
   if (asciiMatch?.[1]) return asciiMatch[1]
 
-  return 'Presentation.key'
+  return 'Presentation.pptx'
 }

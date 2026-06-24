@@ -30,6 +30,7 @@ export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
 
 export const VENTE2_SOCIAL_HREF = '/calculateur-vente-2/social-media'
 export const VENTE2_SMS_HREF = '/calculateur-vente-2/sms-rcs'
+export const VENTE2_STUDIO_TARIFS_HREF = '/calculateur-vente-2/tarifs-studio'
 export const STRATEGIE_SOCIAL_HREF = '/strategie/social-media'
 export const MOCKUP_HREF = '/mockup'
 export const IA_HREF = '/ia'
@@ -38,6 +39,7 @@ export const MON_ESPACE_HREF = '/mon-espace'
 export const VENTE2_LINKS: NavMenuItem[] = [
   { href: VENTE2_SOCIAL_HREF, label: 'Social Media' },
   { href: VENTE2_SMS_HREF, label: 'SMS & RCS' },
+  { href: VENTE2_STUDIO_TARIFS_HREF, label: 'Tarifs studio', adminOnly: true },
 ]
 
 export const STRATEGIE_LINKS: NavMenuItem[] = [

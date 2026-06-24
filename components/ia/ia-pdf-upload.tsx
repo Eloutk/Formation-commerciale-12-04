@@ -74,7 +74,7 @@ export function IaPdfUploadField({
         <ul className="space-y-2 rounded-md border bg-muted/20 p-3">
           {files.map((file, index) => (
             <li key={`${file.name}-${file.size}-${file.lastModified}`} className="flex items-center gap-2">
-              <FileText className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
+              <FileText className="h-4 w-4 shrink-0 text-[#E94C16]" aria-hidden />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{file.name}</span>
               <span className="shrink-0 text-xs text-muted-foreground">
                 {(file.size / (1024 * 1024)).toFixed(1)} Mo

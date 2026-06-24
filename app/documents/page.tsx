@@ -26,7 +26,7 @@ function downloadFile(href: string, filename: string) {
 }
 
 function DocumentCard({ doc }: { doc: SiteDocument }) {
-  const isKeynote = doc.format === 'keynote'
+  const isPresentation = doc.format === 'powerpoint' || doc.format === 'keynote'
 
   return (
     <Card
@@ -38,7 +38,7 @@ function DocumentCard({ doc }: { doc: SiteDocument }) {
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            {isKeynote ? (
+            {isPresentation ? (
               <Presentation className="h-4 w-4 shrink-0 text-violet-600" aria-hidden />
             ) : (
               <FileText className="h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
@@ -84,8 +84,8 @@ export default function DocumentsPage() {
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Documents</h1>
           <p className="text-muted-foreground">
-            Guides, templates Keynote et fiches plateformes Link Academy. La base de présentation 2026
-            sert aussi de template pour les présentations générées depuis l&apos;onglet IA.
+            Guides, templates PowerPoint et fiches plateformes Link Academy. La base de présentation 2026
+            sert de template pour les présentations générées depuis l&apos;onglet IA.
           </p>
         </div>
 

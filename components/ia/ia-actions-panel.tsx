@@ -24,29 +24,28 @@ import { type IaPrezOutputMode, isPresentationAnalysisName } from '@/lib/ia-prez
 import { parseContentDispositionFilename } from '@/lib/http-download-headers'
 import { MON_ESPACE_HREF } from '@/lib/nav-config'
 import { cn } from '@/lib/utils'
+import { useIaGeneration } from '@/components/ia/ia-generation-context'
 
-const KEYNOTE_NOTICE_MESSAGES: Record<string, string> = {
+const PRESENTATION_NOTICE_MESSAGES: Record<string, string> = {
   'template-only':
-    'Template copié — le remplissage automatique nécessite macOS avec Keynote installé.',
-  'automation-denied':
-    'Keynote n\'a pas pu être rempli : autorisez Cursor (ou Terminal) à contrôler Keynote dans Réglages système → Confidentialité et sécurité → Automatisation, puis retéléchargez.',
+    'Template PowerPoint copié — le remplissage automatique n\'a pas pu être appliqué.',
   'no-slides':
     'Aucune slide détectée dans l\'analyse IA — le template vierge a été téléchargé. Relancez en mode Présentation globale ou vérifiez le format des slides.',
   'fill-failed':
-    'Le template a été téléchargé mais Keynote n\'a pas pu remplir les zones texte. Ouvrez Keynote et copiez le contenu slide par slide depuis l\'analyse.',
+    'Le template a été téléchargé mais le remplissage automatique a échoué. Ouvrez PowerPoint et copiez le contenu slide par slide depuis l\'analyse.',
   'partial-fill':
-    'Remplissage partiel : certaines slides n\'ont pas pu être mises à jour automatiquement. Complétez le fichier dans Keynote si besoin.',
+    'Remplissage partiel : certaines slides n\'ont pas pu être mises à jour automatiquement. Complétez le fichier dans PowerPoint si besoin.',
 }
 
 function IaPresentationResult({
   record,
   analysis,
-  keynoteDownloadUrl,
+  presentationDownloadUrl,
   subtitle,
 }: {
   record?: IaAnalysisRecord | null
   analysis: string
-  keynoteDownloadUrl: string
+  presentationDownloadUrl: string
   subtitle?: string
 }) {
   const [downloading, setDownloading] = useState(false)
@@ -58,13 +57,13 @@ function IaPresentationResult({
     setDownloading(true)
     setDownloadError(null)
     try {
-      const response = await fetch(keynoteDownloadUrl)
+      const response = await fetch(presentationDownloadUrl)
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null
-        throw new Error(payload?.error || 'Téléchargement Keynote impossible.')
+        throw new Error(payload?.error || 'Téléchargement PowerPoint impossible.')
       }
 
-      const noticeCode = response.headers.get('X-Keynote-Notice-Code')
+      const noticeCode = response.headers.get('X-Presentation-Notice-Code')
       const blob = await response.blob()
       const disposition = response.headers.get('Content-Disposition') ?? ''
       const filename = parseContentDispositionFilename(disposition)
@@ -77,10 +76,15 @@ function IaPresentationResult({
       URL.revokeObjectURL(url)
 
       if (noticeCode) {
-        setDownloadError(KEYNOTE_NOTICE_MESSAGES[noticeCode] ?? null)
+        setDownloadError(PRESENTATION_NOTICE_MESSAGES[noticeCode] ?? null)
       }
     } catch (err) {
-      setDownloadError(err instanceof Error ? err.message : 'Téléchargement Keynote impossible.')
+      const raw = err instanceof Error ? err.message : 'Téléchargement PowerPoint impossible.'
+      const message =
+        raw === 'Failed to fetch'
+          ? 'La génération du PowerPoint a échoué côté serveur (connexion interrompue). Réessayez dans quelques secondes.'
+          : raw
+      setDownloadError(message)
     } finally {
       setDownloading(false)
     }
@@ -101,14 +105,14 @@ function IaPresentationResult({
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
         <div>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Presentation className="h-5 w-5 text-violet-600" aria-hidden />
-            {record?.name ?? 'Présentation Keynote'}
+            <Presentation className="h-5 w-5 text-[#E94C16]" aria-hidden />
+            {record?.name ?? 'Présentation PowerPoint'}
           </CardTitle>
           {subtitle ? <CardDescription>{subtitle}</CardDescription> : null}
           {record ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Enregistré dans Mon espace ·{' '}
-              <Link href={MON_ESPACE_HREF} className="text-violet-600 hover:underline">
+              <Link href={MON_ESPACE_HREF} className="text-[#E94C16] hover:underline">
                 Voir toutes les analyses
               </Link>
             </p>
@@ -120,14 +124,14 @@ function IaPresentationResult({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-5">
+        <div className="rounded-xl border border-[#E94C16]/25 bg-[#E94C16]/[0.06] p-5">
           <p className="mb-3 text-sm text-foreground">
-            Votre présentation est prête. Téléchargez le fichier Keynote (.key) généré à partir du
+            Votre présentation est prête. Téléchargez le fichier PowerPoint (.pptx) généré à partir du
             template Link.
           </p>
           <Button
             type="button"
-            className="bg-violet-600 hover:bg-violet-700"
+            className="bg-[#E94C16] hover:bg-[#d43f12]"
             disabled={downloading}
             onClick={() => void handleDownload()}
           >
@@ -136,7 +140,7 @@ function IaPresentationResult({
             ) : (
               <Download className="mr-2 h-4 w-4" aria-hidden />
             )}
-            {downloading ? 'Génération du .key…' : 'Télécharger la présentation (.key)'}
+            {downloading ? 'Génération du .pptx…' : 'Télécharger la présentation (.pptx)'}
           </Button>
           {downloadError ? (
             <p
@@ -154,7 +158,7 @@ function IaPresentationResult({
 
         <button
           type="button"
-          className="text-sm text-violet-600 hover:underline"
+          className="text-sm text-[#E94C16] hover:underline"
           onClick={() => setShowScript((value) => !value)}
         >
           {showScript ? 'Masquer le contenu slide par slide' : 'Voir le contenu slide par slide'}
@@ -202,7 +206,7 @@ function IaAnalysisResult({
           {record ? (
             <p className="mt-1 text-xs text-muted-foreground">
               Enregistré dans Mon espace ·{' '}
-              <Link href={MON_ESPACE_HREF} className="text-violet-600 hover:underline">
+              <Link href={MON_ESPACE_HREF} className="text-[#E94C16] hover:underline">
                 Voir toutes les analyses
               </Link>
             </p>
@@ -232,7 +236,7 @@ function ActionForm({
   onResult: (
     analysis: string,
     record: IaAnalysisRecord | null,
-    options?: { outputMode?: IaPrezOutputMode; keynoteDownloadUrl?: string | null },
+    options?: { outputMode?: IaPrezOutputMode; presentationDownloadUrl?: string | null },
   ) => void
 }) {
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -244,6 +248,18 @@ function ActionForm({
   const [outputMode, setOutputMode] = useState<IaPrezOutputMode>('written')
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
+  const { setIsGenerating, registerAbort } = useIaGeneration()
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    registerAbort(() => {
+      abortControllerRef.current?.abort()
+      abortControllerRef.current = null
+      setRunning(false)
+      setIsGenerating(false)
+    })
+    return () => registerAbort(null)
+  }, [registerAbort, setIsGenerating])
 
   useEffect(() => {
     setPdfFiles([])
@@ -264,7 +280,10 @@ function ActionForm({
 
   const handleRun = async () => {
     setRunning(true)
+    setIsGenerating(true)
     setError(null)
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
     try {
       const formData = new FormData()
       formData.append('actionId', action.id)
@@ -275,12 +294,16 @@ function ActionForm({
       if (clientImage) formData.append('clientImage', clientImage)
       if (url.trim()) formData.append('url', url.trim())
 
-      const response = await fetch('/api/ia/run', { method: 'POST', body: formData })
+      const response = await fetch('/api/ia/run', {
+        method: 'POST',
+        body: formData,
+        signal: abortController.signal,
+      })
       const payload = (await response.json()) as {
         analysis?: string
         record?: IaAnalysisRecord
         outputMode?: IaPrezOutputMode
-        keynoteDownloadUrl?: string | null
+        presentationDownloadUrl?: string | null
         error?: string
       }
 
@@ -290,12 +313,15 @@ function ActionForm({
 
       onResult(payload.analysis ?? '', payload.record ?? null, {
         outputMode: payload.outputMode,
-        keynoteDownloadUrl: payload.keynoteDownloadUrl,
+        presentationDownloadUrl: payload.presentationDownloadUrl ?? null,
       })
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : 'Analyse impossible.')
     } finally {
+      abortControllerRef.current = null
       setRunning(false)
+      setIsGenerating(false)
     }
   }
 
@@ -378,7 +404,7 @@ function ActionForm({
 
       <Button
         type="button"
-        className="bg-violet-600 hover:bg-violet-700"
+        className="bg-[#E94C16] hover:bg-[#d43f12]"
         disabled={!canRun}
         onClick={() => void handleRun()}
       >
@@ -398,11 +424,12 @@ type IaActionsPanelProps = {
 }
 
 export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
+  const { requestLeave } = useIaGeneration()
   const [selectedId, setSelectedId] = useState<IaActionId | null>(null)
   const [result, setResult] = useState<string | null>(null)
   const [resultRecord, setResultRecord] = useState<IaAnalysisRecord | null>(null)
   const [resultOutputMode, setResultOutputMode] = useState<IaPrezOutputMode | null>(null)
-  const [keynoteDownloadUrl, setKeynoteDownloadUrl] = useState<string | null>(null)
+  const [presentationDownloadUrl, setPresentationDownloadUrl] = useState<string | null>(null)
   const [loadingSaved, setLoadingSaved] = useState(false)
 
   const selectedAction = useMemo(
@@ -422,10 +449,10 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
         setResultRecord(record)
         if (isPresentationAnalysisName(record.name)) {
           setResultOutputMode('presentation')
-          setKeynoteDownloadUrl(`/api/ia/keynote/${record.id}`)
+          setPresentationDownloadUrl(`/api/ia/pptx/${record.id}`)
         } else {
           setResultOutputMode('written')
-          setKeynoteDownloadUrl(null)
+          setPresentationDownloadUrl(null)
         }
       })
       .finally(() => {
@@ -439,20 +466,26 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
   const handleResult = (
     analysis: string,
     record: IaAnalysisRecord | null,
-    options?: { outputMode?: IaPrezOutputMode; keynoteDownloadUrl?: string | null },
+    options?: { outputMode?: IaPrezOutputMode; presentationDownloadUrl?: string | null },
   ) => {
     setResult(analysis)
     setResultRecord(record)
     setResultOutputMode(options?.outputMode ?? null)
-    setKeynoteDownloadUrl(options?.keynoteDownloadUrl ?? null)
+    setPresentationDownloadUrl(options?.presentationDownloadUrl ?? null)
   }
 
   const handleSelectAction = (id: IaActionId) => {
-    setSelectedId(id)
-    setResult(null)
-    setResultRecord(null)
-    setResultOutputMode(null)
-    setKeynoteDownloadUrl(null)
+    if (id === selectedId) return
+    requestLeave({
+      kind: 'callback',
+      run: () => {
+        setSelectedId(id)
+        setResult(null)
+        setResultRecord(null)
+        setResultOutputMode(null)
+        setPresentationDownloadUrl(null)
+      },
+    })
   }
 
   return (
@@ -478,8 +511,8 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
                 'rounded-xl border p-4 text-left transition-colors',
                 isSoon && 'cursor-not-allowed opacity-70',
                 isSelected
-                  ? 'border-violet-500 bg-violet-50/80 ring-1 ring-violet-500/30'
-                  : 'border-border bg-card hover:border-violet-300 hover:bg-violet-50/40',
+                  ? 'border-[#E94C16] bg-[#E94C16]/[0.08] ring-1 ring-[#E94C16]/30'
+                  : 'border-border bg-card hover:border-[#E94C16]/40 hover:bg-[#E94C16]/[0.04]',
               )}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -489,7 +522,7 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
                     À cadrer
                   </Badge>
                 ) : (
-                  <Badge className="shrink-0 bg-violet-600 text-[10px] hover:bg-violet-600">
+                  <Badge className="shrink-0 bg-[#E94C16] text-[10px] hover:bg-[#E94C16]">
                     Disponible
                   </Badge>
                 )}
@@ -502,7 +535,7 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
 
       {selectedAction ? (
         <Card className="overflow-hidden border-border/80">
-          <CardHeader className="border-b bg-gradient-to-r from-violet-600/[0.08] to-transparent">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.08] to-transparent">
             <CardTitle className="text-xl">{selectedAction.label}</CardTitle>
             <CardDescription>{selectedAction.description}</CardDescription>
           </CardHeader>
@@ -517,11 +550,11 @@ export function IaActionsPanel({ initialAnalysisId }: IaActionsPanelProps) {
       )}
 
       {result ? (
-        resultOutputMode === 'presentation' && keynoteDownloadUrl ? (
+        resultOutputMode === 'presentation' && presentationDownloadUrl ? (
           <IaPresentationResult
             record={resultRecord}
             analysis={result}
-            keynoteDownloadUrl={keynoteDownloadUrl}
+            presentationDownloadUrl={presentationDownloadUrl}
             subtitle={resultRecord?.input_label ?? undefined}
           />
         ) : (

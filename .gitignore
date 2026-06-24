@@ -22,6 +22,7 @@
 
 # Présentations Keynote (dépassement limite GitHub 100 Mo)
 public/*.key
+public/*.pptx
 
 # debug
 npm-debug.log*

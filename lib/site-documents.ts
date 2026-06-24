@@ -6,7 +6,7 @@ export type SiteDocument = {
   description: string
   href: string
   downloadFilename: string
-  format: 'pdf' | 'keynote' | 'xlsx'
+  format: 'pdf' | 'powerpoint' | 'keynote' | 'xlsx'
   featured?: boolean
   badge?: string
 }
@@ -52,8 +52,8 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
   },
   {
     id: 'presentations',
-    title: 'Présentations Keynote',
-    description: 'Templates Keynote pour vos restitutions client et formations.',
+    title: 'Présentations',
+    description: 'Templates pour vos restitutions client et formations.',
     items: [
       {
         id: 'base-presentation-2026',
@@ -61,7 +61,7 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
         description: IA_PRESENTATION_TEMPLATE.description,
         href: IA_PRESENTATION_TEMPLATE.publicPath,
         downloadFilename: IA_PRESENTATION_TEMPLATE.downloadFilename,
-        format: 'keynote',
+        format: 'powerpoint',
         featured: true,
         badge: 'Template IA',
       },
@@ -99,6 +99,7 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
 ]
 
 export function formatDocumentLabel(format: SiteDocument['format']): string {
+  if (format === 'powerpoint') return 'PowerPoint'
   if (format === 'keynote') return 'Keynote'
   if (format === 'xlsx') return 'Excel'
   return 'PDF'
