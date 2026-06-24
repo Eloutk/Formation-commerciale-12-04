@@ -8,7 +8,7 @@ import { buildContentDisposition } from '@/lib/http-download-headers'
 import { IA_ANALYSIS_PUBLIC_COLUMNS } from '@/lib/ia-pre-prompt-server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+export const maxDuration = 60
 
 type RouteContext = { params: { id: string } }
 

@@ -45,6 +45,11 @@ import {
   type StudioTarifsSaveContent,
 } from '@/lib/studio-tarifs-saves'
 import {
+  getStudioBudgetRequestHref,
+  sendStudioBudgetRequest,
+  usesStudioBudgetSlackRequest,
+} from '@/lib/studio-budget-request'
+import {
   createStudioTarifsSave,
   getStudioTarifsSaveById,
   updateStudioTarifsSave,
@@ -55,9 +60,6 @@ import { useAuthAccess } from '@/components/auth-context'
 import { Clapperboard, Download, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
-
-const STUDIO_BUDGET_MAILTO =
-  'mailto:?subject=Demande%20approche%20budg%C3%A9taire%20studio%20Link%20Academy'
 
 const STUDIO_SECTION_ICONS: Record<StudioTarifsSectionId, LucideIcon> = {
   video: Clapperboard,
@@ -90,12 +92,48 @@ function PrestationCell({ row }: { row: StudioTarifsRow }) {
   )
 }
 
-function TarifCell({ row }: { row: StudioTarifsRow }) {
+function TarifCell({
+  row,
+  requesting,
+  onBudgetRequest,
+}: {
+  row: StudioTarifsRow
+  requesting: boolean
+  onBudgetRequest: (row: StudioTarifsRow) => void
+}) {
   if (row.kind === 'on_demand') {
+    const label = row.rateLabel ?? row.onDemandPriceNote ?? 'Faire demande approche budgétaire'
+
+    if (usesStudioBudgetSlackRequest(row)) {
+      return (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto px-0 text-left whitespace-normal"
+          disabled={requesting}
+          onClick={() => onBudgetRequest(row)}
+        >
+          {requesting ? (
+            <>
+              <Loader2 className="mr-2 inline h-3.5 w-3.5 animate-spin" aria-hidden />
+              Envoi…
+            </>
+          ) : (
+            label
+          )}
+        </Button>
+      )
+    }
+
     return (
       <Button asChild variant="link" size="sm" className="h-auto px-0 text-left whitespace-normal">
-        <a href={STUDIO_BUDGET_MAILTO}>
-          {row.rateLabel ?? row.onDemandPriceNote}
+        <a
+          href={getStudioBudgetRequestHref(row) ?? '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {label}
         </a>
       </Button>
     )
@@ -119,6 +157,8 @@ type StudioTarifsTableProps = {
   state: StudioTarifsSelectionState
   onToggle: (id: string, checked: boolean) => void
   onQuantityChange: (id: string, value: string) => void
+  budgetRequestRowId: string | null
+  onBudgetRequest: (row: StudioTarifsRow) => void
 }
 
 function StudioTarifsTable({
@@ -127,6 +167,8 @@ function StudioTarifsTable({
   state,
   onToggle,
   onQuantityChange,
+  budgetRequestRowId,
+  onBudgetRequest,
 }: StudioTarifsTableProps) {
   const sectionLines = lines.filter((line) => line.row.sectionId === sectionId)
   if (sectionLines.length === 0) return null
@@ -201,7 +243,11 @@ function StudioTarifsTable({
                     <MultilineText text={row.explanation} />
                   </TableCell>
                   <TableCell className="border-r border-border/50 bg-amber-50 text-sm dark:bg-amber-950/25">
-                    <TarifCell row={row} />
+                    <TarifCell
+                      row={row}
+                      requesting={budgetRequestRowId === row.id}
+                      onBudgetRequest={onBudgetRequest}
+                    />
                   </TableCell>
                   <TableCell className="text-sm text-foreground/80">
                     {row.conditions ? <MultilineText text={row.conditions} /> : '—'}
@@ -265,7 +311,11 @@ function StudioTarifsTable({
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
                       Tarif unitaire (HT)
                     </p>
-                    <TarifCell row={row} />
+                    <TarifCell
+                      row={row}
+                      requesting={budgetRequestRowId === row.id}
+                      onBudgetRequest={onBudgetRequest}
+                    />
                   </div>
                   {row.conditions ? (
                     <div className="col-span-2 rounded-md border border-border/70 bg-muted/30 p-3">
@@ -305,7 +355,7 @@ export function StudioTarifsPanel() {
 function StudioTarifsPanelInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { role } = useAuthAccess()
+  const { role, userName } = useAuthAccess()
   const studioIdFromUrl = searchParams.get('studio')
 
   const [activeSection, setActiveSection] = useState<StudioTarifsSectionId>('video')
@@ -320,6 +370,7 @@ function StudioTarifsPanelInner() {
   const [loadingSave, setLoadingSave] = useState(false)
   const [comment, setComment] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [budgetRequestRowId, setBudgetRequestRowId] = useState<string | null>(null)
 
   const computed = useMemo(() => computeStudioTarifsGrid(state), [state])
   const selectedSummaryBySection = useMemo(
@@ -356,6 +407,20 @@ function StudioTarifsPanelInner() {
       ...current,
       [id]: { ...current[id]!, quantity: value },
     }))
+  }
+
+  const handleBudgetRequest = async (row: StudioTarifsRow) => {
+    if (!usesStudioBudgetSlackRequest(row) || budgetRequestRowId) return
+
+    setBudgetRequestRowId(row.id)
+    try {
+      await sendStudioBudgetRequest({ row, userName })
+      alert('Demande d’approche budgétaire envoyée au studio (Slack #demande-studio).')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erreur lors de l’envoi de la demande.')
+    } finally {
+      setBudgetRequestRowId(null)
+    }
   }
 
   const resetSelection = () => {
@@ -565,6 +630,8 @@ function StudioTarifsPanelInner() {
                 state={state}
                 onToggle={onToggle}
                 onQuantityChange={onQuantityChange}
+                budgetRequestRowId={budgetRequestRowId}
+                onBudgetRequest={(row) => void handleBudgetRequest(row)}
               />
             </section>
           </div>
