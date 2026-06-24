@@ -366,8 +366,7 @@ export function createInitialStudioTarifsState(): StudioTarifsSelectionState {
   for (const row of STUDIO_TARIFS_ROWS) {
     state[row.id] = {
       selected: false,
-      quantity:
-        row.defaultQuantity !== undefined ? String(row.defaultQuantity) : '',
+      quantity: String(row.defaultQuantity ?? 1),
     }
   }
   return state
@@ -463,10 +462,12 @@ export function computeStudioTarifsGrid(
 }
 
 export function formatStudioEuro(value: number): string {
-  return `${value.toLocaleString('fr-FR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })} €`
+  const rounded = Math.round(value)
+  const absolute = Math.abs(rounded)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  const sign = rounded < 0 ? '-' : ''
+  return `${sign}${absolute} €`
 }
 
 export function formatStudioPrestationLabel(row: StudioTarifsRow): string {

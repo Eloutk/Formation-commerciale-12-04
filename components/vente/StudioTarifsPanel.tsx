@@ -35,6 +35,7 @@ import {
   createInitialStudioTarifsState,
   formatStudioEuro,
   formatStudioPrestationLabel,
+  parseStudioQuantity,
   type StudioTarifsRow,
   type StudioTarifsSectionId,
   type StudioTarifsSelectionState,
@@ -57,14 +58,28 @@ import {
 import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { formatUserRoleLabel } from '@/lib/roles'
 import { useAuthAccess } from '@/components/auth-context'
-import { Clapperboard, Download, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save } from 'lucide-react'
+import { Clapperboard, ChevronDown, ChevronUp, Download, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
+import { buildStudioTarifsPdfLine } from '@/lib/studio-tarifs-pdf-lines'
 
 const STUDIO_SECTION_ICONS: Record<StudioTarifsSectionId, LucideIcon> = {
   video: Clapperboard,
   graphisme: PenTool,
   fixe: ImageIcon,
+}
+
+function sanitizeStudioPdfFilename(name: string): string {
+  const withoutExtension = name.trim().replace(/\.pdf$/i, '')
+  const sanitized = withoutExtension
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-_\s]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80)
+  return sanitized || 'devis-studio'
 }
 
 function MultilineText({ text }: { text: string }) {
@@ -142,6 +157,74 @@ function TarifCell({
     return <span className="font-semibold tabular-nums">{formatStudioEuro(row.rateHT)}</span>
   }
   return <span className="text-muted-foreground">—</span>
+}
+
+function formatStudioQuantityValue(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(value)
+}
+
+function StudioQuantityInput({
+  value,
+  onChange,
+  disabled,
+  label,
+  className,
+}: {
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+  label: string
+  className?: string
+}) {
+  const adjust = (delta: number) => {
+    const parsed = parseStudioQuantity(value)
+    const current = parsed > 0 ? parsed : 1
+    const next = Math.max(1, current + delta)
+    onChange(formatStudioQuantityValue(next))
+  }
+
+  const parsed = parseStudioQuantity(value)
+  const canDecrease = !disabled && (parsed > 1 || value.trim() === '')
+
+  return (
+    <div
+      className={cn(
+        'flex h-9 items-stretch overflow-hidden rounded-md border border-border bg-background',
+        disabled && 'opacity-60',
+        className,
+      )}
+    >
+      <Input
+        type="text"
+        inputMode="decimal"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-2 text-center tabular-nums shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        aria-label={label}
+      />
+      <div className="flex w-5 shrink-0 flex-col border-l border-border">
+        <button
+          type="button"
+          className="flex flex-1 items-center justify-center text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          onClick={() => adjust(1)}
+          disabled={disabled}
+          aria-label={`Augmenter ${label}`}
+        >
+          <ChevronUp className="h-3 w-3" aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="flex flex-1 items-center justify-center border-t border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          onClick={() => adjust(-1)}
+          disabled={!canDecrease}
+          aria-label={`Diminuer ${label}`}
+        >
+          <ChevronDown className="h-3 w-3" aria-hidden />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function formatStudioSummaryQuantity(row: StudioTarifsRow, quantity: number): string | null {
@@ -226,14 +309,12 @@ function StudioTarifsTable({
                   </TableCell>
                   <TableCell className="border-r border-border/50">
                     {isPriced ? (
-                      <Input
-                        type="text"
-                        inputMode="decimal"
+                      <StudioQuantityInput
                         value={entry.quantity}
-                        onChange={(event) => onQuantityChange(row.id, event.target.value)}
+                        onChange={(nextValue) => onQuantityChange(row.id, nextValue)}
                         disabled={!selected}
-                        className="h-9 w-20 border-border bg-background tabular-nums"
-                        aria-label={`Quantité pour ${row.label}`}
+                        label={`Quantité pour ${row.label}`}
+                        className="w-[4.75rem]"
                       />
                     ) : (
                       <span className="text-foreground/50">—</span>
@@ -295,13 +376,12 @@ function StudioTarifsTable({
                       Nombre
                     </p>
                     {isPriced ? (
-                      <Input
-                        type="text"
-                        inputMode="decimal"
+                      <StudioQuantityInput
                         value={entry.quantity}
-                        onChange={(event) => onQuantityChange(row.id, event.target.value)}
+                        onChange={(nextValue) => onQuantityChange(row.id, nextValue)}
                         disabled={!selected}
-                        className="h-9 border-border bg-background tabular-nums"
+                        label={`Quantité pour ${row.label}`}
+                        className="w-full"
                       />
                     ) : (
                       <span className="text-foreground/50">—</span>
@@ -370,6 +450,8 @@ function StudioTarifsPanelInner() {
   const [loadingSave, setLoadingSave] = useState(false)
   const [comment, setComment] = useState('')
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [pdfFileNameInput, setPdfFileNameInput] = useState('')
   const [budgetRequestDialogOpen, setBudgetRequestDialogOpen] = useState(false)
   const [budgetRequestRow, setBudgetRequestRow] = useState<StudioTarifsRow | null>(null)
   const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
@@ -400,10 +482,15 @@ function StudioTarifsPanelInner() {
   ).length
 
   const onToggle = (id: string, checked: boolean) => {
-    setState((current) => ({
-      ...current,
-      [id]: { ...current[id]!, selected: checked },
-    }))
+    setState((current) => {
+      const entry = current[id]!
+      const quantity =
+        checked && !entry.quantity.trim() ? '1' : entry.quantity
+      return {
+        ...current,
+        [id]: { ...entry, selected: checked, quantity },
+      }
+    })
   }
 
   const onQuantityChange = (id: string, value: string) => {
@@ -508,44 +595,50 @@ function StudioTarifsPanelInner() {
     setSaveDialogOpen(true)
   }
 
-  const handleDownloadPdf = async () => {
+  const handleOpenPdfDialog = () => {
     if (computed.selectedCount === 0) {
       alert('Sélectionnez au moins une prestation avant de télécharger le PDF.')
       return
     }
+    setPdfFileNameInput(
+      savedName.trim() ||
+        getDefaultStudioTarifsSaveName({
+          selectedCount: computed.selectedCount,
+          totalHT: computed.subtotalJ,
+        }),
+    )
+    setPdfDialogOpen(true)
+  }
+
+  const handleConfirmDownloadPdf = async () => {
+    const displayTitle = pdfFileNameInput.trim() || 'Devis studio — Tarifs PDV'
+    const safeName = sanitizeStudioPdfFilename(displayTitle)
+    const date = new Date().toISOString().split('T')[0]
 
     setExportingPdf(true)
     try {
-      const date = new Date().toISOString().split('T')[0]
-      const safeName = (savedName.trim() || 'devis-studio')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9-_]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-        .slice(0, 60)
-
       await downloadStudioTarifsPdf({
-        title: savedName.trim() || 'Devis studio — Tarifs PDV',
+        title: displayTitle,
         dateLabel: new Date().toLocaleDateString('fr-FR'),
+        userName: userName?.trim() || undefined,
         comment: comment.trim() || undefined,
         sections: selectedSummaryBySection.map(({ section, lines, subtotal }) => ({
           label: section.label,
           subtotalLabel: subtotal > 0 ? formatStudioEuro(subtotal) : null,
-          lines: lines.map(({ row, linePrice, quantity }) => {
-            const qtyLabel = formatStudioSummaryQuantity(row, quantity)
-            return {
-              label: formatStudioPrestationLabel(row),
-              quantityLabel: qtyLabel ? `× ${qtyLabel}` : null,
-              priceLabel:
-                row.kind === 'on_demand' ? 'Sur demande' : formatStudioEuro(linePrice),
-            }
-          }),
+          lines: lines.map(({ row, linePrice, quantity }) =>
+            buildStudioTarifsPdfLine({
+              row,
+              quantity,
+              linePrice,
+              subtotalI: computed.subtotalI,
+            }),
+          ),
         })),
         totalHtLabel: formatStudioEuro(computed.subtotalJ),
         totalTtcLabel: formatStudioEuro(computed.ttc),
-        filename: `${safeName || 'devis-studio'}-${date}.pdf`,
+        filename: `${safeName}-${date}.pdf`,
       })
+      setPdfDialogOpen(false)
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Erreur lors de la génération du PDF.')
     } finally {
@@ -721,19 +814,32 @@ function StudioTarifsPanelInner() {
                                 return (
                                 <li
                                   key={row.id}
-                                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1 px-3 py-2.5"
+                                  className="flex items-start justify-between gap-2 px-3 py-2.5"
                                 >
-                                  <span className="min-w-0 text-sm leading-snug text-foreground">
-                                    {formatStudioPrestationLabel(row)}
-                                  </span>
-                                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                                    {qtyLabel ? `× ${qtyLabel}` : ''}
-                                  </span>
-                                  <span className="shrink-0 text-sm font-semibold tabular-nums text-[#E94C16]">
-                                    {row.kind === 'on_demand'
-                                      ? 'Sur demande'
-                                      : formatStudioEuro(linePrice)}
-                                  </span>
+                                  <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-x-3 gap-y-1">
+                                    <span className="min-w-0 text-sm leading-snug text-foreground">
+                                      {formatStudioPrestationLabel(row)}
+                                    </span>
+                                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                                      {qtyLabel ? `× ${qtyLabel}` : ''}
+                                    </span>
+                                    <span className="shrink-0 text-sm font-semibold tabular-nums text-[#E94C16]">
+                                      {row.kind === 'on_demand'
+                                        ? 'Sur demande'
+                                        : formatStudioEuro(linePrice)}
+                                    </span>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => onToggle(row.id, false)}
+                                    className="h-6 w-6 shrink-0 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    title="Retirer du devis"
+                                    aria-label={`Retirer ${formatStudioPrestationLabel(row)} du devis`}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </li>
                                 )
                               })}
@@ -783,14 +889,10 @@ function StudioTarifsPanelInner() {
                       size="sm"
                       title="Télécharger le PDF"
                       className="h-auto min-h-10 w-full flex-col gap-1 bg-[#E94C16] px-1.5 py-2 text-[11px] leading-tight hover:bg-[#d43f12] text-white whitespace-normal"
-                      onClick={() => void handleDownloadPdf()}
+                      onClick={handleOpenPdfDialog}
                       disabled={loadingSave || exportingPdf || computed.selectedCount === 0}
                     >
-                      {exportingPdf ? (
-                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-                      ) : (
-                        <Download className="h-4 w-4 shrink-0" aria-hidden />
-                      )}
+                      <Download className="h-4 w-4 shrink-0" aria-hidden />
                       <span>PDF</span>
                     </Button>
                     <Button
@@ -864,6 +966,51 @@ function StudioTarifsPanelInner() {
                 <Save className="mr-2 h-4 w-4" aria-hidden />
               )}
               {savedId ? 'Mettre à jour' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Télécharger le PDF</DialogTitle>
+            <DialogDescription>
+              Choisissez le nom du fichier. L’extension <span className="font-medium">.pdf</span>{' '}
+              sera ajoutée automatiquement.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="studio-pdf-filename">Nom du fichier *</Label>
+              <Input
+                id="studio-pdf-filename"
+                placeholder="Ex. Devis studio Client X"
+                value={pdfFileNameInput}
+                onChange={(event) => setPdfFileNameInput(event.target.value)}
+                disabled={exportingPdf}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPdfDialogOpen(false)}
+              disabled={exportingPdf}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={() => void handleConfirmDownloadPdf()}
+              disabled={!pdfFileNameInput.trim() || exportingPdf}
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+            >
+              {exportingPdf ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Download className="mr-2 h-4 w-4" aria-hidden />
+              )}
+              Télécharger le PDF
             </Button>
           </DialogFooter>
         </DialogContent>
