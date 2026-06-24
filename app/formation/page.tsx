@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { UserCircle, LogIn } from "lucide-react"
 import ModuleCard from "@/components/module-card"
-import { getModulesProgress } from "@/lib/progress"
+import { filterFormationModulesForRole, getModulesProgress } from "@/lib/progress"
+import { getPrimarySessionUser } from "@/lib/media-session"
 
-export default function FormationPage() {
-  // Récupérer les données de progression des modules
+export default async function FormationPage() {
+  const user = await getPrimarySessionUser()
   const { modules } = getModulesProgress()
+  const visibleModules = filterFormationModulesForRole(modules, user?.role ?? null)
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -26,7 +28,7 @@ export default function FormationPage() {
       <section className="py-8">
         <h2 className="text-3xl font-bold mb-8 text-center">Modules de formation</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {modules.map((module) => {
+          {visibleModules.map((module) => {
             const moduleTitle = module.title === "Bilans de campagne" ? "Rapports de campagne" : module.title;
             return (
               <ModuleCard

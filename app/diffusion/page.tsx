@@ -1,9 +1,11 @@
 import ModuleCard from "@/components/module-card"
-import { getModulesProgress } from "@/lib/progress"
+import { filterFormationModulesForRole, getModulesProgress } from "@/lib/progress"
+import { getPrimarySessionUser } from "@/lib/media-session"
 
-export default function DiffusionPage() {
-  // Récupérer les données de progression des modules
+export default async function DiffusionPage() {
+  const user = await getPrimarySessionUser()
   const { modules } = getModulesProgress()
+  const visibleModules = filterFormationModulesForRole(modules, user?.role ?? null)
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
@@ -22,7 +24,7 @@ export default function DiffusionPage() {
       <section className="py-4 md:py-8">
         <h2 className="mb-6 md:mb-8 text-center">Modules de formation</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          {modules.map((module) => {
+          {visibleModules.map((module) => {
             const moduleTitle = module.title === "Bilans de campagne" ? "Rapports de campagne" : module.title;
             return (
               <ModuleCard

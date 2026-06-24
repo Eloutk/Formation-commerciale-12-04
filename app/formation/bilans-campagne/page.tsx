@@ -35,7 +35,7 @@ export default function BilansCampagne() {
                 L'objectif : <strong>renforcer la compréhension</strong>, <strong>favoriser l'échange</strong> et <strong>identifier ensemble les axes d'optimisation</strong> pour les actions à venir.
               </p>
               <div className="flex justify-center mt-6">
-                <Link href="https://lookerstudio.google.com/u/0/reporting/99ee72f8-ed6a-4275-bafe-59b5cc74fb3f/page/bRiXB/edit" target="_blank">
+                <Link href="https://datastudio.google.com/reporting/a0d542c3-d1b7-4d40-941a-7ed60813f51b" target="_blank">
                   <Button>
                     Exemple concret de bilan
                     <ChevronRight className="ml-2 h-4 w-4" />
@@ -44,13 +44,6 @@ export default function BilansCampagne() {
               </div>
             </div>
             <div className="space-y-8 mt-8">
-              <div>
-                <h3 className="text-xl font-semibold text-primary mb-2">Bilan mi-campagne</h3>
-                <p className="text-justify">
-                  Le bilan mi-campagne permet de faire un point d'étape sur les performances en cours et de vérifier que les objectifs sont bien engagés.<br />
-                  C'est aussi l'occasion d'ajuster certaines actions si nécessaire (messages, ciblages, formats) pour optimiser la suite de la diffusion.
-                </p>
-              </div>
               <div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Bilan fin de campagne</h3>
                 <p className="text-justify">

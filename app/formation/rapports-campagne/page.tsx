@@ -78,7 +78,7 @@ export default function RapportsCampagne() {
                 Ce support permet à nos clients de <strong>suivre en direct et en toute transparence les performances clés</strong> de leur campagne digitale (impressions, clics, audiences touchées, etc.).
               </p>
               <div className="flex justify-center mt-6 gap-4">
-                <Link href="https://lookerstudio.google.com/u/0/reporting/99ee72f8-ed6a-4275-bafe-59b5cc74fb3f/page/bRiXB/edit" target="_blank">
+                <Link href="https://datastudio.google.com/reporting/a0d542c3-d1b7-4d40-941a-7ed60813f51b" target="_blank">
                   <Button>
                     Exemple concret de bilan
                     <ChevronRight className="ml-2 h-4 w-4" />

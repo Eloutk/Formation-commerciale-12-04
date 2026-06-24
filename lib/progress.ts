@@ -1,7 +1,9 @@
 // Données de progression des modules (simulées)
 // Dans une application réelle, ces données viendraient d'une base de données ou d'une API
 
-interface Module {
+import { isClientRole, type UserRole } from '@/lib/roles'
+
+export interface FormationModule {
   id: string
   title: string
   description: string
@@ -9,10 +11,20 @@ interface Module {
   progress: number
   quizScore: number | null
   icon: string
+  /** Masqué pour les utilisateurs avec le rôle client */
+  hiddenForClient?: boolean
+}
+
+export function filterFormationModulesForRole(
+  modules: FormationModule[],
+  role: UserRole | null | undefined,
+): FormationModule[] {
+  if (!isClientRole(role)) return modules
+  return modules.filter((module) => !module.hiddenForClient)
 }
 
 export function getModulesProgress() {
-  const modules: Module[] = [
+  const modules: FormationModule[] = [
     {
       id: "methodologie-link",
       title: "Méthodologie Link",
@@ -111,6 +123,7 @@ export function getModulesProgress() {
       progress: 0,
       quizScore: null,
       icon: "FolderTree",
+      hiddenForClient: true,
     },
   ]
 
