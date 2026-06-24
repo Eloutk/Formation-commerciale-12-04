@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import pkg, { modify } from 'pptx-automizer'
+import Automizer, { modify, type ISlide } from 'pptx-automizer'
 import { IA_PRESENTATION_TEMPLATE, IA_PPTX_TEMPLATE_DOWNLOAD_PATH } from '@/lib/ia-presentation-template'
 import {
   getTemplateShapeTargets,
@@ -9,14 +9,6 @@ import {
   shapeExistsOnSlide,
 } from '@/lib/ia-presentation-template-shapes'
 import { parsePresentationSlides, type ParsedPresentationSlide } from '@/lib/ia-presentation-slides'
-
-const Automizer = pkg.default ?? pkg
-
-type AutomizerSlide = {
-  getAllTextElementIds(): Promise<string[]>
-  prepare(callback: (xml: unknown, slide: unknown) => void | Promise<void>): unknown
-  modifyElement(selector: string, callback: unknown): unknown
-}
 
 export type PptxGenerateResult = {
   filePath: string
@@ -85,7 +77,7 @@ function splitBulletLines(text: string): string[] {
     .filter(Boolean)
 }
 
-function applyTextToShape(slide: AutomizerSlide, shapeName: string, text: string): void {
+function applyTextToShape(slide: ISlide, shapeName: string, text: string): void {
   const trimmed = text.trim()
   if (!trimmed) return
 
@@ -106,7 +98,7 @@ function applyTextToShape(slide: AutomizerSlide, shapeName: string, text: string
 }
 
 async function fillSlideFromData(
-  slide: AutomizerSlide,
+  slide: ISlide,
   data: ParsedPresentationSlide,
   templateSlideNum: number,
 ): Promise<boolean> {
@@ -195,9 +187,9 @@ async function fillPresentation(
     const slideData = slides[iaIndex]!
     const templateSlideNum = mapTemplateSlideIndex(iaIndex, templateSlideCount)
 
-    pres.addSlide('template', templateSlideNum, (slide) => {
+    pres.addSlide('template', templateSlideNum, (slide: ISlide) => {
       slide.prepare(async () => {
-        const ok = await fillSlideFromData(slide as AutomizerSlide, slideData, templateSlideNum)
+        const ok = await fillSlideFromData(slide, slideData, templateSlideNum)
         if (ok) filledSlideCount++
       })
     })
