@@ -18,8 +18,10 @@ export interface FormationModule {
 export function filterFormationModulesForRole(
   modules: FormationModule[],
   role: UserRole | null | undefined,
+  isClient?: boolean,
 ): FormationModule[] {
-  if (!isClientRole(role)) return modules
+  const hideForClient = isClient ?? isClientRole(role)
+  if (!hideForClient) return modules
   return modules.filter((module) => !module.hiddenForClient)
 }
 

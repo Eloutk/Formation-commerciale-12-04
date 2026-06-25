@@ -35,6 +35,20 @@ export function isClientRole(role: string | undefined | null): boolean {
   return normalizeUserRole(role) === 'client'
 }
 
+export const DEMANDES_POTENTIELS_HREF = '/formation/demandes-potentiels'
+
+export function isDemandesPotentielsPath(pathname: string): boolean {
+  return (
+    pathname === '/demandes-potentiels' ||
+    pathname === DEMANDES_POTENTIELS_HREF ||
+    pathname.startsWith(`${DEMANDES_POTENTIELS_HREF}/`)
+  )
+}
+
+export function canAccessDemandesPotentiels(role: string | undefined | null): boolean {
+  return !isClientRole(role)
+}
+
 export function formatUserRoleLabel(role: UserRole | null): string {
   switch (role) {
     case 'client':

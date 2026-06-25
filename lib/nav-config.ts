@@ -16,7 +16,6 @@ export type NavMenuGroup = {
 
 export const RESSOURCES_LINKS: NavMenuItem[] = [
   { href: '/diffusion', label: 'Diffusion' },
-  { href: '/chefferie', label: 'Chefferie de projet' },
   { href: '/studio', label: 'Studio' },
   { href: '/cartographie', label: 'Cartographie' },
   { href: '/media', label: 'Média', adminOnly: true },

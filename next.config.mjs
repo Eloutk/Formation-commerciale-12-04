@@ -36,6 +36,7 @@ const nextConfig = {
       { source: '/pdv2', destination: '/calculateur-vente-2/social-media', permanent: true },
       { source: '/vente2', destination: '/calculateur-vente-2/social-media', permanent: true },
       { source: '/diffusion/zones', destination: '/cartographie', permanent: true },
+      { source: '/demandes-potentiels', destination: '/formation/demandes-potentiels', permanent: false },
     ]
   },
   images: {

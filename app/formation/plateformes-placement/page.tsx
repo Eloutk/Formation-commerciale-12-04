@@ -14,10 +14,9 @@ export default function PlateformesPlacement() {
         <h1 className="text-3xl font-bold mb-4">Plateformes et Placements</h1>
 
         <Tabs defaultValue="social" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="social">Réseaux Sociaux</TabsTrigger>
             <TabsTrigger value="google">Google Ads</TabsTrigger>
-            <TabsTrigger value="sms">Campagnes SMS</TabsTrigger>
           </TabsList>
 
           {/* Onglet Réseaux Sociaux */}
@@ -489,20 +488,6 @@ export default function PlateformesPlacement() {
                   </TabsContent>
                 </Tabs>
               </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Onglet SMS */}
-          <TabsContent value="sms">
-            <Card>
-              <CardHeader>
-                <CardTitle>Campagnes SMS</CardTitle>
-                <CardDescription>Marketing par SMS via prestataires externes</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <p>Les campagnes SMS ne sont pas gérées en interne mais elles sont confiées à nos partenaires.</p>
-              </CardContent>
-              {/* Quiz button removed */}
             </Card>
           </TabsContent>
         </Tabs>

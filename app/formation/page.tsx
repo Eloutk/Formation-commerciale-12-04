@@ -6,10 +6,16 @@ import ModuleCard from "@/components/module-card"
 import { filterFormationModulesForRole, getModulesProgress } from "@/lib/progress"
 import { getPrimarySessionUser } from "@/lib/media-session"
 
+export const dynamic = 'force-dynamic'
+
 export default async function FormationPage() {
   const user = await getPrimarySessionUser()
   const { modules } = getModulesProgress()
-  const visibleModules = filterFormationModulesForRole(modules, user?.role ?? null)
+  const visibleModules = filterFormationModulesForRole(
+    modules,
+    user?.role ?? null,
+    user?.isClient,
+  )
 
   return (
     <div className="container mx-auto px-4 py-12">

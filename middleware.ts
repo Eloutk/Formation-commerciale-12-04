@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { isClientRole, isDemandesPotentielsPath, normalizeUserRole } from '@/lib/roles'
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
@@ -57,6 +58,21 @@ export async function middleware(req: NextRequest) {
     const original = `${req.nextUrl.pathname}${req.nextUrl.search}`
     redirectUrl.searchParams.set('redirect', original)
     return NextResponse.redirect(redirectUrl)
+  }
+
+  if (user && isDemandesPotentielsPath(pathname)) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (isClientRole(normalizeUserRole(profile?.role as string | undefined))) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/diffusion'
+      redirectUrl.search = ''
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
   // Note: on ne fait PAS de check "admin" dans le middleware pour éviter une requête Supabase
