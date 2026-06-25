@@ -19,12 +19,6 @@ const ROUTE_CONFIG: Record<string, RouteConfig> = {
     view: 'sms',
     pageTitle: 'Calculateur Vente 2 — SMS & RCS',
   },
-  '/strategie/retroplanning': {
-    view: 'calendar',
-    pageTitle: 'Stratégie — Rétroplanning',
-    pageDescription:
-      'Planifiez et visualisez le rétroplanning de vos campagnes Social media et SMS / RCS.',
-  },
 }
 
 const DEFAULT_DESCRIPTION =

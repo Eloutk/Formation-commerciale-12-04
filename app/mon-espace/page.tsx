@@ -7,6 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   BarChart3,
   Calculator,
+  CalendarDays,
   ExternalLink,
   FolderOpen,
   ImageIcon,
@@ -47,7 +48,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF, IA_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, STRATEGIE_RETROPLANNING_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF, IA_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -92,6 +93,14 @@ import {
   deleteStudioTarifsSave,
   listUserStudioTarifsSaves,
 } from '@/lib/studio-tarifs-saves-storage'
+import {
+  deleteRetroplanningSave,
+  listUserRetroplanningSaves,
+} from '@/lib/retroplanning-saves-storage'
+import {
+  formatRetroplanningSaveDate,
+  type RetroplanningSaveRecord,
+} from '@/lib/retroplanning-saves'
 import { getIaActionLabel } from '@/lib/ia-actions'
 import { formatIaAnalysisDate, type IaAnalysisRecord } from '@/lib/ia-analyses'
 import { deleteIaAnalysis, listUserIaAnalyses } from '@/lib/ia-analyses-storage'
@@ -106,7 +115,7 @@ import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
-type MonEspaceSection = 'admin' | 'strategy' | 'studioTarifs' | 'simulateur' | 'mockups' | 'ia' | 'devis'
+type MonEspaceSection = 'admin' | 'strategy' | 'retroplanning' | 'studioTarifs' | 'simulateur' | 'mockups' | 'ia' | 'devis'
 
 const MON_ESPACE_SECTIONS: {
   id: MonEspaceSection
@@ -116,6 +125,7 @@ const MON_ESPACE_SECTIONS: {
 }[] = [
   { id: 'admin', label: 'Vue admin', icon: Shield, adminOnly: true },
   { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
+  { id: 'retroplanning', label: 'Rétroplanning', icon: CalendarDays },
   { id: 'studioTarifs', label: 'Tarifs studio', icon: Palette, adminOnly: true },
   { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
@@ -131,24 +141,28 @@ export default function MonEspacePage() {
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
   const [studioTarifsSaves, setStudioTarifsSaves] = useState<StudioTarifsSaveRecord[]>([])
+  const [retroplanningSaves, setRetroplanningSaves] = useState<RetroplanningSaveRecord[]>([])
   const [iaAnalyses, setIaAnalyses] = useState<IaAnalysisRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
   const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
   const [loadingMockupSaves, setLoadingMockupSaves] = useState(true)
   const [loadingStudioTarifsSaves, setLoadingStudioTarifsSaves] = useState(true)
+  const [loadingRetroplanningSaves, setLoadingRetroplanningSaves] = useState(true)
   const [loadingIaAnalyses, setLoadingIaAnalyses] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
   const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
   const [mockupSavesError, setMockupSavesError] = useState<string | null>(null)
   const [studioTarifsSavesError, setStudioTarifsSavesError] = useState<string | null>(null)
+  const [retroplanningSavesError, setRetroplanningSavesError] = useState<string | null>(null)
   const [iaAnalysesError, setIaAnalysesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
   const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
   const [mockupSavesSearch, setMockupSavesSearch] = useState('')
   const [studioTarifsSavesSearch, setStudioTarifsSavesSearch] = useState('')
+  const [retroplanningSavesSearch, setRetroplanningSavesSearch] = useState('')
   const [iaAnalysesSearch, setIaAnalysesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
   const [deleteDevisTarget, setDeleteDevisTarget] = useState<SmsDevisRecord | null>(null)
@@ -158,6 +172,8 @@ export default function MonEspacePage() {
   const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
   const [deleteStudioTarifsTarget, setDeleteStudioTarifsTarget] =
     useState<StudioTarifsSaveRecord | null>(null)
+  const [deleteRetroplanningTarget, setDeleteRetroplanningTarget] =
+    useState<RetroplanningSaveRecord | null>(null)
   const [deleteIaTarget, setDeleteIaTarget] = useState<IaAnalysisRecord | null>(null)
   const [adminItems, setAdminItems] = useState<MonEspaceAdminItem[]>([])
   const [adminAuthors, setAdminAuthors] = useState<MonEspaceAuthor[]>([])
@@ -171,6 +187,7 @@ export default function MonEspacePage() {
   const [simulateurPage, setSimulateurPage] = useState(1)
   const [mockupPage, setMockupPage] = useState(1)
   const [studioTarifsPage, setStudioTarifsPage] = useState(1)
+  const [retroplanningPage, setRetroplanningPage] = useState(1)
   const [iaPage, setIaPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
   const [activeSection, setActiveSection] = useState<MonEspaceSection>('strategy')
@@ -255,6 +272,21 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadRetroplanningSaves = useCallback(async () => {
+    setLoadingRetroplanningSaves(true)
+    setRetroplanningSavesError(null)
+    try {
+      const rows = await listUserRetroplanningSaves()
+      setRetroplanningSaves(rows)
+    } catch (e) {
+      setRetroplanningSavesError(
+        e instanceof Error ? e.message : 'Impossible de charger vos rétroplannings.',
+      )
+    } finally {
+      setLoadingRetroplanningSaves(false)
+    }
+  }, [])
+
   const loadIaAnalyses = useCallback(async () => {
     setLoadingIaAnalyses(true)
     setIaAnalysesError(null)
@@ -274,8 +306,9 @@ export default function MonEspacePage() {
     void loadSimulateurSaves()
     void loadMockupSaves()
     void loadStudioTarifsSaves()
+    void loadRetroplanningSaves()
     void loadIaAnalyses()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadIaAnalyses])
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadRetroplanningSaves, loadIaAnalyses])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -349,6 +382,12 @@ export default function MonEspacePage() {
     return studioTarifsSaves.filter((s) => s.name.toLowerCase().includes(q))
   }, [studioTarifsSaves, studioTarifsSavesSearch])
 
+  const filteredRetroplanningSaves = useMemo(() => {
+    const q = retroplanningSavesSearch.trim().toLowerCase()
+    if (!q) return retroplanningSaves
+    return retroplanningSaves.filter((s) => s.name.toLowerCase().includes(q))
+  }, [retroplanningSaves, retroplanningSavesSearch])
+
   const filteredIaAnalyses = useMemo(() => {
     const q = iaAnalysesSearch.trim().toLowerCase()
     if (!q) return iaAnalyses
@@ -381,6 +420,10 @@ export default function MonEspacePage() {
     () => getMonEspacePagination(filteredStudioTarifsSaves, studioTarifsPage),
     [filteredStudioTarifsSaves, studioTarifsPage],
   )
+  const retroplanningPagination = useMemo(
+    () => getMonEspacePagination(filteredRetroplanningSaves, retroplanningPage),
+    [filteredRetroplanningSaves, retroplanningPage],
+  )
   const iaPagination = useMemo(
     () => getMonEspacePagination(filteredIaAnalyses, iaPage),
     [filteredIaAnalyses, iaPage],
@@ -405,6 +448,14 @@ export default function MonEspacePage() {
   useEffect(() => {
     setMockupPage(1)
   }, [mockupSavesSearch])
+
+  useEffect(() => {
+    setStudioTarifsPage(1)
+  }, [studioTarifsSavesSearch])
+
+  useEffect(() => {
+    setRetroplanningPage(1)
+  }, [retroplanningSavesSearch])
 
   useEffect(() => {
     setIaPage(1)
@@ -443,6 +494,12 @@ export default function MonEspacePage() {
       setStudioTarifsPage(studioTarifsPagination.totalPages)
     }
   }, [studioTarifsPage, studioTarifsPagination.totalPages])
+
+  useEffect(() => {
+    if (retroplanningPage > retroplanningPagination.totalPages) {
+      setRetroplanningPage(retroplanningPagination.totalPages)
+    }
+  }, [retroplanningPage, retroplanningPagination.totalPages])
 
   useEffect(() => {
     if (iaPage > iaPagination.totalPages) {
@@ -519,6 +576,20 @@ export default function MonEspacePage() {
       await deleteStudioTarifsSave(deleteStudioTarifsTarget.id)
       setDeleteStudioTarifsTarget(null)
       await loadStudioTarifsSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDeleteRetroplanning = async () => {
+    if (!deleteRetroplanningTarget) return
+    setActionId(deleteRetroplanningTarget.id)
+    try {
+      await deleteRetroplanningSave(deleteRetroplanningTarget.id)
+      setDeleteRetroplanningTarget(null)
+      await loadRetroplanningSaves()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
     } finally {
@@ -998,6 +1069,128 @@ export default function MonEspacePage() {
                 page={strategiesPagination.page}
                 totalPages={strategiesPagination.totalPages}
                 onPageChange={setStrategiesPage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
+        {activeSection === 'retroplanning' && (
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <CalendarDays className="h-5 w-5 text-[#E94C16]" />
+              Rétroplanning
+            </CardTitle>
+            <CardDescription>
+              Plannings enregistrés — ouvrez, modifiez ou supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom…"
+                  value={retroplanningSavesSearch}
+                  onChange={(e) => setRetroplanningSavesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
+                <Link href={STRATEGIE_RETROPLANNING_HREF}>Nouveau rétroplanning</Link>
+              </Button>
+            </div>
+
+            {loadingRetroplanningSaves ? (
+              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Chargement de vos rétroplannings…
+              </div>
+            ) : retroplanningSavesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {retroplanningSavesError}
+                <p className="mt-2 text-muted-foreground">
+                  Si la table n&apos;existe pas encore, exécutez{' '}
+                  <code className="text-xs">supabase/retroplanning-saves.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredRetroplanningSaves.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {retroplanningSaves.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucun rétroplanning sauvegardé</p>
+                    <p className="text-sm mt-1">
+                      Composez un planning dans Rétroplanning puis « Sauvegarder ».
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucun rétroplanning ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="overflow-x-auto rounded-xl border border-border/70">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Opérations</TableHead>
+                      <TableHead className="font-semibold">Modifié le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {retroplanningPagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {row.operations_count} opération{row.operations_count > 1 ? 's' : ''}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatRetroplanningSaveDate(row.updated_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() =>
+                                router.push(`${STRATEGIE_RETROPLANNING_HREF}?retro=${row.id}`)
+                              }
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeleteRetroplanningTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={retroplanningPagination.page}
+                totalPages={retroplanningPagination.totalPages}
+                onPageChange={setRetroplanningPage}
               />
               </>
             )}
@@ -1744,6 +1937,30 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteStudioTarifs()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteRetroplanningTarget}
+        onOpenChange={(open) => !open && setDeleteRetroplanningTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce rétroplanning ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deleteRetroplanningTarget?.name} » sera définitivement supprimé de Mon espace. Cette
+              action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeleteRetroplanning()}
             >
               Supprimer
             </AlertDialogAction>

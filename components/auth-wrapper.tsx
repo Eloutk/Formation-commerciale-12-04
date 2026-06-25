@@ -24,8 +24,6 @@ import {
   isVente2Path,
   MON_ESPACE_HREF,
   isMonEspacePath,
-  HOME_PAGE_2_HREF,
-  isHomePage2Path,
   IA_HREF,
   isIaPath,
   withActiveItems,
@@ -428,7 +426,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const strategieActive = isStrategiePath(pathname)
   const aideActive = isAidePath(pathname)
   const iaActive = isIaPath(pathname)
-  const homePage2Active = isHomePage2Path(pathname)
   const authAccessValue = useMemo(
     () => ({
       isAdmin,
@@ -500,14 +497,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                 active={aideActive}
                 items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, isAdmin))}
               />
-              {isAdmin && (
-                <AdminNavTab
-                  href={HOME_PAGE_2_HREF}
-                  label="Home page 2"
-                  active={homePage2Active}
-                  className="px-3 py-2"
-                />
-              )}
             </nav>
 
             <div className="flex items-center gap-4">

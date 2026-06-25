@@ -5,6 +5,7 @@ import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer
 import type { CalendarItem, StrategyCalendarData } from './types'
 import { getDatesFromStart, getDayIndex } from '@/lib/utils/calendarEngine'
 import { getPhaseIndexByPlatformKey, getPlatformPhaseColor } from './colors'
+import { getRetroplanningPlatformPhaseColor } from '@/lib/retroplanning-platform-colors'
 import { calendarItemsForDisplayGrouped } from './calendarDisplayItems'
 
 const WEEKDAYS_PDF = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -431,6 +432,16 @@ function capitalizeFrMonthLabel(label: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
+function resolvePlatformPhaseColor(
+  platform: string,
+  phaseIndex: number,
+  brandPlatformColors?: boolean,
+): string {
+  return brandPlatformColors
+    ? getRetroplanningPlatformPhaseColor(platform, phaseIndex)
+    : getPlatformPhaseColor(platform, phaseIndex)
+}
+
 /** Un mois : entête jours + grille 6×7 (pour PDF vue mois, 2 colonnes par page paysage). */
 function MonthCalendarBlockPdf({
   ym,
@@ -438,12 +449,14 @@ function MonthCalendarBlockPdf({
   duration,
   displayItems,
   phaseIndexMap,
+  brandPlatformColors,
 }: {
   ym: { year: number; month: number }
   data: StrategyCalendarData
   duration: number
   displayItems: CalendarItem[]
   phaseIndexMap: Map<string, number>
+  brandPlatformColors?: boolean
 }) {
   const slots = buildMonthGridSlots(ym.year, ym.month, data.startDate)
   const monthTitleLong = capitalizeFrMonthLabel(
@@ -485,7 +498,7 @@ function MonthCalendarBlockPdf({
                   <View style={styles.monthDotsRow}>
                     {activePlatforms.map((item) => {
                       const phaseIndex = phaseIndexMap.get(item.platform) ?? 0
-                      const color = getPlatformPhaseColor(item.platform, phaseIndex)
+                      const color = resolvePlatformPhaseColor(item.platform, phaseIndex, brandPlatformColors)
                       return (
                         <View
                           key={item.platform}
@@ -555,6 +568,8 @@ export interface RetroplanningPdfPayload {
   includeWeekTimeline?: boolean
   /** Inclure le calendrier par mois. défaut : true */
   includeMonthGrids?: boolean
+  /** Couleurs marque (Stratégie — Social Media) au lieu du calendrier calculateur */
+  brandPlatformColors?: boolean
 }
 
 const GANTT_ROWS_PER_PAGE = 12
@@ -578,12 +593,14 @@ function GanttLandscapePages({
   data,
   clientLabel,
   metaHeader,
+  brandPlatformColors,
 }: {
   data: StrategyCalendarData
   /** Nom client affiché après « Planning de diffusion » */
   clientLabel?: string
   /** Entête (nom + commentaire) uniquement sur la première page du PDF */
   metaHeader?: RetroplanningPdfMetaHeader | null
+  brandPlatformColors?: boolean
 }) {
   const planningTitleBase =
     clientLabel?.trim() !== ''
@@ -673,7 +690,7 @@ function GanttLandscapePages({
           {chunk.map((item, rowIdx) => {
             const globalIndex = pageIdx * GANTT_ROWS_PER_PAGE + rowIdx
             const phaseIndex = phaseIndexMap.get(item.platform) ?? 0
-            const color = getPlatformPhaseColor(item.platform, phaseIndex)
+            const color = resolvePlatformPhaseColor(item.platform, phaseIndex, brandPlatformColors)
             const label = itemDisplayLabel(item)
             const pLeft = (item.startDay / maxDur) * 100
             const pWidth = Math.max((item.length / maxDur) * 100, 0.35)
@@ -725,11 +742,13 @@ function MonthGridPdfPages({
   clientLabel,
   metaHeader,
   withMetaHeader,
+  brandPlatformColors,
 }: {
   data: StrategyCalendarData
   clientLabel?: string
   metaHeader?: RetroplanningPdfMetaHeader | null
   withMetaHeader: boolean
+  brandPlatformColors?: boolean
 }) {
   const duration = Math.max(1, data.duration)
   const displayItems = calendarItemsForDisplayGrouped(data.items)
@@ -803,6 +822,7 @@ function MonthGridPdfPages({
                 duration={duration}
                 displayItems={displayItems}
                 phaseIndexMap={phaseIndexMap}
+                brandPlatformColors={brandPlatformColors}
               />
               {pair[1] ? (
                 <MonthCalendarBlockPdf
@@ -811,6 +831,7 @@ function MonthGridPdfPages({
                   duration={duration}
                   displayItems={displayItems}
                   phaseIndexMap={phaseIndexMap}
+                  brandPlatformColors={brandPlatformColors}
                 />
               ) : (
                 <View style={styles.monthColumn} />
@@ -822,7 +843,7 @@ function MonthGridPdfPages({
                 <Text style={styles.monthLegendTitle}>Légende des phases</Text>
                 {displayItems.map((item, i) => {
                   const phaseIndex = phaseIndexMap.get(item.platform) ?? 0
-                  const color = getPlatformPhaseColor(item.platform, phaseIndex)
+                  const color = resolvePlatformPhaseColor(item.platform, phaseIndex, brandPlatformColors)
                   return (
                     <View key={`leg-${pageIdx}-${i}-${item.platform}`} style={styles.monthLegendLine} wrap={false}>
                       <View style={[styles.monthLegendDot, { backgroundColor: color }]} />
@@ -856,6 +877,7 @@ export function RetroplanningPdfDocument(payload: RetroplanningPdfPayload) {
     calendarData,
     includeWeekTimeline = true,
     includeMonthGrids = true,
+    brandPlatformColors = false,
   } = payload
 
   const ganttClientLabel = clientName?.trim() ? clientName : undefined
@@ -882,7 +904,12 @@ export function RetroplanningPdfDocument(payload: RetroplanningPdfPayload) {
   return (
     <Document>
       {showWeek ? (
-        <GanttLandscapePages data={calendarData} clientLabel={ganttClientLabel} metaHeader={metaHeader} />
+        <GanttLandscapePages
+          data={calendarData}
+          clientLabel={ganttClientLabel}
+          metaHeader={metaHeader}
+          brandPlatformColors={brandPlatformColors}
+        />
       ) : null}
       {showMonth ? (
         <MonthGridPdfPages
@@ -890,6 +917,7 @@ export function RetroplanningPdfDocument(payload: RetroplanningPdfPayload) {
           clientLabel={ganttClientLabel}
           metaHeader={metaHeader}
           withMetaHeader={!showWeek}
+          brandPlatformColors={brandPlatformColors}
         />
       ) : null}
     </Document>
