@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { ExternalLink, Loader2, MapPin } from 'lucide-react'
+import { useAuthAccess } from '@/components/auth-context'
 import { Button } from '@/components/ui/button'
 
 const MONDAY_DEMANDE_POTENTIEL =
@@ -25,6 +26,9 @@ const ZonesDiffusionTool = dynamic(() => import('@/components/diffusion/ZonesDif
 )
 
 export default function CartographiePage() {
+  const { isClient, authReady } = useAuthAccess()
+  const showPotentielsBanner = authReady && !isClient
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-[#E94C16]/[0.04] via-background to-background">
       <div className="container mx-auto max-w-6xl px-4 py-8 sm:py-10">
@@ -41,6 +45,7 @@ export default function CartographiePage() {
           </p>
         </header>
 
+        {showPotentielsBanner && (
         <section
           className="mb-6 rounded-lg border border-[#E94C16]/25 bg-gradient-to-br from-[#E94C16]/[0.06] to-background px-3 py-2.5 shadow-sm sm:px-4 sm:py-3"
           aria-label="Liens Monday.com — potentiels"
@@ -84,6 +89,7 @@ export default function CartographiePage() {
             </div>
           </div>
         </section>
+        )}
 
         <ZonesDiffusionTool />
       </div>

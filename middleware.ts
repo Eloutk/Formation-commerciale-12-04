@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { isClientRole, isDemandesPotentielsPath, normalizeUserRole } from '@/lib/roles'
+import { isClientRole, isDemandesPotentielsPath, isDocumentsPath, normalizeUserRole } from '@/lib/roles'
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
@@ -60,7 +60,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && isDemandesPotentielsPath(pathname)) {
+  if (user && (isDemandesPotentielsPath(pathname) || isDocumentsPath(pathname))) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -69,7 +69,7 @@ export async function middleware(req: NextRequest) {
 
     if (isClientRole(normalizeUserRole(profile?.role as string | undefined))) {
       const redirectUrl = req.nextUrl.clone()
-      redirectUrl.pathname = '/diffusion'
+      redirectUrl.pathname = isDocumentsPath(pathname) ? '/home' : '/diffusion'
       redirectUrl.search = ''
       return NextResponse.redirect(redirectUrl)
     }

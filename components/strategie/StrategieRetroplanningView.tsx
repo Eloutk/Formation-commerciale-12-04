@@ -40,7 +40,11 @@ import {
   getRetroplanningSaveById,
   updateRetroplanningSave,
 } from '@/lib/retroplanning-saves-storage'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { cn } from '@/lib/utils'
+
+/** Durée par défaut entre date de début et date de fin (modifiable ensuite). */
+const DEFAULT_OPERATION_DURATION_DAYS = 7
 
 /** Grille alignée en-têtes / champs (desktop). */
 const DRAFT_ROW_GRID =
@@ -101,7 +105,7 @@ function newDraftRow(): DraftRow {
     platform: 'META',
     operationName: '',
     startDate: start,
-    endDate: addDaysIso(start, 14),
+    endDate: addDaysIso(start, DEFAULT_OPERATION_DURATION_DAYS),
   }
 }
 
@@ -191,7 +195,16 @@ export function StrategieRetroplanningView() {
   }, [retroIdFromUrl, applyRetroContent])
 
   const updateOperationRow = useCallback((id: string, patch: Partial<OperationRow>) => {
-    setOperationRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+    setOperationRows((prev) =>
+      prev.map((row) => {
+        if (row.id !== id) return row
+        const next = { ...row, ...patch }
+        if (patch.startDate !== undefined && patch.startDate) {
+          next.endDate = addDaysIso(patch.startDate, DEFAULT_OPERATION_DURATION_DAYS)
+        }
+        return next
+      }),
+    )
     setRowError(null)
   }, [])
 
@@ -315,19 +328,22 @@ export function StrategieRetroplanningView() {
           Saisissez vos opérations par plateforme, visualisez le Gantt, exportez en PDF ou sauvegardez dans Mon
           espace.
         </p>
-        {loadingRetro ? (
-          <p className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement du rétroplanning…
-          </p>
-        ) : savedRetroId ? (
+        {savedRetroId && !loadingRetro ? (
           <p className="mt-3 text-sm text-muted-foreground">
             Rétroplanning chargé : <span className="font-medium text-foreground">{savedRetroName}</span>
           </p>
         ) : null}
       </header>
 
-      <Card className="mb-6 shrink-0 border-[#E94C16]/20">
+      {loadingRetro ? (
+        <SavedRecordLoadingBanner
+          className="mb-6 shrink-0"
+          label="Chargement du rétroplanning…"
+          description="Récupération de votre planning sauvegardé depuis Mon espace."
+        />
+      ) : null}
+
+      <Card className={cn('mb-6 shrink-0 border-[#E94C16]/20', loadingRetro && 'pointer-events-none opacity-50')}>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">Saisie des opérations</CardTitle>
           <CardDescription>
@@ -483,7 +499,7 @@ export function StrategieRetroplanningView() {
         </CardContent>
       </Card>
 
-      <section className="flex min-h-0 flex-1 flex-col gap-3 pb-2">
+      <section className={cn('flex min-h-0 flex-1 flex-col gap-3 pb-2', loadingRetro && 'pointer-events-none opacity-50')}>
         <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Calendrier — Gantt</h2>

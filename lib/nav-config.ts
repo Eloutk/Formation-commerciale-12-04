@@ -1,5 +1,5 @@
-import { AIDE_LINKS, isAidePath } from '@/lib/nav-aide'
-import type { UserRole } from '@/lib/roles'
+import { AIDE_LINKS, isAidePath, type NavAideLink } from '@/lib/nav-aide'
+import { isClientRole, type UserRole } from '@/lib/roles'
 
 export type NavMenuItem = {
   href: string
@@ -26,6 +26,19 @@ export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
   isAdmin: boolean,
 ): T[] {
   return items.filter((item) => !item.adminOnly || isAdmin)
+}
+
+export function filterAideLinksByRole(
+  items: NavAideLink[],
+  isAdmin: boolean,
+  role: UserRole | null,
+): NavAideLink[] {
+  const hideForClient = isClientRole(role)
+  return items.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    if (item.hiddenForClient && hideForClient) return false
+    return true
+  })
 }
 
 export function filterVente2LinksByRole(

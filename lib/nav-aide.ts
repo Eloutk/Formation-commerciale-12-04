@@ -2,6 +2,8 @@ export type NavAideLink = {
   href: string
   label: string
   adminOnly?: boolean
+  /** Masqué pour le profil client */
+  hiddenForClient?: boolean
 }
 
 export type TutoItem = {
@@ -12,7 +14,7 @@ export type TutoItem = {
 }
 
 export const AIDE_LINKS: NavAideLink[] = [
-  { href: '/documents', label: 'Document' },
+  { href: '/documents', label: 'Document', hiddenForClient: true },
   { href: '/glossaire', label: 'Glossaire' },
   { href: '/faq', label: 'FAQ' },
   { href: '/tuto', label: 'Tuto', adminOnly: true },

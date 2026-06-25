@@ -53,7 +53,9 @@ import {
   updateMockupSave,
   uploadMockupPng,
 } from '@/lib/mockup-saves-storage'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { MOCKUP_HREF } from '@/lib/nav-config'
+import { cn } from '@/lib/utils'
 
 const DEFAULT_PLACEHOLDER =
   'data:image/svg+xml;utf8,' +
@@ -338,11 +340,13 @@ export default function MockupPage() {
     <div className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-6xl space-y-8">
         {loadingSave ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement du mockup enregistré…
-          </div>
+          <SavedRecordLoadingBanner
+            className="mb-6"
+            label="Chargement du mockup enregistré…"
+            description="Récupération de votre prévisualisation sauvegardée depuis Mon espace."
+          />
         ) : null}
+        <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
         <div>
           <h1 className="mb-2 text-3xl font-bold">Mockup</h1>
           <p className="text-muted-foreground">
@@ -606,6 +610,7 @@ export default function MockupPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
 
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>

@@ -47,6 +47,7 @@ import type { CalendarPlatformSource, RetroPlatformPhase, RetroPhase } from '@/a
 import { getPlatformColor } from '@/app/vente/calendar/colors'
 import { autoDistribute } from '@/lib/utils/calendarEngine'
 import { cn } from '@/lib/utils'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF } from '@/lib/nav-config'
 import { buildSmsDevisContent, defaultSmsDevisSendWaves, type SmsDevisContent } from '@/lib/sms-devis'
 import {
@@ -5168,10 +5169,12 @@ export function Vente2Calculator({
                             </div>
                           )}
                           {isActive && loadingStrategy && (
-                            <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Chargement de la stratégie…
-                            </p>
+                            <SavedRecordLoadingBanner
+                              className="mt-3"
+                              variant="inline"
+                              label="Chargement de la stratégie…"
+                              description="Récupération depuis Mon espace."
+                            />
                           )}
                           {isActive && !loadingStrategy && savedStrategyId && (
                             <p className="text-center text-xs text-muted-foreground">
@@ -5790,10 +5793,12 @@ export function Vente2Calculator({
                   )}
                 </div>
                 {loadingDevis ? (
-                  <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Chargement du devis…
-                  </p>
+                  <SavedRecordLoadingBanner
+                    className="mt-3"
+                    variant="inline"
+                    label="Chargement du devis…"
+                    description="Récupération de votre devis SMS / RCS depuis Mon espace."
+                  />
                 ) : savedDevisId ? (
                   <p className="text-center text-xs text-muted-foreground mt-2">
                     Devis chargé : <span className="font-medium text-foreground">{savedDevisName}</span>

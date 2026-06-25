@@ -16,6 +16,7 @@ import {
   MON_ESPACE_HREF,
   IA_HREF,
   filterNavItemsByAdmin,
+  filterAideLinksByRole,
   filterVente2LinksByRole,
   canShowVente2Nav,
   isAidePath,
@@ -80,7 +81,7 @@ export function MobileNav({
               <MobileNavMenu
                 label="Aide"
                 active={isAidePath(pathname)}
-                items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, !!isAdmin))}
+                items={withActiveItems(pathname, filterAideLinksByRole(AIDE_LINKS, !!isAdmin, role))}
                 onNavigate={handleNav}
               />
               <Link

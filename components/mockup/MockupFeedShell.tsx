@@ -14,7 +14,6 @@ import {
   Plus,
   Search,
   Users,
-  X,
 } from 'lucide-react'
 
 export const FEED_SHELL_WIDTH = 390
@@ -77,15 +76,6 @@ function InstagramFeedShell({ children }: { children: ReactNode }) {
 
       {/* Publication */}
       <EmbeddedPost>{children}</EmbeddedPost>
-
-      {/* Aperçu publication suivante */}
-      <div className="border-t border-neutral-100 px-3 py-2.5 opacity-50">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-full bg-neutral-200" />
-          <div className="h-2.5 w-24 rounded bg-neutral-200" />
-        </div>
-        <div className="mt-2 aspect-square rounded bg-neutral-100" />
-      </div>
 
       {/* Barre de navigation */}
       <div className="flex items-center justify-around border-t border-neutral-200 px-2 py-2.5 pb-3">
@@ -187,24 +177,6 @@ function FacebookFeedShell({ children }: { children: ReactNode }) {
       {/* Publication sponsorisée */}
       <div className="border-b border-neutral-200 bg-white">
         <EmbeddedPost>{children}</EmbeddedPost>
-      </div>
-
-      {/* Publication suivante (aperçu) */}
-      <div className="border-b border-neutral-200 bg-white opacity-55">
-        <div className="flex items-start justify-between px-3 pt-3">
-          <div className="flex items-center gap-2.5">
-            <div className="h-10 w-10 rounded-full bg-neutral-200" />
-            <div>
-              <div className="h-3 w-28 rounded bg-neutral-200" />
-              <div className="mt-1.5 h-2 w-36 rounded bg-neutral-100" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-neutral-500">
-            <span className="text-lg leading-none">···</span>
-            <X className="h-5 w-5" aria-hidden />
-          </div>
-        </div>
-        <div className="mx-3 mb-3 mt-2 aspect-[4/5] rounded bg-neutral-100" />
       </div>
 
       {/* Bouton flottant */}

@@ -1,14 +1,17 @@
 import { Suspense } from 'react'
-import { Loader2 } from 'lucide-react'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { StrategieRetroplanningView } from '@/components/strategie/StrategieRetroplanningView'
 
 export default function StrategieRetroplanningPage() {
   return (
     <Suspense
       fallback={
-        <div className="container mx-auto px-4 py-24 flex items-center justify-center text-muted-foreground gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Chargement…
+        <div className="container mx-auto px-4 py-12">
+          <SavedRecordLoadingBanner
+            className="my-8"
+            label="Chargement du rétroplanning…"
+            description="Préparation de la page Stratégie — Rétroplanning."
+          />
         </div>
       }
     >

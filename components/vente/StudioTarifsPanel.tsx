@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { cn } from '@/lib/utils'
 import {
   STUDIO_TARIFS_ROWS,
@@ -831,13 +832,14 @@ function StudioTarifsPanelInner() {
         </div>
 
         {loadingSave ? (
-          <div className="mb-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            Chargement du devis enregistré…
-          </div>
+          <SavedRecordLoadingBanner
+            className="mb-6"
+            label="Chargement du devis studio enregistré…"
+            description="Récupération de votre devis sauvegardé depuis Mon espace."
+          />
         ) : null}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_500px] xl:grid-cols-[minmax(0,1fr)_540px]">
+        <div className={cn('grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_500px] xl:grid-cols-[minmax(0,1fr)_540px]', loadingSave && 'pointer-events-none opacity-50')}>
           {/* Colonne gauche — grille tarifaire */}
           <div className="space-y-4 min-w-0">
             <Tabs

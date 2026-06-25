@@ -16,6 +16,7 @@ import {
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   filterNavItemsByAdmin,
+  filterAideLinksByRole,
   filterVente2LinksByRole,
   canShowVente2Nav,
   isAidePath,
@@ -495,7 +496,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <HeaderNavMenu
                 label="Aide"
                 active={aideActive}
-                items={withActiveItems(pathname, filterNavItemsByAdmin(AIDE_LINKS, isAdmin))}
+                items={withActiveItems(pathname, filterAideLinksByRole(AIDE_LINKS, isAdmin, role))}
               />
             </nav>
 

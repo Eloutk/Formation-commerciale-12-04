@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import {
   BarChart3,
   Calculator,
@@ -307,8 +308,16 @@ export default function MonEspacePage() {
     void loadMockupSaves()
     void loadStudioTarifsSaves()
     void loadRetroplanningSaves()
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadRetroplanningSaves])
+
+  useEffect(() => {
+    if (!authReady) return
+    if (!isAdmin) {
+      setLoadingIaAnalyses(false)
+      return
+    }
     void loadIaAnalyses()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadRetroplanningSaves, loadIaAnalyses])
+  }, [authReady, isAdmin, loadIaAnalyses])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -719,10 +728,11 @@ export default function MonEspacePage() {
               </div>
 
               {loadingAdmin ? (
-                <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Chargement de tous les enregistrements…
-                </div>
+                <SavedRecordLoadingBanner
+                  className="my-10"
+                  label="Chargement de tous les enregistrements…"
+                  description="Récupération des données administrateur."
+                />
               ) : adminError ? (
                 <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                   <p>{adminError}</p>
@@ -967,10 +977,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingStrategies ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos stratégies…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos stratégies…"
+                description="Récupération de vos stratégies Social media."
+              />
             ) : strategiesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {strategiesError}
@@ -1104,10 +1115,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingRetroplanningSaves ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos rétroplannings…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos rétroplannings…"
+                description="Récupération de vos plannings sauvegardés."
+              />
             ) : retroplanningSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {retroplanningSavesError}
@@ -1226,10 +1238,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingStudioTarifsSaves ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos devis studio…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos devis studio…"
+                description="Récupération de vos devis Tarifs studio."
+              />
             ) : studioTarifsSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {studioTarifsSavesError}
@@ -1356,10 +1369,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingSimulateurSaves ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos simulations…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos simulations…"
+                description="Récupération de vos simulations Stratégie Social Media."
+              />
             ) : simulateurSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {simulateurSavesError}
@@ -1487,10 +1501,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingMockupSaves ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos mockups…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos mockups…"
+                description="Récupération de vos prévisualisations sauvegardées."
+              />
             ) : mockupSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {mockupSavesError}
@@ -1591,7 +1606,7 @@ export default function MonEspacePage() {
         </Card>
         )}
 
-        {activeSection === 'ia' && (
+        {activeSection === 'ia' && isAdmin && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-violet-600/[0.08] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -1619,10 +1634,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingIaAnalyses ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos analyses IA…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos analyses IA…"
+                description="Récupération de vos analyses sauvegardées."
+              />
             ) : iaAnalysesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {iaAnalysesError}
@@ -1746,10 +1762,11 @@ export default function MonEspacePage() {
             </div>
 
             {loadingDevis ? (
-              <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Chargement de vos devis…
-              </div>
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos devis…"
+                description="Récupération de vos devis SMS / RCS."
+              />
             ) : devisError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                 {devisError}

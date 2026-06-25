@@ -23,6 +23,7 @@ import { IaOutputModeFields } from '@/components/ia/ia-output-mode-fields'
 import { type IaPrezOutputMode, isPresentationAnalysisName } from '@/lib/ia-prez'
 import { parseContentDispositionFilename } from '@/lib/http-download-headers'
 import { MON_ESPACE_HREF } from '@/lib/nav-config'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { cn } from '@/lib/utils'
 import { useIaGeneration } from '@/components/ia/ia-generation-context'
 
@@ -492,12 +493,13 @@ export function IaActionsPanel({ initialAnalysisId, initialActionId }: IaActions
   return (
     <div className="space-y-6">
       {loadingSaved ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement de l&apos;analyse…
-        </div>
+        <SavedRecordLoadingBanner
+          label="Chargement de l'analyse…"
+          description="Récupération de votre analyse IA sauvegardée depuis Mon espace."
+        />
       ) : null}
 
+      <div className={cn('space-y-6', loadingSaved && 'pointer-events-none opacity-50')}>
       <div className="grid gap-3 sm:grid-cols-2">
         {IA_ACTIONS.map((action) => {
           const isSelected = selectedId === action.id
@@ -566,6 +568,7 @@ export function IaActionsPanel({ initialAnalysisId, initialActionId }: IaActions
           />
         )
       ) : null}
+      </div>
     </div>
   )
 }

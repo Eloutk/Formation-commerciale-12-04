@@ -49,6 +49,16 @@ export function canAccessDemandesPotentiels(role: string | undefined | null): bo
   return !isClientRole(role)
 }
 
+export const DOCUMENTS_HREF = '/documents'
+
+export function isDocumentsPath(pathname: string): boolean {
+  return pathname === DOCUMENTS_HREF || pathname.startsWith(`${DOCUMENTS_HREF}/`)
+}
+
+export function canAccessDocuments(role: string | undefined | null): boolean {
+  return !isClientRole(role)
+}
+
 export function formatUserRoleLabel(role: UserRole | null): string {
   switch (role) {
     case 'client':

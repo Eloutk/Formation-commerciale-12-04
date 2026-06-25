@@ -38,6 +38,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { cn } from '@/lib/utils'
 import { useAuthAccess } from '@/components/auth-context'
 import {
@@ -392,10 +393,11 @@ export function SimulateurMediaLinkPanel() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Chargement du simulateur…
-        </div>
+        <SavedRecordLoadingBanner
+          className="my-16"
+          label="Chargement du simulateur…"
+          description="Préparation de l’outil Stratégie — Social Media."
+        />
       }
     >
       <SimulateurMediaLinkPanelInner />
@@ -559,12 +561,13 @@ function SimulateurMediaLinkPanelInner() {
 
   return (
     <div className="space-y-8">
-      {loadingSave && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement de la simulation enregistrée…
-        </div>
-      )}
+      {loadingSave ? (
+        <SavedRecordLoadingBanner
+          label="Chargement de la simulation enregistrée…"
+          description="Récupération de votre stratégie sauvegardée depuis Mon espace."
+        />
+      ) : null}
+      <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -966,6 +969,7 @@ function SimulateurMediaLinkPanelInner() {
         </AccordionItem>
       </Accordion>
       )}
+      </div>
 
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
