@@ -36,10 +36,10 @@ export async function POST(req: Request) {
   )
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -78,8 +78,8 @@ export async function POST(req: Request) {
 
   const displayName =
     userName ||
-    ((session.user.user_metadata as { full_name?: string } | undefined)?.full_name ?? '') ||
-    session.user.email?.split('@')[0] ||
+    ((user.user_metadata as { full_name?: string } | undefined)?.full_name ?? '') ||
+    user.email?.split('@')[0] ||
     'Utilisateur'
 
   const requestId = randomUUID()
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
     attachmentFilename = attachment.name
     attachmentMimeType = attachment.type || 'application/octet-stream'
     attachmentSizeBytes = attachment.size
-    attachmentPath = `${session.user.id}/${requestId}/${sanitizeAttachmentFilename(attachment.name)}`
+    attachmentPath = `${user.id}/${requestId}/${sanitizeAttachmentFilename(attachment.name)}`
 
     const buffer = Buffer.from(await attachment.arrayBuffer())
     const { error: uploadError } = await supabase.storage
@@ -138,9 +138,9 @@ export async function POST(req: Request) {
     .from('studio_budget_requests')
     .insert({
       id: requestId,
-      user_id: session.user.id,
+      user_id: user.id,
       user_name: displayName,
-      user_email: session.user.email ?? null,
+      user_email: user.email ?? null,
       section_id: sectionId,
       section_label: sectionLabel,
       prestation_id: rowId,
@@ -175,9 +175,9 @@ export async function POST(req: Request) {
       id: data.id,
       slack_channel: data.slack_channel,
       created_at: data.created_at,
-      user_id: session.user.id,
+      user_id: user.id,
       user_name: displayName,
-      user_email: session.user.email ?? null,
+      user_email: user.email ?? null,
       section_id: sectionId,
       section_label: sectionLabel,
       prestation_id: rowId,

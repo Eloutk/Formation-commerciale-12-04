@@ -1,5 +1,9 @@
-import { AdminGuardLayout } from '@/components/vente/AdminGuardLayout'
+import { redirect } from 'next/navigation'
+import { getPrimarySessionUser } from '@/lib/media-session'
 
-export default function TutoLayout({ children }: { children: React.ReactNode }) {
-  return <AdminGuardLayout>{children}</AdminGuardLayout>
+export default async function TutoLayout({ children }: { children: React.ReactNode }) {
+  const user = await getPrimarySessionUser()
+  if (!user) redirect('/login?redirect=/tuto')
+  if (!user.isAdmin) redirect('/home')
+  return <>{children}</>
 }

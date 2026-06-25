@@ -85,8 +85,10 @@ export async function POST(req: Request) {
     }
   )
   
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
   const { pdfBase64, fileName, firstName, message, clientName, userName, userId } = body || {}
@@ -97,7 +99,7 @@ export async function POST(req: Request) {
 
   try {
     // Upload + insertion en base (bucket "pdv" + table "pdv_validations")
-    const { filePath, signedUrl } = await sendValidation(supabase, session.user.id, {
+    const { filePath, signedUrl } = await sendValidation(supabase, user.id, {
       pdfBase64,
       fileName,
       firstName,

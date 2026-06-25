@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req)
+    const limit = checkRateLimit(`login:${ip}`, 15, 15 * 60 * 1000)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } },
+      )
+    }
+
     const body = await req.json()
     const email = typeof body?.email === 'string' ? body.email : ''
     const password = typeof body?.password === 'string' ? body.password : ''

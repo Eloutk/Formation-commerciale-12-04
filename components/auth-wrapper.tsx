@@ -59,8 +59,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     pathname === "/login" ||
     pathname === "/register" ||
     pathname?.startsWith("/reset-password") ||
-    pathname?.startsWith("/auth/callback") ||
-    pathname?.startsWith("/test-supabase-connection")
+    pathname?.startsWith("/auth/callback")
   const pathnameRef = useRef(pathname)
   const hydrateInFlightRef = useRef<Promise<boolean> | null>(null)
   const lastHydrateAtRef = useRef(0)

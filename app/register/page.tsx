@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
-import supabase from '@/utils/supabase/client'
 
 // Fonction de validation d'email pour @link.fr uniquement
 const validateEmail = (email: string): { isValid: boolean; message: string } => {
@@ -73,24 +72,31 @@ export default function RegisterPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        if (error.message.includes('already registered')) setError("Un compte avec cet email existe déjà")
-        else setError("Une erreur est survenue lors de la création du compte")
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ email, password, name }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(typeof payload?.error === 'string' ? payload.error : 'Une erreur est survenue lors de la création du compte')
         setLoading(false)
         return
       }
-      // Mettre à jour le nom en asynchrone (non bloquant)
-      await supabase.auth.updateUser({ data: { full_name: name } })
-      // Synchroniser la session côté serveur si sign-in implicite
-      try {
-        await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ event: 'SIGNED_IN', session: data.session }),
-        })
-      } catch {}
+      if (payload?.session?.access_token && payload?.session?.refresh_token) {
+        try {
+          await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              event: 'SIGNED_IN',
+              session: payload.session,
+            }),
+          })
+        } catch {}
+      }
       setSuccess("Compte créé avec succès ! Redirection...")
       router.push('/formation')
     } catch (error) {
