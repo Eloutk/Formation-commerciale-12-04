@@ -42,12 +42,12 @@ const EURO_ROW_KEYS = new Set<CpmCpcRowKey>([
   'cpcClicsSurLien',
 ])
 
-const ROW_GROUPS: { keys: CpmCpcRowKey[]; deltaTone: 'neutral' | 'red' | 'green' }[] = [
-  { keys: ['depenses'], deltaTone: 'neutral' },
-  { keys: ['impressions', 'cpmImpressions'], deltaTone: 'red' },
-  { keys: ['couverture', 'cpmCouverture'], deltaTone: 'green' },
-  { keys: ['clics', 'cpcClics'], deltaTone: 'green' },
-  { keys: ['clicsSurLien', 'cpcClicsSurLien'], deltaTone: 'green' },
+const ROW_GROUPS: { keys: CpmCpcRowKey[] }[] = [
+  { keys: ['depenses'] },
+  { keys: ['impressions', 'cpmImpressions'] },
+  { keys: ['couverture', 'cpmCouverture'] },
+  { keys: ['clics', 'cpcClics'] },
+  { keys: ['clicsSurLien', 'cpcClicsSurLien'] },
 ]
 
 const ENCART_BORDER = 'border-2 border-neutral-500 rounded-sm box-border'
@@ -63,9 +63,10 @@ function formatDeltaPercent(value: number | null): string {
   })} %`
 }
 
-function deltaToneClass(tone: 'neutral' | 'red' | 'green'): string {
-  if (tone === 'red') return 'bg-red-100'
-  if (tone === 'green') return 'bg-green-100'
+function deltaToneClass(delta: number | null, isNeutralRow = false): string {
+  if (isNeutralRow || delta == null) return 'bg-muted/70'
+  if (delta > 1) return 'bg-green-100 text-green-900'
+  if (delta < 1) return 'bg-red-100 text-red-900'
   return 'bg-muted/70'
 }
 
@@ -114,19 +115,7 @@ function renderValueCell(
 }
 
 export default function CalculCpmCpcPage() {
-  const [values, setValues] = useState<Record<string, string>>({
-    prixDeVente: '800',
-    impressionsReel: '275005',
-    impressionsVente: '280000',
-    couvertureReel: '198000',
-    couvertureVente: '170000',
-    clicsReel: '1316',
-    clicsVente: '1200',
-    clicsSurLienReel: '1000',
-    clicsSurLienVente: '888',
-    budgetHt: '100',
-    budgetTtc: '120',
-  })
+  const [values, setValues] = useState<Record<string, string>>({})
 
   const rows = useMemo(() => {
     const prixDeVente = parseCalculatorNumber(values.prixDeVente ?? '')
@@ -164,9 +153,32 @@ export default function CalculCpmCpcPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Calcul des coûts</h1>
           <p className="text-muted-foreground">
-            Comparez les KPIs atteints et l'objectif vendu, puis convertissez un budget HT / TTC.
+            Comparez les KPIs atteints et l&apos;objectif vendu, puis convertissez un budget HT / TTC.
           </p>
         </div>
+
+        <Card className="border-[#E94C16]/20 bg-orange-50/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Comment utiliser ce tableau</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+            <p>
+              Renseignez le <strong className="text-foreground">prix de vente</strong> puis les volumes
+              atteints (colonne « KPIs atteints ») et les objectifs vendus (colonne « Objectif vendu »).
+            </p>
+            <p>
+              Les CPM et CPC se calculent automatiquement. La colonne <strong className="text-foreground">Delta</strong>{' '}
+              compare le réalisé à l&apos;objectif :{' '}
+              <span className="text-green-800 font-medium">vert si &gt; 100 %</span>,{' '}
+              <span className="text-red-800 font-medium">rouge si &lt; 100 %</span>.
+            </p>
+            <p>
+              Un delta supérieur à 100 % sur les impressions, la couverture ou les clics signifie que
+              l&apos;objectif est dépassé. Sur les CPM/CPC, un delta inférieur à 100 % indique un coût
+              unitaire plus bas que prévu.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -262,8 +274,8 @@ export default function CalculCpmCpcPage() {
                       )}
                     </div>
 
-                    <div className={`${ENCART_BORDER} ${deltaToneClass(group.deltaTone)} flex flex-col overflow-hidden`}>
-                      {group.deltaTone === 'neutral' ? (
+                    <div className={`${ENCART_BORDER} flex flex-col overflow-hidden ${deltaToneClass(null, true)}`}>
+                      {group.keys[0] === 'depenses' ? (
                         <div className={`flex ${ROW_HEIGHT} items-center justify-center px-2 text-sm font-semibold text-muted-foreground`}>
                           Delta
                         </div>
@@ -273,7 +285,7 @@ export default function CalculCpmCpcPage() {
                             key={row.key}
                             className={`flex ${ROW_HEIGHT} items-center justify-center px-2 tabular-nums text-sm font-semibold ${
                               index > 0 ? ROW_DIVIDER : ''
-                            }`}
+                            } ${deltaToneClass(row.delta)}`}
                           >
                             {formatDeltaPercent(row.delta)}
                           </div>

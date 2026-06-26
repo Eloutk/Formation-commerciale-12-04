@@ -1,17 +1,14 @@
 'use client'
 
-import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { IA_HREF } from '@/lib/nav-config'
 import {
   formatDocumentLabel,
   SITE_DOCUMENT_SECTIONS,
   type SiteDocument,
 } from '@/lib/site-documents'
-import { cn } from '@/lib/utils'
-import { Download, FileText, Presentation, Sparkles } from 'lucide-react'
+import { Download, FileText, Presentation } from 'lucide-react'
 
 function downloadFile(href: string, filename: string) {
   const link = document.createElement('a')
@@ -29,12 +26,7 @@ function DocumentCard({ doc }: { doc: SiteDocument }) {
   const isPresentation = doc.format === 'powerpoint' || doc.format === 'keynote'
 
   return (
-    <Card
-      className={cn(
-        'overflow-hidden transition-colors',
-        doc.featured && 'border-violet-300 bg-gradient-to-br from-violet-50/80 to-transparent',
-      )}
-    >
+    <Card className="overflow-hidden transition-colors">
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -45,33 +37,17 @@ function DocumentCard({ doc }: { doc: SiteDocument }) {
             )}
             <CardTitle className="text-lg">{doc.title}</CardTitle>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="font-normal">
-              {formatDocumentLabel(doc.format)}
-            </Badge>
-            {doc.badge ? (
-              <Badge className="bg-violet-600 hover:bg-violet-600">{doc.badge}</Badge>
-            ) : null}
-          </div>
+          <Badge variant="outline" className="font-normal">
+            {formatDocumentLabel(doc.format)}
+          </Badge>
         </div>
         <CardDescription>{doc.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => downloadFile(doc.href, doc.downloadFilename)}
-          className={cn(doc.featured && 'bg-violet-600 hover:bg-violet-700')}
-        >
+        <Button onClick={() => downloadFile(doc.href, doc.downloadFilename)}>
           <Download className="mr-2 h-4 w-4" aria-hidden />
           Télécharger
         </Button>
-        {doc.featured ? (
-          <Button asChild variant="outline">
-            <Link href={IA_HREF}>
-              <Sparkles className="mr-2 h-4 w-4" aria-hidden />
-              Générer avec l&apos;IA
-            </Link>
-          </Button>
-        ) : null}
       </CardContent>
     </Card>
   )
@@ -84,8 +60,7 @@ export default function DocumentsPage() {
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Documents</h1>
           <p className="text-muted-foreground">
-            Guides, templates PowerPoint et fiches plateformes Link Academy. La base de présentation 2026
-            sert de template pour les présentations générées depuis l&apos;onglet IA.
+            Guides, templates PowerPoint et fiches plateformes Link Academy.
           </p>
         </div>
 

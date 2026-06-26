@@ -348,7 +348,6 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     explanation: 'Vente du PSD complet pour exploitation par le client',
     rateHT: 1000,
     kind: 'priced',
-    psdSurcharge: true,
   },
 ]
 

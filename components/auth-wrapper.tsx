@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
+import { HeaderSearch } from '@/components/nav/header-search'
 import { AdminNavTab } from '@/components/nav/admin-nav-tab'
 import {
   AIDE_LINKS,
@@ -64,6 +65,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const hydrateInFlightRef = useRef<Promise<boolean> | null>(null)
   const lastHydrateAtRef = useRef(0)
   const checkPseudoInFlightRef = useRef<Promise<boolean> | null>(null)
+  const routeGuardInFlightRef = useRef(false)
 
   // Avoid Promise.race() "dangling timeout" rejections that can crash the app (white screen).
   const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> => {
@@ -118,6 +120,74 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
   }
 
+  const isAccessTokenExpired = (accessToken: string | undefined) => {
+    const exp = decodeJwtClaims(accessToken)?.exp as number | undefined
+    if (!exp) return false
+    return exp <= Math.floor(Date.now() / 1000) + 30
+  }
+
+  const clearClientSession = () => {
+    try {
+      window.localStorage.removeItem(getStorageKey())
+    } catch {}
+    setUser(null)
+    setIsAdmin(false)
+    setRole(null)
+    setAdminResolved(true)
+    setMustCompleteName(false)
+  }
+
+  const hasServerSession = async () => {
+    try {
+      const res = await withTimeout(
+        fetch('/api/auth/me', { credentials: 'include' }),
+        4000,
+        'auth-me',
+      )
+      if (!res.ok) return false
+      const json = await res.json().catch(() => null)
+      return !!json?.user
+    } catch {
+      return false
+    }
+  }
+
+  const syncLocalSessionToServer = async () => {
+    const stored = getStoredSession()
+    if (!stored?.access_token || !stored?.refresh_token) return false
+    if (isAccessTokenExpired(stored.access_token)) return false
+    try {
+      const res = await withTimeout(
+        fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            event: 'SIGNED_IN',
+            session: {
+              access_token: stored.access_token,
+              refresh_token: stored.refresh_token,
+            },
+          }),
+        }),
+        4000,
+        'sync-session',
+      )
+      return res.ok
+    } catch {
+      return false
+    }
+  }
+
+  const ensureServerSession = async () => {
+    if (await hasServerSession()) return true
+    if (!hasLocalSession()) return false
+    if (await syncLocalSessionToServer()) {
+      return hasServerSession()
+    }
+    return false
+  }
+
   const getSessionFast = async () => {
     // Prefer supabase-js session, but do not block the UI if it stalls.
     try {
@@ -129,6 +199,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
     const stored = getStoredSession()
     if (!stored?.access_token && !stored?.refresh_token) return null
+    if (isAccessTokenExpired(stored.access_token)) {
+      try {
+        window.localStorage.removeItem(getStorageKey())
+      } catch {}
+      return null
+    }
 
     const claims = decodeJwtClaims(stored.access_token)
     const id = (claims?.sub as string | undefined) || ''
@@ -299,9 +375,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const initOnce = async () => {
       try {
-        // If server cookies say "connected" but browser lost local session, rehydrate once.
         if (!hasLocalSession()) {
           await hydrateClientSessionFromServer()
+        } else {
+          await ensureServerSession()
         }
 
         await checkPseudo()
@@ -318,7 +395,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         await checkPseudo()
         const p = pathnameRef.current
         if ((p === '/login' || p === '/register') && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-          router.replace('/home')
+          const ok = await ensureServerSession()
+          if (ok) router.replace('/home')
+          else clearClientSession()
         }
       }
       if (event === 'SIGNED_OUT') {
@@ -350,19 +429,54 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (loading) return
-    const isPublic = pathname === '/login' || pathname === '/register' || pathname === '/reset-password'
-    if (isPublic) {
-      // Ne pas rediriger depuis /reset-password : l'utilisateur doit d'abord changer son mot de passe
-      if (user && pathname !== '/reset-password') router.replace('/home')
-      return
+    if (routeGuardInFlightRef.current) return
+
+    const runRouteGuard = async () => {
+      routeGuardInFlightRef.current = true
+      try {
+        const isPublic =
+          pathname === '/login' ||
+          pathname === '/register' ||
+          pathname?.startsWith('/reset-password')
+
+        if (isPublic) {
+          if (user && pathname !== '/reset-password') {
+            const ok = await ensureServerSession()
+            if (ok) router.replace('/home')
+            else clearClientSession()
+          }
+          return
+        }
+
+        if (!user) {
+          if (!hasLocalSession()) {
+            await hydrateClientSessionFromServer()
+          }
+          const session = await getSessionFast()
+          if (session) {
+            await checkPseudo()
+            return
+          }
+          router.replace('/login')
+          return
+        }
+
+        const serverOk = await ensureServerSession()
+        if (!serverOk) {
+          clearClientSession()
+          router.replace('/login')
+          return
+        }
+
+        if (pathname === '/') {
+          router.replace('/home')
+        }
+      } finally {
+        routeGuardInFlightRef.current = false
+      }
     }
-    if (!user) {
-      router.replace('/login')
-      return
-    }
-    if (pathname === '/') {
-      router.replace('/home')
-    }
+
+    void runRouteGuard()
   }, [pathname, user, loading, router])
 
   const handleLogout = async () => {
@@ -456,13 +570,13 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     <div className="min-h-screen flex flex-col">
       {!isPublicPath && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
-          <div className="container flex items-center justify-between h-16 gap-6 px-4 mx-auto">
-            <Link href="/home" className="flex items-center gap-2 font-semibold">
+          <div className="container flex h-16 items-center gap-3 px-4 mx-auto">
+            <Link href="/home" className="flex shrink-0 items-center gap-2 font-semibold">
               <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
-              Link academy
+              <span className="hidden sm:inline">Link academy</span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1 text-sm">
+            <nav className="hidden lg:flex items-center gap-1 text-sm shrink-0">
               <HeaderNavMenu
                 label="Ressources"
                 active={ressourcesActive}
@@ -499,8 +613,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               />
             </nav>
 
-            <div className="flex items-center gap-4">
-              <div className="md:hidden">
+            <HeaderSearch
+              isAdmin={isAdmin}
+              role={role}
+              className="hidden md:block min-w-0 flex-1 max-w-sm lg:max-w-xs xl:max-w-sm"
+            />
+
+            <div className="ml-auto flex items-center gap-2 sm:gap-4 shrink-0">
+              <HeaderSearch isAdmin={isAdmin} role={role} compact className="md:hidden" />
+              <div className="lg:hidden">
                 <MobileNav user={user} isAdmin={isAdmin} role={role} onLogout={handleLogout} />
               </div>
               {user ? (

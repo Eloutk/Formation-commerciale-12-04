@@ -7,27 +7,43 @@ import {
   type UserRole,
 } from '@/lib/roles'
 
-/** Assets statiques accessibles sans session (login, favicon, polices). */
+/** Assets statiques accessibles sans session (login, favicon, polices, branding). */
 export const PUBLIC_STATIC_EXACT = new Set([
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml',
   '/images/base-presentation.jpg',
+  '/Logo Link Vertical (Orange).png',
+  '/placeholder-logo.png',
+  '/placeholder-logo.svg',
+  '/placeholder.jpg',
+  '/placeholder.svg',
+  '/placeholder-user.jpg',
 ])
 
-export const PUBLIC_STATIC_PREFIXES = ['/fonts/'] as const
+export const PUBLIC_STATIC_PREFIXES = ['/fonts/', '/images/'] as const
 
+/** Documents métier à protéger — pas les images (Next/Image les charge sans cookies). */
 const SENSITIVE_STATIC_EXT =
-  /\.(?:pdf|key|xlsx|xls|pptx?|docx?|zip|csv|png|jpe?g|gif|webp|svg)$/i
+  /\.(?:pdf|key|xlsx|xls|pptx?|docx?|zip|csv)$/i
+
+function normalizeAssetPath(pathname: string): string {
+  try {
+    return decodeURIComponent(pathname)
+  } catch {
+    return pathname
+  }
+}
 
 export function isPublicStaticAsset(pathname: string): boolean {
-  if (PUBLIC_STATIC_EXACT.has(pathname)) return true
-  return PUBLIC_STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const path = normalizeAssetPath(pathname)
+  if (PUBLIC_STATIC_EXACT.has(path)) return true
+  return PUBLIC_STATIC_PREFIXES.some((prefix) => path.startsWith(prefix))
 }
 
 export function isSensitiveStaticAsset(pathname: string): boolean {
   if (isPublicStaticAsset(pathname)) return false
-  return SENSITIVE_STATIC_EXT.test(pathname)
+  return SENSITIVE_STATIC_EXT.test(normalizeAssetPath(pathname))
 }
 
 /** Routes API accessibles sans session. */
@@ -35,6 +51,8 @@ export const PUBLIC_API_PREFIXES = [
   '/api/auth/password',
   '/api/auth/register',
   '/api/auth/session',
+  '/api/auth/me',
+  '/api/auth/session-info',
   '/api/supabase-auth-proxy',
 ] as const
 

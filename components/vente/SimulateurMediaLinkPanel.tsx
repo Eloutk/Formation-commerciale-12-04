@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { BarChart3, Info, Loader2, Save } from 'lucide-react'
+import { BarChart3, Check, Copy, Info, Loader2, Save } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -63,6 +63,7 @@ import {
   updateSimulateurMediaSave,
 } from '@/lib/simulateur-media-saves-storage'
 import { STRATEGIE_SOCIAL_HREF } from '@/lib/nav-config'
+import { buildSimulateurGlobalNarrativeRecap, buildSimulateurPlatformNarrativeRecap } from '@/lib/simulateur-media-recap'
 import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
@@ -116,7 +117,39 @@ function needsMetaPotentiel(enabled: Record<SimulateurPlatformId, boolean>): boo
   return enabled.meta || enabled.display || enabled.youtube
 }
 
+function CopyRecapButton({ text }: { text: string | null }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      alert('Impossible de copier le récapitulatif.')
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      className="h-8 w-8 shrink-0 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+      onClick={() => void handleCopy()}
+      disabled={!text}
+      aria-label={copied ? 'Récap copié' : 'Copier le récap'}
+      title={copied ? 'Récap copié' : 'Copier le récap'}
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </Button>
+  )
+}
+
 function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
+  const narrativeRecap = buildSimulateurPlatformNarrativeRecap(row)
+
   return (
     <TableRow>
       <TableCell className="font-medium">{row.label}</TableCell>
@@ -127,6 +160,11 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
       </TableCell>
       <TableCell>
         <StrategyCell {...row.max} />
+      </TableCell>
+      <TableCell className="w-12 px-2 text-center align-middle">
+        <div className="flex justify-center">
+          <CopyRecapButton text={narrativeRecap} />
+        </div>
       </TableCell>
     </TableRow>
   )
@@ -421,6 +459,7 @@ function SimulateurMediaLinkPanelInner() {
   const [saveNameInput, setSaveNameInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
+  const [copiedRecap, setCopiedRecap] = useState(false)
   const { isAdmin, authReady } = useAuthAccess()
   const showAdminSections = authReady && isAdmin
 
@@ -441,6 +480,22 @@ function SimulateurMediaLinkPanelInner() {
     () => (customPanelOpen ? buildCustomAlerts(form.enabled, customValues) : []),
     [customPanelOpen, form.enabled, customValues],
   )
+
+  const recapText = useMemo(() => {
+    if (!result) return ''
+    return buildSimulateurGlobalNarrativeRecap(result) ?? ''
+  }, [result])
+
+  const handleCopyRecap = useCallback(async () => {
+    if (!recapText) return
+    try {
+      await navigator.clipboard.writeText(recapText)
+      setCopiedRecap(true)
+      window.setTimeout(() => setCopiedRecap(false), 2000)
+    } catch {
+      alert('Impossible de copier le récapitulatif.')
+    }
+  }, [recapText])
 
   const applySavedContent = useCallback((content: SimulateurMediaSaveContent, name: string, id: string) => {
     setForm({
@@ -570,7 +625,7 @@ function SimulateurMediaLinkPanelInner() {
       <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent pb-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
@@ -583,16 +638,32 @@ function SimulateurMediaLinkPanelInner() {
                 idéale, MAX et personnalisée.
               </CardDescription>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
-              onClick={handleOpenSaveDialog}
-              disabled={loadingSave || !result}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Sauvegarder
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                onClick={() => void handleCopyRecap()}
+                disabled={loadingSave || !result}
+              >
+                {copiedRecap ? (
+                  <Check className="h-4 w-4 mr-2" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-2" />
+                )}
+                {copiedRecap ? 'Copié' : 'Copier'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                onClick={handleOpenSaveDialog}
+                disabled={loadingSave || !result}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Sauvegarder
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -747,12 +818,16 @@ function SimulateurMediaLinkPanelInner() {
                         <TableHead className="font-semibold">Durée</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie idéale</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie MAX</TableHead>
+                        <TableHead className="w-12 px-2 text-center font-semibold">
+                          <span className="sr-only">Copier le récap</span>
+                          <Copy className="mx-auto h-4 w-4 text-muted-foreground" aria-hidden />
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {result.rows.filter((row) => row.enabled).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                             Activez au moins une plateforme pour afficher les résultats.
                           </TableCell>
                         </TableRow>

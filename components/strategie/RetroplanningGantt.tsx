@@ -285,7 +285,12 @@ export function RetroplanningGantt({
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-semibold">{entry.operationName}</p>
-                    <p className="truncate text-[11px] text-muted-foreground">{entry.platform}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {entry.platform}
+                      <span className="ml-1.5 font-semibold text-foreground">
+                        · {durationDays} j
+                      </span>
+                    </p>
                   </div>
                   <Button
                     type="button"
@@ -306,10 +311,10 @@ export function RetroplanningGantt({
                       left: left + 2,
                       width,
                       height: ROW_HEIGHT - 16,
-                      backgroundColor: `${color}22`,
+                      backgroundColor: `${color}40`,
                       borderLeftWidth: 4,
                       borderLeftColor: color,
-                      borderColor: `${color}55`,
+                      borderColor: `${color}99`,
                     }}
                     title={`${entry.operationName} — ${formatShortDate(entry.startDate)} → ${formatShortDate(entry.endDate)}`}
                   >

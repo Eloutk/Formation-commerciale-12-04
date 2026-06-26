@@ -76,6 +76,15 @@ function addDaysIso(iso: string, days: number): string {
   return `${ny}-${nm}-${nd}`
 }
 
+function countInclusiveOperationDays(startDate: string, endDate: string): number | null {
+  if (!startDate || !endDate || endDate < startDate) return null
+  const [sy, sm, sd] = startDate.split('-').map(Number)
+  const [ey, em, ed] = endDate.split('-').map(Number)
+  const start = new Date(sy, (sm ?? 1) - 1, sd ?? 1).getTime()
+  const end = new Date(ey, (em ?? 1) - 1, ed ?? 1).getTime()
+  return Math.round((end - start) / 86_400_000) + 1
+}
+
 type OperationRow = DraftRow & {
   /** Affichée dans le Gantt ; les modifications de la ligne se répercutent en direct. */
   inCalendar: boolean
@@ -351,7 +360,9 @@ export function StrategieRetroplanningView() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {operationRows.map((row, index) => (
+          {operationRows.map((row, index) => {
+            const operationDays = countInclusiveOperationDays(row.startDate, row.endDate)
+            return (
             <div
               key={row.id}
               className={cn(
@@ -363,6 +374,11 @@ export function StrategieRetroplanningView() {
               <div className="space-y-1.5 min-w-0">
                 <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:block">
                   Plateforme
+                  {operationDays != null ? (
+                    <span className="ml-1.5 normal-case font-semibold text-foreground">
+                      · {operationDays} j
+                    </span>
+                  ) : null}
                 </Label>
                 <Select
                   value={row.platform}
@@ -480,7 +496,8 @@ export function StrategieRetroplanningView() {
                 ) : null}
               </div>
             </div>
-          ))}
+            )
+          })}
 
           {operationRows.length > 1 ? (
             <div className="flex justify-center pt-1">

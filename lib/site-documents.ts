@@ -7,8 +7,6 @@ export type SiteDocument = {
   href: string
   downloadFilename: string
   format: 'pdf' | 'powerpoint' | 'keynote' | 'xlsx'
-  featured?: boolean
-  badge?: string
 }
 
 export type SiteDocumentSection = {
@@ -42,7 +40,7 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
       },
       {
         id: 'guide-performance',
-        title: 'Guide Performance Ads',
+        title: 'Guide Perf Max et Gen Ads',
         description: 'Lecture des performances publicitaires et optimisation — V1.2',
         href: '/Guide Performance Ads V1.2.pdf',
         downloadFilename: 'Guide Performance Ads V1.2.pdf',
@@ -62,8 +60,6 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
         href: IA_PRESENTATION_TEMPLATE.publicPath,
         downloadFilename: IA_PRESENTATION_TEMPLATE.downloadFilename,
         format: 'powerpoint',
-        featured: true,
-        badge: 'Template IA',
       },
       {
         id: 'formation-studio-2026',
