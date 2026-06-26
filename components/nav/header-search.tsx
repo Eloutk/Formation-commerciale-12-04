@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { filterSiteSearch, getSiteSearchItems } from '@/lib/site-search'
+import { filterSiteSearch, getSiteSearchItems, type SiteSearchItem } from '@/lib/site-search'
+import { isExternalNavHref } from '@/lib/nav-config'
 import type { UserRole } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 
@@ -39,11 +40,15 @@ export function HeaderSearch({ isAdmin, role, className, compact = false }: Head
     return () => document.removeEventListener('mousedown', handlePointerDown)
   }, [compact])
 
-  const handleSelect = (href: string) => {
+  const handleSelect = (item: SiteSearchItem) => {
     setQuery('')
     setOpen(false)
     if (compact) setExpanded(false)
-    router.push(href)
+    if (item.external || isExternalNavHref(item.href)) {
+      window.open(item.href, '_blank', 'noopener,noreferrer')
+      return
+    }
+    router.push(item.href)
   }
 
   const showResults = open && query.trim().length > 0
@@ -96,7 +101,7 @@ export function HeaderSearch({ isAdmin, role, className, compact = false }: Head
           }
           if (event.key === 'Enter' && results[0]) {
             event.preventDefault()
-            handleSelect(results[0].href)
+            handleSelect(results[0])
           }
         }}
       />
@@ -104,30 +109,53 @@ export function HeaderSearch({ isAdmin, role, className, compact = false }: Head
       {showResults ? (
         <div className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 overflow-hidden rounded-md border border-border bg-popover shadow-md">
           {results.length > 0 ? (
-            <ul className="max-h-72 overflow-y-auto py-1">
-              {results.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="block px-3 py-2 hover:bg-accent"
-                    onClick={() => handleSelect(item.href)}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">{item.title}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">{item.category}</span>
-                    </div>
-                    {item.description ? (
-                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="border-b px-3 py-1.5 text-[11px] text-muted-foreground">
+                {results.length} résultat{results.length > 1 ? 's' : ''}
+              </p>
+              <ul className="max-h-80 overflow-y-auto py-1">
+                {results.map((item) => (
+                  <li key={item.id}>
+                    {item.external || isExternalNavHref(item.href) ? (
+                      <button
+                        type="button"
+                        className="block w-full px-3 py-2 text-left hover:bg-accent"
+                        onClick={() => handleSelect(item)}
+                      >
+                        <ResultRow item={item} />
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        className="block px-3 py-2 hover:bg-accent"
+                        onClick={() => handleSelect(item)}
+                      >
+                        <ResultRow item={item} />
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <p className="px-3 py-2 text-sm text-muted-foreground">Aucun résultat</p>
           )}
         </div>
       ) : null}
     </div>
+  )
+}
+
+function ResultRow({ item }: { item: SiteSearchItem }) {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">{item.title}</span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">{item.category}</span>
+      </div>
+      {item.description ? (
+        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
+      ) : null}
+    </>
   )
 }

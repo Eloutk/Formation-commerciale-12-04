@@ -1,4 +1,4 @@
-import { AIDE_LINKS, isAidePath, type NavAideLink } from '@/lib/nav-aide'
+import { AIDE_LINKS, isAidePath, isExternalNavHref, type NavAideLink } from '@/lib/nav-aide'
 import { isClientRole, type UserRole } from '@/lib/roles'
 
 export type NavMenuItem = {
@@ -114,4 +114,4 @@ export function withActiveItems(pathname: string | null | undefined, items: NavM
   }))
 }
 
-export { isAidePath, AIDE_LINKS }
+export { isAidePath, AIDE_LINKS, isExternalNavHref }

@@ -622,7 +622,7 @@ export default function MonEspacePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">
             {userName ? `Espace perso de ${userName}` : 'Espace perso'}
@@ -636,8 +636,8 @@ export default function MonEspacePage() {
           </p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-          <aside className="w-full md:w-52 shrink-0 md:sticky md:top-20">
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+          <aside className="w-full md:w-48 lg:w-52 shrink-0 md:sticky md:top-20">
             <nav aria-label="Catégories Mon espace">
               <ToggleGroup
                 type="single"
@@ -770,16 +770,16 @@ export default function MonEspacePage() {
                 </div>
               ) : (
                 <>
-                <div className="overflow-x-auto rounded-xl border border-border/70">
-                  <Table>
+                <div className="rounded-xl border border-border/70">
+                  <Table className="table-fixed w-full">
                     <TableHeader>
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableHead className="font-semibold">Nom</TableHead>
-                        <TableHead className="font-semibold">Catégorie</TableHead>
-                        <TableHead className="font-semibold">Enregistré par</TableHead>
-                        <TableHead className="font-semibold">Résumé</TableHead>
-                        <TableHead className="font-semibold">Créé le</TableHead>
-                        <TableHead className="font-semibold text-right">Actions</TableHead>
+                        <TableHead className="font-semibold w-[20%]">Nom</TableHead>
+                        <TableHead className="font-semibold w-[14%]">Catégorie</TableHead>
+                        <TableHead className="font-semibold w-[16%]">Enregistré par</TableHead>
+                        <TableHead className="font-semibold w-[18%]">Résumé</TableHead>
+                        <TableHead className="font-semibold w-[14%]">Créé le</TableHead>
+                        <TableHead className="font-semibold text-right w-[18%]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -788,7 +788,7 @@ export default function MonEspacePage() {
                           const row = item.record
                           return (
                             <TableRow key={`${item.kind}-${row.id}`}>
-                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                                 {row.name}
                               </TableCell>
                               <TableCell>
@@ -826,7 +826,7 @@ export default function MonEspacePage() {
                           const row = item.record
                           return (
                             <TableRow key={`${item.kind}-${row.id}`}>
-                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                                 {row.name}
                               </TableCell>
                               <TableCell>
@@ -864,7 +864,7 @@ export default function MonEspacePage() {
                           const row = item.record
                           return (
                             <TableRow key={`${item.kind}-${row.id}`}>
-                              <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                                 {row.name}
                               </TableCell>
                               <TableCell>
@@ -873,7 +873,7 @@ export default function MonEspacePage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">{item.authorLabel}</TableCell>
-                              <TableCell className="text-sm whitespace-nowrap max-w-[16rem] truncate" title={row.client_name}>
+                              <TableCell className="text-sm min-w-0 truncate" title={row.client_name}>
                                 {formatMockupPlatformLabel(row.platform)} — {formatMockupFormatLabel(row.content)}
                                 {row.client_name ? ` — ${row.client_name}` : ''}
                               </TableCell>
@@ -901,7 +901,7 @@ export default function MonEspacePage() {
                           const row = item.record
                           return (
                           <TableRow key={`${item.kind}-${row.id}`}>
-                            <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                            <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                               {row.name}
                             </TableCell>
                             <TableCell>
@@ -1005,26 +1005,26 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableHead className="font-semibold">Nom</TableHead>
-                      <TableHead className="font-semibold">Stratégies</TableHead>
-                      <TableHead className="font-semibold">Montant HT</TableHead>
-                      <TableHead className="font-semibold">Créé le</TableHead>
-                      <TableHead className="font-semibold">Modifié le</TableHead>
-                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                      <TableHead className="font-semibold w-[22%]">Nom</TableHead>
+                      <TableHead className="font-semibold w-[22%]">Stratégies</TableHead>
+                      <TableHead className="font-semibold w-[12%]">Montant HT</TableHead>
+                      <TableHead className="font-semibold w-[14%]">Créé le</TableHead>
+                      <TableHead className="font-semibold w-[14%]">Modifié le</TableHead>
+                      <TableHead className="font-semibold text-right w-[16%]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {strategiesPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal">
+                        <TableCell className="min-w-0">
+                          <Badge variant="outline" className="font-normal whitespace-normal text-left">
                             {row.content.strategies.length} bloc
                             {row.content.strategies.length > 1 ? 's' : ''}
                             {countVente2StrategyPlatforms(row.content) > 0 && (
@@ -1143,8 +1143,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1156,7 +1156,7 @@ export default function MonEspacePage() {
                   <TableBody>
                     {retroplanningPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell>
@@ -1266,8 +1266,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1281,7 +1281,7 @@ export default function MonEspacePage() {
                   <TableBody>
                     {studioTarifsPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell>
@@ -1397,8 +1397,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1412,7 +1412,7 @@ export default function MonEspacePage() {
                   <TableBody>
                     {simulateurPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell>
@@ -1529,8 +1529,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1545,10 +1545,10 @@ export default function MonEspacePage() {
                   <TableBody>
                     {mockupPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
-                        <TableCell className="max-w-[10rem] truncate" title={row.client_name}>
+                        <TableCell className="min-w-0 truncate" title={row.client_name}>
                           {row.client_name || '—'}
                         </TableCell>
                         <TableCell>
@@ -1661,8 +1661,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1676,7 +1676,7 @@ export default function MonEspacePage() {
                   <TableBody>
                     {iaPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell>
@@ -1684,10 +1684,10 @@ export default function MonEspacePage() {
                             {getIaActionLabel(row.action_id)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[12rem] truncate text-sm" title={row.input_label ?? undefined}>
+                        <TableCell className="min-w-0 truncate text-sm" title={row.input_label ?? undefined}>
                           {row.input_label ?? '—'}
                         </TableCell>
-                        <TableCell className="max-w-[10rem] truncate">
+                        <TableCell className="min-w-0 truncate">
                           {row.client_name || '—'}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
@@ -1790,8 +1790,8 @@ export default function MonEspacePage() {
               </div>
             ) : (
               <>
-              <div className="overflow-x-auto rounded-xl border border-border/70">
-                <Table>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
@@ -1805,7 +1805,7 @@ export default function MonEspacePage() {
                   <TableBody>
                     {devisPagination.items.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-medium max-w-[14rem] truncate" title={row.name}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell>

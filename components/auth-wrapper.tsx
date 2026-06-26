@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { DoorOpen } from 'lucide-react'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
 import { HeaderSearch } from '@/components/nav/header-search'
@@ -636,15 +637,26 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                   )}
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     onClick={handleLogout}
-                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    className="h-9 w-9 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    aria-label="Se déconnecter"
+                    title="Se déconnecter"
                   >
-                    Se déconnecter
+                    <DoorOpen className="h-4 w-4" aria-hidden />
                   </Button>
                 </>
               ) : (
-                <Link href="/login" className="text-sm text-orange-600 hover:underline">Se connecter</Link>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <Link href="/login" aria-label="Se connecter" title="Se connecter">
+                    <DoorOpen className="h-4 w-4" aria-hidden />
+                  </Link>
+                </Button>
               )}
             </div>
           </div>
