@@ -48,9 +48,12 @@ export default function MediaPage() {
             <AlertTriangle className="h-4 w-4 text-amber-700" />
             <AlertTitle className="text-amber-900">Médiathèque non configurée</AlertTitle>
             <AlertDescription className="text-amber-800">
-              La table Supabase n&apos;est pas encore créée. Exécutez le script{' '}
-              <code className="text-xs bg-amber-100 px-1 py-0.5 rounded">supabase/media-library.sql</code>{' '}
-              dans le SQL Editor de votre projet Supabase existant.
+              La table Supabase n&apos;est pas encore créée ou les droits ne sont pas configurés.
+              Exécutez{' '}
+              <code className="text-xs bg-amber-100 px-1 py-0.5 rounded">supabase/media-library.sql</code>
+              {' '}puis, si besoin,{' '}
+              <code className="text-xs bg-amber-100 px-1 py-0.5 rounded">supabase/media-library-authenticated-access.sql</code>
+              {' '}dans le SQL Editor Supabase.
             </AlertDescription>
           </Alert>
         ) : null}

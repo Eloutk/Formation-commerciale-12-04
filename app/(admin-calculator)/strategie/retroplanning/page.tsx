@@ -10,7 +10,7 @@ export default function StrategieRetroplanningPage() {
           <SavedRecordLoadingBanner
             className="my-8"
             label="Chargement du rétroplanning…"
-            description="Préparation de la page Stratégie — Rétroplanning."
+            description="Préparation de la page Rétroplanning."
           />
         </div>
       }

@@ -79,6 +79,11 @@ const nextConfig = {
         permanent: true,
       },
       { source: '/mon-espace', destination: '/mon-espace/mes-projets', permanent: false },
+      {
+        source: '/strategie/pige-commerciale',
+        destination: '/mon-espace/pige-commerciale',
+        permanent: true,
+      },
     ]
   },
   images: {

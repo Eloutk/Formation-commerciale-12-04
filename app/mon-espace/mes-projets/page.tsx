@@ -14,6 +14,7 @@ import {
   ImageIcon,
   Loader2,
   Palette,
+  ScanSearch,
   Search,
   Shield,
   Trash2,
@@ -48,7 +49,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, STRATEGIE_RETROPLANNING_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, STRATEGIE_RETROPLANNING_HREF, MON_ESPACE_PIGE_COMMERCIALE_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -86,6 +87,14 @@ import {
   listUserMockupSaves,
 } from '@/lib/mockup-saves-storage'
 import {
+  deletePigeCommercialeSave,
+  listUserPigeCommercialeSaves,
+} from '@/lib/pige-commerciale-saves-storage'
+import {
+  formatPigeCommercialeSaveDate,
+  type PigeCommercialeSaveRecord,
+} from '@/lib/pige-commerciale-saves'
+import {
   formatStudioTarifsSaveDate,
   type StudioTarifsSaveRecord,
 } from '@/lib/studio-tarifs-saves'
@@ -113,7 +122,7 @@ import { MonEspaceListPagination } from '@/components/mon-espace/ListPagination'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 
-type MonEspaceSection = 'admin' | 'strategy' | 'retroplanning' | 'studioTarifs' | 'simulateur' | 'mockups' | 'devis'
+type MonEspaceSection = 'admin' | 'strategy' | 'retroplanning' | 'studioTarifs' | 'simulateur' | 'mockups' | 'pige' | 'devis'
 
 const MON_ESPACE_SECTIONS: {
   id: MonEspaceSection
@@ -127,6 +136,7 @@ const MON_ESPACE_SECTIONS: {
   { id: 'studioTarifs', label: 'Tarifs studio', icon: Palette },
   { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
+  { id: 'pige', label: 'Pige commerciale', icon: ScanSearch },
   { id: 'devis', label: 'SMS / RCS', icon: FolderOpen },
 ]
 
@@ -137,24 +147,28 @@ export default function MonEspacePage() {
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
+  const [pigeSaves, setPigeSaves] = useState<PigeCommercialeSaveRecord[]>([])
   const [studioTarifsSaves, setStudioTarifsSaves] = useState<StudioTarifsSaveRecord[]>([])
   const [retroplanningSaves, setRetroplanningSaves] = useState<RetroplanningSaveRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
   const [loadingStrategies, setLoadingStrategies] = useState(true)
   const [loadingSimulateurSaves, setLoadingSimulateurSaves] = useState(true)
   const [loadingMockupSaves, setLoadingMockupSaves] = useState(true)
+  const [loadingPigeSaves, setLoadingPigeSaves] = useState(true)
   const [loadingStudioTarifsSaves, setLoadingStudioTarifsSaves] = useState(true)
   const [loadingRetroplanningSaves, setLoadingRetroplanningSaves] = useState(true)
   const [devisError, setDevisError] = useState<string | null>(null)
   const [strategiesError, setStrategiesError] = useState<string | null>(null)
   const [simulateurSavesError, setSimulateurSavesError] = useState<string | null>(null)
   const [mockupSavesError, setMockupSavesError] = useState<string | null>(null)
+  const [pigeSavesError, setPigeSavesError] = useState<string | null>(null)
   const [studioTarifsSavesError, setStudioTarifsSavesError] = useState<string | null>(null)
   const [retroplanningSavesError, setRetroplanningSavesError] = useState<string | null>(null)
   const [devisSearch, setDevisSearch] = useState('')
   const [strategiesSearch, setStrategiesSearch] = useState('')
   const [simulateurSavesSearch, setSimulateurSavesSearch] = useState('')
   const [mockupSavesSearch, setMockupSavesSearch] = useState('')
+  const [pigeSavesSearch, setPigeSavesSearch] = useState('')
   const [studioTarifsSavesSearch, setStudioTarifsSavesSearch] = useState('')
   const [retroplanningSavesSearch, setRetroplanningSavesSearch] = useState('')
   const [actionId, setActionId] = useState<string | null>(null)
@@ -163,6 +177,7 @@ export default function MonEspacePage() {
   const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
     useState<SimulateurMediaSaveRecord | null>(null)
   const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
+  const [deletePigeTarget, setDeletePigeTarget] = useState<PigeCommercialeSaveRecord | null>(null)
   const [deleteStudioTarifsTarget, setDeleteStudioTarifsTarget] =
     useState<StudioTarifsSaveRecord | null>(null)
   const [deleteRetroplanningTarget, setDeleteRetroplanningTarget] =
@@ -178,6 +193,7 @@ export default function MonEspacePage() {
   const [strategiesPage, setStrategiesPage] = useState(1)
   const [simulateurPage, setSimulateurPage] = useState(1)
   const [mockupPage, setMockupPage] = useState(1)
+  const [pigePage, setPigePage] = useState(1)
   const [studioTarifsPage, setStudioTarifsPage] = useState(1)
   const [retroplanningPage, setRetroplanningPage] = useState(1)
   const [devisPage, setDevisPage] = useState(1)
@@ -193,6 +209,14 @@ export default function MonEspacePage() {
       setActiveSection(visibleSections[0]?.id ?? 'strategy')
     }
   }, [activeSection, visibleSections])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const section = new URLSearchParams(window.location.search).get('section')
+    if (section && visibleSections.some((item) => item.id === section)) {
+      setActiveSection(section as MonEspaceSection)
+    }
+  }, [visibleSections])
 
   const loadDevis = useCallback(async () => {
     setLoadingDevis(true)
@@ -248,6 +272,21 @@ export default function MonEspacePage() {
     }
   }, [])
 
+  const loadPigeSaves = useCallback(async () => {
+    setLoadingPigeSaves(true)
+    setPigeSavesError(null)
+    try {
+      const rows = await listUserPigeCommercialeSaves()
+      setPigeSaves(rows)
+    } catch (e) {
+      setPigeSavesError(
+        e instanceof Error ? e.message : 'Impossible de charger vos captures de pige.',
+      )
+    } finally {
+      setLoadingPigeSaves(false)
+    }
+  }, [])
+
   const loadStudioTarifsSaves = useCallback(async () => {
     setLoadingStudioTarifsSaves(true)
     setStudioTarifsSavesError(null)
@@ -283,9 +322,10 @@ export default function MonEspacePage() {
     void loadStrategies()
     void loadSimulateurSaves()
     void loadMockupSaves()
+    void loadPigeSaves()
     void loadStudioTarifsSaves()
     void loadRetroplanningSaves()
-  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadStudioTarifsSaves, loadRetroplanningSaves])
+  }, [loadDevis, loadStrategies, loadSimulateurSaves, loadMockupSaves, loadPigeSaves, loadStudioTarifsSaves, loadRetroplanningSaves])
 
   const loadAdmin = useCallback(async () => {
     if (!isAdmin) return
@@ -353,6 +393,17 @@ export default function MonEspacePage() {
     )
   }, [mockupSaves, mockupSavesSearch])
 
+  const filteredPigeSaves = useMemo(() => {
+    const q = pigeSavesSearch.trim().toLowerCase()
+    if (!q) return pigeSaves
+    return pigeSaves.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        (row.comment?.toLowerCase().includes(q) ?? false) ||
+        row.original_filename.toLowerCase().includes(q),
+    )
+  }, [pigeSaves, pigeSavesSearch])
+
   const filteredStudioTarifsSaves = useMemo(() => {
     const q = studioTarifsSavesSearch.trim().toLowerCase()
     if (!q) return studioTarifsSaves
@@ -380,6 +431,10 @@ export default function MonEspacePage() {
   const mockupPagination = useMemo(
     () => getMonEspacePagination(filteredMockupSaves, mockupPage),
     [filteredMockupSaves, mockupPage],
+  )
+  const pigePagination = useMemo(
+    () => getMonEspacePagination(filteredPigeSaves, pigePage),
+    [filteredPigeSaves, pigePage],
   )
   const studioTarifsPagination = useMemo(
     () => getMonEspacePagination(filteredStudioTarifsSaves, studioTarifsPage),
@@ -409,6 +464,10 @@ export default function MonEspacePage() {
   useEffect(() => {
     setMockupPage(1)
   }, [mockupSavesSearch])
+
+  useEffect(() => {
+    setPigePage(1)
+  }, [pigeSavesSearch])
 
   useEffect(() => {
     setStudioTarifsPage(1)
@@ -445,6 +504,12 @@ export default function MonEspacePage() {
       setMockupPage(mockupPagination.totalPages)
     }
   }, [mockupPage, mockupPagination.totalPages])
+
+  useEffect(() => {
+    if (pigePage > pigePagination.totalPages) {
+      setPigePage(pigePagination.totalPages)
+    }
+  }, [pigePage, pigePagination.totalPages])
 
   useEffect(() => {
     if (studioTarifsPage > studioTarifsPagination.totalPages) {
@@ -513,6 +578,20 @@ export default function MonEspacePage() {
       await deleteMockupSave(deleteMockupTarget.id)
       setDeleteMockupTarget(null)
       await loadMockupSaves()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDeletePige = async () => {
+    if (!deletePigeTarget) return
+    setActionId(deletePigeTarget.id)
+    try {
+      await deletePigeCommercialeSave(deletePigeTarget.id)
+      setDeletePigeTarget(null)
+      await loadPigeSaves()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erreur lors de la suppression.')
     } finally {
@@ -1537,6 +1616,131 @@ export default function MonEspacePage() {
         </Card>
         )}
 
+        {activeSection === 'pige' && (
+        <Card className="overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <ScanSearch className="h-5 w-5 text-[#E94C16]" />
+              Pige commerciale
+            </CardTitle>
+            <CardDescription>
+              Captures d&apos;écran enregistrées depuis la pige — consultez ou supprimez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom, fichier ou commentaire…"
+                  value={pigeSavesSearch}
+                  onChange={(e) => setPigeSavesSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
+                <Link href={MON_ESPACE_PIGE_COMMERCIALE_HREF}>Nouvelle capture</Link>
+              </Button>
+            </div>
+
+            {loadingPigeSaves ? (
+              <SavedRecordLoadingBanner
+                className="my-10"
+                label="Chargement de vos captures…"
+                description="Récupération de vos piges commerciales."
+              />
+            ) : pigeSavesError ? (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {pigeSavesError}
+                <p className="mt-2 text-muted-foreground">
+                  Si la table n&apos;existe pas encore, exécutez{' '}
+                  <code className="text-xs">supabase/pige-commerciale-saves.sql</code> dans Supabase.
+                </p>
+              </div>
+            ) : filteredPigeSaves.length === 0 ? (
+              <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+                {pigeSaves.length === 0 ? (
+                  <>
+                    <p className="font-medium text-foreground">Aucune capture enregistrée</p>
+                    <p className="text-sm mt-1">
+                      Importez une image depuis la page Pige commerciale pour la retrouver ici.
+                    </p>
+                  </>
+                ) : (
+                  <p>Aucune capture ne correspond à votre recherche.</p>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="rounded-xl border border-border/70">
+                <Table className="table-fixed w-full">
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableHead className="font-semibold">Nom</TableHead>
+                      <TableHead className="font-semibold">Commentaire</TableHead>
+                      <TableHead className="font-semibold">Fichier</TableHead>
+                      <TableHead className="font-semibold">Créé le</TableHead>
+                      <TableHead className="font-semibold text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pigePagination.items.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-medium min-w-0 truncate" title={row.name}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell className="min-w-0 truncate text-sm text-muted-foreground" title={row.comment ?? undefined}>
+                          {row.comment || '—'}
+                        </TableCell>
+                        <TableCell className="min-w-0 truncate text-sm" title={row.original_filename}>
+                          {row.original_filename}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatPigeCommercialeSaveDate(row.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={actionId === row.id}
+                              onClick={() =>
+                                router.push(`${MON_ESPACE_PIGE_COMMERCIALE_HREF}?capture=${row.id}`)
+                              }
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Ouvrir
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              disabled={actionId === row.id}
+                              onClick={() => setDeletePigeTarget(row)}
+                              aria-label={`Supprimer ${row.name}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <MonEspaceListPagination
+                page={pigePagination.page}
+                totalPages={pigePagination.totalPages}
+                onPageChange={setPigePage}
+              />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        )}
+
         {activeSection === 'devis' && (
         <Card className="overflow-hidden border-border/80 shadow-sm">
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
@@ -1805,6 +2009,30 @@ export default function MonEspacePage() {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteMockup()}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deletePigeTarget}
+        onOpenChange={(open) => !open && setDeletePigeTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette capture ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              « {deletePigeTarget?.name} » sera définitivement supprimée de Mon espace. Cette action
+              est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => void handleDeletePige()}
             >
               Supprimer
             </AlertDialogAction>

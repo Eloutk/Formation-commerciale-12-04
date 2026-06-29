@@ -15,11 +15,11 @@ type RouteConfig = {
 const ROUTE_CONFIG: Record<string, RouteConfig> = {
   [MON_ESPACE_SOCIAL_HREF]: {
     view: 'social',
-    pageTitle: 'Calculateur Vente 2',
+    pageTitle: 'Social media',
   },
   [MON_ESPACE_SMS_HREF]: {
     view: 'sms',
-    pageTitle: 'Calculateur Vente 2 — SMS & RCS',
+    pageTitle: 'SMS & RCS',
   },
 }
 

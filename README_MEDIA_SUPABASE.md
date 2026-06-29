@@ -82,6 +82,7 @@ Si la table n’a pas encore été créée, un bandeau « Médiathèque non conf
 | Problème | Solution |
 |----------|----------|
 | « Médiathèque non configurée » | Exécutez `supabase/media-library.sql` |
+| Seuls les admins voient les médias | Exécutez `supabase/media-library-authenticated-access.sql` |
 | Erreur upload Storage | Vérifiez que le bucket `media-library` existe |
 | Fichier trop volumineux | Limite 100 Mo (modifiable dans le SQL) |
 | Type MIME refusé | Ajoutez le type dans `allowed_mime_types` du bucket |

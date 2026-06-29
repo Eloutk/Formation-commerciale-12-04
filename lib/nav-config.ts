@@ -26,6 +26,11 @@ export const STRATEGIE_PLAN_MEDIA_HREF = '/strategie/plan-media'
 export const STRATEGIE_CARTOGRAPHIE_HREF = '/strategie/cartographie'
 export const STRATEGIE_RETROPLANNING_HREF = '/strategie/retroplanning'
 
+export const MON_ESPACE_PIGE_COMMERCIALE_HREF = '/mon-espace/pige-commerciale'
+
+/** @deprecated Alias historique — préférer MON_ESPACE_PIGE_COMMERCIALE_HREF */
+export const STRATEGIE_PIGE_COMMERCIALE_HREF = MON_ESPACE_PIGE_COMMERCIALE_HREF
+
 /** @deprecated Alias historique — préférer STRATEGIE_PLAN_MEDIA_HREF */
 export const STRATEGIE_SOCIAL_HREF = STRATEGIE_PLAN_MEDIA_HREF
 
@@ -66,10 +71,11 @@ export const STRATEGIE_LINKS: NavMenuItem[] = [
 ]
 
 export const MON_ESPACE_LINKS: NavMenuItem[] = [
+  { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
+  { href: MON_ESPACE_PIGE_COMMERCIALE_HREF, label: 'Pige commerciale' },
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
   { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Tarifs studio' },
-  { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
 ]
 
 export const VENTE2_LINKS: NavMenuItem[] = []

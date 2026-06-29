@@ -3,6 +3,14 @@
 --   « canceling statement due to statement timeout »
 -- Prérequis : supabase/mon-espace-admin.sql déjà exécuté
 
+-- PostgreSQL n'autorise pas CREATE OR REPLACE si le type de retour change :
+-- il faut supprimer les anciennes fonctions (SETOF table complète) avant de les recréer.
+DROP FUNCTION IF EXISTS public.admin_list_vente2_strategies();
+DROP FUNCTION IF EXISTS public.admin_list_simulateur_media_saves();
+DROP FUNCTION IF EXISTS public.admin_list_mockup_saves();
+DROP FUNCTION IF EXISTS public.admin_list_sms_devis();
+DROP FUNCTION IF EXISTS public.admin_list_profiles_for_mon_espace();
+
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql

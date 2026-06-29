@@ -134,12 +134,28 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
   )
 }
 
-function AnalysisHelpActions({ helpText }: { helpText: string }) {
+const IDEAL_ANALYSIS_NARRATIVE =
+  'Cette stratégie est le meilleur compromis : elle permet de donner suffisamment de visibilité à votre message, sans trop répéter la publicité auprès des mêmes personnes.\n\n👉 La stratégie équilibrée pour maximiser l’efficacité sans surinvestir.'
+
+const MAX_ANALYSIS_NARRATIVE =
+  'Cette stratégie permet d’aller chercher un maximum de visibilité, mais elle correspond aussi au seuil haut à ne pas dépasser pour éviter une répétition trop forte du message.\n\n👉 La limite maximale pour pousser la diffusion sans tomber dans la surexposition.'
+
+const CUSTOM_ANALYSIS_NARRATIVE =
+  'Cette simulation vous permet d’ajuster la diffusion selon votre budget ou votre objectif, tout en visualisant immédiatement l’impact sur la couverture et la répétition du message.\n\n👉 La stratégie sur mesure pour adapter la campagne à votre niveau d’ambition.'
+
+function AnalysisHelpActions({
+  helpText,
+  narrativeText,
+}: {
+  helpText: string
+  narrativeText: string
+}) {
   const [copied, setCopied] = useState(false)
+  const copyText = `${helpText}\n\n${narrativeText}`
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(helpText)
+      await navigator.clipboard.writeText(copyText)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -205,7 +221,7 @@ function PlatformAnalysisRow({ result }: { result: SimulateurResult }) {
         <p className="mt-2 font-medium text-foreground">
           👉 La stratégie équilibrée pour maximiser l&apos;efficacité sans surinvestir.
         </p>
-        <AnalysisHelpActions helpText={idealHelpText} />
+        <AnalysisHelpActions helpText={idealHelpText} narrativeText={IDEAL_ANALYSIS_NARRATIVE} />
       </TableCell>
       <TableCell className="align-top text-xs sm:text-sm leading-relaxed text-muted-foreground">
         <p>
@@ -215,7 +231,7 @@ function PlatformAnalysisRow({ result }: { result: SimulateurResult }) {
         <p className="mt-2 font-medium text-foreground">
           👉 La limite maximale pour pousser la diffusion sans tomber dans la surexposition.
         </p>
-        <AnalysisHelpActions helpText={maxHelpText} />
+        <AnalysisHelpActions helpText={maxHelpText} narrativeText={MAX_ANALYSIS_NARRATIVE} />
       </TableCell>
     </TableRow>
   )
@@ -238,7 +254,7 @@ function CustomAnalysisRow({ result }: { result: SimulateurResult }) {
         <p className="mt-2 font-medium text-foreground">
           👉 La stratégie sur mesure pour adapter la campagne à votre niveau d&apos;ambition.
         </p>
-        <AnalysisHelpActions helpText={helpText} />
+        <AnalysisHelpActions helpText={helpText} narrativeText={CUSTOM_ANALYSIS_NARRATIVE} />
       </TableCell>
     </TableRow>
   )

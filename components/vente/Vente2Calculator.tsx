@@ -2287,7 +2287,7 @@ const KpiMaxPdfDocument = ({
 
 export function Vente2Calculator({
   view,
-  pageTitle = 'Calculateur Vente 2',
+  pageTitle = 'Social media',
   pageDescription = 'Outil à titre informatif : estimez prix, volumes et planning pour la lecture d’une brief — sans valeur contractuelle.',
 }: {
   view: Vente2CalculatorView
@@ -3747,7 +3747,7 @@ export function Vente2Calculator({
     try {
       const zip = new JSZip()
       const readmeLines: string[] = [
-        'Pack export — Calculateur Vente 2',
+        'Pack export — Social media',
         `Client : ${clientLabel}`,
         `Date : ${new Date().toLocaleString('fr-FR')}`,
         '',
