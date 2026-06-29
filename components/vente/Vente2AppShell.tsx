@@ -4,6 +4,8 @@ import { Suspense } from 'react'
 import { usePathname } from 'next/navigation'
 import { Vente2Calculator } from '@/components/vente/Vente2Calculator'
 
+import { MON_ESPACE_SMS_HREF, MON_ESPACE_SOCIAL_HREF } from '@/lib/nav-config'
+
 type RouteConfig = {
   view: 'social' | 'sms' | 'kpiMax' | 'calendar'
   pageTitle: string
@@ -11,11 +13,11 @@ type RouteConfig = {
 }
 
 const ROUTE_CONFIG: Record<string, RouteConfig> = {
-  '/calculateur-vente-2/social-media': {
+  [MON_ESPACE_SOCIAL_HREF]: {
     view: 'social',
     pageTitle: 'Calculateur Vente 2',
   },
-  '/calculateur-vente-2/sms-rcs': {
+  [MON_ESPACE_SMS_HREF]: {
     view: 'sms',
     pageTitle: 'Calculateur Vente 2 — SMS & RCS',
   },

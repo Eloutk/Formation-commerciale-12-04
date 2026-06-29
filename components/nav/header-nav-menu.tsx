@@ -3,18 +3,16 @@
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { adminNavItemClass, adminNavTriggerClass } from '@/lib/nav-admin-styles'
+import { adminNavItemClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
-const triggerClassName = (active?: boolean, accent?: boolean) =>
+const triggerClassName = (accent?: boolean) =>
   cn(
-    'inline-flex items-center gap-1 rounded-md px-3 py-2 font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'inline-flex items-center gap-1 rounded-md px-3 py-2 font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     accent
-      ? adminNavTriggerClass(active, true)
-      : active
-        ? 'text-orange-600 hover:bg-orange-50 hover:text-orange-700'
-        : 'hover:bg-accent hover:text-accent-foreground',
+      ? 'text-orange-600 hover:bg-orange-50 hover:text-orange-700'
+      : 'text-foreground hover:bg-accent hover:text-accent-foreground',
   )
 
 const itemClassName = (isActive?: boolean, adminOnly?: boolean) =>
@@ -30,6 +28,7 @@ export function HeaderNavMenu({
   items,
   groups = [],
   contentClassName = 'w-56',
+  align = 'start',
 }: {
   label: string
   active?: boolean
@@ -37,6 +36,7 @@ export function HeaderNavMenu({
   items: NavMenuItem[]
   groups?: NavMenuGroup[]
   contentClassName?: string
+  align?: 'start' | 'end'
 }) {
   const router = useRouter()
 
@@ -48,7 +48,7 @@ export function HeaderNavMenu({
     <div className="group/nav-menu relative">
       <button
         type="button"
-        className={triggerClassName(active, accent)}
+        className={triggerClassName(accent)}
         aria-haspopup="menu"
       >
         {label}
@@ -60,7 +60,8 @@ export function HeaderNavMenu({
 
       <div
         className={cn(
-          'pointer-events-none invisible absolute left-0 top-full z-50 pt-1 opacity-0',
+          'pointer-events-none invisible absolute top-full z-50 pt-1 opacity-0',
+          align === 'end' ? 'right-0' : 'left-0',
           'transition-[opacity,visibility] duration-150',
           'group-hover/nav-menu:pointer-events-auto group-hover/nav-menu:visible group-hover/nav-menu:opacity-100',
           'group-focus-within/nav-menu:pointer-events-auto group-focus-within/nav-menu:visible group-focus-within/nav-menu:opacity-100',

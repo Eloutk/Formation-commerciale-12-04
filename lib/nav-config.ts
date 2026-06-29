@@ -14,11 +14,71 @@ export type NavMenuGroup = {
   items: NavMenuItem[]
 }
 
+export const ACADEMY_DIFFUSION_HREF = '/academy/diffusion'
+
+export const GUIDES_STUDIO_HREF = '/guides/studio'
+export const GUIDES_MEDIA_HREF = '/guides/media'
+export const GUIDES_LEXIQUE_HREF = '/guides/lexique'
+export const GUIDES_FAQ_HREF = '/guides/faq'
+export const GUIDES_TUTOS_HREF = '/guides/tutos'
+
+export const STRATEGIE_PLAN_MEDIA_HREF = '/strategie/plan-media'
+export const STRATEGIE_CARTOGRAPHIE_HREF = '/strategie/cartographie'
+export const STRATEGIE_RETROPLANNING_HREF = '/strategie/retroplanning'
+
+/** @deprecated Alias historique — préférer STRATEGIE_PLAN_MEDIA_HREF */
+export const STRATEGIE_SOCIAL_HREF = STRATEGIE_PLAN_MEDIA_HREF
+
+export const MON_ESPACE_SOCIAL_HREF = '/mon-espace/social-media'
+export const MON_ESPACE_SMS_HREF = '/mon-espace/sms-rcs'
+export const MON_ESPACE_TARIFS_STUDIO_HREF = '/mon-espace/tarifs-studio'
+export const MON_ESPACE_MES_PROJETS_HREF = '/mon-espace/mes-projets'
+
+/** @deprecated Alias historique — préférer MON_ESPACE_MES_PROJETS_HREF */
+export const MON_ESPACE_HREF = MON_ESPACE_MES_PROJETS_HREF
+
+/** @deprecated Alias historique — préférer MON_ESPACE_SOCIAL_HREF */
+export const VENTE2_SOCIAL_HREF = MON_ESPACE_SOCIAL_HREF
+
+/** @deprecated Alias historique — préférer MON_ESPACE_SMS_HREF */
+export const VENTE2_SMS_HREF = MON_ESPACE_SMS_HREF
+
+export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
+export const MOCKUP_HREF = '/mockup'
+export const IA_HREF = '/ia'
+
+export const ACADEMY_LINKS: NavMenuItem[] = [
+  { href: ACADEMY_DIFFUSION_HREF, label: 'Diffusion' },
+]
+
+export const GUIDES_LINKS: NavMenuItem[] = [
+  { href: GUIDES_STUDIO_HREF, label: 'Studio' },
+  { href: GUIDES_MEDIA_HREF, label: 'Média' },
+  { href: GUIDES_LEXIQUE_HREF, label: 'Lexique' },
+  { href: GUIDES_FAQ_HREF, label: 'FAQ' },
+  { href: GUIDES_TUTOS_HREF, label: 'Tutos' },
+]
+
+export const STRATEGIE_LINKS: NavMenuItem[] = [
+  { href: STRATEGIE_PLAN_MEDIA_HREF, label: 'Plan Média' },
+  { href: STRATEGIE_CARTOGRAPHIE_HREF, label: 'Cartographie' },
+  { href: STRATEGIE_RETROPLANNING_HREF, label: 'Rétroplanning' },
+]
+
+export const MON_ESPACE_LINKS: NavMenuItem[] = [
+  { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
+  { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
+  { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Tarifs studio' },
+  { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
+]
+
+export const VENTE2_LINKS: NavMenuItem[] = []
+
+/** @deprecated Utiliser ACADEMY_LINKS, GUIDES_LINKS et STRATEGIE_LINKS */
 export const RESSOURCES_LINKS: NavMenuItem[] = [
-  { href: '/diffusion', label: 'Diffusion' },
-  { href: '/studio', label: 'Studio' },
-  { href: '/cartographie', label: 'Cartographie' },
-  { href: '/media', label: 'Média', adminOnly: true },
+  ...ACADEMY_LINKS,
+  ...GUIDES_LINKS.filter((item) => item.href !== GUIDES_LEXIQUE_HREF && item.href !== GUIDES_FAQ_HREF && item.href !== GUIDES_TUTOS_HREF),
+  { href: STRATEGIE_CARTOGRAPHIE_HREF, label: 'Cartographie' },
 ]
 
 export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
@@ -43,48 +103,38 @@ export function filterAideLinksByRole(
 
 export function filterVente2LinksByRole(
   items: NavMenuItem[],
-  role: UserRole | null,
-  isAdmin: boolean,
+  _role: UserRole | null,
+  _isAdmin: boolean,
 ): NavMenuItem[] {
-  if (isAdmin) return items
-  if (role === 'crea') {
-    return items.filter((item) => item.href === VENTE2_STUDIO_TARIFS_HREF)
-  }
-  return items.filter((item) => !item.adminOnly)
+  return items
 }
 
-export function canShowVente2Nav(role: UserRole | null, isAdmin: boolean): boolean {
-  return isAdmin || role === 'crea'
+export function canShowVente2Nav(_role: UserRole | null, _isAdmin: boolean): boolean {
+  return VENTE2_LINKS.length > 0
 }
-
-export const VENTE2_SOCIAL_HREF = '/calculateur-vente-2/social-media'
-export const VENTE2_SMS_HREF = '/calculateur-vente-2/sms-rcs'
-export const VENTE2_STUDIO_TARIFS_HREF = '/calculateur-vente-2/tarifs-studio'
-export const STRATEGIE_SOCIAL_HREF = '/strategie/social-media'
-export const STRATEGIE_RETROPLANNING_HREF = '/strategie/retroplanning'
-export const MOCKUP_HREF = '/mockup'
-export const IA_HREF = '/ia'
-export const MON_ESPACE_HREF = '/mon-espace'
-
-export const VENTE2_LINKS: NavMenuItem[] = [
-  { href: VENTE2_SOCIAL_HREF, label: 'Social Media' },
-  { href: VENTE2_SMS_HREF, label: 'SMS & RCS' },
-  { href: VENTE2_STUDIO_TARIFS_HREF, label: 'Tarifs studio' },
-]
-
-export const STRATEGIE_LINKS: NavMenuItem[] = [
-  { href: STRATEGIE_SOCIAL_HREF, label: 'Social Media' },
-  { href: '/strategie/retroplanning', label: 'Rétroplanning' },
-]
 
 export function isPathActive(pathname: string | null | undefined, href: string): boolean {
   if (!pathname) return false
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+export function isAcademyPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false
+  return pathname.startsWith('/academy')
+}
+
+export function isGuidesPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false
+  return pathname.startsWith('/guides')
+}
+
 export function isRessourcesPath(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  return RESSOURCES_LINKS.some((item) => isPathActive(pathname, item.href))
+  return (
+    isAcademyPath(pathname) ||
+    isGuidesPath(pathname) ||
+    isPathActive(pathname, STRATEGIE_CARTOGRAPHIE_HREF)
+  )
 }
 
 export function isVente2Path(pathname: string | null | undefined): boolean {
@@ -99,7 +149,7 @@ export function isStrategiePath(pathname: string | null | undefined): boolean {
 
 export function isMonEspacePath(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  return pathname === MON_ESPACE_HREF || pathname.startsWith(`${MON_ESPACE_HREF}/`)
+  return pathname === '/mon-espace' || pathname.startsWith('/mon-espace/')
 }
 
 export function isIaPath(pathname: string | null | undefined): boolean {

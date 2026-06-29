@@ -1,6 +1,6 @@
-import type { MockupSaveRecord } from '@/lib/mockup-saves'
+import type { MockupPlatformId } from '@/lib/mockup'
 import type { SimulateurMediaSaveRecord } from '@/lib/simulateur-media-saves'
-import type { SmsDevisRecord } from '@/lib/sms-devis'
+import type { SmsDevisRecord, SmsDevisType } from '@/lib/sms-devis'
 import type { Vente2StrategyRecord } from '@/lib/vente2-strategies'
 
 export type MonEspaceCategory = 'all' | 'strategy' | 'simulateur' | 'mockup' | 'sms'
@@ -10,11 +10,40 @@ export type MonEspaceAuthor = {
   label: string
 }
 
+export type MonEspaceAdminStrategyRecord = Pick<
+  Vente2StrategyRecord,
+  'id' | 'user_id' | 'name' | 'total_amount' | 'created_at' | 'updated_at'
+>
+
+export type MonEspaceAdminSimulateurRecord = Pick<
+  SimulateurMediaSaveRecord,
+  'id' | 'user_id' | 'name' | 'summary_impressions' | 'created_at' | 'updated_at'
+>
+
+export type MonEspaceAdminMockupRecord = {
+  id: string
+  user_id: string
+  name: string
+  client_name: string
+  platform: MockupPlatformId
+  visual_format: string
+  preview_png_path: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type MonEspaceAdminSmsRecord = Pick<
+  SmsDevisRecord,
+  'id' | 'user_id' | 'name' | 'total_amount' | 'created_at' | 'updated_at'
+> & {
+  sms_type: SmsDevisType
+}
+
 export type MonEspaceAdminItem =
-  | { kind: 'strategy'; record: Vente2StrategyRecord; authorLabel: string }
-  | { kind: 'simulateur'; record: SimulateurMediaSaveRecord; authorLabel: string }
-  | { kind: 'mockup'; record: MockupSaveRecord; authorLabel: string }
-  | { kind: 'sms'; record: SmsDevisRecord; authorLabel: string }
+  | { kind: 'strategy'; record: MonEspaceAdminStrategyRecord; authorLabel: string }
+  | { kind: 'simulateur'; record: MonEspaceAdminSimulateurRecord; authorLabel: string }
+  | { kind: 'mockup'; record: MonEspaceAdminMockupRecord; authorLabel: string }
+  | { kind: 'sms'; record: MonEspaceAdminSmsRecord; authorLabel: string }
 
 export function authorLabelFromProfile(profile: {
   full_name?: string | null

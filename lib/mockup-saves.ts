@@ -47,9 +47,16 @@ export function formatMockupPlatformLabel(platform: MockupPlatformId): string {
 }
 
 export function formatMockupFormatLabel(content: MockupSaveContent): string {
-  if (content.platform === 'tiktok' || content.platform === 'snapchat') return 'Vertical'
+  return formatMockupVisualFormatLabel(content.platform, content.visualFormat)
+}
+
+export function formatMockupVisualFormatLabel(
+  platform: MockupPlatformId,
+  visualFormat?: string | null,
+): string {
+  if (platform === 'tiktok' || platform === 'snapchat') return 'Vertical'
   return (
-    MOCKUP_FORMAT_OPTIONS.find((item) => item.id === content.visualFormat)?.label ?? content.visualFormat
+    MOCKUP_FORMAT_OPTIONS.find((item) => item.id === visualFormat)?.label ?? visualFormat ?? '—'
   )
 }
 

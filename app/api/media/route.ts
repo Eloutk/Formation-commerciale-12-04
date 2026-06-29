@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getPrimarySessionUser, getServerSupabase, formatMediaDbError, isMediaTableMissingError, requireAdminSessionUser } from '@/lib/media-session'
+import { getPrimarySessionUser, getServerSupabase, formatMediaDbError, isMediaTableMissingError, requireAuthenticatedSessionUser } from '@/lib/media-session'
 import { MEDIA_BUCKET, normalizeMediaPlatforms, normalizeMediaSectors } from '@/lib/media-config'
 
 type UploadMeta = {
@@ -128,12 +128,9 @@ function isMissingMediaColumnError(error: { message?: string } | null, column: s
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAdminSessionUser(req)
+  const auth = await requireAuthenticatedSessionUser(req)
   if (!auth.user) {
-    return NextResponse.json(
-      { error: auth.status === 401 ? 'Non authentifié' : 'Accès réservé aux administrateurs' },
-      { status: auth.status ?? 403 },
-    )
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
   const user = auth.user
 
@@ -217,12 +214,9 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSessionUser(req)
+  const auth = await requireAuthenticatedSessionUser(req)
   if (!auth.user) {
-    return NextResponse.json(
-      { error: auth.status === 401 ? 'Non authentifié' : 'Accès réservé aux administrateurs' },
-      { status: auth.status ?? 403 },
-    )
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
   const { searchParams } = new URL(req.url)

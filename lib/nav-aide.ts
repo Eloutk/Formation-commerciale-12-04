@@ -14,12 +14,9 @@ export type TutoItem = {
 }
 
 export const AIDE_LINKS: NavAideLink[] = [
-  { href: '/documents', label: 'Document', hiddenForClient: true },
-  { href: '/glossaire', label: 'Glossaire' },
-  { href: '/faq', label: 'FAQ' },
-  { href: '/tuto', label: 'Tuto', adminOnly: true },
-  { href: '/calcul-cpm-cpc', label: 'Calculs', adminOnly: true },
-  { href: '/mockup', label: 'Mockup', adminOnly: true },
+  { href: '/documents', label: 'Document' },
+  { href: '/calcul-cpm-cpc', label: 'Calculs' },
+  { href: '/mockup', label: 'Mockup' },
 ]
 
 export const TUTO_ITEMS: TutoItem[] = [

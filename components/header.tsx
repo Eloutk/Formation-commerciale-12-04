@@ -23,57 +23,57 @@ import Image from 'next/image'
 const modules = [
   {
     title: "Méthodologie Link",
-    href: "/formation/methodologie-link",
+    href: "/academy/methodologie-link",
     description: "CM vs TM et processus marketing",
   },
   {
     title: "Plateformes et placements",
-    href: "/formation/plateformes-placement",
+    href: "/academy/plateformes-placement",
     description: "Réseaux sociaux, Google, et SMS",
   },
   {
     title: "Tunnel de conversion",
-    href: "/formation/tunnel-conversion",
+    href: "/academy/tunnel-conversion",
     description: "Optimisez votre stratégie de conversion",
   },
   {
     title: "Objectifs de campagne",
-    href: "/formation/objectifs-campagne",
+    href: "/academy/objectifs-campagne",
     description: "Définissez des objectifs SMART",
   },
   {
     title: "Ciblage",
-    href: "/formation/ciblage",
+    href: "/academy/ciblage",
     description: "Stratégies de ciblage par plateforme",
   },
   {
     title: "Architecture des campagnes",
-    href: "/formation/architecture-campagnes",
+    href: "/academy/architecture-campagnes",
     description: "Structurez efficacement vos campagnes",
   },
   {
     title: "Tracking",
-    href: "/formation/tracking",
+    href: "/academy/tracking",
     description: "Analyse des performances",
   },
   {
     title: "Score qualité",
-    href: "/formation/score-qualite",
+    href: "/academy/score-qualite",
     description: "Améliorez vos annonces et landing pages",
   },
   {
     title: "Optimisations",
-    href: "/formation/optimisations",
+    href: "/academy/optimisations",
     description: "Maximisez vos résultats",
   },
   {
     title: "Rapports de campagne",
-    href: "/formation/rapports-campagne",
+    href: "/academy/rapports-campagne",
     description: "Analysez et optimisez vos campagnes grâce à des bilans interactifs",
   },
   {
     title: "Demandes de potentiels",
-    href: "/formation/demandes-potentiels",
+    href: "/academy/demandes-potentiels",
     description: "Fiche brief avancée pour estimer le potentiel d'une campagne",
   },
 ]
@@ -130,12 +130,6 @@ export default function Header() {
               <NavigationMenuItem>
                 <Link href="/chefferie" legacyBehavior passHref>
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>Chefferie de projet</NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <Link href="/vente" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Vente</NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
 

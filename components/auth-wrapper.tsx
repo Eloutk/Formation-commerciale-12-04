@@ -13,22 +13,21 @@ import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
 import { HeaderSearch } from '@/components/nav/header-search'
 import { AdminNavTab } from '@/components/nav/admin-nav-tab'
 import {
+  ACADEMY_LINKS,
   AIDE_LINKS,
-  RESSOURCES_LINKS,
+  GUIDES_LINKS,
+  MON_ESPACE_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
-  filterNavItemsByAdmin,
-  filterAideLinksByRole,
-  filterVente2LinksByRole,
+  IA_HREF,
   canShowVente2Nav,
+  isAcademyPath,
   isAidePath,
-  isRessourcesPath,
+  isGuidesPath,
+  isIaPath,
+  isMonEspacePath,
   isStrategiePath,
   isVente2Path,
-  MON_ESPACE_HREF,
-  isMonEspacePath,
-  IA_HREF,
-  isIaPath,
   withActiveItems,
 } from '@/lib/nav-config'
 
@@ -536,9 +535,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     }
   }
 
-  const ressourcesActive = isRessourcesPath(pathname)
+  const guidesActive = isGuidesPath(pathname)
+  const academyActive = isAcademyPath(pathname)
   const vente2Active = isVente2Path(pathname)
   const strategieActive = isStrategiePath(pathname)
+  const monEspaceActive = isMonEspacePath(pathname)
   const aideActive = isAidePath(pathname)
   const iaActive = isIaPath(pathname)
   const authAccessValue = useMemo(
@@ -579,28 +580,27 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
             <nav className="hidden lg:flex items-center gap-1 text-sm shrink-0">
               <HeaderNavMenu
-                label="Ressources"
-                active={ressourcesActive}
-                items={withActiveItems(pathname, filterNavItemsByAdmin(RESSOURCES_LINKS, isAdmin))}
+                label="Stratégie"
+                active={strategieActive}
+                items={withActiveItems(pathname, STRATEGIE_LINKS)}
+              />
+              <HeaderNavMenu
+                label="Guides"
+                active={guidesActive}
+                items={withActiveItems(pathname, GUIDES_LINKS)}
+              />
+              <HeaderNavMenu
+                label="Academy"
+                active={academyActive}
+                accent
+                items={withActiveItems(pathname, ACADEMY_LINKS)}
               />
 
-              <Link href="/vente" className="rounded-md px-3 py-2 font-medium hover:bg-accent hover:text-accent-foreground">
-                Vente
-              </Link>
               {canShowVente2Nav(role, isAdmin) && (
                 <HeaderNavMenu
                   label="Vente 2"
                   active={vente2Active}
-                  accent
-                  items={withActiveItems(pathname, filterVente2LinksByRole(VENTE2_LINKS, role, isAdmin))}
-                />
-              )}
-              {isAdmin && (
-                <HeaderNavMenu
-                  label="Stratégie"
-                  active={strategieActive}
-                  accent
-                  items={withActiveItems(pathname, STRATEGIE_LINKS)}
+                  items={withActiveItems(pathname, VENTE2_LINKS)}
                 />
               )}
               {isAdmin && (
@@ -610,7 +610,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <HeaderNavMenu
                 label="Aide"
                 active={aideActive}
-                items={withActiveItems(pathname, filterAideLinksByRole(AIDE_LINKS, isAdmin, role))}
+                items={withActiveItems(pathname, AIDE_LINKS)}
               />
             </nav>
 
@@ -620,21 +620,20 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               className="hidden md:block min-w-0 flex-1 max-w-sm lg:max-w-xs xl:max-w-sm"
             />
 
-            <div className="ml-auto flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
               <HeaderSearch isAdmin={isAdmin} role={role} compact className="md:hidden" />
+              <HeaderNavMenu
+                label="Mon espace"
+                active={monEspaceActive}
+                accent
+                align="end"
+                items={withActiveItems(pathname, MON_ESPACE_LINKS)}
+              />
               <div className="lg:hidden">
                 <MobileNav user={user} isAdmin={isAdmin} role={role} onLogout={handleLogout} />
               </div>
               {user ? (
                 <>
-                  {isAdmin && (
-                    <AdminNavTab
-                      href={MON_ESPACE_HREF}
-                      label="Mon espace"
-                      active={!!pathname && isMonEspacePath(pathname)}
-                      className="hidden sm:inline px-2 py-1 text-sm"
-                    />
-                  )}
                   <Button
                     variant="outline"
                     size="icon"

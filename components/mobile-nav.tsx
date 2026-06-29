@@ -9,20 +9,17 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/s
 import { MobileNavMenu } from "@/components/nav/mobile-nav-menu"
 import { AdminNavTab } from "@/components/nav/admin-nav-tab"
 import {
+  ACADEMY_LINKS,
   AIDE_LINKS,
-  RESSOURCES_LINKS,
+  GUIDES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
-  MON_ESPACE_HREF,
-  IA_HREF,
-  filterNavItemsByAdmin,
-  filterAideLinksByRole,
-  filterVente2LinksByRole,
   canShowVente2Nav,
+  IA_HREF,
+  isAcademyPath,
   isAidePath,
+  isGuidesPath,
   isIaPath,
-  isMonEspacePath,
-  isRessourcesPath,
   isStrategiePath,
   isVente2Path,
   withActiveItems,
@@ -73,39 +70,29 @@ export function MobileNav({
             </Link>
             <nav className="flex flex-col gap-1">
               <MobileNavMenu
-                label="Ressources"
-                active={isRessourcesPath(pathname)}
-                items={withActiveItems(pathname, filterNavItemsByAdmin(RESSOURCES_LINKS, !!isAdmin))}
+                label="Stratégie"
+                active={isStrategiePath(pathname)}
+                items={withActiveItems(pathname, STRATEGIE_LINKS)}
                 onNavigate={handleNav}
               />
               <MobileNavMenu
-                label="Aide"
-                active={isAidePath(pathname)}
-                items={withActiveItems(pathname, filterAideLinksByRole(AIDE_LINKS, !!isAdmin, role))}
+                label="Guides"
+                active={isGuidesPath(pathname)}
+                items={withActiveItems(pathname, GUIDES_LINKS)}
                 onNavigate={handleNav}
               />
-              <Link
-                href="/vente"
-                className="mt-1 rounded-md px-2 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent/80 active:bg-accent"
-                onClick={handleNav}
-              >
-                Vente
-              </Link>
+              <MobileNavMenu
+                label="Academy"
+                active={isAcademyPath(pathname)}
+                accent
+                items={withActiveItems(pathname, ACADEMY_LINKS)}
+                onNavigate={handleNav}
+              />
               {canShowVente2Nav(role, !!isAdmin) && (
                 <MobileNavMenu
                   label="Vente 2"
                   active={isVente2Path(pathname)}
-                  accent
-                  items={withActiveItems(pathname, filterVente2LinksByRole(VENTE2_LINKS, role, !!isAdmin))}
-                  onNavigate={handleNav}
-                />
-              )}
-              {isAdmin && (
-                <MobileNavMenu
-                  label="Stratégie"
-                  active={isStrategiePath(pathname)}
-                  accent
-                  items={withActiveItems(pathname, STRATEGIE_LINKS)}
+                  items={withActiveItems(pathname, VENTE2_LINKS)}
                   onNavigate={handleNav}
                 />
               )}
@@ -114,22 +101,19 @@ export function MobileNav({
                   href={IA_HREF}
                   label="IA"
                   active={isIaPath(pathname)}
-                  className="mt-1 block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
+                  className="mt-1 block px-2 py-2.5 text-sm"
                   onClick={handleNav}
                 />
               )}
+              <MobileNavMenu
+                label="Aide"
+                active={isAidePath(pathname)}
+                items={withActiveItems(pathname, AIDE_LINKS)}
+                onNavigate={handleNav}
+              />
               <div className="pt-4 mt-4 border-t">
                 {user ? (
                   <div className="space-y-2">
-                    {isAdmin && (
-                      <AdminNavTab
-                        href={MON_ESPACE_HREF}
-                        label="Mon espace"
-                        active={isMonEspacePath(pathname)}
-                        className="block px-2 py-2.5 text-sm transition-colors active:bg-violet-100"
-                        onClick={handleNav}
-                      />
-                    )}
                     <Button
                       variant="outline"
                       className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"

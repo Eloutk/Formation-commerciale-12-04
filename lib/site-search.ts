@@ -1,14 +1,13 @@
 import {
+  ACADEMY_LINKS,
   AIDE_LINKS,
+  GUIDES_LINKS,
+  GUIDES_FAQ_HREF,
+  GUIDES_LEXIQUE_HREF,
   IA_HREF,
-  MON_ESPACE_HREF,
-  RESSOURCES_LINKS,
+  MON_ESPACE_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
-  canShowVente2Nav,
-  filterAideLinksByRole,
-  filterNavItemsByAdmin,
-  filterVente2LinksByRole,
   isExternalNavHref,
   type NavMenuItem,
 } from '@/lib/nav-config'
@@ -16,7 +15,7 @@ import { TUTO_ITEMS } from '@/lib/nav-aide'
 import { FAQ_ITEMS } from '@/lib/faq-items'
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms'
 import { filterFormationModulesForRole, getModulesProgress } from '@/lib/progress'
-import { isClientRole, type UserRole } from '@/lib/roles'
+import type { UserRole } from '@/lib/roles'
 import { SITE_SEARCH_CATALOG } from '@/lib/site-search-catalog'
 
 export type SiteSearchItem = {
@@ -56,9 +55,9 @@ function itemHaystack(item: SearchableItem): string {
   )
 }
 
-function isItemVisible(item: SearchableItem, isAdmin: boolean, role: UserRole | null): boolean {
+function isItemVisible(item: SearchableItem, isAdmin: boolean, _role: UserRole | null): boolean {
   if (item.adminOnly && !isAdmin) return false
-  if (item.hiddenForClient && isClientRole(role)) return false
+  if (item.title === 'Vue admin' && !isAdmin) return false
   return true
 }
 
@@ -84,42 +83,25 @@ export function getSiteSearchItems(params: {
   const { isAdmin, role } = params
   const items: SearchableItem[] = [
     ...SITE_SEARCH_CATALOG,
-    ...navItemsToSearch(filterNavItemsByAdmin(RESSOURCES_LINKS, isAdmin), 'Ressources'),
+    ...navItemsToSearch(GUIDES_LINKS, 'Guides'),
+    ...navItemsToSearch(ACADEMY_LINKS, 'Academy'),
+    ...navItemsToSearch(VENTE2_LINKS, 'Vente 2'),
+    ...navItemsToSearch(STRATEGIE_LINKS, 'Stratégie'),
+    ...navItemsToSearch(MON_ESPACE_LINKS, 'Mon espace'),
+    ...(isAdmin
+      ? [
+          {
+            id: 'nav-ia',
+            title: 'IA',
+            href: IA_HREF,
+            category: 'IA',
+            keywords: ['intelligence artificielle'],
+            adminOnly: true,
+          } satisfies SearchableItem,
+        ]
+      : []),
+    ...navItemsToSearch(AIDE_LINKS, 'Aide'),
   ]
-
-  if (canShowVente2Nav(role, isAdmin)) {
-    items.push(...navItemsToSearch(filterVente2LinksByRole(VENTE2_LINKS, role, isAdmin), 'Vente 2'))
-  }
-
-  if (isAdmin) {
-    items.push(...navItemsToSearch(STRATEGIE_LINKS, 'Stratégie'))
-    items.push({
-      id: 'nav-ia',
-      title: 'IA',
-      href: IA_HREF,
-      category: 'Admin',
-      keywords: ['intelligence artificielle'],
-      adminOnly: true,
-    })
-    items.push({
-      id: 'nav-mon-espace',
-      title: 'Mon espace',
-      href: MON_ESPACE_HREF,
-      category: 'Admin',
-      adminOnly: true,
-    })
-  }
-
-  for (const link of filterAideLinksByRole(AIDE_LINKS, isAdmin, role)) {
-    items.push({
-      id: `nav-aide-${link.href}`,
-      title: link.label,
-      href: link.href,
-      category: 'Aide',
-      adminOnly: link.adminOnly,
-      hiddenForClient: link.hiddenForClient,
-    })
-  }
 
   const { modules } = getModulesProgress()
   for (const module of filterFormationModulesForRole(modules, role)) {
@@ -149,7 +131,7 @@ export function getSiteSearchItems(params: {
       id: `glossaire-${term.id}`,
       title: term.term,
       description: term.definition,
-      href: '/glossaire',
+      href: GUIDES_LEXIQUE_HREF,
       category: 'Glossaire',
       keywords: [term.term, term.definition, term.category],
     })
@@ -160,24 +142,21 @@ export function getSiteSearchItems(params: {
       id: `faq-${index}`,
       title: faq.question,
       description: faq.answer,
-      href: '/faq',
+      href: GUIDES_FAQ_HREF,
       category: 'FAQ',
       keywords: [faq.question, faq.answer],
     })
   }
 
-  if (isAdmin) {
-    for (const [index, tuto] of TUTO_ITEMS.entries()) {
-      items.push({
-        id: `tuto-${index}`,
-        title: tuto.label,
-        href: tuto.href,
-        category: 'Tuto',
-        keywords: [tuto.label, 'vidéo', 'vimeo'],
-        external: tuto.external ?? isExternalNavHref(tuto.href),
-        adminOnly: true,
-      })
-    }
+  for (const [index, tuto] of TUTO_ITEMS.entries()) {
+    items.push({
+      id: `tuto-${index}`,
+      title: tuto.label,
+      href: tuto.href,
+      category: 'Tuto',
+      keywords: [tuto.label, 'vidéo', 'vimeo'],
+      external: tuto.external ?? isExternalNavHref(tuto.href),
+    })
   }
 
   const seen = new Set<string>()

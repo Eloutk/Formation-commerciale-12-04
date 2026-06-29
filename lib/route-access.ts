@@ -1,11 +1,5 @@
-import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
-import {
-  canAccessDemandesPotentiels,
-  canAccessDocuments,
-  canAccessStudioTarifs,
-  isAdminRole,
-  type UserRole,
-} from '@/lib/roles'
+import { IA_HREF } from '@/lib/nav-config'
+import { isAdminRole, type UserRole } from '@/lib/roles'
 
 /** Assets statiques accessibles sans session (login, favicon, polices, branding). */
 export const PUBLIC_STATIC_EXACT = new Set([
@@ -72,46 +66,23 @@ export function resolvePathAccessViolation(
 ): string | null {
   if (pathname.startsWith('/test-supabase')) return '/login'
 
-  if (!canAccessDocuments(role) && (pathname === '/documents' || pathname.startsWith('/documents/'))) {
+  if (pathname.startsWith('/admin') && !isAdmin) {
     return '/home'
   }
 
-  if (
-    !canAccessDemandesPotentiels(role) &&
-    (pathname === '/demandes-potentiels' ||
-      pathname === '/formation/demandes-potentiels' ||
-      pathname.startsWith('/formation/demandes-potentiels/'))
-  ) {
-    return '/diffusion'
-  }
-
-  if (
-    pathname.startsWith('/ia') ||
-    pathname.startsWith('/calcul-cpm-cpc') ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/media') ||
-    pathname.startsWith('/tuto')
-  ) {
-    if (!isAdmin) return '/home'
-  }
-
-  if (pathname.startsWith('/calculateur-vente-2') || pathname.startsWith('/strategie')) {
-    if (pathname.startsWith(VENTE2_STUDIO_TARIFS_HREF)) {
-      if (!canAccessStudioTarifs(role)) return '/home'
-      return null
-    }
-    if (!isAdmin) return '/home'
+  if (pathname.startsWith(IA_HREF) && !isAdmin) {
+    return '/home'
   }
 
   return null
 }
 
 export function canAccessAdminCalculatorPath(
-  pathname: string,
-  role: UserRole | null,
-  isAdmin: boolean,
+  _pathname: string,
+  _role: UserRole | null,
+  _isAdmin: boolean,
 ): boolean {
-  return resolvePathAccessViolation(pathname, role, isAdmin) === null
+  return true
 }
 
 export function isAdminFromRole(role: UserRole | null): boolean {

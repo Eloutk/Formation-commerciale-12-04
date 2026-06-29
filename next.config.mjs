@@ -47,12 +47,38 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // /vente = calculateur historique ; /calculateur-vente-2 = version complète (admin)
-      { source: '/pdv', destination: '/vente', permanent: false },
-      { source: '/pdv2', destination: '/calculateur-vente-2/social-media', permanent: true },
-      { source: '/vente2', destination: '/calculateur-vente-2/social-media', permanent: true },
-      { source: '/diffusion/zones', destination: '/cartographie', permanent: true },
-      { source: '/demandes-potentiels', destination: '/formation/demandes-potentiels', permanent: false },
+      { source: '/pdv', destination: '/mon-espace/social-media', permanent: false },
+      { source: '/vente', destination: '/mon-espace/social-media', permanent: true },
+      { source: '/pdv2', destination: '/mon-espace/social-media', permanent: true },
+      { source: '/vente2', destination: '/mon-espace/social-media', permanent: true },
+      { source: '/diffusion/zones', destination: '/strategie/cartographie', permanent: true },
+      { source: '/formation', destination: '/academy/diffusion', permanent: true },
+      { source: '/formation/:path*', destination: '/academy/:path*', permanent: true },
+      { source: '/demandes-potentiels', destination: '/academy/demandes-potentiels', permanent: true },
+      { source: '/strategie/social-media', destination: '/strategie/plan-media', permanent: true },
+      { source: '/cartographie', destination: '/strategie/cartographie', permanent: true },
+      { source: '/studio', destination: '/guides/studio', permanent: true },
+      { source: '/media', destination: '/guides/media', permanent: true },
+      { source: '/glossaire', destination: '/guides/lexique', permanent: true },
+      { source: '/faq', destination: '/guides/faq', permanent: true },
+      { source: '/tuto', destination: '/guides/tutos', permanent: true },
+      { source: '/diffusion', destination: '/academy/diffusion', permanent: true },
+      {
+        source: '/calculateur-vente-2/social-media',
+        destination: '/mon-espace/social-media',
+        permanent: true,
+      },
+      {
+        source: '/calculateur-vente-2/sms-rcs',
+        destination: '/mon-espace/sms-rcs',
+        permanent: true,
+      },
+      {
+        source: '/calculateur-vente-2/tarifs-studio',
+        destination: '/mon-espace/tarifs-studio',
+        permanent: true,
+      },
+      { source: '/mon-espace', destination: '/mon-espace/mes-projets', permanent: false },
     ]
   },
   images: {

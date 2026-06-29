@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getServerSupabase, requireAdminSessionUser } from '@/lib/media-session'
-import type { MockupSaveRecord } from '@/lib/mockup-saves'
-import type { SimulateurMediaSaveRecord } from '@/lib/simulateur-media-saves'
-import type { SmsDevisRecord } from '@/lib/sms-devis'
-import type { Vente2StrategyRecord } from '@/lib/vente2-strategies'
 import {
   authorLabelFromProfile,
   type MonEspaceAdminItem,
+  type MonEspaceAdminMockupRecord,
+  type MonEspaceAdminSimulateurRecord,
+  type MonEspaceAdminSmsRecord,
+  type MonEspaceAdminStrategyRecord,
   type MonEspaceAuthor,
 } from '@/lib/mon-espace-admin'
 
@@ -19,6 +19,10 @@ function isMissingRpcError(message: string): boolean {
     lower.includes('function public.admin_list') ||
     (lower.includes('admin_list') && lower.includes('does not exist'))
   )
+}
+
+function isStatementTimeoutError(message: string): boolean {
+  return message.toLowerCase().includes('statement timeout')
 }
 
 export async function GET() {
@@ -56,13 +60,22 @@ export async function GET() {
         { status: 503 },
       )
     }
+    if (isStatementTimeoutError(rpcError.message)) {
+      return NextResponse.json(
+        {
+          error:
+            'La requête admin a expiré (timeout Supabase). Exécutez supabase/mon-espace-admin-performance.sql dans le SQL Editor.',
+        },
+        { status: 504 },
+      )
+    }
     return NextResponse.json({ error: rpcError.message }, { status: 500 })
   }
 
-  const strategies = (strategiesRes.data ?? []) as Vente2StrategyRecord[]
-  const simulateurSaves = (simulateurRes.data ?? []) as SimulateurMediaSaveRecord[]
-  const mockupSaves = (mockupsRes.data ?? []) as MockupSaveRecord[]
-  const devis = (devisRes.data ?? []) as SmsDevisRecord[]
+  const strategies = (strategiesRes.data ?? []) as MonEspaceAdminStrategyRecord[]
+  const simulateurSaves = (simulateurRes.data ?? []) as MonEspaceAdminSimulateurRecord[]
+  const mockupSaves = (mockupsRes.data ?? []) as MonEspaceAdminMockupRecord[]
+  const devis = (devisRes.data ?? []) as MonEspaceAdminSmsRecord[]
 
   const labelMap = new Map<string, string>()
   for (const profile of profilesRes.data ?? []) {

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { adminNavItemClass, adminNavTriggerClass } from '@/lib/nav-admin-styles'
+import { adminNavItemClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
@@ -46,10 +46,8 @@ export function MobileNavMenu({
         className={cn(
           'flex w-full items-center justify-between rounded-md px-2 py-2.5 text-sm font-medium transition-colors',
           accent
-            ? adminNavTriggerClass(active, true)
-            : active
-              ? 'text-orange-600 hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40'
-              : 'text-foreground hover:bg-accent/80 active:bg-accent',
+            ? 'text-orange-600 hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40'
+            : 'text-foreground hover:bg-accent/80 active:bg-accent',
         )}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
@@ -61,7 +59,7 @@ export function MobileNavMenu({
         <div
           className={cn(
             'ml-3 mt-0.5 flex flex-col gap-0.5 border-l-2 pl-3',
-            accent ? 'border-violet-600/35' : 'border-[#E94C16]/35',
+            accent ? 'border-[#E94C16]/35' : 'border-border',
           )}
         >
           {items.map((item) => (

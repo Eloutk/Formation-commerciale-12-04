@@ -98,7 +98,7 @@ export default function RegisterPage() {
         } catch {}
       }
       setSuccess("Compte créé avec succès ! Redirection...")
-      router.push('/formation')
+      router.push('/academy/diffusion')
     } catch (error) {
       setError("Une erreur est survenue lors de la création du compte")
     } finally {

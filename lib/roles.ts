@@ -35,7 +35,7 @@ export function isClientRole(role: string | undefined | null): boolean {
   return normalizeUserRole(role) === 'client'
 }
 
-export const DEMANDES_POTENTIELS_HREF = '/formation/demandes-potentiels'
+export const DEMANDES_POTENTIELS_HREF = '/academy/demandes-potentiels'
 
 export function isDemandesPotentielsPath(pathname: string): boolean {
   return (
