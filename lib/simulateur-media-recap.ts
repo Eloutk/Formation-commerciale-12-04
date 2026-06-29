@@ -218,3 +218,64 @@ export function buildSimulateurGlobalNarrativeRecap(result: SimulateurResult): s
     max: result.synthesis.max,
   })
 }
+
+function formatRateHelp(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '—'
+  return (n * 100).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+function platformScopePhrase(enabledRows: SimulateurPlatformRow[]): string {
+  if (enabledRows.length === 1) return 'sur cette plateforme'
+  return 'sur l’ensemble des plateformes activées'
+}
+
+/** Texte d’aide — stratégie idéale (ligne Analyse). */
+export function buildIdealStrategyHelpText(
+  column: SimulateurSynthesisColumn,
+  enabledRows: SimulateurPlatformRow[],
+): string {
+  const scope = platformScopePhrase(enabledRows)
+  const pressure =
+    column.pressureLevel === '—' ? 'pression publicitaire à préciser' : column.pressureLevel
+
+  return [
+    `Nous recommandons de diffuser environ ${formatIntProse(column.totalImpressions)} impressions ${scope}.`,
+    `Cela permettrait de toucher environ ${formatRateHelp(column.globalRate)} % de votre audience cible, avec une ${pressure}.`,
+    '',
+    `Si votre campagne est orientée trafic, ce volume représente un potentiel estimé d’environ ${formatIntProse(column.totalClicks)} clics.`,
+  ].join('\n')
+}
+
+/** Texte d’aide — stratégie MAX (ligne Analyse). */
+export function buildMaxStrategyHelpText(
+  column: SimulateurSynthesisColumn,
+  enabledRows: SimulateurPlatformRow[],
+): string {
+  const scope = platformScopePhrase(enabledRows)
+  const pressure =
+    column.pressureLevel === '—' ? 'pression publicitaire à préciser' : column.pressureLevel
+
+  return [
+    `Vous pouvez aller jusqu’à environ ${formatIntProse(column.totalImpressions)} impressions ${scope}.`,
+    `Cette limite permettrait de toucher environ ${formatRateHelp(column.globalRate)} % de votre audience cible, avec une ${pressure}.`,
+    '',
+    `Si votre campagne est orientée trafic, ce volume représente un potentiel estimé d’environ ${formatIntProse(column.totalClicks)} clics.`,
+  ].join('\n')
+}
+
+/** Texte d’aide — stratégie personnalisée (ligne Analyse). */
+export function buildCustomStrategyHelpText(
+  column: SimulateurSynthesisColumn,
+  enabledRows: SimulateurPlatformRow[],
+): string {
+  const scope = platformScopePhrase(enabledRows)
+  const pressure =
+    column.pressureLevel === '—' ? 'pression publicitaire à préciser' : column.pressureLevel
+
+  return [
+    `Avec votre scénario personnalisé, vous prévoyez de diffuser environ ${formatIntProse(column.totalImpressions)} impressions ${scope}.`,
+    `Cela représenterait environ ${formatRateHelp(column.globalRate)} % de votre audience cible, avec une ${pressure}.`,
+    '',
+    `Si votre campagne est orientée trafic, ce volume représente un potentiel estimé d’environ ${formatIntProse(column.totalClicks)} clics.`,
+  ].join('\n')
+}

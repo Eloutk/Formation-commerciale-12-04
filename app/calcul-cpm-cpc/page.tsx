@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Calculator } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -157,28 +158,66 @@ export default function CalculCpmCpcPage() {
           </p>
         </div>
 
-        <Card className="border-[#E94C16]/20 bg-orange-50/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Comment utiliser ce tableau</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Renseignez le <strong className="text-foreground">prix de vente</strong> puis les volumes
-              atteints (colonne « KPIs atteints ») et les objectifs vendus (colonne « Objectif vendu »).
-            </p>
-            <p>
-              Les CPM et CPC se calculent automatiquement. La colonne <strong className="text-foreground">Delta</strong>{' '}
-              compare le réalisé à l&apos;objectif :{' '}
-              <span className="text-green-800 font-medium">vert si &gt; 100 %</span>,{' '}
-              <span className="text-red-800 font-medium">rouge si &lt; 100 %</span>.
-            </p>
-            <p>
-              Un delta supérieur à 100 % sur les impressions, la couverture ou les clics signifie que
-              l&apos;objectif est dépassé. Sur les CPM/CPC, un delta inférieur à 100 % indique un coût
-              unitaire plus bas que prévu.
-            </p>
-          </CardContent>
-        </Card>
+        <Accordion type="single" collapsible className="rounded-lg border border-[#E94C16]/20 bg-orange-50/30 px-4">
+          <AccordionItem value="guide" className="border-0">
+            <AccordionTrigger className="text-base font-semibold hover:no-underline">
+              Comment utiliser ce tableau
+            </AccordionTrigger>
+            <AccordionContent className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+              <div>
+                <p className="font-medium text-foreground">1. Renseignez le prix de vente</p>
+                <p>
+                  Indiquez le budget vendu au client. Il servira à calculer automatiquement les coûts
+                  unitaires : CPM et CPC.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">📊 2. Comparez le réalisé à l&apos;objectif</p>
+                <p>
+                  Remplissez les volumes réellement atteints dans la colonne « KPIs atteints », puis les
+                  objectifs prévus dans la colonne « Objectif vendu ».
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">⚙️ 3. Le tableau calcule automatiquement</p>
+                <p>Les indicateurs de coût sont générés automatiquement :</p>
+                <p>
+                  CPM pour les impressions et la couverture, CPC pour les clics et les clics sur lien.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">🟢🔴 4. Analysez le Delta</p>
+                <p>
+                  La colonne Delta indique l&apos;écart entre ce qui a été réalisé et ce qui avait été vendu.
+                </p>
+                <ul className="mt-2 space-y-2 list-none pl-0">
+                  <li>
+                    <span className="font-medium text-foreground">Sur les volumes</span> — impressions,
+                    couverture, clics :
+                    <ul className="mt-1 space-y-1 pl-4">
+                      <li>🟢 au-dessus de 100 % = objectif dépassé</li>
+                      <li>🔴 en dessous de 100 % = objectif non atteint</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <span className="font-medium text-foreground">Sur les coûts</span> — CPM / CPC :
+                    <ul className="mt-1 space-y-1 pl-4">
+                      <li>
+                        🟢 en dessous de 100 % = coût plus bas que prévu, donc performance meilleure
+                      </li>
+                      <li>🔴 au-dessus de 100 % = coût plus élevé que prévu</li>
+                    </ul>
+                  </li>
+                </ul>
+              </div>
+              <p>
+                ✅ <strong className="text-foreground">En résumé :</strong> ce tableau permet de voir
+                rapidement si la campagne a livré plus ou moins que prévu, et si les coûts d&apos;achat
+                média sont meilleurs ou moins bons que l&apos;objectif vendu.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <Card>
           <CardHeader>

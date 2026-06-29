@@ -2,7 +2,7 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { BarChart3, Check, Copy, Info, Loader2, Save } from 'lucide-react'
+import { BarChart3, Check, Copy, HelpCircle, Info, Loader2, Save } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,6 +38,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import { cn } from '@/lib/utils'
 import { useAuthAccess } from '@/components/auth-context'
@@ -63,7 +64,7 @@ import {
   updateSimulateurMediaSave,
 } from '@/lib/simulateur-media-saves-storage'
 import { STRATEGIE_SOCIAL_HREF } from '@/lib/nav-config'
-import { buildSimulateurGlobalNarrativeRecap, buildSimulateurPlatformNarrativeRecap } from '@/lib/simulateur-media-recap'
+import { buildCustomStrategyHelpText, buildIdealStrategyHelpText, buildMaxStrategyHelpText, buildSimulateurGlobalNarrativeRecap } from '@/lib/simulateur-media-recap'
 import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
@@ -117,39 +118,7 @@ function needsMetaPotentiel(enabled: Record<SimulateurPlatformId, boolean>): boo
   return enabled.meta || enabled.display || enabled.youtube
 }
 
-function CopyRecapButton({ text }: { text: string | null }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    if (!text) return
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      alert('Impossible de copier le récapitulatif.')
-    }
-  }
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      className="h-8 w-8 shrink-0 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
-      onClick={() => void handleCopy()}
-      disabled={!text}
-      aria-label={copied ? 'Récap copié' : 'Copier le récap'}
-      title={copied ? 'Récap copié' : 'Copier le récap'}
-    >
-      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-    </Button>
-  )
-}
-
 function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
-  const narrativeRecap = buildSimulateurPlatformNarrativeRecap(row)
-
   return (
     <TableRow>
       <TableCell className="font-medium">{row.label}</TableCell>
@@ -161,10 +130,115 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
       <TableCell>
         <StrategyCell {...row.max} />
       </TableCell>
-      <TableCell className="w-12 px-2 text-center align-middle">
-        <div className="flex justify-center">
-          <CopyRecapButton text={narrativeRecap} />
-        </div>
+    </TableRow>
+  )
+}
+
+function AnalysisHelpActions({ helpText }: { helpText: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(helpText)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      alert('Impossible de copier le texte.')
+    }
+  }
+
+  return (
+    <div className="mt-3 flex items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+        onClick={() => void handleCopy()}
+        aria-label={copied ? 'Texte copié' : 'Copier le texte'}
+        title={copied ? 'Texte copié' : 'Copier le texte'}
+      >
+        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      </Button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+            aria-label="Afficher l’aide"
+            title="Afficher l’aide"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="max-w-sm space-y-2 text-sm leading-relaxed" align="start">
+          {helpText.split('\n').map((line, index) =>
+            line ? (
+              <p key={index}>{line}</p>
+            ) : (
+              <div key={index} className="h-1" aria-hidden />
+            ),
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+function PlatformAnalysisRow({ result }: { result: SimulateurResult }) {
+  const enabledRows = result.rows.filter((row) => row.enabled)
+  const idealHelpText = buildIdealStrategyHelpText(result.synthesis.ideal, enabledRows)
+  const maxHelpText = buildMaxStrategyHelpText(result.synthesis.max, enabledRows)
+
+  return (
+    <TableRow className="bg-muted/20 hover:bg-muted/20">
+      <TableCell className="font-medium align-top">Analyse</TableCell>
+      <TableCell className="align-top" aria-hidden />
+      <TableCell className="align-top" aria-hidden />
+      <TableCell className="align-top text-xs sm:text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Cette stratégie est le meilleur compromis : elle permet de donner suffisamment de visibilité à
+          votre message, sans trop répéter la publicité auprès des mêmes personnes.
+        </p>
+        <p className="mt-2 font-medium text-foreground">
+          👉 La stratégie équilibrée pour maximiser l&apos;efficacité sans surinvestir.
+        </p>
+        <AnalysisHelpActions helpText={idealHelpText} />
+      </TableCell>
+      <TableCell className="align-top text-xs sm:text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Cette stratégie permet d&apos;aller chercher un maximum de visibilité, mais elle correspond aussi
+          au seuil haut à ne pas dépasser pour éviter une répétition trop forte du message.
+        </p>
+        <p className="mt-2 font-medium text-foreground">
+          👉 La limite maximale pour pousser la diffusion sans tomber dans la surexposition.
+        </p>
+        <AnalysisHelpActions helpText={maxHelpText} />
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function CustomAnalysisRow({ result }: { result: SimulateurResult }) {
+  const enabledRows = result.rows.filter((row) => row.enabled)
+  const helpText = buildCustomStrategyHelpText(result.synthesis.custom, enabledRows)
+
+  return (
+    <TableRow className="bg-muted/20 hover:bg-muted/20">
+      <TableCell className="font-medium align-top">Analyse</TableCell>
+      <TableCell className="align-top" aria-hidden />
+      <TableCell className="align-top" aria-hidden />
+      <TableCell colSpan={2} className="align-top text-xs sm:text-sm leading-relaxed text-muted-foreground">
+        <p>
+          Cette simulation vous permet d&apos;ajuster la diffusion selon votre budget ou votre objectif, tout
+          en visualisant immédiatement l&apos;impact sur la couverture et la répétition du message.
+        </p>
+        <p className="mt-2 font-medium text-foreground">
+          👉 La stratégie sur mesure pour adapter la campagne à votre niveau d&apos;ambition.
+        </p>
+        <AnalysisHelpActions helpText={helpText} />
       </TableCell>
     </TableRow>
   )
@@ -818,23 +892,22 @@ function SimulateurMediaLinkPanelInner() {
                         <TableHead className="font-semibold">Durée</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie idéale</TableHead>
                         <TableHead className="min-w-[9rem] font-semibold">Stratégie MAX</TableHead>
-                        <TableHead className="w-12 px-2 text-center font-semibold">
-                          <span className="sr-only">Copier le récap</span>
-                          <Copy className="mx-auto h-4 w-4 text-muted-foreground" aria-hidden />
-                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {result.rows.filter((row) => row.enabled).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                             Activez au moins une plateforme pour afficher les résultats.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        result.rows
-                          .filter((row) => row.enabled)
-                          .map((row) => <PlatformResultRow key={row.id} row={row} />)
+                        <>
+                          {result.rows
+                            .filter((row) => row.enabled)
+                            .map((row) => <PlatformResultRow key={row.id} row={row} />)}
+                          <PlatformAnalysisRow result={result} />
+                        </>
                       )}
                     </TableBody>
                   </Table>
@@ -929,19 +1002,22 @@ function SimulateurMediaLinkPanelInner() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          customResult.rows
-                            .filter((row) => row.enabled)
-                            .map((row) => (
-                              <CustomStrategyRow
-                                key={row.id}
-                                row={row}
-                                customMode={customMode}
-                                customValue={customValues[row.id]}
-                                onCustomValueChange={(value) =>
-                                  setCustomValues((prev) => ({ ...prev, [row.id]: value }))
-                                }
-                              />
-                            ))
+                          <>
+                            {customResult.rows
+                              .filter((row) => row.enabled)
+                              .map((row) => (
+                                <CustomStrategyRow
+                                  key={row.id}
+                                  row={row}
+                                  customMode={customMode}
+                                  customValue={customValues[row.id]}
+                                  onCustomValueChange={(value) =>
+                                    setCustomValues((prev) => ({ ...prev, [row.id]: value }))
+                                  }
+                                />
+                              ))}
+                            <CustomAnalysisRow result={customResult} />
+                          </>
                         )}
                       </TableBody>
                     </Table>
