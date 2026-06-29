@@ -133,7 +133,7 @@ const MON_ESPACE_SECTIONS: {
   { id: 'admin', label: 'Vue admin', icon: Shield, adminOnly: true },
   { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
   { id: 'retroplanning', label: 'Rétroplanning', icon: CalendarDays },
-  { id: 'studioTarifs', label: 'Tarifs studio', icon: Palette },
+  { id: 'studioTarifs', label: 'Studio', icon: Palette },
   { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
   { id: 'pige', label: 'Pige commerciale', icon: ScanSearch },
@@ -1225,7 +1225,7 @@ export default function MonEspacePage() {
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Palette className="h-5 w-5 text-[#E94C16]" />
-              Tarifs studio
+              Studio
             </CardTitle>
             <CardDescription>
               Devis studio enregistrés — ouvrez, modifiez ou supprimez.
@@ -1251,7 +1251,7 @@ export default function MonEspacePage() {
               <SavedRecordLoadingBanner
                 className="my-10"
                 label="Chargement de vos devis studio…"
-                description="Récupération de vos devis Tarifs studio."
+                description="Récupération de vos devis Studio."
               />
             ) : studioTarifsSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -1267,7 +1267,7 @@ export default function MonEspacePage() {
                   <>
                     <p className="font-medium text-foreground">Aucun devis studio enregistré</p>
                     <p className="text-sm mt-1">
-                      Composez un devis dans Tarifs studio puis « Enregistrer ».
+                      Composez un devis dans Studio puis « Enregistrer ».
                     </p>
                   </>
                 ) : (

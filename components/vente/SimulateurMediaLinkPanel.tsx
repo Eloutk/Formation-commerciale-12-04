@@ -1,22 +1,14 @@
 'use client'
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { BarChart3, Check, Copy, HelpCircle, Info, Loader2, Save } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { BarChart3, Check, Copy, HelpCircle, Info } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -59,12 +51,9 @@ import {
 } from '@/lib/simulateur-media-link'
 import type { SimulateurMediaSaveContent } from '@/lib/simulateur-media-saves'
 import {
-  createSimulateurMediaSave,
   getSimulateurMediaSaveById,
-  updateSimulateurMediaSave,
 } from '@/lib/simulateur-media-saves-storage'
-import { STRATEGIE_SOCIAL_HREF } from '@/lib/nav-config'
-import { buildCustomStrategyHelpText, buildIdealStrategyHelpText, buildMaxStrategyHelpText, buildSimulateurGlobalNarrativeRecap } from '@/lib/simulateur-media-recap'
+import { buildCustomStrategyHelpText, buildIdealStrategyHelpText, buildMaxStrategyHelpText } from '@/lib/simulateur-media-recap'
 import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
@@ -134,6 +123,37 @@ function PlatformResultRow({ row }: { row: SimulateurPlatformRow }) {
   )
 }
 
+const PROSE_NUMBER_PATTERN =
+  /(\d{1,3}(?:\s\d{3})+(?:,\d+)?|\d+,\d+(?:\s*%)?|\d+(?:\s*%)?)/g
+
+function renderProseWithBoldNumbers(text: string): React.ReactNode {
+  const nodes: React.ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  const re = new RegExp(PROSE_NUMBER_PATTERN.source, 'g')
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index))
+    }
+    nodes.push(
+      <strong
+        key={`${match.index}-${match[0]}`}
+        className="font-bold text-foreground tabular-nums"
+      >
+        {match[0]}
+      </strong>,
+    )
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex))
+  }
+
+  return nodes.length > 0 ? nodes : text
+}
+
 const IDEAL_ANALYSIS_NARRATIVE =
   'Cette stratégie est le meilleur compromis : elle permet de donner suffisamment de visibilité à votre message, sans trop répéter la publicité auprès des mêmes personnes.\n\n👉 La stratégie équilibrée pour maximiser l’efficacité sans surinvestir.'
 
@@ -192,7 +212,7 @@ function AnalysisHelpActions({
         <PopoverContent className="max-w-sm space-y-2 text-sm leading-relaxed" align="start">
           {helpText.split('\n').map((line, index) =>
             line ? (
-              <p key={index}>{line}</p>
+              <p key={index}>{renderProseWithBoldNumbers(line)}</p>
             ) : (
               <div key={index} className="h-1" aria-hidden />
             ),
@@ -534,7 +554,6 @@ export function SimulateurMediaLinkPanel() {
 }
 
 function SimulateurMediaLinkPanelInner() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const simulateurIdFromUrl = searchParams.get('simulateur')
   const [form, setForm] = useState<FormState>(defaultFormState)
@@ -543,13 +562,7 @@ function SimulateurMediaLinkPanelInner() {
   const [customValues, setCustomValues] = useState<Record<SimulateurPlatformId, string>>(
     defaultCustomValues,
   )
-  const [savedId, setSavedId] = useState<string | null>(null)
-  const [savedName, setSavedName] = useState('')
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [saveNameInput, setSaveNameInput] = useState('')
-  const [saving, setSaving] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
-  const [copiedRecap, setCopiedRecap] = useState(false)
   const { isAdmin, authReady } = useAuthAccess()
   const showAdminSections = authReady && isAdmin
 
@@ -571,23 +584,7 @@ function SimulateurMediaLinkPanelInner() {
     [customPanelOpen, form.enabled, customValues],
   )
 
-  const recapText = useMemo(() => {
-    if (!result) return ''
-    return buildSimulateurGlobalNarrativeRecap(result) ?? ''
-  }, [result])
-
-  const handleCopyRecap = useCallback(async () => {
-    if (!recapText) return
-    try {
-      await navigator.clipboard.writeText(recapText)
-      setCopiedRecap(true)
-      window.setTimeout(() => setCopiedRecap(false), 2000)
-    } catch {
-      alert('Impossible de copier le récapitulatif.')
-    }
-  }, [recapText])
-
-  const applySavedContent = useCallback((content: SimulateurMediaSaveContent, name: string, id: string) => {
+  const applySavedContent = useCallback((content: SimulateurMediaSaveContent) => {
     setForm({
       diffusionDays: content.form.diffusionDays,
       potentielMeta: content.form.potentielMeta,
@@ -599,8 +596,6 @@ function SimulateurMediaLinkPanelInner() {
     setCustomPanelOpen(content.customPanelOpen)
     setCustomMode(content.customMode)
     setCustomValues({ ...content.customValues })
-    setSavedId(id)
-    setSavedName(name)
   }, [])
 
   useEffect(() => {
@@ -610,7 +605,7 @@ function SimulateurMediaLinkPanelInner() {
     void getSimulateurMediaSaveById(simulateurIdFromUrl)
       .then((record) => {
         if (cancelled || !record) return
-        applySavedContent(record.content, record.name, record.id)
+        applySavedContent(record.content)
       })
       .catch((e) => {
         if (!cancelled) {
@@ -624,80 +619,6 @@ function SimulateurMediaLinkPanelInner() {
       cancelled = true
     }
   }, [simulateurIdFromUrl, applySavedContent])
-
-  const buildSaveContent = (): SimulateurMediaSaveContent => ({
-    version: 1,
-    form: {
-      diffusionDays: form.diffusionDays,
-      potentielMeta: form.potentielMeta,
-      potentielLinkedin: form.potentielLinkedin,
-      potentielSnapchat: form.potentielSnapchat,
-      potentielTiktok: form.potentielTiktok,
-      enabled: { ...form.enabled },
-    },
-    customPanelOpen,
-    customMode,
-    customValues: { ...customValues },
-  })
-
-  const summaryImpressions =
-    customPanelOpen && customResult
-      ? customResult.synthesis.custom.totalImpressions
-      : result?.synthesis.ideal.totalImpressions ?? 0
-
-  const handleOpenSaveDialog = () => {
-    if (!result) {
-      alert('Complétez les paramètres de campagne avant d’enregistrer.')
-      return
-    }
-    const hasPlatform = Object.values(form.enabled).some(Boolean)
-    if (!hasPlatform) {
-      alert('Activez au moins une plateforme avant d’enregistrer.')
-      return
-    }
-    setSaveNameInput(savedName || 'Simulation média Link')
-    setSaveDialogOpen(true)
-  }
-
-  const handleConfirmSave = async () => {
-    const name = saveNameInput.trim()
-    if (!name) {
-      alert('Veuillez renseigner un nom pour la simulation.')
-      return
-    }
-    if (!result) return
-
-    setSaving(true)
-    try {
-      const content = buildSaveContent()
-      const wasUpdate = !!savedId
-      const record = savedId
-        ? await updateSimulateurMediaSave({
-            id: savedId,
-            name,
-            summaryImpressions,
-            content,
-          })
-        : await createSimulateurMediaSave({
-            name,
-            summaryImpressions,
-            content,
-          })
-      setSavedId(record.id)
-      setSavedName(record.name)
-      setSaveDialogOpen(false)
-      router.replace(`${STRATEGIE_SOCIAL_HREF}?simulateur=${record.id}`)
-      alert(
-        wasUpdate
-          ? 'Simulation mise à jour dans Mon espace.'
-          : 'Simulation enregistrée dans Mon espace.',
-      )
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const showMetaPotentiel = needsMetaPotentiel(form.enabled)
   const showLinkedinPotentiel = form.enabled.linkedin
@@ -715,45 +636,17 @@ function SimulateurMediaLinkPanelInner() {
       <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent pb-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
-                  <BarChart3 className="h-5 w-5" aria-hidden />
-                </span>
-                Simulateur Média — Link
-              </CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-relaxed">
-                Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
-                idéale, MAX et personnalisée.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
-                onClick={() => void handleCopyRecap()}
-                disabled={loadingSave || !result}
-              >
-                {copiedRecap ? (
-                  <Check className="h-4 w-4 mr-2" />
-                ) : (
-                  <Copy className="h-4 w-4 mr-2" />
-                )}
-                {copiedRecap ? 'Copié' : 'Copier'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
-                onClick={handleOpenSaveDialog}
-                disabled={loadingSave || !result}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Sauvegarder
-              </Button>
-            </div>
+          <div className="space-y-2">
+            <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
+                <BarChart3 className="h-5 w-5" aria-hidden />
+              </span>
+              Simulateur Média — Link
+            </CardTitle>
+            <CardDescription className="max-w-3xl text-sm leading-relaxed">
+              Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
+              idéale, MAX et personnalisée.
+            </CardDescription>
           </div>
         </CardHeader>
 
@@ -1137,48 +1030,6 @@ function SimulateurMediaLinkPanelInner() {
       </Accordion>
       )}
       </div>
-
-      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {savedId ? 'Mettre à jour la simulation' : 'Enregistrer la simulation'}
-            </DialogTitle>
-            <DialogDescription>
-              La simulation sera sauvegardée dans Mon espace avec tous les paramètres et objectifs
-              saisis.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="save-simulateur-name">Nom de la simulation *</Label>
-              <Input
-                id="save-simulateur-name"
-                placeholder="Ex. Campagne Client X"
-                value={saveNameInput}
-                onChange={(e) => setSaveNameInput(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={() => void handleConfirmSave()}
-              disabled={!saveNameInput.trim() || saving}
-              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {savedId ? 'Mettre à jour' : 'Enregistrer'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

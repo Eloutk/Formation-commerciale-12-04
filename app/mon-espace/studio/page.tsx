@@ -1,5 +1,5 @@
 import { StudioTarifsPanel } from '@/components/vente/StudioTarifsPanel'
 
-export default function CalculateurVente2TarifsStudioPage() {
+export default function MonEspaceStudioPage() {
   return <StudioTarifsPanel />
 }

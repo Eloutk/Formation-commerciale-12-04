@@ -823,7 +823,7 @@ function StudioTarifsPanelInner() {
               {formatUserRoleLabel(role)}
             </Badge>
           </div>
-          <h1 className="mb-2 text-3xl font-bold md:text-4xl">Tarifs studio</h1>
+          <h1 className="mb-2 text-3xl font-bold md:text-4xl">Studio</h1>
           <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-lg">
             Grille PDV studio Link Academy — cochez les prestations, saisissez les quantités et
             obtenez un total HT/TTC conforme à la grille de référence.

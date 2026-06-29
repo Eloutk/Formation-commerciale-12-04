@@ -148,7 +148,7 @@ export const SITE_SEARCH_CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: 'mon-espace-tarifs-studio',
-    title: 'Tarifs studio',
+    title: 'Studio',
     href: VENTE2_STUDIO_TARIFS_HREF,
     category: 'Mon espace',
     keywords: ['tarif', 'studio', 'créa', 'graphisme', 'devis'],

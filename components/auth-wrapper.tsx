@@ -592,7 +592,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               <HeaderNavMenu
                 label="Academy"
                 active={academyActive}
-                accent
                 items={withActiveItems(pathname, ACADEMY_LINKS)}
               />
 

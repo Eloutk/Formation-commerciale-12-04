@@ -36,7 +36,7 @@ export const STRATEGIE_SOCIAL_HREF = STRATEGIE_PLAN_MEDIA_HREF
 
 export const MON_ESPACE_SOCIAL_HREF = '/mon-espace/social-media'
 export const MON_ESPACE_SMS_HREF = '/mon-espace/sms-rcs'
-export const MON_ESPACE_TARIFS_STUDIO_HREF = '/mon-espace/tarifs-studio'
+export const MON_ESPACE_TARIFS_STUDIO_HREF = '/mon-espace/studio'
 export const MON_ESPACE_MES_PROJETS_HREF = '/mon-espace/mes-projets'
 
 /** @deprecated Alias historique — préférer MON_ESPACE_MES_PROJETS_HREF */
@@ -75,7 +75,7 @@ export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_PIGE_COMMERCIALE_HREF, label: 'Pige commerciale' },
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
-  { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Tarifs studio' },
+  { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Studio' },
 ]
 
 export const VENTE2_LINKS: NavMenuItem[] = []

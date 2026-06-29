@@ -84,7 +84,6 @@ export function MobileNav({
               <MobileNavMenu
                 label="Academy"
                 active={isAcademyPath(pathname)}
-                accent
                 items={withActiveItems(pathname, ACADEMY_LINKS)}
                 onNavigate={handleNav}
               />
