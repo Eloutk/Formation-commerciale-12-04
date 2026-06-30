@@ -1,14 +1,22 @@
 'use client'
 
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { BarChart3, Check, Copy, HelpCircle, Info } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { BarChart3, Check, Copy, Download, FileText, HelpCircle, Info, Loader2, Save, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -50,10 +58,19 @@ import {
   type SimulateurPlatformRow,
 } from '@/lib/simulateur-media-link'
 import type { SimulateurMediaSaveContent } from '@/lib/simulateur-media-saves'
+import { getDefaultSimulateurMediaProjectName } from '@/lib/simulateur-media-saves'
 import {
+  createSimulateurMediaSave,
+  getSimulateurMediaAttachmentSignedUrl,
   getSimulateurMediaSaveById,
+  getCurrentUserId,
+  updateSimulateurMediaSave,
+  uploadSimulateurMediaAttachment,
+  deleteSimulateurMediaAttachment,
 } from '@/lib/simulateur-media-saves-storage'
 import { buildCustomStrategyHelpText, buildIdealStrategyHelpText, buildMaxStrategyHelpText } from '@/lib/simulateur-media-recap'
+import { exportSimulateurMediaPdf } from '@/lib/simulateur-media-pdf'
+import { STRATEGIE_PLAN_MEDIA_HREF } from '@/lib/nav-config'
 import { PressureBadge, PressureScaleLegend } from '@/components/vente/PressureScaleLegend'
 
 type SimulateurResult = ReturnType<typeof computeSimulateurMediaLink>
@@ -554,6 +571,7 @@ export function SimulateurMediaLinkPanel() {
 }
 
 function SimulateurMediaLinkPanelInner() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const simulateurIdFromUrl = searchParams.get('simulateur')
   const [form, setForm] = useState<FormState>(defaultFormState)
@@ -562,8 +580,20 @@ function SimulateurMediaLinkPanelInner() {
   const [customValues, setCustomValues] = useState<Record<SimulateurPlatformId, string>>(
     defaultCustomValues,
   )
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [savedName, setSavedName] = useState('')
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveNameInput, setSaveNameInput] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [pdfNameInput, setPdfNameInput] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [loadingSave, setLoadingSave] = useState(false)
-  const { isAdmin, authReady } = useAuthAccess()
+  const [savedAttachmentFilename, setSavedAttachmentFilename] = useState<string | null>(null)
+  const [savedAttachmentPath, setSavedAttachmentPath] = useState<string | null>(null)
+  const [pendingAttachment, setPendingAttachment] = useState<File | null>(null)
+  const [removeAttachment, setRemoveAttachment] = useState(false)
+  const { isAdmin, authReady, userName } = useAuthAccess()
   const showAdminSections = authReady && isAdmin
 
   const result = useMemo(() => {
@@ -584,7 +614,16 @@ function SimulateurMediaLinkPanelInner() {
     [customPanelOpen, form.enabled, customValues],
   )
 
-  const applySavedContent = useCallback((content: SimulateurMediaSaveContent) => {
+  const applySavedContent = useCallback(
+    (
+      content: SimulateurMediaSaveContent,
+      name: string,
+      id: string,
+      attachment?: {
+        attachment_path: string | null
+        attachment_filename: string | null
+      },
+    ) => {
     setForm({
       diffusionDays: content.form.diffusionDays,
       potentielMeta: content.form.potentielMeta,
@@ -596,6 +635,12 @@ function SimulateurMediaLinkPanelInner() {
     setCustomPanelOpen(content.customPanelOpen)
     setCustomMode(content.customMode)
     setCustomValues({ ...content.customValues })
+    setSavedId(id)
+    setSavedName(name)
+    setSavedAttachmentPath(attachment?.attachment_path ?? null)
+    setSavedAttachmentFilename(attachment?.attachment_filename ?? null)
+    setPendingAttachment(null)
+    setRemoveAttachment(false)
   }, [])
 
   useEffect(() => {
@@ -605,7 +650,10 @@ function SimulateurMediaLinkPanelInner() {
     void getSimulateurMediaSaveById(simulateurIdFromUrl)
       .then((record) => {
         if (cancelled || !record) return
-        applySavedContent(record.content)
+        applySavedContent(record.content, record.name, record.id, {
+          attachment_path: record.attachment_path,
+          attachment_filename: record.attachment_filename,
+        })
       })
       .catch((e) => {
         if (!cancelled) {
@@ -619,6 +667,162 @@ function SimulateurMediaLinkPanelInner() {
       cancelled = true
     }
   }, [simulateurIdFromUrl, applySavedContent])
+
+  const buildSaveContent = (): SimulateurMediaSaveContent => ({
+    version: 1,
+    form: {
+      diffusionDays: form.diffusionDays,
+      potentielMeta: form.potentielMeta,
+      potentielLinkedin: form.potentielLinkedin,
+      potentielSnapchat: form.potentielSnapchat,
+      potentielTiktok: form.potentielTiktok,
+      enabled: { ...form.enabled },
+    },
+    customPanelOpen,
+    customMode,
+    customValues: { ...customValues },
+  })
+
+  const summaryImpressions =
+    customPanelOpen && customResult
+      ? customResult.synthesis.custom.totalImpressions
+      : result?.synthesis.ideal.totalImpressions ?? 0
+
+  const ensureCanExportOrSave = useCallback(() => {
+    if (!result) {
+      alert('Complétez les paramètres de campagne avant de continuer.')
+      return false
+    }
+    const hasPlatform = Object.values(form.enabled).some(Boolean)
+    if (!hasPlatform) {
+      alert('Activez au moins une plateforme avant de continuer.')
+      return false
+    }
+    return true
+  }, [result, form.enabled])
+
+  const openSaveDialog = useCallback(() => {
+    if (!ensureCanExportOrSave()) return
+    setSaveNameInput(savedName || getDefaultSimulateurMediaProjectName())
+    setPendingAttachment(null)
+    setRemoveAttachment(false)
+    setSaveDialogOpen(true)
+  }, [ensureCanExportOrSave, savedName])
+
+  const handleOpenSavedAttachment = useCallback(async () => {
+    if (!savedAttachmentPath) return
+    try {
+      const url = await getSimulateurMediaAttachmentSignedUrl(savedAttachmentPath)
+      if (!url) {
+        alert('PDF introuvable.')
+        return
+      }
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Impossible d’ouvrir le PDF.')
+    }
+  }, [savedAttachmentPath])
+
+  const openPdfDialog = useCallback(() => {
+    if (!ensureCanExportOrSave()) return
+    setPdfNameInput(savedName || getDefaultSimulateurMediaProjectName())
+    setPdfDialogOpen(true)
+  }, [ensureCanExportOrSave, savedName])
+
+  const handleConfirmSave = useCallback(async () => {
+    const name = saveNameInput.trim()
+    if (!name || !result) return
+
+    setSaving(true)
+    try {
+      const userId = await getCurrentUserId()
+      if (!userId) throw new Error('Vous devez être connecté pour enregistrer une simulation.')
+
+      const content = buildSaveContent()
+      const targetId = savedId ?? crypto.randomUUID()
+      let newAttachment: Awaited<ReturnType<typeof uploadSimulateurMediaAttachment>> | null = null
+      let clearAttachment = false
+
+      if (pendingAttachment) {
+        newAttachment = await uploadSimulateurMediaAttachment({
+          userId,
+          saveId: targetId,
+          file: pendingAttachment,
+        })
+        if (savedAttachmentPath && savedAttachmentPath !== newAttachment.attachment_path) {
+          await deleteSimulateurMediaAttachment(savedAttachmentPath).catch(() => undefined)
+        }
+      } else if (removeAttachment && savedAttachmentPath) {
+        await deleteSimulateurMediaAttachment(savedAttachmentPath).catch(() => undefined)
+        clearAttachment = true
+      }
+
+      const record = savedId
+        ? await updateSimulateurMediaSave({
+            id: savedId,
+            name,
+            summaryImpressions,
+            content,
+            ...(newAttachment ? { attachment: newAttachment } : {}),
+            ...(clearAttachment ? { clearAttachment: true } : {}),
+          })
+        : await createSimulateurMediaSave({
+            id: targetId,
+            name,
+            summaryImpressions,
+            content,
+            attachment: newAttachment,
+          })
+
+      setSavedId(record.id)
+      setSavedName(record.name)
+      setSavedAttachmentPath(record.attachment_path)
+      setSavedAttachmentFilename(record.attachment_filename)
+      setPendingAttachment(null)
+      setRemoveAttachment(false)
+      setSaveDialogOpen(false)
+      router.replace(`${STRATEGIE_PLAN_MEDIA_HREF}?simulateur=${record.id}`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.')
+    } finally {
+      setSaving(false)
+    }
+  }, [
+    saveNameInput,
+    result,
+    savedId,
+    summaryImpressions,
+    form,
+    customPanelOpen,
+    customMode,
+    customValues,
+    pendingAttachment,
+    removeAttachment,
+    savedAttachmentPath,
+    router,
+  ])
+
+  const handleConfirmPdf = useCallback(async () => {
+    const projectName = pdfNameInput.trim()
+    if (!projectName || !result) return
+
+    setExportingPdf(true)
+    try {
+      await exportSimulateurMediaPdf({
+        projectName,
+        userName: userName ?? undefined,
+        diffusionDays: form.diffusionDays,
+        result,
+        customResult: customPanelOpen ? customResult : null,
+        customMode,
+      })
+      setPdfDialogOpen(false)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Impossible de générer le PDF.')
+    } finally {
+      setExportingPdf(false)
+    }
+  }, [pdfNameInput, result, userName, form.diffusionDays, customPanelOpen, customResult, customMode])
 
   const showMetaPotentiel = needsMetaPotentiel(form.enabled)
   const showLinkedinPotentiel = form.enabled.linkedin
@@ -636,17 +840,60 @@ function SimulateurMediaLinkPanelInner() {
       <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent pb-5">
-          <div className="space-y-2">
-            <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
-                <BarChart3 className="h-5 w-5" aria-hidden />
-              </span>
-              Simulateur Média
-            </CardTitle>
-            <CardDescription className="max-w-3xl text-sm leading-relaxed">
-              Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
-              idéale, MAX et personnalisée.
-            </CardDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
+                  <BarChart3 className="h-5 w-5" aria-hidden />
+                </span>
+                Simulateur Média
+              </CardTitle>
+              <CardDescription className="max-w-3xl text-sm leading-relaxed">
+                Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies
+                idéale, MAX et personnalisée.
+              </CardDescription>
+              {savedId && savedName ? (
+                <p className="text-sm text-muted-foreground">
+                  Projet chargé : <span className="font-medium text-foreground">{savedName}</span>
+                </p>
+              ) : null}
+              {savedAttachmentFilename && !removeAttachment ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">PDF joint :</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                    onClick={() => void handleOpenSavedAttachment()}
+                  >
+                    <FileText className="h-3.5 w-3.5 mr-1" />
+                    {savedAttachmentFilename}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                onClick={openPdfDialog}
+                disabled={loadingSave || !result}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exporter en PDF
+              </Button>
+              <Button
+                type="button"
+                className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                onClick={openSaveDialog}
+                disabled={loadingSave || !result}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Enregistrer dans Mon espace
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -1030,6 +1277,143 @@ function SimulateurMediaLinkPanelInner() {
       </Accordion>
       )}
       </div>
+
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {savedId ? 'Mettre à jour le projet' : 'Enregistrer dans Mon espace'}
+            </DialogTitle>
+            <DialogDescription>
+              Le projet sera sauvegardé dans Mon espace → Mes projets → Plan média, avec tous
+              les paramètres et résultats actuels.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="save-simulateur-project-name">Nom du projet *</Label>
+              <Input
+                id="save-simulateur-project-name"
+                placeholder="Ex. Campagne Client X — Q2"
+                value={saveNameInput}
+                onChange={(e) => setSaveNameInput(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="save-simulateur-attachment">Joindre un PDF (optionnel)</Label>
+              <Input
+                id="save-simulateur-attachment"
+                type="file"
+                accept="application/pdf"
+                disabled={saving}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null
+                  if (file && file.type !== 'application/pdf') {
+                    alert('Seuls les fichiers PDF sont acceptés.')
+                    e.target.value = ''
+                    return
+                  }
+                  setPendingAttachment(file)
+                  if (file) setRemoveAttachment(false)
+                  e.target.value = ''
+                }}
+              />
+              {pendingAttachment ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                  <span className="truncate" title={pendingAttachment.name}>
+                    Nouveau fichier : {pendingAttachment.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => setPendingAttachment(null)}
+                    aria-label="Retirer le PDF sélectionné"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : savedAttachmentFilename && !removeAttachment ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                  <span className="truncate" title={savedAttachmentFilename}>
+                    Fichier actuel : {savedAttachmentFilename}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => setRemoveAttachment(true)}
+                    aria-label="Retirer le PDF du projet"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Le PDF sera stocké avec le projet dans Mon espace (max. 20 Mo).
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={saving}>
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              onClick={() => void handleConfirmSave()}
+              disabled={!saveNameInput.trim() || saving}
+            >
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {savedId ? 'Mettre à jour' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exporter en PDF</DialogTitle>
+            <DialogDescription>
+              Le PDF reprend le récapitulatif complet des stratégies idéale, MAX
+              {customPanelOpen ? ' et personnalisée' : ''}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="pdf-simulateur-project-name">Nom du projet *</Label>
+            <Input
+              id="pdf-simulateur-project-name"
+              placeholder="Ex. Campagne Client X — Q2"
+              value={pdfNameInput}
+              onChange={(e) => setPdfNameInput(e.target.value)}
+              disabled={exportingPdf}
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPdfDialogOpen(false)} disabled={exportingPdf}>
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              onClick={() => void handleConfirmPdf()}
+              disabled={!pdfNameInput.trim() || exportingPdf}
+            >
+              {exportingPdf ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Télécharger le PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

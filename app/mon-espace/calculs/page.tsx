@@ -43,6 +43,13 @@ const EURO_ROW_KEYS = new Set<CpmCpcRowKey>([
   'cpcClicsSurLien',
 ])
 
+const COST_ROW_KEYS = new Set<CpmCpcRowKey>([
+  'cpmImpressions',
+  'cpmCouverture',
+  'cpcClics',
+  'cpcClicsSurLien',
+])
+
 const ROW_GROUPS: { keys: CpmCpcRowKey[] }[] = [
   { keys: ['depenses'] },
   { keys: ['impressions', 'cpmImpressions'] },
@@ -64,8 +71,20 @@ function formatDeltaPercent(value: number | null): string {
   })} %`
 }
 
-function deltaToneClass(delta: number | null, isNeutralRow = false): string {
+function deltaToneClass(
+  delta: number | null,
+  options: { isNeutralRow?: boolean; rowKey?: CpmCpcRowKey } = {},
+): string {
+  const { isNeutralRow = false, rowKey } = options
   if (isNeutralRow || delta == null) return 'bg-muted/70'
+
+  const lowerIsBetter = rowKey != null && COST_ROW_KEYS.has(rowKey)
+  if (lowerIsBetter) {
+    if (delta < 1) return 'bg-green-100 text-green-900'
+    if (delta > 1) return 'bg-red-100 text-red-900'
+    return 'bg-muted/70'
+  }
+
   if (delta > 1) return 'bg-green-100 text-green-900'
   if (delta < 1) return 'bg-red-100 text-red-900'
   return 'bg-muted/70'
@@ -318,7 +337,7 @@ export default function CalculCpmCpcPage() {
                       )}
                     </div>
 
-                    <div className={`${ENCART_BORDER} flex flex-col overflow-hidden ${deltaToneClass(null, true)}`}>
+                    <div className={`${ENCART_BORDER} flex flex-col overflow-hidden ${deltaToneClass(null, { isNeutralRow: true })}`}>
                       {group.keys[0] === 'depenses' ? (
                         <div className={`flex ${ROW_HEIGHT} items-center justify-center px-2 text-sm font-semibold text-muted-foreground`}>
                           Delta
@@ -329,7 +348,7 @@ export default function CalculCpmCpcPage() {
                             key={row.key}
                             className={`flex ${ROW_HEIGHT} items-center justify-center px-2 tabular-nums text-sm font-semibold ${
                               index > 0 ? ROW_DIVIDER : ''
-                            } ${deltaToneClass(row.delta)}`}
+                            } ${deltaToneClass(row.delta, { rowKey: row.key })}`}
                           >
                             {formatDeltaPercent(row.delta)}
                           </div>

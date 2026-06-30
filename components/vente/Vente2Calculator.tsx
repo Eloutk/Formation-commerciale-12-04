@@ -3979,7 +3979,7 @@ export function Vente2Calculator({
         </div>
         {/* Pack global (Vente 2) + sous-onglets KPIs (Stratégie Social Media) */}
         <div className="mb-6 space-y-4">
-          {(view === 'social' || view === 'sms') && (
+          {view === 'sms' && (
             <div className="flex justify-center px-2">
               <Button
                 type="button"

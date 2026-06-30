@@ -21,8 +21,19 @@ export type SimulateurMediaSaveRecord = {
   name: string
   summary_impressions: number
   content: SimulateurMediaSaveContent
+  attachment_path: string | null
+  attachment_filename: string | null
+  attachment_mime_type: string | null
+  attachment_file_size: number | null
   created_at: string
   updated_at: string
+}
+
+export type SimulateurMediaSaveAttachment = {
+  attachment_path: string
+  attachment_filename: string
+  attachment_mime_type: string | null
+  attachment_file_size: number | null
 }
 
 export function formatSimulateurMediaSaveDate(iso: string): string {
@@ -41,4 +52,13 @@ export function formatSimulateurMediaImpressions(n: number): string {
 
 export function countEnabledPlatforms(content: SimulateurMediaSaveContent): number {
   return Object.values(content.form.enabled).filter(Boolean).length
+}
+
+export function getDefaultSimulateurMediaProjectName(): string {
+  return `Plan média — ${new Date().toLocaleDateString('fr-FR')}`
+}
+
+export function simulateurMediaProjectNameToPdfFilename(name: string): string {
+  const base = name.trim().replace(/\s+/g, '_').replace(/[^\w.-]+/g, '')
+  return `${base || 'plan_media'}.pdf`
 }

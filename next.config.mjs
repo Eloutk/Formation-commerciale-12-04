@@ -63,7 +63,8 @@ const nextConfig = {
       { source: '/faq', destination: '/guides/faq', permanent: true },
       { source: '/tuto', destination: '/guides/tutos', permanent: true },
       { source: '/documents', destination: '/guides/document', permanent: true },
-      { source: '/mockup', destination: '/mon-espace/mockup', permanent: true },
+      { source: '/mockup', destination: '/strategie/mockup', permanent: true },
+      { source: '/mon-espace/mockup', destination: '/strategie/mockup', permanent: true },
       { source: '/calcul-cpm-cpc', destination: '/mon-espace/calculs', permanent: true },
       { source: '/diffusion', destination: '/academy/diffusion', permanent: true },
       {

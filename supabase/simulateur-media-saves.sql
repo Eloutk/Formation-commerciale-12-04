@@ -50,3 +50,47 @@ CREATE TRIGGER simulateur_media_saves_updated_at
   BEFORE UPDATE ON public.simulateur_media_saves
   FOR EACH ROW
   EXECUTE FUNCTION public.set_simulateur_media_saves_updated_at();
+
+-- Pièce jointe PDF (plan média) — idempotent si déjà appliqué
+ALTER TABLE public.simulateur_media_saves
+  ADD COLUMN IF NOT EXISTS attachment_path TEXT,
+  ADD COLUMN IF NOT EXISTS attachment_filename TEXT,
+  ADD COLUMN IF NOT EXISTS attachment_mime_type TEXT,
+  ADD COLUMN IF NOT EXISTS attachment_file_size BIGINT;
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'simulateur-media-attachments',
+  'simulateur-media-attachments',
+  false,
+  20971520,
+  ARRAY['application/pdf']::text[]
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Users upload own simulateur media attachments" ON storage.objects;
+CREATE POLICY "Users upload own simulateur media attachments"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'simulateur-media-attachments'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+DROP POLICY IF EXISTS "Users read own simulateur media attachments" ON storage.objects;
+CREATE POLICY "Users read own simulateur media attachments"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (
+  bucket_id = 'simulateur-media-attachments'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+DROP POLICY IF EXISTS "Users delete own simulateur media attachments" ON storage.objects;
+CREATE POLICY "Users delete own simulateur media attachments"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'simulateur-media-attachments'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);

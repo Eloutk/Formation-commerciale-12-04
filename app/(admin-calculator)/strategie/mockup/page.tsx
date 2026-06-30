@@ -54,7 +54,7 @@ import {
   uploadMockupPng,
 } from '@/lib/mockup-saves-storage'
 import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
-import { MOCKUP_HREF } from '@/lib/nav-config'
+import { STRATEGIE_MOCKUP_HREF } from '@/lib/nav-config'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_PLACEHOLDER =
@@ -271,7 +271,7 @@ export default function MockupPage() {
       setSavedName(record.name)
       setSaveDialogOpen(false)
       if (mockupIdFromUrl) {
-        router.replace(MOCKUP_HREF)
+        router.replace(STRATEGIE_MOCKUP_HREF)
       }
       if (!customText.trim()) {
         setAutoCaption(pickRandomMockupCaption(clientName))

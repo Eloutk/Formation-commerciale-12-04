@@ -26,6 +26,7 @@ export const GUIDES_DOCUMENT_HREF = '/guides/document'
 export const STRATEGIE_PLAN_MEDIA_HREF = '/strategie/plan-media'
 export const STRATEGIE_CARTOGRAPHIE_HREF = '/strategie/cartographie'
 export const STRATEGIE_RETROPLANNING_HREF = '/strategie/retroplanning'
+export const STRATEGIE_MOCKUP_HREF = '/strategie/mockup'
 
 export const MON_ESPACE_PIGE_COMMERCIALE_HREF = '/mon-espace/pige-commerciale'
 
@@ -49,12 +50,15 @@ export const VENTE2_SOCIAL_HREF = MON_ESPACE_SOCIAL_HREF
 /** @deprecated Alias historique — préférer MON_ESPACE_SMS_HREF */
 export const VENTE2_SMS_HREF = MON_ESPACE_SMS_HREF
 
-export const MON_ESPACE_MOCKUP_HREF = '/mon-espace/mockup'
+/** @deprecated Alias historique — préférer STRATEGIE_MOCKUP_HREF */
+export const MON_ESPACE_MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
+
+/** @deprecated Alias historique — préférer STRATEGIE_MOCKUP_HREF */
+export const MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
+
 export const MON_ESPACE_CALCULS_HREF = '/mon-espace/calculs'
 
 export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
-/** @deprecated Alias historique — préférer MON_ESPACE_MOCKUP_HREF */
-export const MOCKUP_HREF = MON_ESPACE_MOCKUP_HREF
 /** @deprecated Alias historique — préférer MON_ESPACE_CALCULS_HREF */
 export const CALCUL_CPM_CPC_HREF = MON_ESPACE_CALCULS_HREF
 export const IA_HREF = '/ia'
@@ -76,12 +80,12 @@ export const STRATEGIE_LINKS: NavMenuItem[] = [
   { href: STRATEGIE_PLAN_MEDIA_HREF, label: 'Plan Média' },
   { href: STRATEGIE_CARTOGRAPHIE_HREF, label: 'Cartographie' },
   { href: STRATEGIE_RETROPLANNING_HREF, label: 'Rétroplanning' },
+  { href: STRATEGIE_MOCKUP_HREF, label: 'Mockup' },
 ]
 
 export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
   { href: MON_ESPACE_PIGE_COMMERCIALE_HREF, label: 'Pige commerciale' },
-  { href: MON_ESPACE_MOCKUP_HREF, label: 'Mockup' },
   { href: MON_ESPACE_CALCULS_HREF, label: 'Calculs' },
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
@@ -141,7 +145,7 @@ export function isMesProjetsNavContext(
     return true
   }
 
-  if (isPathActive(pathname, MON_ESPACE_MOCKUP_HREF) && searchParams.get('mockup')) {
+  if (isPathActive(pathname, STRATEGIE_MOCKUP_HREF) && searchParams.get('mockup')) {
     return true
   }
 

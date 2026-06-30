@@ -1,5 +1,11 @@
 import { IA_PRESENTATION_TEMPLATE } from '@/lib/ia-presentation-template'
 
+export type SiteDocumentDownload = {
+  format: SiteDocument['format']
+  href: string
+  downloadFilename: string
+}
+
 export type SiteDocument = {
   id: string
   title: string
@@ -7,6 +13,7 @@ export type SiteDocument = {
   href: string
   downloadFilename: string
   format: 'pdf' | 'powerpoint' | 'keynote' | 'xlsx'
+  variants?: SiteDocumentDownload[]
 }
 
 export type SiteDocumentSection = {
@@ -60,6 +67,7 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
         href: IA_PRESENTATION_TEMPLATE.publicPath,
         downloadFilename: IA_PRESENTATION_TEMPLATE.downloadFilename,
         format: 'powerpoint',
+        variants: [...IA_PRESENTATION_TEMPLATE.downloads],
       },
       {
         id: 'formation-studio-2026',

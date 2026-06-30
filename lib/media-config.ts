@@ -46,6 +46,7 @@ export const MEDIA_PLATFORMS = [
   'Snapchat',
   'YouTube',
   'Display / Programmatique',
+  'SMS/RCS',
 ] as const
 
 export type MediaPlatform = (typeof MEDIA_PLATFORMS)[number]
@@ -61,6 +62,7 @@ export const MEDIA_PLATFORM_STYLES: Record<
   Snapchat: { background: '#FFFC00', color: '#1a1a1a' },
   YouTube: { background: '#FF0000', color: '#ffffff' },
   'Display / Programmatique': { background: '#6366F1', color: '#ffffff' },
+  'SMS/RCS': { background: '#0D9488', color: '#ffffff' },
 }
 
 export function getMediaPlatformStyle(platform: string) {

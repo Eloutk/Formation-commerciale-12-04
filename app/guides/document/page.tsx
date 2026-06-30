@@ -23,7 +23,13 @@ function downloadFile(href: string, filename: string) {
 }
 
 function DocumentCard({ doc }: { doc: SiteDocument }) {
-  const isPresentation = doc.format === 'powerpoint' || doc.format === 'keynote'
+  const downloads =
+    doc.variants?.length ?
+      doc.variants
+    : [{ format: doc.format, href: doc.href, downloadFilename: doc.downloadFilename }]
+  const isPresentation = downloads.some(
+    (item) => item.format === 'powerpoint' || item.format === 'keynote',
+  )
 
   return (
     <Card className="overflow-hidden transition-colors">
@@ -37,17 +43,29 @@ function DocumentCard({ doc }: { doc: SiteDocument }) {
             )}
             <CardTitle className="text-lg">{doc.title}</CardTitle>
           </div>
-          <Badge variant="outline" className="font-normal">
-            {formatDocumentLabel(doc.format)}
-          </Badge>
+          <div className="flex flex-wrap gap-2">
+            {downloads.map((item) => (
+              <Badge key={item.format} variant="outline" className="font-normal">
+                {formatDocumentLabel(item.format)}
+              </Badge>
+            ))}
+          </div>
         </div>
         <CardDescription>{doc.description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        <Button onClick={() => downloadFile(doc.href, doc.downloadFilename)}>
-          <Download className="mr-2 h-4 w-4" aria-hidden />
-          Télécharger
-        </Button>
+        {downloads.map((item) => (
+          <Button
+            key={item.format}
+            variant={downloads.length > 1 ? 'outline' : 'default'}
+            onClick={() => downloadFile(item.href, item.downloadFilename)}
+          >
+            <Download className="mr-2 h-4 w-4" aria-hidden />
+            {downloads.length > 1 ?
+              `Télécharger ${formatDocumentLabel(item.format)}`
+            : 'Télécharger'}
+          </Button>
+        ))}
       </CardContent>
     </Card>
   )
@@ -65,7 +83,7 @@ export default function GuidesDocumentPage() {
             Documents
           </h1>
           <p className="text-muted-foreground">
-            Guides, templates PowerPoint et fiches plateformes Link Academy.
+            Guides, templates PowerPoint, Keynote et fiches plateformes Link Academy.
           </p>
         </div>
 

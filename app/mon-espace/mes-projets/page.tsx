@@ -10,6 +10,7 @@ import {
   Calculator,
   CalendarDays,
   ExternalLink,
+  FileText,
   FolderOpen,
   ImageIcon,
   Loader2,
@@ -49,7 +50,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useAuthAccess } from '@/components/auth-context'
-import { STRATEGIE_SOCIAL_HREF, STRATEGIE_RETROPLANNING_HREF, MON_ESPACE_PIGE_COMMERCIALE_HREF, MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
+import { STRATEGIE_SOCIAL_HREF, STRATEGIE_RETROPLANNING_HREF, MON_ESPACE_PIGE_COMMERCIALE_HREF, STRATEGIE_MOCKUP_HREF, VENTE2_SMS_HREF, VENTE2_SOCIAL_HREF, VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { formatSmsDevisAmount, formatSmsDevisDate, type SmsDevisRecord } from '@/lib/sms-devis'
 import {
   countVente2StrategyPlatforms,
@@ -66,13 +67,13 @@ import {
   listUserVente2Strategies,
 } from '@/lib/vente2-strategies-storage'
 import {
-  countEnabledPlatforms,
   formatSimulateurMediaImpressions,
   formatSimulateurMediaSaveDate,
   type SimulateurMediaSaveRecord,
 } from '@/lib/simulateur-media-saves'
 import {
   deleteSimulateurMediaSave,
+  getSimulateurMediaAttachmentSignedUrl,
   listUserSimulateurMediaSaves,
 } from '@/lib/simulateur-media-saves-storage'
 import {
@@ -134,7 +135,7 @@ const MON_ESPACE_SECTIONS: {
   { id: 'strategy', label: 'Calculateur de vente', icon: Calculator },
   { id: 'retroplanning', label: 'Rétroplanning', icon: CalendarDays },
   { id: 'studioTarifs', label: 'Studio', icon: Palette },
-  { id: 'simulateur', label: 'Simulateur média', icon: BarChart3 },
+  { id: 'simulateur', label: 'Plan média', icon: BarChart3 },
   { id: 'mockups', label: 'Mockups', icon: ImageIcon },
   { id: 'pige', label: 'Pige commerciale', icon: ScanSearch },
   { id: 'devis', label: 'SMS / RCS', icon: FolderOpen },
@@ -252,7 +253,7 @@ export default function MonEspacePage() {
       setSimulateurSaves(rows)
     } catch (e) {
       setSimulateurSavesError(
-        e instanceof Error ? e.message : 'Impossible de charger vos simulations.',
+        e instanceof Error ? e.message : 'Impossible de charger vos projets Plan média.',
       )
     } finally {
       setLoadingSimulateurSaves(false)
@@ -557,6 +558,23 @@ export default function MonEspacePage() {
     }
   }
 
+  const handleOpenSimulateurAttachment = async (row: SimulateurMediaSaveRecord) => {
+    if (!row.attachment_path) return
+    setActionId(row.id)
+    try {
+      const url = await getSimulateurMediaAttachmentSignedUrl(row.attachment_path)
+      if (!url) {
+        alert('PDF introuvable.')
+        return
+      }
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Impossible d’ouvrir le PDF.')
+    } finally {
+      setActionId(null)
+    }
+  }
+
   const handleDeleteSimulateur = async () => {
     if (!deleteSimulateurTarget) return
     setActionId(deleteSimulateurTarget.id)
@@ -636,7 +654,7 @@ export default function MonEspacePage() {
           </h1>
           <p className="text-muted-foreground">
             Retrouvez et gérez vos stratégies du calculateur de vente, vos mockups publicitaires, vos
-            simulations média Link et vos devis SMS / RCS.
+            simulations Plan média et vos devis SMS / RCS.
             {isAdmin
               ? ' En tant qu’administrateur, vous pouvez aussi consulter tous les enregistrements.'
               : ' Seul vous pouvez accéder à vos documents.'}
@@ -698,7 +716,7 @@ export default function MonEspacePage() {
                     <SelectContent>
                       <SelectItem value="all">Toutes</SelectItem>
                       <SelectItem value="strategy">Calculateur de vente</SelectItem>
-                      <SelectItem value="simulateur">Simulateur média</SelectItem>
+                      <SelectItem value="simulateur">Plan média</SelectItem>
                       <SelectItem value="mockup">Mockups</SelectItem>
                       <SelectItem value="sms">SMS / RCS</SelectItem>
                     </SelectContent>
@@ -841,7 +859,7 @@ export default function MonEspacePage() {
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="font-normal">
-                                  Simulateur média
+                                  Plan média
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">{item.authorLabel}</TableCell>
@@ -896,7 +914,7 @@ export default function MonEspacePage() {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => router.push(`${MOCKUP_HREF}?mockup=${row.id}`)}
+                                    onClick={() => router.push(`${STRATEGIE_MOCKUP_HREF}?mockup=${row.id}`)}
                                   >
                                     <ExternalLink className="h-3.5 w-3.5 mr-1" />
                                     Ouvrir
@@ -1023,7 +1041,6 @@ export default function MonEspacePage() {
                       <TableHead className="font-semibold w-[22%]">Stratégies</TableHead>
                       <TableHead className="font-semibold w-[12%]">Montant HT</TableHead>
                       <TableHead className="font-semibold w-[14%]">Créé le</TableHead>
-                      <TableHead className="font-semibold w-[14%]">Modifié le</TableHead>
                       <TableHead className="font-semibold text-right w-[16%]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1050,9 +1067,6 @@ export default function MonEspacePage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatVente2StrategyDate(row.created_at)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {formatVente2StrategyDate(row.updated_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
@@ -1283,8 +1297,7 @@ export default function MonEspacePage() {
                       <TableHead className="font-semibold">Nom</TableHead>
                       <TableHead className="font-semibold">Prestations</TableHead>
                       <TableHead className="font-semibold">Total HT</TableHead>
-                      <TableHead className="font-semibold">Total TTC</TableHead>
-                      <TableHead className="font-semibold">Modifié le</TableHead>
+                      <TableHead className="font-semibold">Créé le</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1302,11 +1315,8 @@ export default function MonEspacePage() {
                         <TableCell className="tabular-nums whitespace-nowrap">
                           {formatStudioEuro(Number(row.summary_total_ht))}
                         </TableCell>
-                        <TableCell className="tabular-nums whitespace-nowrap">
-                          {formatStudioEuro(Number(row.summary_total_ttc))}
-                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {formatStudioTarifsSaveDate(row.updated_at)}
+                          {formatStudioTarifsSaveDate(row.created_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
@@ -1356,10 +1366,10 @@ export default function MonEspacePage() {
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle className="flex items-center gap-2 text-xl">
               <BarChart3 className="h-5 w-5 text-[#E94C16]" />
-              Simulateur média Link
+              Plan média
             </CardTitle>
             <CardDescription>
-              Simulations Stratégie Social Media enregistrées — ouvrez, modifiez ou supprimez.
+              Projets Plan média enregistrés — ouvrez, modifiez ou supprimez.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
@@ -1367,22 +1377,22 @@ export default function MonEspacePage() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher par nom de simulation…"
+                  placeholder="Rechercher par nom de projet…"
                   value={simulateurSavesSearch}
                   onChange={(e) => setSimulateurSavesSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
               <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
-                <Link href={STRATEGIE_SOCIAL_HREF}>Nouvelle simulation</Link>
+                <Link href={STRATEGIE_SOCIAL_HREF}>Nouveau projet</Link>
               </Button>
             </div>
 
             {loadingSimulateurSaves ? (
               <SavedRecordLoadingBanner
                 className="my-10"
-                label="Chargement de vos simulations…"
-                description="Récupération de vos simulations Stratégie Social Media."
+                label="Chargement de vos projets Plan média…"
+                description="Récupération de vos projets Plan média."
               />
             ) : simulateurSavesError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -1396,13 +1406,13 @@ export default function MonEspacePage() {
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {simulateurSaves.length === 0 ? (
                   <>
-                    <p className="font-medium text-foreground">Aucune simulation enregistrée</p>
+                    <p className="font-medium text-foreground">Aucun projet Plan média enregistré</p>
                     <p className="text-sm mt-1">
-                      Utilisez le simulateur Stratégie Social Media puis « Sauvegarder ».
+                      Utilisez le Plan média puis « Enregistrer dans Mon espace ».
                     </p>
                   </>
                 ) : (
-                  <p>Aucune simulation ne correspond à votre recherche.</p>
+                  <p>Aucun projet ne correspond à votre recherche.</p>
                 )}
               </div>
             ) : (
@@ -1412,10 +1422,8 @@ export default function MonEspacePage() {
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
-                      <TableHead className="font-semibold">Plateformes</TableHead>
-                      <TableHead className="font-semibold">Impressions</TableHead>
+                      <TableHead className="font-semibold">PDF</TableHead>
                       <TableHead className="font-semibold">Créé le</TableHead>
-                      <TableHead className="font-semibold">Modifié le</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1425,20 +1433,25 @@ export default function MonEspacePage() {
                         <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal">
-                            {countEnabledPlatforms(row.content)} plateforme
-                            {countEnabledPlatforms(row.content) > 1 ? 's' : ''}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="tabular-nums whitespace-nowrap">
-                          {formatSimulateurMediaImpressions(Number(row.summary_impressions))}
+                        <TableCell className="min-w-0 truncate text-sm">
+                          {row.attachment_filename ? (
+                            <Button
+                              type="button"
+                              variant="link"
+                              className="h-auto p-0 text-[#E94C16]"
+                              disabled={actionId === row.id}
+                              onClick={() => void handleOpenSimulateurAttachment(row)}
+                              title={row.attachment_filename}
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1 inline" />
+                              <span className="truncate">{row.attachment_filename}</span>
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatSimulateurMediaSaveDate(row.created_at)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {formatSimulateurMediaSaveDate(row.updated_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
@@ -1506,7 +1519,7 @@ export default function MonEspacePage() {
                 />
               </div>
               <Button asChild className="bg-[#E94C16] hover:bg-[#d43f12] text-white shrink-0">
-                <Link href={MOCKUP_HREF}>Nouveau mockup</Link>
+                <Link href={STRATEGIE_MOCKUP_HREF}>Nouveau mockup</Link>
               </Button>
             </div>
 
@@ -1544,11 +1557,8 @@ export default function MonEspacePage() {
                   <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
-                      <TableHead className="font-semibold">Client</TableHead>
-                      <TableHead className="font-semibold">Plateforme</TableHead>
                       <TableHead className="font-semibold">Format</TableHead>
                       <TableHead className="font-semibold">Créé le</TableHead>
-                      <TableHead className="font-semibold">Modifié le</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1558,22 +1568,11 @@ export default function MonEspacePage() {
                         <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
-                        <TableCell className="min-w-0 truncate" title={row.client_name}>
-                          {row.client_name || '—'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-normal">
-                            {formatMockupPlatformLabel(row.platform)}
-                          </Badge>
-                        </TableCell>
                         <TableCell className="text-sm whitespace-nowrap">
                           {formatMockupFormatLabel(row.content)}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatMockupSaveDate(row.created_at)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {formatMockupSaveDate(row.updated_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
@@ -1582,7 +1581,7 @@ export default function MonEspacePage() {
                               variant="outline"
                               size="sm"
                               disabled={actionId === row.id}
-                              onClick={() => router.push(`${MOCKUP_HREF}?mockup=${row.id}`)}
+                              onClick={() => router.push(`${STRATEGIE_MOCKUP_HREF}?mockup=${row.id}`)}
                             >
                               <ExternalLink className="h-3.5 w-3.5 mr-1" />
                               Ouvrir
@@ -1808,7 +1807,6 @@ export default function MonEspacePage() {
                       <TableHead className="font-semibold">Type</TableHead>
                       <TableHead className="font-semibold">Montant HT</TableHead>
                       <TableHead className="font-semibold">Créé le</TableHead>
-                      <TableHead className="font-semibold">Modifié le</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1828,9 +1826,6 @@ export default function MonEspacePage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatSmsDevisDate(row.created_at)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {formatSmsDevisDate(row.updated_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
@@ -1929,9 +1924,9 @@ export default function MonEspacePage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette simulation ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer ce projet Plan média ?</AlertDialogTitle>
             <AlertDialogDescription>
-              « {deleteSimulateurTarget?.name} » sera définitivement supprimée de Mon espace. Cette
+              « {deleteSimulateurTarget?.name} » sera définitivement supprimé de Mon espace. Cette
               action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
