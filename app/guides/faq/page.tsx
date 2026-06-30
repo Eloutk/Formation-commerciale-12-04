@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { CircleHelp } from "lucide-react"
+import { HelpCircle } from "lucide-react"
 import supabase from "@/utils/supabase/client"
 
 export default function FAQPage() {
@@ -74,7 +74,7 @@ export default function FAQPage() {
         <div>
           <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
-              <CircleHelp className="h-6 w-6" aria-hidden />
+              <HelpCircle className="h-6 w-6" aria-hidden />
             </span>
             Questions Fréquentes
           </h1>
