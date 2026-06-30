@@ -8,12 +8,15 @@ import { adminNavItemClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
-const childButtonClassName = (isActive?: boolean, adminOnly?: boolean) =>
+const childButtonClassName = (isActive?: boolean, adminOnly?: boolean, accent?: boolean) =>
   cn(
     'rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/80 active:bg-accent',
     adminOnly
       ? adminNavItemClass(isActive)
-      : isActive && 'font-medium text-orange-600',
+      : isActive &&
+          (accent
+            ? 'bg-[#E94C16]/10 font-medium text-[#E94C16]'
+            : 'font-medium text-orange-600'),
   )
 
 export function MobileNavMenu({
@@ -46,8 +49,14 @@ export function MobileNavMenu({
         className={cn(
           'flex w-full items-center justify-between rounded-md px-2 py-2.5 text-sm font-medium transition-colors',
           accent
-            ? 'text-orange-600 hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40'
-            : 'text-foreground hover:bg-accent/80 active:bg-accent',
+            ? cn(
+                'text-orange-600 hover:bg-orange-50 active:bg-orange-100 dark:hover:bg-orange-950/40',
+                active && 'bg-orange-50 text-orange-700',
+              )
+            : cn(
+                'text-foreground hover:bg-accent/80 active:bg-accent',
+                active && 'bg-accent text-accent-foreground',
+              ),
         )}
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
@@ -66,7 +75,7 @@ export function MobileNavMenu({
             <button
               key={item.href}
               type="button"
-              className={childButtonClassName(item.isActive, item.adminOnly)}
+              className={childButtonClassName(item.isActive, item.adminOnly, accent)}
               onClick={() => handleSelect(item.href)}
             >
               {item.label}
@@ -82,7 +91,7 @@ export function MobileNavMenu({
                   <button
                     key={item.href}
                     type="button"
-                    className={childButtonClassName(item.isActive, item.adminOnly)}
+                    className={childButtonClassName(item.isActive, item.adminOnly, accent)}
                     onClick={() => handleSelect(item.href)}
                   >
                     {item.label}

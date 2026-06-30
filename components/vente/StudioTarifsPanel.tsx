@@ -67,7 +67,6 @@ import {
   updateStudioTarifsSave,
 } from '@/lib/studio-tarifs-saves-storage'
 import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
-import { formatUserRoleLabel } from '@/lib/roles'
 import { useAuthAccess } from '@/components/auth-context'
 import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -446,7 +445,7 @@ export function StudioTarifsPanel() {
 function StudioTarifsPanelInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { role, userName } = useAuthAccess()
+  const { userName } = useAuthAccess()
   const studioIdFromUrl = searchParams.get('studio')
 
   const [activeSection, setActiveSection] = useState<StudioTarifsSectionId>('video')
@@ -816,15 +815,14 @@ function StudioTarifsPanelInner() {
   return (
     <div className="mx-auto w-full max-w-[1520px] px-6 py-6 md:px-8 md:py-10 lg:px-10">
       <div className="w-full">
-        <div className="mb-6 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2">
-            <Palette className="h-8 w-8 text-[#E94C16]" aria-hidden />
-            <Badge variant="secondary" className="text-xs">
-              {formatUserRoleLabel(role)}
-            </Badge>
-          </div>
-          <h1 className="mb-2 text-3xl font-bold md:text-4xl">Studio</h1>
-          <p className="mx-auto max-w-3xl text-base text-muted-foreground md:text-lg">
+        <div className="mb-6">
+          <h1 className="mb-3 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <Palette className="h-6 w-6" aria-hidden />
+            </span>
+            Studio
+          </h1>
+          <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
             Grille PDV studio Link Academy — cochez les prestations, saisissez les quantités et
             obtenez un total HT/TTC conforme à la grille de référence.
           </p>

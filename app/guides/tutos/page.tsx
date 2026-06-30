@@ -1,28 +1,25 @@
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ExternalLink, PlayCircle } from 'lucide-react'
 import { TUTO_ITEMS } from '@/lib/nav-aide'
 
 export default function TutoPage() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Tutoriels</h1>
-        <p className="text-muted-foreground mb-8">
-          Vidéos pas à pas pour les outils et démarches du quotidien.
-        </p>
-
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <PlayCircle className="h-6 w-6" aria-hidden />
+            </span>
+            Tutoriels vidéo
+          </h1>
+          <p className="text-muted-foreground">
+            Chaque bouton ouvre la vidéo correspondante sur Vimeo dans un nouvel onglet.
+          </p>
+        </div>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PlayCircle className="h-5 w-5 text-[#E94C16]" aria-hidden />
-              Tutoriels vidéo
-            </CardTitle>
-            <CardDescription>
-              Chaque bouton ouvre la vidéo correspondante sur Vimeo dans un nouvel onglet.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
+          <CardContent className="grid gap-3 pt-6 sm:grid-cols-2">
             {TUTO_ITEMS.map((item) => (
               <Button
                 key={item.href}

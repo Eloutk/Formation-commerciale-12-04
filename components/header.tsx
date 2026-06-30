@@ -134,14 +134,14 @@ export default function Header() {
               </NavigationMenuItem>
 
               <NavigationMenuItem>
-                <Link href="/documents" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Documents</NavigationMenuLink>
+                <Link href="/guides/document" legacyBehavior passHref>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Document</NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
 
               <NavigationMenuItem>
                 <Link href="/glossaire" legacyBehavior passHref>
-                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Glossaire</NavigationMenuLink>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>Lexique</NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
 

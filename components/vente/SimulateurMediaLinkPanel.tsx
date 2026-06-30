@@ -641,7 +641,7 @@ function SimulateurMediaLinkPanelInner() {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E94C16]/10 text-[#E94C16]">
                 <BarChart3 className="h-5 w-5" aria-hidden />
               </span>
-              Simulateur Média — Link
+              Simulateur Média
             </CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-relaxed">
               Estimez impressions, taux de pénétration, saturation et clics par plateforme — stratégies

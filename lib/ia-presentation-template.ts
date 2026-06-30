@@ -1,4 +1,6 @@
-/** Template officiel pour la présentation globale IA — même fichier que /documents */
+/** Template officiel pour la présentation globale IA — même fichier que /guides/document */
+import { GUIDES_DOCUMENT_HREF } from '@/lib/nav-config'
+
 export const IA_PRESENTATION_TEMPLATE = {
   title: 'Base de présentation 2026',
   description: 'Base PowerPoint Link Academy — présentation 2026',
@@ -6,7 +8,7 @@ export const IA_PRESENTATION_TEMPLATE = {
   publicPath: '/Base de presentation 2026.pptx',
   downloadFilename: 'Base de presentation 2026.pptx',
   format: 'powerpoint' as const,
-  documentsPagePath: '/documents',
+  documentsPagePath: GUIDES_DOCUMENT_HREF,
 } as const
 
 /** Chemin local par défaut — surchargeable via IA_PPTX_TEMPLATE_PATH */

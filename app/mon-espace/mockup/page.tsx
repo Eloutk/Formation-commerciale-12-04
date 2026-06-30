@@ -348,7 +348,12 @@ export default function MockupPage() {
         ) : null}
         <div className={cn(loadingSave && 'pointer-events-none opacity-50')}>
         <div>
-          <h1 className="mb-2 text-3xl font-bold">Mockup</h1>
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <ImageIcon className="h-6 w-6" aria-hidden />
+            </span>
+            Mockup
+          </h1>
           <p className="text-muted-foreground">
             Générez une prévisualisation réaliste pour montrer à un prospect à quoi pourrait ressembler sa publication.
           </p>

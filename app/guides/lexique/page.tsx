@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search } from "lucide-react"
+import { BookOpen, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -99,10 +99,15 @@ export default function GlossairePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="text-left">
-            <h1 className="text-3xl font-bold mb-2">Glossaire</h1>
+          <div>
+            <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+                <BookOpen className="h-6 w-6" aria-hidden />
+              </span>
+              Lexique
+            </h1>
             <p className="text-muted-foreground">
               Découvrez les définitions des termes clés du marketing digital et de la publicité en ligne.
             </p>

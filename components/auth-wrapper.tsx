@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, useMemo } from "react"
+import { useEffect, useRef, useState, useMemo, Suspense } from "react"
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -10,19 +10,18 @@ import { Button } from '@/components/ui/button'
 import { DoorOpen } from 'lucide-react'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
+import { MonEspaceHeaderNavMenu } from '@/components/nav/mon-espace-nav-menu'
 import { HeaderSearch } from '@/components/nav/header-search'
 import { AdminNavTab } from '@/components/nav/admin-nav-tab'
 import {
   ACADEMY_LINKS,
-  AIDE_LINKS,
   GUIDES_LINKS,
-  MON_ESPACE_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   IA_HREF,
+  MON_ESPACE_LINKS,
   canShowVente2Nav,
   isAcademyPath,
-  isAidePath,
   isGuidesPath,
   isIaPath,
   isMonEspacePath,
@@ -540,7 +539,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   const vente2Active = isVente2Path(pathname)
   const strategieActive = isStrategiePath(pathname)
   const monEspaceActive = isMonEspacePath(pathname)
-  const aideActive = isAidePath(pathname)
   const iaActive = isIaPath(pathname)
   const authAccessValue = useMemo(
     () => ({
@@ -605,12 +603,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
               {isAdmin && (
                 <AdminNavTab href={IA_HREF} label="IA" active={iaActive} className="px-3 py-2" />
               )}
-
-              <HeaderNavMenu
-                label="Aide"
-                active={aideActive}
-                items={withActiveItems(pathname, AIDE_LINKS)}
-              />
             </nav>
 
             <HeaderSearch
@@ -621,13 +613,19 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
               <HeaderSearch isAdmin={isAdmin} role={role} compact className="md:hidden" />
-              <HeaderNavMenu
-                label="Mon espace"
-                active={monEspaceActive}
-                accent
-                align="end"
-                items={withActiveItems(pathname, MON_ESPACE_LINKS)}
-              />
+              <Suspense
+                fallback={
+                  <HeaderNavMenu
+                    label="Mon espace"
+                    active={monEspaceActive}
+                    accent
+                    align="end"
+                    items={MON_ESPACE_LINKS}
+                  />
+                }
+              >
+                <MonEspaceHeaderNavMenu />
+              </Suspense>
               <div className="lg:hidden">
                 <MobileNav user={user} isAdmin={isAdmin} role={role} onLogout={handleLogout} />
               </div>

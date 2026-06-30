@@ -62,6 +62,9 @@ const nextConfig = {
       { source: '/glossaire', destination: '/guides/lexique', permanent: true },
       { source: '/faq', destination: '/guides/faq', permanent: true },
       { source: '/tuto', destination: '/guides/tutos', permanent: true },
+      { source: '/documents', destination: '/guides/document', permanent: true },
+      { source: '/mockup', destination: '/mon-espace/mockup', permanent: true },
+      { source: '/calcul-cpm-cpc', destination: '/mon-espace/calculs', permanent: true },
       { source: '/diffusion', destination: '/academy/diffusion', permanent: true },
       {
         source: '/calculateur-vente-2/social-media',

@@ -1,6 +1,5 @@
 import {
   ACADEMY_LINKS,
-  AIDE_LINKS,
   GUIDES_LINKS,
   GUIDES_FAQ_HREF,
   GUIDES_LEXIQUE_HREF,
@@ -100,7 +99,6 @@ export function getSiteSearchItems(params: {
           } satisfies SearchableItem,
         ]
       : []),
-    ...navItemsToSearch(AIDE_LINKS, 'Aide'),
   ]
 
   const { modules } = getModulesProgress()
@@ -132,7 +130,7 @@ export function getSiteSearchItems(params: {
       title: term.term,
       description: term.definition,
       href: GUIDES_LEXIQUE_HREF,
-      category: 'Glossaire',
+      category: 'Lexique',
       keywords: [term.term, term.definition, term.category],
     })
   }

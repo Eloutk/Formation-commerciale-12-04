@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save, Share2, MessageSquare } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -3953,9 +3953,29 @@ export function Vente2Calculator({
     <div className="container mx-auto px-4 py-6 md:py-12">
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-3">{pageTitle}</h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{pageDescription}</p>
+        <div className={cn('mb-8', view !== 'social' && view !== 'sms' && 'text-center')}>
+          {view === 'social' || view === 'sms' ? (
+            <h1 className="mb-3 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+                {view === 'social' ? (
+                  <Share2 className="h-6 w-6" aria-hidden />
+                ) : (
+                  <MessageSquare className="h-6 w-6" aria-hidden />
+                )}
+              </span>
+              {pageTitle}
+            </h1>
+          ) : (
+            <h1 className="text-4xl font-bold mb-3">{pageTitle}</h1>
+          )}
+          <p
+            className={cn(
+              'text-lg text-muted-foreground max-w-3xl',
+              view !== 'social' && view !== 'sms' && 'mx-auto',
+            )}
+          >
+            {pageDescription}
+          </p>
         </div>
         {/* Pack global (Vente 2) + sous-onglets KPIs (Stratégie Social Media) */}
         <div className="mb-6 space-y-4">

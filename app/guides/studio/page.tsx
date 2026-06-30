@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChevronRight, AlertTriangle, X, Image, Video, Monitor, Smartphone, Eye } from "lucide-react"
+import { ChevronRight, AlertTriangle, X, Image, Video, Monitor, Smartphone, Eye, Palette } from "lucide-react"
 import NextImage from "next/image"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -53,18 +53,21 @@ export default function StudioPage() {
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-12">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="mb-4 md:mb-8">Studio - Guide des formats visuels</h1>
-
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <Palette className="h-6 w-6" aria-hidden />
+            </span>
+            Studio
+          </h1>
+          <p className="text-muted-foreground">
+            Découvrez les formats visuels optimaux pour chaque plateforme publicitaire.
+          </p>
+        </div>
         <div className="mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Guide des formats visuels et contraintes</CardTitle>
-              <CardDescription>
-                Découvrez les formats visuels optimaux pour chaque plateforme publicitaire
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <p>
                 Chaque plateforme publicitaire a ses propres contraintes et recommandations en matière de formats visuels. 
                 Ce guide vous accompagne dans la création de contenus visuels optimisés pour maximiser l'impact de vos campagnes.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CalendarPlus, Download, Loader2, Plus, Save, Trash2 } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Download, Loader2, Plus, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -332,7 +332,12 @@ export function StrategieRetroplanningView() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[90rem] flex-col px-4 py-6 md:px-8 md:py-8">
       <header className="mb-6 shrink-0">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Rétroplanning</h1>
+        <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight md:text-3xl">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+            <CalendarDays className="h-6 w-6" aria-hidden />
+          </span>
+          Rétroplanning
+        </h1>
         <p className="mt-2 text-muted-foreground max-w-2xl">
           Saisissez vos opérations par plateforme, visualisez le Gantt, exportez en PDF ou sauvegardez dans Mon
           espace.

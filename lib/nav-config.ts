@@ -1,5 +1,5 @@
-import { AIDE_LINKS, isAidePath, isExternalNavHref, type NavAideLink } from '@/lib/nav-aide'
-import { isClientRole, type UserRole } from '@/lib/roles'
+import { isExternalNavHref } from '@/lib/nav-aide'
+import type { UserRole } from '@/lib/roles'
 
 export type NavMenuItem = {
   href: string
@@ -21,6 +21,7 @@ export const GUIDES_MEDIA_HREF = '/guides/media'
 export const GUIDES_LEXIQUE_HREF = '/guides/lexique'
 export const GUIDES_FAQ_HREF = '/guides/faq'
 export const GUIDES_TUTOS_HREF = '/guides/tutos'
+export const GUIDES_DOCUMENT_HREF = '/guides/document'
 
 export const STRATEGIE_PLAN_MEDIA_HREF = '/strategie/plan-media'
 export const STRATEGIE_CARTOGRAPHIE_HREF = '/strategie/cartographie'
@@ -48,8 +49,14 @@ export const VENTE2_SOCIAL_HREF = MON_ESPACE_SOCIAL_HREF
 /** @deprecated Alias historique — préférer MON_ESPACE_SMS_HREF */
 export const VENTE2_SMS_HREF = MON_ESPACE_SMS_HREF
 
+export const MON_ESPACE_MOCKUP_HREF = '/mon-espace/mockup'
+export const MON_ESPACE_CALCULS_HREF = '/mon-espace/calculs'
+
 export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
-export const MOCKUP_HREF = '/mockup'
+/** @deprecated Alias historique — préférer MON_ESPACE_MOCKUP_HREF */
+export const MOCKUP_HREF = MON_ESPACE_MOCKUP_HREF
+/** @deprecated Alias historique — préférer MON_ESPACE_CALCULS_HREF */
+export const CALCUL_CPM_CPC_HREF = MON_ESPACE_CALCULS_HREF
 export const IA_HREF = '/ia'
 
 export const ACADEMY_LINKS: NavMenuItem[] = [
@@ -62,6 +69,7 @@ export const GUIDES_LINKS: NavMenuItem[] = [
   { href: GUIDES_LEXIQUE_HREF, label: 'Lexique' },
   { href: GUIDES_FAQ_HREF, label: 'FAQ' },
   { href: GUIDES_TUTOS_HREF, label: 'Tutos' },
+  { href: GUIDES_DOCUMENT_HREF, label: 'Document' },
 ]
 
 export const STRATEGIE_LINKS: NavMenuItem[] = [
@@ -73,6 +81,8 @@ export const STRATEGIE_LINKS: NavMenuItem[] = [
 export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
   { href: MON_ESPACE_PIGE_COMMERCIALE_HREF, label: 'Pige commerciale' },
+  { href: MON_ESPACE_MOCKUP_HREF, label: 'Mockup' },
+  { href: MON_ESPACE_CALCULS_HREF, label: 'Calculs' },
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
   { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Studio' },
@@ -94,19 +104,6 @@ export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
   return items.filter((item) => !item.adminOnly || isAdmin)
 }
 
-export function filterAideLinksByRole(
-  items: NavAideLink[],
-  isAdmin: boolean,
-  role: UserRole | null,
-): NavAideLink[] {
-  const hideForClient = isClientRole(role)
-  return items.filter((item) => {
-    if (item.adminOnly && !isAdmin) return false
-    if (item.hiddenForClient && hideForClient) return false
-    return true
-  })
-}
-
 export function filterVente2LinksByRole(
   items: NavMenuItem[],
   _role: UserRole | null,
@@ -121,7 +118,51 @@ export function canShowVente2Nav(_role: UserRole | null, _isAdmin: boolean): boo
 
 export function isPathActive(pathname: string | null | undefined, href: string): boolean {
   if (!pathname) return false
-  return pathname === href || pathname.startsWith(`${href}/`)
+  const normalizedPath =
+    pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+  return normalizedPath === href || normalizedPath.startsWith(`${href}/`)
+}
+
+export function isMesProjetsPath(pathname: string | null | undefined): boolean {
+  return isPathActive(pathname, MON_ESPACE_MES_PROJETS_HREF)
+}
+
+type NavSearchParams = Pick<URLSearchParams, 'get'> | null | undefined
+
+/** Contexte « Mes projets » : page liste ou consultation d’un enregistrement sauvegardé. */
+export function isMesProjetsNavContext(
+  pathname: string | null | undefined,
+  searchParams?: NavSearchParams,
+): boolean {
+  if (isMesProjetsPath(pathname)) return true
+  if (!pathname || !searchParams) return false
+
+  if (isPathActive(pathname, MON_ESPACE_PIGE_COMMERCIALE_HREF) && searchParams.get('capture')) {
+    return true
+  }
+
+  if (isPathActive(pathname, MON_ESPACE_MOCKUP_HREF) && searchParams.get('mockup')) {
+    return true
+  }
+
+  return false
+}
+
+export function withActiveMonEspaceItems(
+  pathname: string | null | undefined,
+  searchParams?: NavSearchParams,
+): NavMenuItem[] {
+  const mesProjetsActive = isMesProjetsNavContext(pathname, searchParams)
+
+  return MON_ESPACE_LINKS.map((item) => {
+    if (item.href === MON_ESPACE_MES_PROJETS_HREF) {
+      return { ...item, isActive: mesProjetsActive }
+    }
+    if (mesProjetsActive) {
+      return { ...item, isActive: false }
+    }
+    return { ...item, isActive: isPathActive(pathname, item.href) }
+  })
 }
 
 export function isAcademyPath(pathname: string | null | undefined): boolean {
@@ -170,4 +211,4 @@ export function withActiveItems(pathname: string | null | undefined, items: NavM
   }))
 }
 
-export { isAidePath, AIDE_LINKS, isExternalNavHref }
+export { isExternalNavHref }

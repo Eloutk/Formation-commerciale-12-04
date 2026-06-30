@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Images } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuthAccess } from '@/components/auth-context'
@@ -37,11 +37,18 @@ export default function MediaPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Média</h1>
-        <p className="text-muted-foreground mb-6">
-          Déposez et consultez les médias produits pour vos campagnes.
-        </p>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <Images className="h-6 w-6" aria-hidden />
+            </span>
+            Média
+          </h1>
+          <p className="text-muted-foreground">
+            Déposez et consultez les médias produits pour vos campagnes.
+          </p>
+        </div>
 
         {configured === false ? (
           <Alert className="mb-6 border-amber-200 bg-amber-50">

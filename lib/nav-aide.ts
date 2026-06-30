@@ -1,23 +1,9 @@
-export type NavAideLink = {
-  href: string
-  label: string
-  adminOnly?: boolean
-  /** Masqué pour le profil client */
-  hiddenForClient?: boolean
-}
-
 export type TutoItem = {
   label: string
   href: string
   /** Lien externe (ex. Vimeo) — ouverture dans un nouvel onglet */
   external?: boolean
 }
-
-export const AIDE_LINKS: NavAideLink[] = [
-  { href: '/documents', label: 'Document' },
-  { href: '/calcul-cpm-cpc', label: 'Calculs' },
-  { href: '/mockup', label: 'Mockup' },
-]
 
 export const TUTO_ITEMS: TutoItem[] = [
   {
@@ -66,9 +52,4 @@ export function openNavLink(href: string, routerPush: (path: string) => void) {
     return
   }
   routerPush(href)
-}
-
-export function isAidePath(pathname: string | null | undefined): boolean {
-  if (!pathname) return false
-  return AIDE_LINKS.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
 }

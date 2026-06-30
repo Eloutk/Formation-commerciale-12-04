@@ -49,7 +49,7 @@ export function canAccessDemandesPotentiels(role: string | undefined | null): bo
   return !isClientRole(role)
 }
 
-export const DOCUMENTS_HREF = '/documents'
+export const DOCUMENTS_HREF = '/guides/document'
 
 export function isDocumentsPath(pathname: string): boolean {
   return pathname === DOCUMENTS_HREF || pathname.startsWith(`${DOCUMENTS_HREF}/`)

@@ -152,7 +152,12 @@ export default function CalculCpmCpcPage() {
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-5xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Calcul des coûts</h1>
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <Calculator className="h-6 w-6" aria-hidden />
+            </span>
+            Calcul des coûts
+          </h1>
           <p className="text-muted-foreground">
             Comparez les KPIs atteints et l&apos;objectif vendu, puis convertissez un budget HT / TTC.
           </p>

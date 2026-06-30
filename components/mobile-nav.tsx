@@ -1,23 +1,23 @@
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { MobileNavMenu } from "@/components/nav/mobile-nav-menu"
+import { MonEspaceMobileNavMenu } from "@/components/nav/mon-espace-nav-menu"
 import { AdminNavTab } from "@/components/nav/admin-nav-tab"
 import {
   ACADEMY_LINKS,
-  AIDE_LINKS,
   GUIDES_LINKS,
   STRATEGIE_LINKS,
   VENTE2_LINKS,
   canShowVente2Nav,
   IA_HREF,
   isAcademyPath,
-  isAidePath,
   isGuidesPath,
   isIaPath,
   isStrategiePath,
@@ -104,12 +104,9 @@ export function MobileNav({
                   onClick={handleNav}
                 />
               )}
-              <MobileNavMenu
-                label="Aide"
-                active={isAidePath(pathname)}
-                items={withActiveItems(pathname, AIDE_LINKS)}
-                onNavigate={handleNav}
-              />
+              <Suspense fallback={null}>
+                <MonEspaceMobileNavMenu onNavigate={handleNav} />
+              </Suspense>
               <div className="pt-4 mt-4 border-t">
                 {user ? (
                   <div className="space-y-2">

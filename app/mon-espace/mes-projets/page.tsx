@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import { SavedRecordLoadingBanner } from '@/components/ui/saved-record-loading-banner'
 import {
@@ -87,12 +87,12 @@ import {
   listUserMockupSaves,
 } from '@/lib/mockup-saves-storage'
 import {
-  deletePigeCommercialeSave,
-  listUserPigeCommercialeSaves,
+  deletePigeCommercialeProject,
+  listUserPigeCommercialeProjects,
 } from '@/lib/pige-commerciale-saves-storage'
 import {
   formatPigeCommercialeSaveDate,
-  type PigeCommercialeSaveRecord,
+  type PigeCommercialeProject,
 } from '@/lib/pige-commerciale-saves'
 import {
   formatStudioTarifsSaveDate,
@@ -142,12 +142,13 @@ const MON_ESPACE_SECTIONS: {
 
 export default function MonEspacePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { isAdmin, authReady, userName } = useAuthAccess()
   const [devis, setDevis] = useState<SmsDevisRecord[]>([])
   const [strategies, setStrategies] = useState<Vente2StrategyRecord[]>([])
   const [simulateurSaves, setSimulateurSaves] = useState<SimulateurMediaSaveRecord[]>([])
   const [mockupSaves, setMockupSaves] = useState<MockupSaveRecord[]>([])
-  const [pigeSaves, setPigeSaves] = useState<PigeCommercialeSaveRecord[]>([])
+  const [pigeProjects, setPigeProjects] = useState<PigeCommercialeProject[]>([])
   const [studioTarifsSaves, setStudioTarifsSaves] = useState<StudioTarifsSaveRecord[]>([])
   const [retroplanningSaves, setRetroplanningSaves] = useState<RetroplanningSaveRecord[]>([])
   const [loadingDevis, setLoadingDevis] = useState(true)
@@ -177,7 +178,7 @@ export default function MonEspacePage() {
   const [deleteSimulateurTarget, setDeleteSimulateurTarget] =
     useState<SimulateurMediaSaveRecord | null>(null)
   const [deleteMockupTarget, setDeleteMockupTarget] = useState<MockupSaveRecord | null>(null)
-  const [deletePigeTarget, setDeletePigeTarget] = useState<PigeCommercialeSaveRecord | null>(null)
+  const [deletePigeTarget, setDeletePigeTarget] = useState<PigeCommercialeProject | null>(null)
   const [deleteStudioTarifsTarget, setDeleteStudioTarifsTarget] =
     useState<StudioTarifsSaveRecord | null>(null)
   const [deleteRetroplanningTarget, setDeleteRetroplanningTarget] =
@@ -211,12 +212,11 @@ export default function MonEspacePage() {
   }, [activeSection, visibleSections])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const section = new URLSearchParams(window.location.search).get('section')
+    const section = searchParams.get('section')
     if (section && visibleSections.some((item) => item.id === section)) {
       setActiveSection(section as MonEspaceSection)
     }
-  }, [visibleSections])
+  }, [searchParams, visibleSections])
 
   const loadDevis = useCallback(async () => {
     setLoadingDevis(true)
@@ -276,8 +276,8 @@ export default function MonEspacePage() {
     setLoadingPigeSaves(true)
     setPigeSavesError(null)
     try {
-      const rows = await listUserPigeCommercialeSaves()
-      setPigeSaves(rows)
+      const rows = await listUserPigeCommercialeProjects()
+      setPigeProjects(rows)
     } catch (e) {
       setPigeSavesError(
         e instanceof Error ? e.message : 'Impossible de charger vos captures de pige.',
@@ -395,14 +395,14 @@ export default function MonEspacePage() {
 
   const filteredPigeSaves = useMemo(() => {
     const q = pigeSavesSearch.trim().toLowerCase()
-    if (!q) return pigeSaves
-    return pigeSaves.filter(
+    if (!q) return pigeProjects
+    return pigeProjects.filter(
       (row) =>
         row.name.toLowerCase().includes(q) ||
         (row.comment?.toLowerCase().includes(q) ?? false) ||
-        row.original_filename.toLowerCase().includes(q),
+        row.captures.some((capture) => capture.original_filename.toLowerCase().includes(q)),
     )
-  }, [pigeSaves, pigeSavesSearch])
+  }, [pigeProjects, pigeSavesSearch])
 
   const filteredStudioTarifsSaves = useMemo(() => {
     const q = studioTarifsSavesSearch.trim().toLowerCase()
@@ -587,9 +587,9 @@ export default function MonEspacePage() {
 
   const handleDeletePige = async () => {
     if (!deletePigeTarget) return
-    setActionId(deletePigeTarget.id)
+    setActionId(deletePigeTarget.project_id)
     try {
-      await deletePigeCommercialeSave(deletePigeTarget.id)
+      await deletePigeCommercialeProject(deletePigeTarget.project_id)
       setDeletePigeTarget(null)
       await loadPigeSaves()
     } catch (e) {
@@ -1659,11 +1659,12 @@ export default function MonEspacePage() {
               </div>
             ) : filteredPigeSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-                {pigeSaves.length === 0 ? (
+                {pigeProjects.length === 0 ? (
                   <>
                     <p className="font-medium text-foreground">Aucune capture enregistrée</p>
                     <p className="text-sm mt-1">
-                      Importez une image depuis la page Pige commerciale pour la retrouver ici.
+                      Importez une ou plusieurs images depuis la page Pige commerciale pour les
+                      retrouver ici.
                     </p>
                   </>
                 ) : (
@@ -1678,22 +1679,24 @@ export default function MonEspacePage() {
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead className="font-semibold">Nom</TableHead>
                       <TableHead className="font-semibold">Commentaire</TableHead>
-                      <TableHead className="font-semibold">Fichier</TableHead>
+                      <TableHead className="font-semibold">Fichiers</TableHead>
                       <TableHead className="font-semibold">Créé le</TableHead>
                       <TableHead className="font-semibold text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pigePagination.items.map((row) => (
-                      <TableRow key={row.id}>
+                      <TableRow key={row.project_id}>
                         <TableCell className="font-medium min-w-0 truncate" title={row.name}>
                           {row.name}
                         </TableCell>
                         <TableCell className="min-w-0 truncate text-sm text-muted-foreground" title={row.comment ?? undefined}>
                           {row.comment || '—'}
                         </TableCell>
-                        <TableCell className="min-w-0 truncate text-sm" title={row.original_filename}>
-                          {row.original_filename}
+                        <TableCell>
+                          <Badge variant="outline" className="font-normal">
+                            {row.file_count} image{row.file_count > 1 ? 's' : ''}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                           {formatPigeCommercialeSaveDate(row.created_at)}
@@ -1704,9 +1707,9 @@ export default function MonEspacePage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              disabled={actionId === row.id}
+                              disabled={actionId === row.project_id}
                               onClick={() =>
-                                router.push(`${MON_ESPACE_PIGE_COMMERCIALE_HREF}?capture=${row.id}`)
+                                router.push(`${MON_ESPACE_PIGE_COMMERCIALE_HREF}?project=${row.project_id}`)
                               }
                             >
                               <ExternalLink className="h-3.5 w-3.5 mr-1" />
@@ -1717,7 +1720,7 @@ export default function MonEspacePage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 text-destructive hover:text-destructive"
-                              disabled={actionId === row.id}
+                              disabled={actionId === row.project_id}
                               onClick={() => setDeletePigeTarget(row)}
                               aria-label={`Supprimer ${row.name}`}
                             >
@@ -2022,10 +2025,11 @@ export default function MonEspacePage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette capture ?</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer ce projet ?</AlertDialogTitle>
             <AlertDialogDescription>
-              « {deletePigeTarget?.name} » sera définitivement supprimée de Mon espace. Cette action
-              est irréversible.
+              « {deletePigeTarget?.name} » et ses {deletePigeTarget?.file_count ?? 0} image
+              {(deletePigeTarget?.file_count ?? 0) > 1 ? 's' : ''} seront définitivement supprimés de Mon
+              espace. Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

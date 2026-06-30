@@ -7,18 +7,29 @@ import { adminNavItemClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
-const triggerClassName = (accent?: boolean) =>
+const triggerClassName = (accent?: boolean, active?: boolean) =>
   cn(
     'inline-flex items-center gap-1 rounded-md px-3 py-2 font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     accent
-      ? 'text-orange-600 hover:bg-orange-50 hover:text-orange-700'
-      : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+      ? cn(
+          'text-orange-600 hover:bg-orange-50 hover:text-orange-700',
+          active && 'bg-orange-50 text-orange-700',
+        )
+      : cn(
+          'text-foreground hover:bg-accent hover:text-accent-foreground',
+          active && 'bg-accent text-accent-foreground',
+        ),
   )
 
-const itemClassName = (isActive?: boolean, adminOnly?: boolean) =>
+const itemClassName = (isActive?: boolean, adminOnly?: boolean, accent?: boolean) =>
   cn(
     'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
-    adminOnly ? adminNavItemClass(isActive) : isActive && 'bg-orange-50 text-orange-700',
+    adminOnly
+      ? adminNavItemClass(isActive)
+      : isActive &&
+          (accent
+            ? 'bg-[#E94C16]/10 font-medium text-[#E94C16]'
+            : 'bg-orange-50 text-orange-700'),
   )
 
 export function HeaderNavMenu({
@@ -48,7 +59,7 @@ export function HeaderNavMenu({
     <div className="group/nav-menu relative">
       <button
         type="button"
-        className={triggerClassName(accent)}
+        className={triggerClassName(accent, active)}
         aria-haspopup="menu"
       >
         {label}
@@ -79,7 +90,7 @@ export function HeaderNavMenu({
               key={item.href}
               type="button"
               role="menuitem"
-              className={itemClassName(item.isActive, item.adminOnly)}
+              className={itemClassName(item.isActive, item.adminOnly, accent)}
               onClick={() => handleSelect(item.href)}
             >
               {item.label}
@@ -96,7 +107,7 @@ export function HeaderNavMenu({
                   key={item.href}
                   type="button"
                   role="menuitem"
-                  className={itemClassName(item.isActive, item.adminOnly)}
+                  className={itemClassName(item.isActive, item.adminOnly, accent)}
                   onClick={() => handleSelect(item.href)}
                 >
                   {item.label}

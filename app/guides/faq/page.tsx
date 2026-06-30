@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { CircleHelp } from "lucide-react"
 import supabase from "@/utils/supabase/client"
 
 export default function FAQPage() {
@@ -68,18 +69,26 @@ export default function FAQPage() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">Questions Fréquentes</h1>
-        <p className="text-xl mb-6 max-w-3xl mx-auto text-muted-foreground">
-          Retrouvez ici les réponses aux questions les plus courantes.
-        </p>
-        <Button onClick={() => setOpen(true)}>Suggérer une question</Button>
+      <div className="mx-auto max-w-6xl">
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <CircleHelp className="h-6 w-6" aria-hidden />
+            </span>
+            Questions Fréquentes
+          </h1>
+          <p className="text-muted-foreground">
+            Retrouvez ici les réponses aux questions les plus courantes.
+          </p>
+        </div>
+        <Button onClick={() => setOpen(true)} className="shrink-0">Suggérer une question</Button>
       </div>
       
-      <section className="py-8 max-w-3xl mx-auto">
+      <section className="py-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">FAQ</CardTitle>
+            <CardTitle>FAQ</CardTitle>
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
@@ -154,6 +163,7 @@ export default function FAQPage() {
           </form>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }

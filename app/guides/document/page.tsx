@@ -53,12 +53,17 @@ function DocumentCard({ doc }: { doc: SiteDocument }) {
   )
 }
 
-export default function DocumentsPage() {
+export default function GuidesDocumentPage() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Documents</h1>
+          <h1 className="mb-2 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+              <FileText className="h-6 w-6" aria-hidden />
+            </span>
+            Documents
+          </h1>
           <p className="text-muted-foreground">
             Guides, templates PowerPoint et fiches plateformes Link Academy.
           </p>

@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS public.pige_commerciale_saves (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL,
   name TEXT NOT NULL,
   comment TEXT,
   image_path TEXT NOT NULL,
@@ -14,9 +15,22 @@ CREATE TABLE IF NOT EXISTS public.pige_commerciale_saves (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Regroupe les captures d'un même enregistrement (projet) — idempotent si déjà appliqué
+ALTER TABLE public.pige_commerciale_saves
+  ADD COLUMN IF NOT EXISTS project_id UUID;
+
+UPDATE public.pige_commerciale_saves
+  SET project_id = id
+  WHERE project_id IS NULL;
+
+ALTER TABLE public.pige_commerciale_saves
+  ALTER COLUMN project_id SET NOT NULL;
+
 CREATE INDEX IF NOT EXISTS pige_commerciale_saves_user_id_idx ON public.pige_commerciale_saves (user_id);
 CREATE INDEX IF NOT EXISTS pige_commerciale_saves_user_updated_idx
   ON public.pige_commerciale_saves (user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS pige_commerciale_saves_project_id_idx
+  ON public.pige_commerciale_saves (user_id, project_id);
 
 ALTER TABLE public.pige_commerciale_saves ENABLE ROW LEVEL SECURITY;
 
