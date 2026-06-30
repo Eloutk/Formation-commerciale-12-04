@@ -7,6 +7,8 @@ export type NavMenuItem = {
   isActive?: boolean
   /** Visible et accessible uniquement aux administrateurs */
   adminOnly?: boolean
+  /** Encadrement double dans les sous-menus (ex. Mes projets). */
+  doubleBorder?: boolean
 }
 
 export type NavMenuGroup = {
@@ -84,7 +86,7 @@ export const STRATEGIE_LINKS: NavMenuItem[] = [
 ]
 
 export const MON_ESPACE_LINKS: NavMenuItem[] = [
-  { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets' },
+  { href: MON_ESPACE_MES_PROJETS_HREF, label: 'Mes projets', doubleBorder: true },
   { href: MON_ESPACE_PIGE_COMMERCIALE_HREF, label: 'Pige commerciale' },
   { href: MON_ESPACE_CALCULS_HREF, label: 'Calculs' },
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },

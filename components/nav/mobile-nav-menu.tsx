@@ -8,9 +8,20 @@ import { adminNavItemClass } from '@/lib/nav-admin-styles'
 import { openNavLink } from '@/lib/nav-aide'
 import type { NavMenuGroup, NavMenuItem } from '@/lib/nav-config'
 
-const childButtonClassName = (isActive?: boolean, adminOnly?: boolean, accent?: boolean) =>
+const childButtonClassName = (
+  isActive?: boolean,
+  adminOnly?: boolean,
+  accent?: boolean,
+  doubleBorder?: boolean,
+) =>
   cn(
     'rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/80 active:bg-accent',
+    doubleBorder &&
+      cn(
+        'my-0.5 border-2 border-double',
+        accent ? 'border-[#E94C16]/55' : 'border-orange-300/80',
+        isActive && (accent ? 'border-[#E94C16]' : 'border-orange-500'),
+      ),
     adminOnly
       ? adminNavItemClass(isActive)
       : isActive &&
@@ -75,7 +86,7 @@ export function MobileNavMenu({
             <button
               key={item.href}
               type="button"
-              className={childButtonClassName(item.isActive, item.adminOnly, accent)}
+              className={childButtonClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
               onClick={() => handleSelect(item.href)}
             >
               {item.label}
@@ -91,7 +102,7 @@ export function MobileNavMenu({
                   <button
                     key={item.href}
                     type="button"
-                    className={childButtonClassName(item.isActive, item.adminOnly, accent)}
+                    className={childButtonClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
                     onClick={() => handleSelect(item.href)}
                   >
                     {item.label}

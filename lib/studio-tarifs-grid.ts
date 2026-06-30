@@ -29,9 +29,9 @@ export const STUDIO_TARIFS_VALIDATION_NOTE =
   '3 A/R validation inclus systématiquement'
 
 export const STUDIO_TARIFS_SECTIONS: { id: StudioTarifsSectionId; label: string }[] = [
-  { id: 'video', label: 'Créa - Vidéo' },
+  { id: 'video', label: 'Vidéo' },
   { id: 'graphisme', label: 'Graphisme' },
-  { id: 'fixe', label: 'Créa - Fixe' },
+  { id: 'fixe', label: 'Fixe' },
 ]
 
 /** Grille extraite de « VALIDÉE Nouvelle grille PDV studio » (Numbers). */
@@ -304,7 +304,7 @@ export const STUDIO_TARIFS_ROWS: StudioTarifsRow[] = [
     sectionId: 'graphisme',
     label: 'Kit papeterie entreprise',
     explanation: 'Carte de visite + Papier en-tête + tampons',
-    rateHT: 1170,
+    rateHT: 500,
     kind: 'priced',
   },
   {

@@ -21,9 +21,20 @@ const triggerClassName = (accent?: boolean, active?: boolean) =>
         ),
   )
 
-const itemClassName = (isActive?: boolean, adminOnly?: boolean, accent?: boolean) =>
+const itemClassName = (
+  isActive?: boolean,
+  adminOnly?: boolean,
+  accent?: boolean,
+  doubleBorder?: boolean,
+) =>
   cn(
     'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
+    doubleBorder &&
+      cn(
+        'my-1 border-2 border-double',
+        accent ? 'border-[#E94C16]/55' : 'border-orange-300/80',
+        isActive && (accent ? 'border-[#E94C16]' : 'border-orange-500'),
+      ),
     adminOnly
       ? adminNavItemClass(isActive)
       : isActive &&
@@ -90,7 +101,7 @@ export function HeaderNavMenu({
               key={item.href}
               type="button"
               role="menuitem"
-              className={itemClassName(item.isActive, item.adminOnly, accent)}
+              className={itemClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
               onClick={() => handleSelect(item.href)}
             >
               {item.label}
@@ -107,7 +118,7 @@ export function HeaderNavMenu({
                   key={item.href}
                   type="button"
                   role="menuitem"
-                  className={itemClassName(item.isActive, item.adminOnly, accent)}
+                  className={itemClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
                   onClick={() => handleSelect(item.href)}
                 >
                   {item.label}
