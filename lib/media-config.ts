@@ -9,6 +9,7 @@ export const MEDIA_SECTORS = [
   'Food',
   'Service',
   'Transport',
+  'Tourisme',
 ] as const
 
 export type MediaSector = (typeof MEDIA_SECTORS)[number]
@@ -27,6 +28,7 @@ export const MEDIA_SECTOR_STYLES: Record<
   Food: { background: '#A89B2E', color: '#ffffff' },
   Service: { background: '#FBC02D', color: '#1a1a1a' },
   Transport: { background: '#00897B', color: '#ffffff' },
+  Tourisme: { background: '#00ACC1', color: '#ffffff' },
 }
 
 export function getMediaSectorStyle(sector: string) {
