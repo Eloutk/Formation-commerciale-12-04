@@ -14,14 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   MEDIA_KPI_TYPES,
   computeMediaCalculatorRow,
   createEmptyMediaCalculatorRow,
@@ -34,13 +26,29 @@ import {
 } from '@/lib/calculateur-media-universel'
 import { cn } from '@/lib/utils'
 
+const COLUMNS = [
+  { key: 'kpi', label: 'KPI', title: 'Type KPI' },
+  { key: 'budgetN1', label: 'Bdg. N-1', title: 'Budget N-1 (€)' },
+  { key: 'volumeN1', label: 'Vol. N-1', title: 'Volume N-1' },
+  { key: 'budgetN', label: 'Bdg. N', title: 'Budget N (€)' },
+  { key: 'improvement', label: '% amél.', title: '% amélioration' },
+  { key: 'unitCostN1', label: 'Coût N-1', title: 'Coût unitaire N-1' },
+  { key: 'targetUnitCost', label: 'Coût cible', title: 'Coût unitaire cible' },
+  { key: 'targetVolume', label: 'Vol. cible', title: 'Volume cible' },
+  { key: 'gap', label: 'Écart', title: 'Écart vs N-1' },
+] as const
+
 function gapToneClass(value: number | null): string {
   if (value == null || value === 0) return 'text-muted-foreground'
   if (value > 0) return 'text-green-700 font-semibold'
   return 'text-red-700 font-semibold'
 }
 
-const inputCellClassName = 'min-w-[120px] bg-amber-50/80'
+const inputClassName = 'h-8 w-full min-w-0 bg-amber-50/80 px-2 text-xs'
+const headClassName =
+  'px-1.5 py-2 text-left align-middle text-[11px] font-medium leading-tight text-muted-foreground'
+const cellClassName = 'px-1.5 py-1.5 align-middle'
+const outputClassName = 'text-[11px] tabular-nums leading-tight'
 
 export function CalculateurMediaUniverselPanel() {
   const [rows, setRows] = useState<MediaCalculatorRow[]>([createEmptyMediaCalculatorRow()])
@@ -69,7 +77,7 @@ export function CalculateurMediaUniverselPanel() {
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
             <Calculator className="h-6 w-6" aria-hidden />
           </span>
-          Meilleur atterissage
+          Atterrissage
         </h1>
         <p className="text-muted-foreground">
           Calculateur média universel CPM, CPC, CPL et CPA — objectifs de volume à partir d&apos;un
@@ -117,34 +125,145 @@ export function CalculateurMediaUniverselPanel() {
             Ajouter une ligne
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="min-w-[110px]">Type KPI</TableHead>
-                  <TableHead className="min-w-[120px] bg-amber-50/80">Budget N-1 (€)</TableHead>
-                  <TableHead className="min-w-[120px] bg-amber-50/80">Volume N-1</TableHead>
-                  <TableHead className="min-w-[120px] bg-amber-50/80">Budget N (€)</TableHead>
-                  <TableHead className="min-w-[110px] bg-amber-50/80">% amélioration</TableHead>
-                  <TableHead className="min-w-[130px]">Coût unitaire N-1</TableHead>
-                  <TableHead className="min-w-[130px]">Coût unitaire cible</TableHead>
-                  <TableHead className="min-w-[120px]">Volume cible</TableHead>
-                  <TableHead className="min-w-[120px]">Écart vs N-1</TableHead>
-                  <TableHead className="w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        <CardContent className="p-3 sm:p-6">
+          <div className="space-y-4 lg:hidden">
+            {computedRows.map(({ row, result }) => (
+              <div key={row.id} className="space-y-3 rounded-md border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Select
+                    value={row.kpiType}
+                    onValueChange={(value) =>
+                      updateRow(row.id, { kpiType: value as MediaKpiType })
+                    }
+                  >
+                    <SelectTrigger className={cn(inputClassName, 'w-[110px]')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEDIA_KPI_TYPES.map((kpiType) => (
+                        <SelectItem key={kpiType} value={kpiType}>
+                          {kpiType}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => removeRow(row.id)}
+                    disabled={rows.length <= 1}
+                    aria-label="Supprimer la ligne"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">Budget N-1 (€)</span>
+                    <Input
+                      inputMode="decimal"
+                      value={row.budgetN1}
+                      onChange={(event) => updateRow(row.id, { budgetN1: event.target.value })}
+                      className={inputClassName}
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">Volume N-1</span>
+                    <Input
+                      inputMode="decimal"
+                      value={row.volumeN1}
+                      onChange={(event) => updateRow(row.id, { volumeN1: event.target.value })}
+                      className={inputClassName}
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">Budget N (€)</span>
+                    <Input
+                      inputMode="decimal"
+                      value={row.budgetN}
+                      onChange={(event) => updateRow(row.id, { budgetN: event.target.value })}
+                      className={inputClassName}
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">% amélioration</span>
+                    <Input
+                      inputMode="decimal"
+                      value={row.improvementPercent}
+                      onChange={(event) =>
+                        updateRow(row.id, { improvementPercent: event.target.value })
+                      }
+                      className={inputClassName}
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] tabular-nums">
+                  <div>
+                    <span className="text-muted-foreground">Coût N-1</span>
+                    <p>{formatMediaUnitCost(result.unitCostN1)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Coût cible</span>
+                    <p>{formatMediaUnitCost(result.targetUnitCost)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Vol. cible</span>
+                    <p>{formatMediaVolume(result.targetVolume)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Écart</span>
+                    <p className={gapToneClass(result.gapVsN1)}>{formatMediaGap(result.gapVsN1)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden w-full overflow-hidden rounded-md border lg:block">
+            <table className="w-full table-fixed border-collapse text-sm">
+              <colgroup>
+                <col className="w-[7%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[10%]" />
+                <col className="w-[8%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[6%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  {COLUMNS.map((column) => (
+                    <th
+                      key={column.key}
+                      className={cn(
+                        headClassName,
+                        ['budgetN1', 'volumeN1', 'budgetN', 'improvement'].includes(column.key) &&
+                          'bg-amber-50/80',
+                      )}
+                      title={column.title}
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                  <th className={cn(headClassName, 'text-center')} aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
                 {computedRows.map(({ row, result }) => (
-                  <TableRow key={row.id}>
-                    <TableCell>
+                  <tr key={row.id} className="border-b last:border-b-0">
+                    <td className={cellClassName}>
                       <Select
                         value={row.kpiType}
                         onValueChange={(value) =>
                           updateRow(row.id, { kpiType: value as MediaKpiType })
                         }
                       >
-                        <SelectTrigger className={inputCellClassName}>
+                        <SelectTrigger className={inputClassName}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -155,65 +274,70 @@ export function CalculateurMediaUniverselPanel() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className={cellClassName}>
                       <Input
                         inputMode="decimal"
                         value={row.budgetN1}
                         onChange={(event) => updateRow(row.id, { budgetN1: event.target.value })}
-                        className={inputCellClassName}
+                        className={inputClassName}
                       />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className={cellClassName}>
                       <Input
                         inputMode="decimal"
                         value={row.volumeN1}
                         onChange={(event) => updateRow(row.id, { volumeN1: event.target.value })}
-                        className={inputCellClassName}
+                        className={inputClassName}
                       />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className={cellClassName}>
                       <Input
                         inputMode="decimal"
                         value={row.budgetN}
                         onChange={(event) => updateRow(row.id, { budgetN: event.target.value })}
-                        className={inputCellClassName}
+                        className={inputClassName}
                       />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className={cellClassName}>
                       <Input
                         inputMode="decimal"
                         value={row.improvementPercent}
                         onChange={(event) =>
                           updateRow(row.id, { improvementPercent: event.target.value })
                         }
-                        className={inputCellClassName}
+                        className={inputClassName}
                       />
-                    </TableCell>
-                    <TableCell className="tabular-nums">{formatMediaUnitCost(result.unitCostN1)}</TableCell>
-                    <TableCell className="tabular-nums">
+                    </td>
+                    <td className={cn(cellClassName, outputClassName)}>
+                      {formatMediaUnitCost(result.unitCostN1)}
+                    </td>
+                    <td className={cn(cellClassName, outputClassName)}>
                       {formatMediaUnitCost(result.targetUnitCost)}
-                    </TableCell>
-                    <TableCell className="tabular-nums">{formatMediaVolume(result.targetVolume)}</TableCell>
-                    <TableCell className={cn('tabular-nums', gapToneClass(result.gapVsN1))}>
+                    </td>
+                    <td className={cn(cellClassName, outputClassName)}>
+                      {formatMediaVolume(result.targetVolume)}
+                    </td>
+                    <td className={cn(cellClassName, outputClassName, gapToneClass(result.gapVsN1))}>
                       {formatMediaGap(result.gapVsN1)}
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td className={cn(cellClassName, 'text-center')}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => removeRow(row.id)}
                         disabled={rows.length <= 1}
                         aria-label="Supprimer la ligne"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

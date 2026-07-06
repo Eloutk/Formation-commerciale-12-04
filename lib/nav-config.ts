@@ -59,7 +59,7 @@ export const MON_ESPACE_MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
 export const MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
 
 export const MON_ESPACE_CALCULS_HREF = '/mon-espace/calculs'
-export const MEILLEUR_ATTERISSAGE_HREF = '/mon-espace/meilleur-atterissage'
+export const ATTERRISSAGE_HREF = '/mon-espace/atterissage'
 
 export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
 /** @deprecated Alias historique — préférer MON_ESPACE_CALCULS_HREF */
@@ -93,7 +93,7 @@ export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
   { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Studio' },
-  { href: MEILLEUR_ATTERISSAGE_HREF, label: 'Meilleur atterissage', adminOnly: true },
+  { href: ATTERRISSAGE_HREF, label: 'Atterrissage', adminOnly: true },
 ]
 
 export const VENTE2_LINKS: NavMenuItem[] = []

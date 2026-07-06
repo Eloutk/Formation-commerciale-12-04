@@ -1,7 +1,4 @@
 import {
-  formatCalculatorCurrency,
-  formatCalculatorInteger,
-  formatCalculatorRatio,
   parseCalculatorNumber,
 } from '@/lib/calcul-cpm-cpc'
 
@@ -107,18 +104,26 @@ export function computeMediaCalculatorRow(
   return { unitCostN1, targetUnitCost, targetVolume, gapVsN1 }
 }
 
+function formatMediaDecimal(value: number | null): string {
+  if (value == null) return '—'
+  return value.toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function formatMediaUnitCost(value: number | null): string {
   if (value == null) return '—'
-  return `${formatCalculatorRatio(value)} €`
+  return `${formatMediaDecimal(value)} €`
 }
 
 export function formatMediaVolume(value: number | null): string {
-  return formatCalculatorInteger(value)
+  return formatMediaDecimal(value)
 }
 
 export function formatMediaGap(value: number | null): string {
   if (value == null) return '—'
-  const formatted = formatCalculatorInteger(value)
+  const formatted = formatMediaDecimal(value)
   if (value > 0) return `+${formatted}`
   return formatted
 }
@@ -126,7 +131,7 @@ export function formatMediaGap(value: number | null): string {
 export function formatMediaBudget(value: string): string {
   const parsed = parseCalculatorNumber(value)
   if (parsed == null) return '—'
-  return `${formatCalculatorCurrency(parsed)} €`
+  return `${formatMediaDecimal(parsed)} €`
 }
 
 export function createEmptyMediaCalculatorRow(): MediaCalculatorRow {
