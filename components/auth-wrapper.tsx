@@ -21,6 +21,7 @@ import {
   IA_HREF,
   MON_ESPACE_LINKS,
   canShowVente2Nav,
+  filterNavItemsByAdmin,
   isAcademyPath,
   isGuidesPath,
   isIaPath,
@@ -620,7 +621,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                     active={monEspaceActive}
                     accent
                     align="end"
-                    items={MON_ESPACE_LINKS}
+                    items={filterNavItemsByAdmin(MON_ESPACE_LINKS, isAdmin)}
                   />
                 }
               >

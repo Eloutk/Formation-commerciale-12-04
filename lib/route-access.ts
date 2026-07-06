@@ -1,4 +1,4 @@
-import { IA_HREF } from '@/lib/nav-config'
+import { IA_HREF, MEILLEUR_ATTERISSAGE_HREF } from '@/lib/nav-config'
 import { isAdminRole, type UserRole } from '@/lib/roles'
 
 /** Assets statiques accessibles sans session (login, favicon, polices, branding). */
@@ -71,6 +71,10 @@ export function resolvePathAccessViolation(
   }
 
   if (pathname.startsWith(IA_HREF) && !isAdmin) {
+    return '/home'
+  }
+
+  if (pathname.startsWith(MEILLEUR_ATTERISSAGE_HREF) && !isAdmin) {
     return '/home'
   }
 

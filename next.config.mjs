@@ -84,6 +84,16 @@ const nextConfig = {
       },
       { source: '/mon-espace', destination: '/mon-espace/mes-projets', permanent: false },
       {
+        source: '/admin/meilleur-atterissange',
+        destination: '/mon-espace/meilleur-atterissage',
+        permanent: true,
+      },
+      {
+        source: '/mon-espace/meilleur-atterissange',
+        destination: '/mon-espace/meilleur-atterissage',
+        permanent: true,
+      },
+      {
         source: '/mon-espace/tarifs-studio',
         destination: '/mon-espace/studio',
         permanent: true,

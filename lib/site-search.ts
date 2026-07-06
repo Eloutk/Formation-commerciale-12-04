@@ -38,6 +38,7 @@ function navItemsToSearch(items: NavMenuItem[], category: string): SearchableIte
     title: item.label,
     href: item.href,
     category,
+    ...(item.adminOnly ? { adminOnly: true } : {}),
   }))
 }
 
