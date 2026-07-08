@@ -97,9 +97,9 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 
 ---
 
-### 4.2 Média — Médiathèque
+### 4.2 Link Library — Médiathèque
 
-**URL :** `/guides/media`
+**URL :** `/guides/link-library`
 
 **Pourquoi :** Déposer et retrouver les visuels / rapports de campagnes passées, classés par secteur, client, campagne et plateforme.
 
@@ -373,7 +373,7 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 ### Après campagne
 
 1. **Calculs CPM/CPC** pour le bilan réalisé vs vendu.
-2. Déposer les rapports dans **Média**.
+2. Déposer les rapports dans **Link Library**.
 
 ---
 

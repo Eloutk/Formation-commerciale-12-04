@@ -466,6 +466,8 @@ function StudioTarifsPanelInner() {
   const [budgetRequestSectionId, setBudgetRequestSectionId] =
     useState<StudioTarifsSectionId>('graphisme')
   const [budgetRequestRow, setBudgetRequestRow] = useState<StudioTarifsRow | null>(null)
+  const [budgetClientName, setBudgetClientName] = useState('')
+  const [budgetProjectName, setBudgetProjectName] = useState('')
   const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
   const [budgetAttachment, setBudgetAttachment] = useState<File | null>(null)
   const [submittingBudgetRequest, setSubmittingBudgetRequest] = useState(false)
@@ -609,6 +611,8 @@ function StudioTarifsPanelInner() {
     if (!usesStudioBudgetSlackRequest(row)) return
     setBudgetRequestSectionId(row.sectionId)
     setBudgetRequestRow(row)
+    setBudgetClientName('')
+    setBudgetProjectName('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
     setBudgetRequestDialogOpen(true)
@@ -624,6 +628,8 @@ function StudioTarifsPanelInner() {
     )
     setBudgetRequestSectionId(section)
     setBudgetRequestRow(rows[0] ?? createSectionBudgetRequestRow(section))
+    setBudgetClientName('')
+    setBudgetProjectName('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
     setBudgetRequestDialogOpen(true)
@@ -641,6 +647,8 @@ function StudioTarifsPanelInner() {
     if (submittingBudgetRequest) return
     setBudgetRequestDialogOpen(false)
     setBudgetRequestRow(null)
+    setBudgetClientName('')
+    setBudgetProjectName('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
   }
@@ -652,13 +660,17 @@ function StudioTarifsPanelInner() {
     try {
       await sendStudioBudgetRequest({
         row: budgetRequestRow,
-        needDescription: budgetNeedDescription,
+        clientName: budgetClientName,
+        projectName: budgetProjectName,
+        details: budgetNeedDescription,
         attachment: budgetAttachment,
         userName,
       })
       alert('Demande envoyée aux créas sur Slack (#demande-studio).')
       setBudgetRequestDialogOpen(false)
       setBudgetRequestRow(null)
+      setBudgetClientName('')
+      setBudgetProjectName('')
       setBudgetNeedDescription('')
       setBudgetAttachment(null)
     } catch (error) {
@@ -1199,7 +1211,7 @@ function StudioTarifsPanelInner() {
                   : 'Prestation studio'}
               </span>
               <span className="block text-muted-foreground">
-                Décrivez votre besoin : un message sera envoyé aux créas sur Slack (
+                Renseignez le client et le projet : un message sera envoyé aux créas sur Slack (
                 <span className="font-medium">#demande-studio</span>).
               </span>
             </DialogDescription>
@@ -1256,16 +1268,51 @@ function StudioTarifsPanelInner() {
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="studio-budget-need">Décris ton besoin *</Label>
+              <Label htmlFor="studio-budget-client">Nom du client *</Label>
+              <Input
+                id="studio-budget-client"
+                placeholder="Ex : ITM Couzeix"
+                value={budgetClientName}
+                onChange={(event) => setBudgetClientName(event.target.value)}
+                disabled={submittingBudgetRequest}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studio-budget-project">Nom du projet *</Label>
+              <Input
+                id="studio-budget-project"
+                placeholder="Ex : Ouverture Juillet 26"
+                value={budgetProjectName}
+                onChange={(event) => setBudgetProjectName(event.target.value)}
+                disabled={submittingBudgetRequest}
+              />
+              <p className="text-xs text-muted-foreground">
+                Précisez le thème et la date (ex : « Ouverture Juillet 26 »).
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studio-budget-need">Détails complémentaires (optionnel)</Label>
               <Textarea
                 id="studio-budget-need"
                 placeholder="Contexte, délais, contraintes, budget indicatif…"
-                rows={4}
+                rows={3}
                 value={budgetNeedDescription}
                 onChange={(event) => setBudgetNeedDescription(event.target.value)}
                 disabled={submittingBudgetRequest}
                 className="resize-none"
               />
+            </div>
+            <div className="rounded-md border border-border bg-muted/40 p-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Aperçu du message
+              </p>
+              <p className="whitespace-pre-line text-sm text-foreground">
+                {`Salut ! ${userName?.trim() || '« Nom commercial »'} a besoin d’une approche budgétaire pour ${
+                  budgetClientName.trim() || '« Nom client »'
+                } ${budgetProjectName.trim() || '« Nom projet (thème + date) »'}`.trim()}
+                {'\n'}Tu trouveras toutes les info nécessaires pour créer l’approche ;)
+                {'\n'}Lien du PDF :{budgetAttachment ? ' (pièce jointe)' : ''}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="studio-budget-attachment">Joindre un fichier (optionnel)</Label>
@@ -1301,7 +1348,9 @@ function StudioTarifsPanelInner() {
               type="button"
               className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
               onClick={() => void handleConfirmBudgetRequest()}
-              disabled={!budgetNeedDescription.trim() || submittingBudgetRequest}
+              disabled={
+                !budgetClientName.trim() || !budgetProjectName.trim() || submittingBudgetRequest
+              }
             >
               {submittingBudgetRequest ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />

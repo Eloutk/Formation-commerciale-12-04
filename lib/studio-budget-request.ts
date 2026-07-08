@@ -1,8 +1,4 @@
-import {
-  STUDIO_TARIFS_SECTIONS,
-  formatStudioPrestationLabel,
-  type StudioTarifsRow,
-} from '@/lib/studio-tarifs-grid'
+import { type StudioTarifsRow } from '@/lib/studio-tarifs-grid'
 
 export const STUDIO_BUDGET_SLACK_CHANNEL = 'demande-studio'
 
@@ -24,32 +20,48 @@ export function getStudioBudgetRequestHref(row: StudioTarifsRow): string | null 
   return null
 }
 
-export function buildStudioBudgetRequestMessage(
-  row: StudioTarifsRow,
-  needDescription: string,
-): string {
-  const sectionLabel =
-    STUDIO_TARIFS_SECTIONS.find((section) => section.id === row.sectionId)?.label ??
-    row.sectionId
-  return [
-    'Demande d’approche budgétaire studio',
-    `Section : ${sectionLabel}`,
-    `Prestation : ${formatStudioPrestationLabel(row)}`,
-    '',
-    'Besoin :',
-    needDescription.trim(),
-  ].join('\n')
+export function buildStudioBudgetRequestMessage(params: {
+  commercialName: string
+  clientName: string
+  projectName: string
+  pdfLink?: string | null
+  details?: string
+}): string {
+  const commercial = params.commercialName.trim() || 'Un commercial'
+  const client = params.clientName.trim()
+  const project = params.projectName.trim()
+  const cible = [client, project].filter(Boolean).join(' ')
+  const pdfLink = params.pdfLink?.trim() ?? ''
+
+  const lines = [
+    `Salut ! ${commercial} a besoin d’une approche budgétaire pour ${cible}`,
+    'Tu trouveras toutes les info nécessaires pour créer l’approche ;)',
+    `Lien du PDF : ${pdfLink}`.trimEnd(),
+  ]
+
+  const details = params.details?.trim()
+  if (details) {
+    lines.push('', 'Détails complémentaires :', details)
+  }
+
+  return lines.join('\n')
 }
 
 export async function sendStudioBudgetRequest(params: {
   row: StudioTarifsRow
-  needDescription: string
+  clientName: string
+  projectName: string
+  details?: string
   attachment?: File | null
   userName?: string | null
 }): Promise<void> {
-  const needDescription = params.needDescription.trim()
-  if (!needDescription) {
-    throw new Error('Veuillez décrire votre besoin.')
+  const clientName = params.clientName.trim()
+  const projectName = params.projectName.trim()
+  if (!clientName) {
+    throw new Error('Veuillez renseigner le nom du client.')
+  }
+  if (!projectName) {
+    throw new Error('Veuillez renseigner le nom du projet (thème et date).')
   }
 
   if (params.attachment && params.attachment.size > STUDIO_BUDGET_ATTACHMENT_MAX_BYTES) {
@@ -61,7 +73,9 @@ export async function sendStudioBudgetRequest(params: {
   formData.append('sectionId', params.row.sectionId)
   formData.append('prestationLabel', params.row.label)
   if (params.row.variant) formData.append('prestationVariant', params.row.variant)
-  formData.append('needDescription', needDescription)
+  formData.append('clientName', clientName)
+  formData.append('projectName', projectName)
+  if (params.details?.trim()) formData.append('details', params.details.trim())
   if (params.userName?.trim()) formData.append('userName', params.userName.trim())
   if (params.attachment) formData.append('attachment', params.attachment)
 

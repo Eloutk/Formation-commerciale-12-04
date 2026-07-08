@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save, Share2, MessageSquare } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save, Share2, MessageSquare, Megaphone, MapPin, Target, User } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -1460,6 +1460,86 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     width: '100%',
   },
+  pdfBriefBox: {
+    marginBottom: 16,
+    padding: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderLeftWidth: 4,
+    borderLeftColor: '#E94C16',
+    width: '100%',
+    flexDirection: 'column',
+  },
+  pdfBriefBoxTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#E94C16',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    width: '100%',
+  },
+  pdfBriefField: {
+    marginBottom: 8,
+    width: '100%',
+  },
+  pdfBriefFieldLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+    width: '100%',
+  },
+  pdfBriefFieldValue: {
+    fontSize: 11,
+    color: '#111827',
+    lineHeight: 1.5,
+    width: '100%',
+  },
+  pdfBriefSectionTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#E94C16',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1d5c9',
+    width: '100%',
+  },
+  pdfBriefSubTitle: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: 6,
+    marginBottom: 4,
+    width: '100%',
+  },
+  pdfBriefRow: {
+    flexDirection: 'row',
+    marginBottom: 5,
+    width: '100%',
+  },
+  pdfBriefRowLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#6b7280',
+    width: '38%',
+  },
+  pdfBriefRowValue: {
+    fontSize: 10,
+    color: '#111827',
+    lineHeight: 1.4,
+    width: '62%',
+  },
   pdfTableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f3f4f6',
@@ -1858,11 +1938,9 @@ function StrategyPdfAdditionalSalesTable({
  */
 function StrategyPdfStrategyOverview({
   block,
-  strategyIdx,
   showAe,
 }: {
   block: StrategyBlock
-  strategyIdx: number
   showAe: boolean
 }) {
   const hasItems = block.items.length > 0
@@ -1884,7 +1962,7 @@ function StrategyPdfStrategyOverview({
     <View style={{ width: '100%', flexDirection: 'column' }}>
       <View style={[styles.summary, { marginTop: 0 }]}>
         <Text style={styles.pdfStrategyTitleLine} wrap>
-          Stratégie {strategyIdx + 1} : {block.name}
+          {block.name}
         </Text>
         {hasItems && (
           <>
@@ -1976,6 +2054,174 @@ function StrategyPdfStrategyOverview({
   )
 }
 
+/** Brief de campagne : descriptif, zone de diffusion, ciblage + infos client (CP / devis). */
+export interface CampaignBrief {
+  description?: string
+  diffusionZone?: string
+  targeting?: string
+  clientType?: 'existing' | 'new'
+  /** Client existant : contact habituel ou coordonnées différentes. */
+  existingClientMode?: 'usual' | 'different'
+  contactFirstName?: string
+  contactLastName?: string
+  contactEmail?: string
+  contactPhone?: string
+  billingEntity?: string
+  billingAddress?: string
+  siret?: string
+  vatNumber?: string
+  signerFirstName?: string
+  signerLastName?: string
+  signerEmail?: string
+}
+
+function hasCampaignBriefContent(brief?: CampaignBrief): boolean {
+  if (!brief) return false
+  return Boolean(
+    brief.description?.trim() ||
+      brief.diffusionZone?.trim() ||
+      brief.targeting?.trim() ||
+      brief.existingClientMode === 'usual' ||
+      brief.contactFirstName?.trim() ||
+      brief.contactLastName?.trim() ||
+      brief.contactEmail?.trim() ||
+      brief.contactPhone?.trim() ||
+      brief.billingEntity?.trim() ||
+      brief.billingAddress?.trim() ||
+      brief.siret?.trim() ||
+      brief.vatNumber?.trim() ||
+      brief.signerFirstName?.trim() ||
+      brief.signerLastName?.trim() ||
+      brief.signerEmail?.trim(),
+  )
+}
+
+/** Valide un SIRET : 14 chiffres (espaces autorisés). */
+function isValidSiret(value: string): boolean {
+  return /^\d{14}$/.test(value.replace(/\s/g, ''))
+}
+
+/** Valide un numéro de TVA intracommunautaire français : FR + clé (2) + SIREN (9 chiffres). */
+function isValidVatNumber(value: string): boolean {
+  return /^FR[0-9A-Z]{2}\d{9}$/.test(value.replace(/\s/g, '').toUpperCase())
+}
+
+/** Valide un email. */
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
+/** Ligne label | valeur alignée (deux colonnes) pour les infos client du brief PDF. */
+function StrategyPdfBriefRow({ label, value }: { label: string; value?: string }) {
+  if (!value?.trim()) return null
+  return (
+    <View style={styles.pdfBriefRow} wrap={false}>
+      <Text style={styles.pdfBriefRowLabel} wrap>
+        {label}
+      </Text>
+      <Text style={styles.pdfBriefRowValue} wrap>
+        {value.trim()}
+      </Text>
+    </View>
+  )
+}
+
+function StrategyPdfCampaignBrief({
+  brief,
+  clientName,
+}: {
+  brief?: CampaignBrief
+  clientName?: string
+}) {
+  if (!hasCampaignBriefContent(brief)) return null
+  const briefFields: { label: string; value?: string }[] = [
+    { label: 'Descriptif de la campagne', value: brief?.description },
+    { label: 'Zone de diffusion', value: brief?.diffusionZone },
+    { label: 'Ciblage', value: brief?.targeting },
+  ].filter((f) => Boolean(f.value?.trim()))
+
+  const contactName = [brief?.contactFirstName, brief?.contactLastName]
+    .filter((v) => Boolean(v?.trim()))
+    .join(' ')
+    .trim()
+  const signerName = [brief?.signerFirstName, brief?.signerLastName]
+    .filter((v) => Boolean(v?.trim()))
+    .join(' ')
+    .trim()
+
+  const isNewClient = brief?.clientType === 'new'
+  const isDifferentContact = brief?.existingClientMode === 'different'
+  const hasClientInfo = Boolean(brief?.clientType)
+
+  return (
+    <View style={styles.pdfBriefBox}>
+      <Text style={styles.pdfBriefBoxTitle} wrap>
+        {clientName?.trim() ? `Brief de campagne pour ${clientName.trim()}` : 'Brief de campagne'}
+      </Text>
+      {briefFields.map((field) => (
+        <View key={field.label} style={styles.pdfBriefField}>
+          <Text style={styles.pdfBriefFieldLabel} wrap>
+            {field.label}
+          </Text>
+          <Text style={styles.pdfBriefFieldValue} wrap>
+            {field.value?.trim()}
+          </Text>
+        </View>
+      ))}
+
+      {hasClientInfo && (
+        <>
+          <Text style={styles.pdfBriefSectionTitle} wrap>
+            Informations client — pour le chef de projet
+          </Text>
+
+          <StrategyPdfBriefRow
+            label="Type de client"
+            value={isNewClient ? 'Nouveau client' : 'Client existant'}
+          />
+
+          {isNewClient ? (
+            <>
+              <Text style={styles.pdfBriefSubTitle} wrap>
+                Facturation
+              </Text>
+              <StrategyPdfBriefRow label="Entité de facturation" value={brief?.billingEntity} />
+              <StrategyPdfBriefRow label="Adresse de facturation" value={brief?.billingAddress} />
+              <StrategyPdfBriefRow label="SIRET" value={brief?.siret} />
+              <StrategyPdfBriefRow label="Numéro de TVA" value={brief?.vatNumber} />
+
+              {(signerName || brief?.signerEmail?.trim()) && (
+                <>
+                  <Text style={styles.pdfBriefSubTitle} wrap>
+                    Personne signataire
+                  </Text>
+                  <StrategyPdfBriefRow label="Nom / prénom" value={signerName} />
+                  <StrategyPdfBriefRow label="Email" value={brief?.signerEmail} />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.pdfBriefSubTitle} wrap>
+                Contact technique
+              </Text>
+              {isDifferentContact ? (
+                <>
+                  <StrategyPdfBriefRow label="Nom / prénom" value={contactName} />
+                  <StrategyPdfBriefRow label="Email" value={brief?.contactEmail} />
+                  <StrategyPdfBriefRow label="Téléphone" value={brief?.contactPhone} />
+                </>
+              ) : (
+                <StrategyPdfBriefRow label="Contact" value="Comme d’habitude" />
+              )}
+            </>
+          )}
+        </>
+      )}
+    </View>
+  )
+}
+
 // Composant PDF multi-stratégies — une page récapitulative par stratégie
 const PDFDocument = ({
   strategies,
@@ -1985,6 +2231,7 @@ const PDFDocument = ({
   comment: _comment,
   logoDataUrl: _logoDataUrl,
   includeAeInPdf,
+  campaignBrief,
 }: {
   strategies: StrategyBlock[]
   clientName: string
@@ -1993,28 +2240,33 @@ const PDFDocument = ({
   comment?: string
   logoDataUrl?: string | null
   includeAeInPdf: boolean
+  campaignBrief?: CampaignBrief
 }) => {
   const strategyPages = strategies
     .map((block, strategyIdx) => ({ block, strategyIdx }))
     .filter(({ block }) => strategyBlockHasPdfContent(block))
+  const showBrief = hasCampaignBriefContent(campaignBrief)
 
   return (
     <Document>
       {strategyPages.length === 0 ? (
         <Page size="A4" style={styles.page} wrap>
+          {showBrief && <StrategyPdfCampaignBrief brief={campaignBrief} clientName={_clientName} />}
           <Text style={styles.pdfCoverHint} wrap>
             Aucune stratégie avec ligne(s) de campagne(s) ou calendrier de diffusion à inclure dans l&apos;export.
           </Text>
         </Page>
       ) : (
-      strategyPages.map(({ block, strategyIdx }) => (
+      strategyPages.map(({ block }, pageIdx) => (
         <Page key={block.id} size="A4" style={styles.page} wrap>
+          {pageIdx === 0 && showBrief && (
+            <StrategyPdfCampaignBrief brief={campaignBrief} clientName={_clientName} />
+          )}
           <Text style={styles.pdfStrategySheetTitle} wrap>
-            Stratégie {strategyIdx + 1} · {block.name}
+            {block.name}
           </Text>
           <StrategyPdfStrategyOverview
             block={block}
-            strategyIdx={strategyIdx}
             showAe={includeAeInPdf}
           />
         </Page>
@@ -2456,6 +2708,71 @@ export function Vente2Calculator({
   const [clientName, setClientName] = useState('')
   /** Inclure les % AE dans l’export PDF (récap stratégie). */
   const [pdfIncludeAe, setPdfIncludeAe] = useState(true)
+  /** Brief de campagne inclus en tête de l’export PDF (obligatoire pour télécharger). */
+  const [campaignDescription, setCampaignDescription] = useState('')
+  const [diffusionZone, setDiffusionZone] = useState('')
+  const [targeting, setTargeting] = useState('')
+  /** Type de brief exporté : « CP » (complet) ou « client » (sans infos client ni AE). */
+  const [briefType, setBriefType] = useState<'cp' | 'client'>('cp')
+  /** Informations client pour le CP / création de devis. */
+  const [clientType, setClientType] = useState<'existing' | 'new'>('existing')
+  const [existingClientMode, setExistingClientMode] = useState<'usual' | 'different'>('usual')
+  const [contactFirstName, setContactFirstName] = useState('')
+  const [contactLastName, setContactLastName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [billingEntity, setBillingEntity] = useState('')
+  const [billingAddress, setBillingAddress] = useState('')
+  const [siret, setSiret] = useState('')
+  const [vatNumber, setVatNumber] = useState('')
+  const [signerFirstName, setSignerFirstName] = useState('')
+  const [signerLastName, setSignerLastName] = useState('')
+  const [signerEmail, setSignerEmail] = useState('')
+  /** Le brief (descriptif + zone + ciblage) est obligatoire pour télécharger le PDF. */
+  const briefComplete = Boolean(
+    campaignDescription.trim() && diffusionZone.trim() && targeting.trim(),
+  )
+  const siretError = clientType === 'new' && siret.trim() !== '' && !isValidSiret(siret)
+  const vatError = clientType === 'new' && vatNumber.trim() !== '' && !isValidVatNumber(vatNumber)
+  const signerEmailError =
+    clientType === 'new' && signerEmail.trim() !== '' && !isValidEmail(signerEmail)
+  const contactEmailError =
+    clientType === 'existing' &&
+    existingClientMode === 'different' &&
+    contactEmail.trim() !== '' &&
+    !isValidEmail(contactEmail)
+  /**
+   * Toutes les infos client doivent être remplies pour télécharger le PDF.
+   * - Client existant « comme d’habitude » : rien à saisir.
+   * - Client existant « différents » : contact technique complet (nom, prénom, email, téléphone).
+   * - Nouveau client : facturation complète + signataire complet.
+   */
+  const clientInfoComplete =
+    briefType === 'client'
+      ? true
+      : clientType === 'existing'
+      ? existingClientMode === 'usual' ||
+        (existingClientMode === 'different' &&
+          Boolean(
+            contactFirstName.trim() &&
+              contactLastName.trim() &&
+              isValidEmail(contactEmail) &&
+              contactPhone.trim(),
+          ))
+      : Boolean(
+          billingEntity.trim() &&
+            billingAddress.trim() &&
+            isValidSiret(siret) &&
+            isValidVatNumber(vatNumber) &&
+            signerFirstName.trim() &&
+            signerLastName.trim() &&
+            isValidEmail(signerEmail),
+        )
+  const clientErrorsBlocking =
+    briefType === 'cp' && (siretError || vatError || signerEmailError || contactEmailError)
+  const canExportPdf = Boolean(
+    clientName.trim() && briefComplete && !clientErrorsBlocking && clientInfoComplete,
+  )
   
   // État pour la modale PDF SMS/RCS
   const [smsPdfDialogOpen, setSmsPdfDialogOpen] = useState(false)
@@ -3337,7 +3654,7 @@ export function Vente2Calculator({
 
   // Fonction pour générer et télécharger le PDF (toutes les stratégies)
   const handleExportPDF = async () => {
-    if (!clientName.trim()) return
+    if (!canExportPdf) return
 
     const logoDataUrl = await fetchVenteSocialPdfLogoDataUrl()
 
@@ -3349,7 +3666,29 @@ export function Vente2Calculator({
         aePercentage={parseFloat(aePercentage) || 0}
         comment={undefined}
         logoDataUrl={logoDataUrl}
-        includeAeInPdf={pdfIncludeAe}
+        includeAeInPdf={briefType === 'cp' ? pdfIncludeAe : false}
+        campaignBrief={{
+          description: campaignDescription,
+          diffusionZone,
+          targeting,
+          ...(briefType === 'cp'
+            ? {
+                clientType,
+                existingClientMode: clientType === 'existing' ? existingClientMode : undefined,
+                contactFirstName,
+                contactLastName,
+                contactEmail,
+                contactPhone,
+                billingEntity,
+                billingAddress,
+                siret,
+                vatNumber,
+                signerFirstName,
+                signerLastName,
+                signerEmail,
+              }
+            : {}),
+        }}
       />
     )
     const blob = await pdf(doc).toBlob()
@@ -3361,6 +3700,23 @@ export function Vente2Calculator({
     URL.revokeObjectURL(url)
     setPdfDialogOpen(false)
     setClientName('')
+    setCampaignDescription('')
+    setDiffusionZone('')
+    setTargeting('')
+    setContactFirstName('')
+    setContactLastName('')
+    setContactEmail('')
+    setContactPhone('')
+    setBillingEntity('')
+    setBillingAddress('')
+    setSiret('')
+    setVatNumber('')
+    setSignerFirstName('')
+    setSignerLastName('')
+    setSignerEmail('')
+    setClientType('existing')
+    setExistingClientMode('usual')
+    setBriefType('cp')
   }
 
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
@@ -6636,28 +6992,354 @@ export function Vente2Calculator({
 
       {/* Modale pour export PDF */}
       <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Télécharger le PDF</DialogTitle>
-            <DialogDescription>
-              Veuillez renseigner le nom du client pour générer le document PDF.
-            </DialogDescription>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E94C16]/10 text-[#E94C16]">
+                <Download className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle>Télécharger le PDF</DialogTitle>
+                <DialogDescription>
+                  Renseignez le client et, si vous le souhaitez, le brief de campagne.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4 max-h-[65vh] overflow-y-auto px-1">
             <div className="space-y-2">
-              <Label htmlFor="client-name">Nom du client *</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Type de brief
+              </Label>
+              <div className="grid grid-cols-2 gap-1 rounded-lg border border-[#E94C16]/30 bg-[#E94C16]/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setBriefType('cp')}
+                  className={cn(
+                    'rounded-md px-3 py-2 text-sm font-medium text-white transition-colors',
+                    briefType === 'cp' ? 'bg-[#E94C16] shadow-sm' : 'hover:bg-[#E94C16]/20',
+                  )}
+                >
+                  Brief CP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBriefType('client')}
+                  className={cn(
+                    'rounded-md px-3 py-2 text-sm font-medium text-white transition-colors',
+                    briefType === 'client' ? 'bg-[#E94C16] shadow-sm' : 'hover:bg-[#E94C16]/20',
+                  )}
+                >
+                  Brief client
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="client-name" className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-[#E94C16]" />
+                Nom du client *
+              </Label>
               <EditableInput
                 id="client-name"
                 placeholder="Ex: Entreprise ABC"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && clientName.trim()) {
+                  if (e.key === 'Enter' && canExportPdf) {
                     handleExportPDF()
                   }
                 }}
               />
             </div>
+
+            <div className="rounded-lg border border-dashed border-[#E94C16]/30 bg-[#E94C16]/[0.03] p-4 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#E94C16]">
+                Brief de campagne <span className="font-normal normal-case text-muted-foreground">(obligatoire)</span>
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="campaign-description" className="flex items-center gap-1.5">
+                  <Megaphone className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Descriptif de la campagne *
+                </Label>
+                <Textarea
+                  id="campaign-description"
+                  placeholder="Sujet, opération, objectif…"
+                  value={campaignDescription}
+                  onChange={(e) => setCampaignDescription(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="diffusion-zone" className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Zone de diffusion *
+                </Label>
+                <Textarea
+                  id="diffusion-zone"
+                  placeholder="Soyez précis"
+                  value={diffusionZone}
+                  onChange={(e) => setDiffusionZone(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="targeting" className="flex items-center gap-1.5">
+                  <Target className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Ciblage *
+                </Label>
+                <Textarea
+                  id="targeting"
+                  placeholder="Âge / genre / centres d'intérêt"
+                  value={targeting}
+                  onChange={(e) => setTargeting(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Infos client pour le CP / création de devis (uniquement pour le brief CP) */}
+            {briefType === 'cp' && (
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                  Informations client
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Ces informations sont transmises au CP et permettent de faciliter la création du devis.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1 rounded-lg border border-[#E94C16]/30 bg-[#E94C16]/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientType('existing')
+                    setExistingClientMode('usual')
+                    setContactFirstName('')
+                    setContactLastName('')
+                    setContactEmail('')
+                    setContactPhone('')
+                  }}
+                  className={cn(
+                    'rounded-md px-3 py-2 text-sm font-medium text-white transition-colors',
+                    clientType === 'existing'
+                      ? 'bg-[#E94C16] shadow-sm'
+                      : 'hover:bg-[#E94C16]/20',
+                  )}
+                >
+                  Client existant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClientType('new')
+                    setExistingClientMode('usual')
+                    setSignerFirstName('')
+                    setSignerLastName('')
+                    setSignerEmail('')
+                  }}
+                  className={cn(
+                    'rounded-md px-3 py-2 text-sm font-medium text-white transition-colors',
+                    clientType === 'new'
+                      ? 'bg-[#E94C16] shadow-sm'
+                      : 'hover:bg-[#E94C16]/20',
+                  )}
+                >
+                  Nouveau client
+                </button>
+              </div>
+
+              {clientType === 'existing' ? (
+                <div className="space-y-4">
+                  <Label className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-[#E94C16]" />
+                    Contact technique
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                        existingClientMode === 'usual'
+                          ? 'border-[#E94C16] bg-[#E94C16]/10 text-foreground'
+                          : 'border-border bg-background hover:bg-muted/50',
+                      )}
+                    >
+                      <Checkbox
+                        checked={existingClientMode === 'usual'}
+                        onCheckedChange={(checked) => {
+                          if (checked === true) {
+                            setExistingClientMode('usual')
+                            setContactFirstName('')
+                            setContactLastName('')
+                            setContactEmail('')
+                            setContactPhone('')
+                          }
+                        }}
+                        className="data-[state=checked]:bg-[#E94C16] data-[state=checked]:border-[#E94C16]"
+                      />
+                      Comme d&apos;habitude
+                    </label>
+                    <label
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                        existingClientMode === 'different'
+                          ? 'border-[#E94C16] bg-[#E94C16]/10 text-foreground'
+                          : 'border-border bg-background hover:bg-muted/50',
+                      )}
+                    >
+                      <Checkbox
+                        checked={existingClientMode === 'different'}
+                        onCheckedChange={(checked) => {
+                          if (checked === true) setExistingClientMode('different')
+                        }}
+                        className="data-[state=checked]:bg-[#E94C16] data-[state=checked]:border-[#E94C16]"
+                      />
+                      Différents
+                    </label>
+                  </div>
+
+                  {existingClientMode === 'different' ? (
+                    <div className="space-y-3 rounded-lg border border-dashed border-border bg-background/60 p-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <EditableInput
+                          id="contact-first-name"
+                          placeholder="Prénom *"
+                          value={contactFirstName}
+                          onChange={(e) => setContactFirstName(e.target.value)}
+                        />
+                        <EditableInput
+                          id="contact-last-name"
+                          placeholder="Nom *"
+                          value={contactLastName}
+                          onChange={(e) => setContactLastName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <EditableInput
+                          id="contact-email"
+                          type="email"
+                          placeholder="Email *"
+                          value={contactEmail}
+                          onChange={(e) => setContactEmail(e.target.value)}
+                          className={contactEmailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                        />
+                        {contactEmailError && (
+                          <p className="text-xs text-red-600">Format d&apos;email invalide.</p>
+                        )}
+                      </div>
+                      <EditableInput
+                        id="contact-phone"
+                        type="tel"
+                        placeholder="Téléphone *"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Le PDF indiquera que le contact technique est comme d&apos;habitude.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="billing-entity">Entité de facturation *</Label>
+                    <EditableInput
+                      id="billing-entity"
+                      placeholder="Ex: Entreprise ABC SAS"
+                      value={billingEntity}
+                      onChange={(e) => setBillingEntity(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="billing-address">Adresse de facturation *</Label>
+                    <Textarea
+                      id="billing-address"
+                      placeholder="N°, rue, code postal, ville"
+                      value={billingAddress}
+                      onChange={(e) => setBillingAddress(e.target.value)}
+                      rows={2}
+                      className="resize-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="siret">SIRET *</Label>
+                    <EditableInput
+                      id="siret"
+                      placeholder="14 chiffres (ex: 123 456 789 00012)"
+                      value={siret}
+                      onChange={(e) => setSiret(e.target.value)}
+                      className={siretError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    />
+                    {siretError && (
+                      <p className="text-xs text-red-600">
+                        SIRET invalide : il doit contenir exactement 14 chiffres.
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="vat-number">Numéro de TVA *</Label>
+                    <EditableInput
+                      id="vat-number"
+                      placeholder="Ex: FR12345678901"
+                      value={vatNumber}
+                      onChange={(e) => setVatNumber(e.target.value)}
+                      className={vatError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    />
+                    {vatError && (
+                      <p className="text-xs text-red-600">
+                        Numéro de TVA invalide : format attendu FR + 11 caractères (ex: FR12345678901).
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border border-dashed border-border bg-background/60 p-3 pt-4">
+                    <Label className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-[#E94C16]" />
+                      Personne signataire *
+                    </Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <EditableInput
+                        id="signer-first-name"
+                        placeholder="Prénom *"
+                        value={signerFirstName}
+                        onChange={(e) => setSignerFirstName(e.target.value)}
+                      />
+                      <EditableInput
+                        id="signer-last-name"
+                        placeholder="Nom *"
+                        value={signerLastName}
+                        onChange={(e) => setSignerLastName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <EditableInput
+                        id="signer-email"
+                        type="email"
+                        placeholder="Email *"
+                        value={signerEmail}
+                        onChange={(e) => setSignerEmail(e.target.value)}
+                        className={signerEmailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                      />
+                      {signerEmailError && (
+                        <p className="text-xs text-red-600">Format d&apos;email invalide.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
+
+            {briefType === 'cp' && (
             <div className="flex items-start space-x-2 pt-1">
               <Checkbox
                 id="pdf-include-ae"
@@ -6676,19 +7358,27 @@ export function Vente2Calculator({
                 </p>
               </div>
             </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPdfDialogOpen(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={handleExportPDF}
-              disabled={!clientName.trim()}
-              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Télécharger le PDF
-            </Button>
+          <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+            {!canExportPdf && (
+              <p className="text-xs text-muted-foreground sm:mr-auto">
+                Des champs sont manquants
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPdfDialogOpen(false)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={handleExportPDF}
+                disabled={!canExportPdf}
+                className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger le PDF
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

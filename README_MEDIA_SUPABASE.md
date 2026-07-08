@@ -70,7 +70,7 @@ Les secteurs d’activité et les plateformes sont définis dans `lib/media-conf
 ## Étape 5 — Tester
 
 1. Connectez-vous à Link Academy.
-2. **Ressources → Média**.
+2. **Ressources → Link Library**.
 3. **Déposer un média** puis **Consulter les médias**.
 
 Si la table n’a pas encore été créée, un bandeau « Médiathèque non configurée » s’affiche.

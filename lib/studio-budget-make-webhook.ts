@@ -14,6 +14,8 @@ export type StudioBudgetMakeWebhookPayload = {
   prestation_id: string
   prestation_label: string
   prestation_variant: string | null
+  client_name: string
+  project_name: string
   need_description: string
   message: string
   attachment_filename: string | null

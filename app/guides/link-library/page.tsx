@@ -12,7 +12,7 @@ import { isMediaAccessDenied } from '@/lib/media-config'
 
 type MediaView = 'deposit' | 'browse'
 
-export default function MediaPage() {
+export default function LinkLibraryPage() {
   const { authReady } = useAuthAccess()
   const [view, setView] = React.useState<MediaView>('deposit')
   const [configured, setConfigured] = React.useState<boolean | null>(null)
@@ -43,7 +43,7 @@ export default function MediaPage() {
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
               <Images className="h-6 w-6" aria-hidden />
             </span>
-            Média
+            Link Library
           </h1>
           <p className="text-muted-foreground">
             Déposez et consultez les médias produits pour vos campagnes.

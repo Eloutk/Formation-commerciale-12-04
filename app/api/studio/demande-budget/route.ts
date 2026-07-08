@@ -52,15 +52,19 @@ export async function POST(req: Request) {
   const sectionId = String(formData.get('sectionId') ?? '').trim() as StudioTarifsSectionId
   const prestationLabel = String(formData.get('prestationLabel') ?? '').trim()
   const prestationVariant = String(formData.get('prestationVariant') ?? '').trim() || null
-  const needDescription = String(formData.get('needDescription') ?? '').trim()
+  const clientName = String(formData.get('clientName') ?? '').trim()
+  const projectName = String(formData.get('projectName') ?? '').trim()
+  const details = String(formData.get('details') ?? '').trim()
   const userName = String(formData.get('userName') ?? '').trim() || null
   const attachmentEntry = formData.get('attachment')
   const attachment =
     attachmentEntry instanceof File && attachmentEntry.size > 0 ? attachmentEntry : null
 
-  if (!rowId || !sectionId || !prestationLabel || !needDescription) {
+  if (!rowId || !sectionId || !prestationLabel || !clientName || !projectName) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+
+  const needDescription = details || `${clientName} ${projectName}`.trim()
 
   if (!SLACK_SECTIONS.has(sectionId)) {
     return NextResponse.json(
@@ -83,17 +87,6 @@ export async function POST(req: Request) {
     'Utilisateur'
 
   const requestId = randomUUID()
-  const message = buildStudioBudgetRequestMessage(
-    {
-      id: rowId,
-      sectionId,
-      label: prestationLabel,
-      variant: prestationVariant ?? undefined,
-      explanation: '',
-      kind: 'on_demand',
-    },
-    needDescription,
-  )
 
   let attachmentFilename: string | null = null
   let attachmentPath: string | null = null
@@ -133,6 +126,14 @@ export async function POST(req: Request) {
       attachmentUrl = signed?.signedUrl ?? null
     }
   }
+
+  const message = buildStudioBudgetRequestMessage({
+    commercialName: displayName,
+    clientName,
+    projectName,
+    pdfLink: attachmentUrl,
+    details,
+  })
 
   const { data, error } = await supabase
     .from('studio_budget_requests')
@@ -183,6 +184,8 @@ export async function POST(req: Request) {
       prestation_id: rowId,
       prestation_label: prestationLabel,
       prestation_variant: prestationVariant,
+      client_name: clientName,
+      project_name: projectName,
       need_description: needDescription,
       message,
       attachment_filename: attachmentFilename,

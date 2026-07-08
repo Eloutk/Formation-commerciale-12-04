@@ -19,7 +19,9 @@ export type NavMenuGroup = {
 export const ACADEMY_DIFFUSION_HREF = '/academy/diffusion'
 
 export const GUIDES_STUDIO_HREF = '/guides/studio'
-export const GUIDES_MEDIA_HREF = '/guides/media'
+export const GUIDES_LINK_LIBRARY_HREF = '/guides/link-library'
+/** @deprecated Alias historique — préférer GUIDES_LINK_LIBRARY_HREF */
+export const GUIDES_MEDIA_HREF = GUIDES_LINK_LIBRARY_HREF
 export const GUIDES_LEXIQUE_HREF = '/guides/lexique'
 export const GUIDES_FAQ_HREF = '/guides/faq'
 export const GUIDES_TUTOS_HREF = '/guides/tutos'
@@ -72,7 +74,7 @@ export const ACADEMY_LINKS: NavMenuItem[] = [
 
 export const GUIDES_LINKS: NavMenuItem[] = [
   { href: GUIDES_STUDIO_HREF, label: 'Studio' },
-  { href: GUIDES_MEDIA_HREF, label: 'Média' },
+  { href: GUIDES_LINK_LIBRARY_HREF, label: 'Link Library' },
   { href: GUIDES_LEXIQUE_HREF, label: 'Lexique' },
   { href: GUIDES_FAQ_HREF, label: 'FAQ' },
   { href: GUIDES_TUTOS_HREF, label: 'Tutos' },
