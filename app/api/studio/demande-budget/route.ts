@@ -53,17 +53,19 @@ export async function POST(req: Request) {
   const prestationLabel = String(formData.get('prestationLabel') ?? '').trim()
   const prestationVariant = String(formData.get('prestationVariant') ?? '').trim() || null
   const clientName = String(formData.get('clientName') ?? '').trim()
-  const projectName = String(formData.get('projectName') ?? '').trim()
+  const theme = String(formData.get('theme') ?? '').trim()
+  const date = String(formData.get('date') ?? '').trim()
   const details = String(formData.get('details') ?? '').trim()
   const userName = String(formData.get('userName') ?? '').trim() || null
   const attachmentEntry = formData.get('attachment')
   const attachment =
     attachmentEntry instanceof File && attachmentEntry.size > 0 ? attachmentEntry : null
 
-  if (!rowId || !sectionId || !prestationLabel || !clientName || !projectName) {
+  if (!rowId || !sectionId || !prestationLabel || !clientName || !theme || !date) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  const projectName = `${theme} ${date}`.trim()
   const needDescription = details || `${clientName} ${projectName}`.trim()
 
   if (!SLACK_SECTIONS.has(sectionId)) {
@@ -130,7 +132,8 @@ export async function POST(req: Request) {
   const message = buildStudioBudgetRequestMessage({
     commercialName: displayName,
     clientName,
-    projectName,
+    theme,
+    date,
     pdfLink: attachmentUrl,
     details,
   })
@@ -185,6 +188,8 @@ export async function POST(req: Request) {
       prestation_label: prestationLabel,
       prestation_variant: prestationVariant,
       client_name: clientName,
+      project_theme: theme,
+      project_date: date,
       project_name: projectName,
       need_description: needDescription,
       message,

@@ -68,9 +68,9 @@ import {
 } from '@/lib/studio-tarifs-saves-storage'
 import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { useAuthAccess } from '@/components/auth-context'
-import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2, User, Calendar, MessageSquare, Paperclip, Layers } from 'lucide-react'
+import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2, User, Calendar, MessageSquare, Paperclip, Layers, Tag } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
+import { downloadStudioTarifsPdf, getStudioTarifsPdfBlob } from '@/components/vente/StudioTarifsPdfDocument'
 import { buildStudioTarifsPdfLine } from '@/lib/studio-tarifs-pdf-lines'
 
 const STUDIO_SECTION_ICONS: Record<StudioTarifsSectionId, LucideIcon> = {
@@ -467,7 +467,8 @@ function StudioTarifsPanelInner() {
     useState<StudioTarifsSectionId>('graphisme')
   const [budgetRequestRow, setBudgetRequestRow] = useState<StudioTarifsRow | null>(null)
   const [budgetClientName, setBudgetClientName] = useState('')
-  const [budgetProjectName, setBudgetProjectName] = useState('')
+  const [budgetTheme, setBudgetTheme] = useState('')
+  const [budgetDate, setBudgetDate] = useState('')
   const [budgetNeedDescription, setBudgetNeedDescription] = useState('')
   const [budgetAttachment, setBudgetAttachment] = useState<File | null>(null)
   const [submittingBudgetRequest, setSubmittingBudgetRequest] = useState(false)
@@ -612,7 +613,8 @@ function StudioTarifsPanelInner() {
     setBudgetRequestSectionId(row.sectionId)
     setBudgetRequestRow(row)
     setBudgetClientName('')
-    setBudgetProjectName('')
+    setBudgetTheme('')
+    setBudgetDate('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
     setBudgetRequestDialogOpen(true)
@@ -629,7 +631,8 @@ function StudioTarifsPanelInner() {
     setBudgetRequestSectionId(section)
     setBudgetRequestRow(rows[0] ?? createSectionBudgetRequestRow(section))
     setBudgetClientName('')
-    setBudgetProjectName('')
+    setBudgetTheme('')
+    setBudgetDate('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
     setBudgetRequestDialogOpen(true)
@@ -648,9 +651,79 @@ function StudioTarifsPanelInner() {
     setBudgetRequestDialogOpen(false)
     setBudgetRequestRow(null)
     setBudgetClientName('')
-    setBudgetProjectName('')
+    setBudgetTheme('')
+    setBudgetDate('')
     setBudgetNeedDescription('')
     setBudgetAttachment(null)
+  }
+
+  const buildBudgetDevisFile = async (row: StudioTarifsRow): Promise<File | null> => {
+    const client = budgetClientName.trim()
+    const theme = budgetTheme.trim()
+    const date = budgetDate.trim()
+    const prestationLabel = formatStudioPrestationLabel(row)
+
+    const sections =
+      selectedSummaryBySection.length > 0
+        ? selectedSummaryBySection.map(({ section, lines, subtotal }) => ({
+            label: section.label,
+            subtotalLabel: subtotal > 0 ? formatStudioEuro(subtotal) : null,
+            lines: lines.map(({ row: lineRow, linePrice, quantity }) =>
+              buildStudioTarifsPdfLine({
+                row: lineRow,
+                quantity,
+                linePrice,
+                subtotalI: computed.subtotalI,
+              }),
+            ),
+          }))
+        : [
+            {
+              label:
+                STUDIO_TARIFS_SECTIONS.find((section) => section.id === row.sectionId)?.label ??
+                row.sectionId,
+              subtotalLabel: null,
+              lines: [
+                buildStudioTarifsPdfLine({
+                  row,
+                  quantity: 0,
+                  linePrice: 0,
+                  subtotalI: computed.subtotalI,
+                }),
+              ],
+            },
+          ]
+
+    const commentLines = [
+      'Demande d’approche budgétaire',
+      client ? `Client : ${client}` : null,
+      theme || date ? `Projet : ${[theme, date].filter(Boolean).join(' ')}` : null,
+      `Prestation concernée : ${prestationLabel}`,
+      budgetNeedDescription.trim() ? `Détails : ${budgetNeedDescription.trim()}` : null,
+    ].filter(Boolean) as string[]
+
+    const displayTitle = [client, theme, date].filter(Boolean).join(' ')
+    const title = displayTitle ? `Devis studio — ${displayTitle}` : 'Devis studio'
+    const safeName = sanitizeStudioPdfFilename(title)
+    const dateStamp = new Date().toISOString().split('T')[0]
+    const filename = `${safeName}-${dateStamp}.pdf`
+
+    try {
+      const blob = await getStudioTarifsPdfBlob({
+        title,
+        dateLabel: new Date().toLocaleDateString('fr-FR'),
+        userName: userName?.trim() || undefined,
+        comment: commentLines.join('\n'),
+        sections,
+        totalHtLabel: formatStudioEuro(computed.subtotalJ),
+        totalTtcLabel: formatStudioEuro(computed.ttc),
+        filename,
+      })
+      return new File([blob], filename, { type: 'application/pdf' })
+    } catch (error) {
+      console.error('Génération du devis studio échouée :', error)
+      return null
+    }
   }
 
   const handleConfirmBudgetRequest = async () => {
@@ -658,19 +731,22 @@ function StudioTarifsPanelInner() {
 
     setSubmittingBudgetRequest(true)
     try {
+      const devisFile = await buildBudgetDevisFile(budgetRequestRow)
       await sendStudioBudgetRequest({
         row: budgetRequestRow,
         clientName: budgetClientName,
-        projectName: budgetProjectName,
+        theme: budgetTheme,
+        date: budgetDate,
         details: budgetNeedDescription,
-        attachment: budgetAttachment,
+        attachment: budgetAttachment ?? devisFile,
         userName,
       })
       alert('Demande envoyée aux créas sur Slack (#demande-studio).')
       setBudgetRequestDialogOpen(false)
       setBudgetRequestRow(null)
       setBudgetClientName('')
-      setBudgetProjectName('')
+      setBudgetTheme('')
+      setBudgetDate('')
       setBudgetNeedDescription('')
       setBudgetAttachment(null)
     } catch (error) {
@@ -1292,20 +1368,30 @@ function StudioTarifsPanelInner() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="studio-budget-project" className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-[#E94C16]" />
-                  Nom du projet *
+                <Label htmlFor="studio-budget-theme" className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Thème *
                 </Label>
                 <Input
-                  id="studio-budget-project"
-                  placeholder="Ex : Ouverture Juillet 26"
-                  value={budgetProjectName}
-                  onChange={(event) => setBudgetProjectName(event.target.value)}
+                  id="studio-budget-theme"
+                  placeholder="Ex : Ouverture"
+                  value={budgetTheme}
+                  onChange={(event) => setBudgetTheme(event.target.value)}
                   disabled={submittingBudgetRequest}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Précisez le thème et la date (ex : « Ouverture Juillet 26 »).
-                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-budget-date" className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Date *
+                </Label>
+                <Input
+                  id="studio-budget-date"
+                  placeholder="Ex : Juillet 26"
+                  value={budgetDate}
+                  onChange={(event) => setBudgetDate(event.target.value)}
+                  disabled={submittingBudgetRequest}
+                />
               </div>
             </div>
 
@@ -1327,7 +1413,7 @@ function StudioTarifsPanelInner() {
             <div className="space-y-2">
               <Label htmlFor="studio-budget-attachment" className="flex items-center gap-1.5">
                 <Paperclip className="h-3.5 w-3.5 text-[#E94C16]" />
-                Joindre un fichier (optionnel)
+                Remplacer le devis joint (optionnel)
               </Label>
               <Input
                 id="studio-budget-attachment"
@@ -1344,12 +1430,15 @@ function StudioTarifsPanelInner() {
                   {(budgetAttachment.size / (1024 * 1024)).toFixed(2)} Mo)
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">PDF, images ou documents — max. 20 Mo</p>
+                <p className="text-xs text-muted-foreground">
+                  Le devis studio (PDF) est généré et joint automatiquement. Ajoutez un fichier ici
+                  seulement pour le remplacer — max. 20 Mo.
+                </p>
               )}
             </div>
           </div>
           <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
-            {(!budgetClientName.trim() || !budgetProjectName.trim()) && (
+            {(!budgetClientName.trim() || !budgetTheme.trim() || !budgetDate.trim()) && (
               <p className="text-xs text-muted-foreground sm:mr-auto">
                 Des champs sont manquants
               </p>
@@ -1368,7 +1457,10 @@ function StudioTarifsPanelInner() {
                 className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
                 onClick={() => void handleConfirmBudgetRequest()}
                 disabled={
-                  !budgetClientName.trim() || !budgetProjectName.trim() || submittingBudgetRequest
+                  !budgetClientName.trim() ||
+                  !budgetTheme.trim() ||
+                  !budgetDate.trim() ||
+                  submittingBudgetRequest
                 }
               >
                 {submittingBudgetRequest ? (
