@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { head } from '@vercel/blob'
 import Automizer, { modify, type ISlide } from 'pptx-automizer'
 import { IA_PRESENTATION_TEMPLATE, IA_PPTX_TEMPLATE_DOWNLOAD_PATH } from '@/lib/ia-presentation-template'
 import {
@@ -19,6 +20,27 @@ export type PptxGenerateResult = {
   fillError?: string
 }
 
+async function downloadTemplateFromBlob(): Promise<string> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
+  if (!token) {
+    throw new Error('BLOB_READ_WRITE_TOKEN manquant.')
+  }
+
+  const pathname = IA_PRESENTATION_TEMPLATE.downloadFilename
+  const blob = await head(pathname, { token })
+  const cachePath = path.join(process.cwd(), '.generated', 'templates', pathname)
+  await fs.mkdir(path.dirname(cachePath), { recursive: true })
+
+  const response = await fetch(blob.downloadUrl)
+  if (!response.ok) {
+    throw new Error(`Impossible de télécharger le template depuis Vercel Blob (${response.status}).`)
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer())
+  await fs.writeFile(cachePath, buffer)
+  return cachePath
+}
+
 async function resolveTemplatePath(): Promise<string> {
   const candidates = [
     process.env.IA_PPTX_TEMPLATE_PATH?.trim(),
@@ -35,8 +57,16 @@ async function resolveTemplatePath(): Promise<string> {
     }
   }
 
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      return await downloadTemplateFromBlob()
+    } catch {
+      // fall through
+    }
+  }
+
   throw new Error(
-    'Template PowerPoint introuvable. Copiez « Base de presentation 2026.pptx » dans public/ ou définissez IA_PPTX_TEMPLATE_PATH.',
+    'Template PowerPoint introuvable. Uploadez « Base de presentation 2026.pptx » sur Vercel Blob, copiez-le dans public/ ou définissez IA_PPTX_TEMPLATE_PATH.',
   )
 }
 

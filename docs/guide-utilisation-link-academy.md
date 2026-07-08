@@ -18,13 +18,15 @@ Documentation partie par partie : **pourquoi** utiliser chaque section et **comm
 
 Le site est organisé en **5 grands menus** :
 
-| Menu | Rôle principal |
-|------|----------------|
-| **Academy** | Formation commerciale (modules + quiz) |
-| **Guides** | Référentiels, médiathèque, lexique, FAQ, documents |
-| **Stratégie** | Outils de conception média et créative |
-| **Mon espace** | Calculateurs, devis, pige, calculs, hub « Mes projets » |
-| **IA** *(admins)* | Analyses automatisées (Claude) |
+
+| Menu              | Rôle principal                                          |
+| ----------------- | ------------------------------------------------------- |
+| **Academy**       | Formation commerciale (modules + quiz)                  |
+| **Guides**        | Référentiels, médiathèque, lexique, FAQ, documents      |
+| **Stratégie**     | Outils de conception média et créative                  |
+| **Mon espace**    | Calculateurs, devis, pige, calculs, hub « Mes projets » |
+| **IA** *(admins)* | Analyses automatisées (Claude)                          |
+
 
 ---
 
@@ -42,12 +44,14 @@ Chaque outil d'enregistrement (stratégies, mockups, plan média, pige…) est l
 
 ### Profils
 
-| Profil | Accès typique |
-|--------|----------------|
-| **Utilisateur / commercial** | Academy, Guides (selon droits), Mon espace, Stratégie |
-| **Client** | Academy + Guides limités (pas Documents ni Demandes de potentiels) |
-| **Créa** | + Devis Studio |
-| **Admin / Super admin** | Tout, dont IA, Plan média admin, vue admin Mes projets |
+
+| Profil                       | Accès typique                                                      |
+| ---------------------------- | ------------------------------------------------------------------ |
+| **Utilisateur / commercial** | Academy, Guides (selon droits), Mon espace, Stratégie              |
+| **Client**                   | Academy + Guides limités (pas Documents ni Demandes de potentiels) |
+| **Créa**                     | + Devis Studio                                                     |
+| **Admin / Super admin**      | Tout, dont IA, Plan média admin, vue admin Mes projets             |
+
 
 ---
 
@@ -144,14 +148,16 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 
 **Contenu principal :**
 
-| Document | Usage |
-|----------|--------|
-| Guide des formats V8.2 | Contraintes visuelles |
-| Guide chefferie de projet | Process production / Monday |
-| Guide Perf Max & Gen Ads | Lecture des performances |
+
+| Document                      | Usage                              |
+| ----------------------------- | ---------------------------------- |
+| Guide des formats V8.2        | Contraintes visuelles              |
+| Guide chefferie de projet     | Process production / Monday        |
+| Guide Perf Max & Gen Ads      | Lecture des performances           |
 | **Base de présentation 2026** | Template PowerPoint **ou** Keynote |
-| Formation studio 2026 | Keynote formation créa |
-| Fiches plateformes | Instagram, LinkedIn, YouTube, etc. |
+| Formation studio 2026         | Keynote formation créa             |
+| Fiches plateformes            | Instagram, LinkedIn, YouTube, etc. |
+
 
 ---
 
@@ -231,15 +237,17 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 - Recherche, pagination, **Ouvrir** (recharge l'outil avec le bon `?id` dans l'URL), **Supprimer**.
 - Les admins voient aussi une **Vue admin** (tous les utilisateurs).
 
-| Section | Colonnes affichées (résumé) |
-|---------|----------------------------|
+
+| Section              | Colonnes affichées (résumé)          |
+| -------------------- | ------------------------------------ |
 | Calculateur de vente | Nom, Stratégies, Montant HT, Créé le |
-| Rétroplanning | selon configuration |
-| Studio | Nom, Prestations, Total HT, Créé le |
-| Plan média | Nom, PDF, Créé le |
-| Mockups | Nom, Format, Créé le |
-| Pige commerciale | par projet |
-| SMS / RCS | Nom, Type, Montant HT, Créé le |
+| Rétroplanning        | selon configuration                  |
+| Studio               | Nom, Prestations, Total HT, Créé le  |
+| Plan média           | Nom, PDF, Créé le                    |
+| Mockups              | Nom, Format, Créé le                 |
+| Pige commerciale     | par projet                           |
+| SMS / RCS            | Nom, Type, Montant HT, Créé le       |
+
 
 > Quand vous ouvrez un enregistrement depuis Mes projets, le menu **Mes projets** reste surligné dans la navigation.
 
@@ -313,8 +321,8 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 1. Saisissez le **prix de vente** (budget client).
 2. Remplissez KPIs atteints et objectifs vendus.
 3. Lisez la colonne **Delta** :
-   - **Volumes** (impressions, couverture, clics) : 🟢 > 100 % = objectif dépassé.
-   - **Coûts** (CPM, CPC) : 🟢 < 100 % = coût plus bas que prévu (meilleure performance).
+  - **Volumes** (impressions, couverture, clics) : 🟢 > 100 % = objectif dépassé.
+  - **Coûts** (CPM, CPC) : 🟢 < 100 % = coût plus bas que prévu (meilleure performance).
 4. Convertissez budget HT ↔ TTC (× 1,2).
 
 ---
@@ -327,13 +335,15 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 
 **Actions disponibles :**
 
-| Action | Entrée | Usage |
-|--------|--------|--------|
-| Personae | PDF | Personae marketing |
-| Analyse post-campagne | PDF | Recommandations après campagne |
-| Mail de prospection | PDF + photo | Email personnalisé |
-| Analyse réseaux sociaux | URLs | Audit présence social |
-| Analyse site web | URL | Audit site client |
+
+| Action                  | Entrée      | Usage                          |
+| ----------------------- | ----------- | ------------------------------ |
+| Personae                | PDF         | Personae marketing             |
+| Analyse post-campagne   | PDF         | Recommandations après campagne |
+| Mail de prospection     | PDF + photo | Email personnalisé             |
+| Analyse réseaux sociaux | URLs        | Audit présence social          |
+| Analyse site web        | URL         | Audit site client              |
+
 
 **Comment :** Choisissez l'action, fournissez les sources, lancez la génération. Mode **présentation** possible (PowerPoint à partir du template « Base de présentation 2026 »).
 
@@ -377,36 +387,40 @@ La barre de recherche en header indexe pages, outils et documents. Utilisez-la s
 
 Si une fonctionnalité d'enregistrement échoue, exécutez le script SQL correspondant dans Supabase :
 
-| Fonctionnalité | Fichier SQL |
-|----------------|-------------|
-| Médiathèque | `supabase/media-library.sql` |
-| Stratégies social | `supabase/vente2-strategies.sql` |
-| Devis SMS/RCS | `supabase/sms-devis.sql` |
+
+| Fonctionnalité         | Fichier SQL                           |
+| ---------------------- | ------------------------------------- |
+| Médiathèque            | `supabase/media-library.sql`          |
+| Stratégies social      | `supabase/vente2-strategies.sql`      |
+| Devis SMS/RCS          | `supabase/sms-devis.sql`              |
 | Plan média + PDF joint | `supabase/simulateur-media-saves.sql` |
-| Pige par projet | `supabase/pige-commerciale-saves.sql` |
-| Mockups | `supabase/mockup-saves.sql` |
-| Studio tarifs | `supabase/studio-tarifs-saves.sql` |
-| Rétroplanning | `supabase/retroplanning-saves.sql` |
+| Pige par projet        | `supabase/pige-commerciale-saves.sql` |
+| Mockups                | `supabase/mockup-saves.sql`           |
+| Studio tarifs          | `supabase/studio-tarifs-saves.sql`    |
+| Rétroplanning          | `supabase/retroplanning-saves.sql`    |
+
 
 ---
 
 ## 11. URLs utiles (résumé)
 
-| Page | URL |
-|------|-----|
-| Accueil | `/home` |
-| Mes projets | `/mon-espace/mes-projets` |
-| Social media | `/mon-espace/social-media` |
-| SMS / RCS | `/mon-espace/sms-rcs` |
-| Studio devis | `/mon-espace/studio` |
-| Calculs | `/mon-espace/calculs` |
-| Pige | `/mon-espace/pige-commerciale` |
-| Plan média | `/strategie/plan-media` |
-| Mockup | `/strategie/mockup` |
-| Cartographie | `/strategie/cartographie` |
-| Rétroplanning | `/strategie/retroplanning` |
-| Documents | `/guides/document` |
-| IA | `/ia` |
+
+| Page          | URL                            |
+| ------------- | ------------------------------ |
+| Accueil       | `/home`                        |
+| Mes projets   | `/mon-espace/mes-projets`      |
+| Social media  | `/mon-espace/social-media`     |
+| SMS / RCS     | `/mon-espace/sms-rcs`          |
+| Studio devis  | `/mon-espace/studio`           |
+| Calculs       | `/mon-espace/calculs`          |
+| Pige          | `/mon-espace/pige-commerciale` |
+| Plan média    | `/strategie/plan-media`        |
+| Mockup        | `/strategie/mockup`            |
+| Cartographie  | `/strategie/cartographie`      |
+| Rétroplanning | `/strategie/retroplanning`     |
+| Documents     | `/guides/document`             |
+| IA            | `/ia`                          |
+
 
 ---
 
