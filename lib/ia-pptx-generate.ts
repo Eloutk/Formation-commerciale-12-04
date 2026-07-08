@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { head } from '@vercel/blob'
+import { head, issueSignedToken, presignUrl } from '@vercel/blob'
 import Automizer, { modify, type ISlide } from 'pptx-automizer'
 import { IA_PRESENTATION_TEMPLATE, IA_PPTX_TEMPLATE_DOWNLOAD_PATH } from '@/lib/ia-presentation-template'
 import {
@@ -27,11 +27,21 @@ async function downloadTemplateFromBlob(): Promise<string> {
   }
 
   const pathname = IA_PRESENTATION_TEMPLATE.downloadFilename
-  const blob = await head(pathname, { token })
   const cachePath = path.join(process.cwd(), '.generated', 'templates', pathname)
   await fs.mkdir(path.dirname(cachePath), { recursive: true })
 
-  const response = await fetch(blob.downloadUrl)
+  // Store Blob privé : on présigne l'URL GET plutôt que d'utiliser head().downloadUrl (non signé).
+  let downloadUrl: string
+  try {
+    const signedToken = await issueSignedToken({ token, pathname, operations: ['get'] })
+    const presigned = await presignUrl(signedToken, { operation: 'get', pathname, access: 'private' })
+    downloadUrl = presigned.presignedUrl
+  } catch {
+    const blob = await head(pathname, { token })
+    downloadUrl = blob.downloadUrl
+  }
+
+  const response = await fetch(downloadUrl)
   if (!response.ok) {
     throw new Error(`Impossible de télécharger le template depuis Vercel Blob (${response.status}).`)
   }
