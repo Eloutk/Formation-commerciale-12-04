@@ -68,7 +68,7 @@ import {
 } from '@/lib/studio-tarifs-saves-storage'
 import { VENTE2_STUDIO_TARIFS_HREF } from '@/lib/nav-config'
 import { useAuthAccess } from '@/components/auth-context'
-import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2 } from 'lucide-react'
+import { Clapperboard, ChevronDown, ChevronUp, Download, ExternalLink, ImageIcon, Loader2, PenTool, Palette, RotateCcw, Save, Trash2, User, Calendar, MessageSquare, Paperclip, Layers } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { downloadStudioTarifsPdf } from '@/components/vente/StudioTarifsPdfDocument'
 import { buildStudioTarifsPdfLine } from '@/lib/studio-tarifs-pdf-lines'
@@ -1201,51 +1201,56 @@ function StudioTarifsPanelInner() {
           if (!open) closeBudgetRequestDialog()
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Demande d’approche budgétaire</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <span className="block">
-                {budgetRequestRow
-                  ? formatStudioPrestationLabel(budgetRequestRow)
-                  : 'Prestation studio'}
-              </span>
-              <span className="block text-muted-foreground">
-                Renseignez le client et le projet : un message sera envoyé aux créas sur Slack (
-                <span className="font-medium">#demande-studio</span>).
-              </span>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-                <Label htmlFor="studio-budget-section">Rubrique concernée *</Label>
-                <Select
-                  value={budgetRequestSectionId}
-                  onValueChange={(value) =>
-                    handleBudgetRequestSectionChange(value as StudioTarifsSectionId)
-                  }
-                  disabled={submittingBudgetRequest}
-                >
-                  <SelectTrigger id="studio-budget-section">
-                    <SelectValue placeholder="Choisir une rubrique" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {slackBudgetSections.map((sectionId) => {
-                      const sectionLabel =
-                        STUDIO_TARIFS_SECTIONS.find((section) => section.id === sectionId)
-                          ?.label ?? sectionId
-                      return (
-                        <SelectItem key={sectionId} value={sectionId}>
-                          {sectionLabel}
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E94C16]/10 text-[#E94C16]">
+                <PenTool className="h-5 w-5" />
               </div>
+              <div>
+                <DialogTitle>Demande d’approche budgétaire</DialogTitle>
+                <DialogDescription>
+                  Renseignez le client et le projet pour transmettre la demande aux créas.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-5 py-4 max-h-[65vh] overflow-y-auto px-1">
+            <div className="space-y-2">
+              <Label htmlFor="studio-budget-section" className="flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-[#E94C16]" />
+                Rubrique concernée *
+              </Label>
+              <Select
+                value={budgetRequestSectionId}
+                onValueChange={(value) =>
+                  handleBudgetRequestSectionChange(value as StudioTarifsSectionId)
+                }
+                disabled={submittingBudgetRequest}
+              >
+                <SelectTrigger id="studio-budget-section">
+                  <SelectValue placeholder="Choisir une rubrique" />
+                </SelectTrigger>
+                <SelectContent>
+                  {slackBudgetSections.map((sectionId) => {
+                    const sectionLabel =
+                      STUDIO_TARIFS_SECTIONS.find((section) => section.id === sectionId)
+                        ?.label ?? sectionId
+                    return (
+                      <SelectItem key={sectionId} value={sectionId}>
+                        {sectionLabel}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
             {slackBudgetRowsForDialog.length > 1 ? (
               <div className="space-y-2">
-                <Label htmlFor="studio-budget-prestation">Prestation concernée *</Label>
+                <Label htmlFor="studio-budget-prestation" className="flex items-center gap-1.5">
+                  <Palette className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Prestation concernée *
+                </Label>
                 <Select
                   value={budgetRequestRow?.id ?? ''}
                   onValueChange={(value) => {
@@ -1267,31 +1272,48 @@ function StudioTarifsPanelInner() {
                 </Select>
               </div>
             ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="studio-budget-client">Nom du client *</Label>
-              <Input
-                id="studio-budget-client"
-                placeholder="Ex : ITM Couzeix"
-                value={budgetClientName}
-                onChange={(event) => setBudgetClientName(event.target.value)}
-                disabled={submittingBudgetRequest}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="studio-budget-project">Nom du projet *</Label>
-              <Input
-                id="studio-budget-project"
-                placeholder="Ex : Ouverture Juillet 26"
-                value={budgetProjectName}
-                onChange={(event) => setBudgetProjectName(event.target.value)}
-                disabled={submittingBudgetRequest}
-              />
-              <p className="text-xs text-muted-foreground">
-                Précisez le thème et la date (ex : « Ouverture Juillet 26 »).
+
+            <div className="rounded-lg border border-dashed border-[#E94C16]/30 bg-[#E94C16]/[0.03] p-4 space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#E94C16]">
+                Brief de la demande <span className="font-normal normal-case text-muted-foreground">(obligatoire)</span>
               </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="studio-budget-client" className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Nom du client *
+                </Label>
+                <Input
+                  id="studio-budget-client"
+                  placeholder="Ex : ITM Couzeix"
+                  value={budgetClientName}
+                  onChange={(event) => setBudgetClientName(event.target.value)}
+                  disabled={submittingBudgetRequest}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="studio-budget-project" className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Nom du projet *
+                </Label>
+                <Input
+                  id="studio-budget-project"
+                  placeholder="Ex : Ouverture Juillet 26"
+                  value={budgetProjectName}
+                  onChange={(event) => setBudgetProjectName(event.target.value)}
+                  disabled={submittingBudgetRequest}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Précisez le thème et la date (ex : « Ouverture Juillet 26 »).
+                </p>
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="studio-budget-need">Détails complémentaires (optionnel)</Label>
+              <Label htmlFor="studio-budget-need" className="flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5 text-[#E94C16]" />
+                Détails complémentaires (optionnel)
+              </Label>
               <Textarea
                 id="studio-budget-need"
                 placeholder="Contexte, délais, contraintes, budget indicatif…"
@@ -1302,20 +1324,11 @@ function StudioTarifsPanelInner() {
                 className="resize-none"
               />
             </div>
-            <div className="rounded-md border border-border bg-muted/40 p-3">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Aperçu du message
-              </p>
-              <p className="whitespace-pre-line text-sm text-foreground">
-                {`Salut ! ${userName?.trim() || '« Nom commercial »'} a besoin d’une approche budgétaire pour ${
-                  budgetClientName.trim() || '« Nom client »'
-                } ${budgetProjectName.trim() || '« Nom projet (thème + date) »'}`.trim()}
-                {'\n'}Tu trouveras toutes les info nécessaires pour créer l’approche ;)
-                {'\n'}Lien du PDF :{budgetAttachment ? ' (pièce jointe)' : ''}
-              </p>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="studio-budget-attachment">Joindre un fichier (optionnel)</Label>
+              <Label htmlFor="studio-budget-attachment" className="flex items-center gap-1.5">
+                <Paperclip className="h-3.5 w-3.5 text-[#E94C16]" />
+                Joindre un fichier (optionnel)
+              </Label>
               <Input
                 id="studio-budget-attachment"
                 type="file"
@@ -1335,28 +1348,35 @@ function StudioTarifsPanelInner() {
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeBudgetRequestDialog}
-              disabled={submittingBudgetRequest}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="button"
-              className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
-              onClick={() => void handleConfirmBudgetRequest()}
-              disabled={
-                !budgetClientName.trim() || !budgetProjectName.trim() || submittingBudgetRequest
-              }
-            >
-              {submittingBudgetRequest ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-              ) : null}
-              Envoyer aux créas
-            </Button>
+          <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+            {(!budgetClientName.trim() || !budgetProjectName.trim()) && (
+              <p className="text-xs text-muted-foreground sm:mr-auto">
+                Des champs sont manquants
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeBudgetRequestDialog}
+                disabled={submittingBudgetRequest}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                onClick={() => void handleConfirmBudgetRequest()}
+                disabled={
+                  !budgetClientName.trim() || !budgetProjectName.trim() || submittingBudgetRequest
+                }
+              >
+                {submittingBudgetRequest ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                ) : null}
+                Envoyer aux créas
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

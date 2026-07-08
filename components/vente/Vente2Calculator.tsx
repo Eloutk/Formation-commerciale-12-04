@@ -1960,36 +1960,27 @@ function StrategyPdfStrategyOverview({
 
   return (
     <View style={{ width: '100%', flexDirection: 'column' }}>
-      <View style={[styles.summary, { marginTop: 0 }]}>
-        <Text style={styles.pdfStrategyTitleLine} wrap>
-          {block.name}
+      {hasItems && showAe && (
+        <Text style={[styles.pdfSummaryBlockText, { fontWeight: 'bold', marginTop: 2 }]} wrap>
+          AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '—'}
         </Text>
-        {hasItems && (
-          <>
-            {showAe && (
-              <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
-                AE : {strategyAe > 0 ? `${formatNumber(strategyAe, 0)} %` : '—'}
-              </Text>
-            )}
-            {block.items.some((it) => it.tarifsDirection) && (
-              <Text
-                style={[
-                  styles.pdfSummaryBlockText,
-                  { marginTop: 6, fontStyle: 'italic', color: '#1d4ed8' },
-                ]}
-                wrap
-              >
-                Tarifs direction appliqués sur certaine(s) plateforme(s)
-              </Text>
-            )}
-          </>
-        )}
-        {!hasItems && hasCalendar && (
-          <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
-            Calendrier de diffusion
-          </Text>
-        )}
-      </View>
+      )}
+      {hasItems && block.items.some((it) => it.tarifsDirection) && (
+        <Text
+          style={[
+            styles.pdfSummaryBlockText,
+            { marginTop: 6, fontStyle: 'italic', color: '#1d4ed8' },
+          ]}
+          wrap
+        >
+          Tarifs direction appliqués sur certaine(s) plateforme(s)
+        </Text>
+      )}
+      {!hasItems && hasCalendar && (
+        <Text style={[styles.pdfSummaryBlockText, { marginTop: 8 }]} wrap>
+          Calendrier de diffusion
+        </Text>
+      )}
 
       {(hasItems || hasAdditionalSales) && <StrategyPdfBudgetBreakdown block={block} />}
 
@@ -2059,6 +2050,7 @@ export interface CampaignBrief {
   description?: string
   diffusionZone?: string
   targeting?: string
+  campaignDates?: string
   clientType?: 'existing' | 'new'
   /** Client existant : contact habituel ou coordonnées différentes. */
   existingClientMode?: 'usual' | 'different'
@@ -2073,6 +2065,8 @@ export interface CampaignBrief {
   signerFirstName?: string
   signerLastName?: string
   signerEmail?: string
+  /** Nouveau client : contact technique distinct du signataire. */
+  newClientTechnicalContactDifferent?: boolean
 }
 
 function hasCampaignBriefContent(brief?: CampaignBrief): boolean {
@@ -2081,6 +2075,7 @@ function hasCampaignBriefContent(brief?: CampaignBrief): boolean {
     brief.description?.trim() ||
       brief.diffusionZone?.trim() ||
       brief.targeting?.trim() ||
+      brief.campaignDates?.trim() ||
       brief.existingClientMode === 'usual' ||
       brief.contactFirstName?.trim() ||
       brief.contactLastName?.trim() ||
@@ -2138,6 +2133,7 @@ function StrategyPdfCampaignBrief({
     { label: 'Descriptif de la campagne', value: brief?.description },
     { label: 'Zone de diffusion', value: brief?.diffusionZone },
     { label: 'Ciblage', value: brief?.targeting },
+    { label: 'Dates campagne', value: brief?.campaignDates },
   ].filter((f) => Boolean(f.value?.trim()))
 
   const contactName = [brief?.contactFirstName, brief?.contactLastName]
@@ -2198,6 +2194,18 @@ function StrategyPdfCampaignBrief({
                   <StrategyPdfBriefRow label="Nom / prénom" value={signerName} />
                   <StrategyPdfBriefRow label="Email" value={brief?.signerEmail} />
                 </>
+              )}
+
+              <Text style={styles.pdfBriefSubTitle} wrap>
+                Contact technique
+              </Text>
+              {brief?.newClientTechnicalContactDifferent ? (
+                <>
+                  <StrategyPdfBriefRow label="Nom / prénom" value={contactName} />
+                  <StrategyPdfBriefRow label="Email" value={brief?.contactEmail} />
+                </>
+              ) : (
+                <StrategyPdfBriefRow label="Contact" value="Comme d’habitude" />
               )}
             </>
           ) : (
@@ -2712,6 +2720,7 @@ export function Vente2Calculator({
   const [campaignDescription, setCampaignDescription] = useState('')
   const [diffusionZone, setDiffusionZone] = useState('')
   const [targeting, setTargeting] = useState('')
+  const [campaignDates, setCampaignDates] = useState('')
   /** Type de brief exporté : « CP » (complet) ou « client » (sans infos client ni AE). */
   const [briefType, setBriefType] = useState<'cp' | 'client'>('cp')
   /** Informations client pour le CP / création de devis. */
@@ -2728,24 +2737,32 @@ export function Vente2Calculator({
   const [signerFirstName, setSignerFirstName] = useState('')
   const [signerLastName, setSignerLastName] = useState('')
   const [signerEmail, setSignerEmail] = useState('')
+  const [newClientTechnicalContactDifferent, setNewClientTechnicalContactDifferent] = useState(false)
   /** Le brief (descriptif + zone + ciblage) est obligatoire pour télécharger le PDF. */
   const briefComplete = Boolean(
-    campaignDescription.trim() && diffusionZone.trim() && targeting.trim(),
+    campaignDescription.trim() &&
+      diffusionZone.trim() &&
+      targeting.trim() &&
+      campaignDates.trim(),
   )
   const siretError = clientType === 'new' && siret.trim() !== '' && !isValidSiret(siret)
   const vatError = clientType === 'new' && vatNumber.trim() !== '' && !isValidVatNumber(vatNumber)
   const signerEmailError =
     clientType === 'new' && signerEmail.trim() !== '' && !isValidEmail(signerEmail)
   const contactEmailError =
-    clientType === 'existing' &&
-    existingClientMode === 'different' &&
-    contactEmail.trim() !== '' &&
-    !isValidEmail(contactEmail)
+    (clientType === 'existing' &&
+      existingClientMode === 'different' &&
+      contactEmail.trim() !== '' &&
+      !isValidEmail(contactEmail)) ||
+    (clientType === 'new' &&
+      newClientTechnicalContactDifferent &&
+      contactEmail.trim() !== '' &&
+      !isValidEmail(contactEmail))
   /**
    * Toutes les infos client doivent être remplies pour télécharger le PDF.
    * - Client existant « comme d’habitude » : rien à saisir.
-   * - Client existant « différents » : contact technique complet (nom, prénom, email, téléphone).
-   * - Nouveau client : facturation complète + signataire complet.
+   * - Client existant « différent » : contact technique complet (nom, prénom, email, téléphone).
+   * - Nouveau client : facturation + signataire ; contact technique si case cochée (nom, prénom, email).
    */
   const clientInfoComplete =
     briefType === 'client'
@@ -2766,7 +2783,11 @@ export function Vente2Calculator({
             isValidVatNumber(vatNumber) &&
             signerFirstName.trim() &&
             signerLastName.trim() &&
-            isValidEmail(signerEmail),
+            isValidEmail(signerEmail) &&
+            (!newClientTechnicalContactDifferent ||
+              (contactFirstName.trim() &&
+                contactLastName.trim() &&
+                isValidEmail(contactEmail))),
         )
   const clientErrorsBlocking =
     briefType === 'cp' && (siretError || vatError || signerEmailError || contactEmailError)
@@ -3671,14 +3692,11 @@ export function Vente2Calculator({
           description: campaignDescription,
           diffusionZone,
           targeting,
+          campaignDates,
           ...(briefType === 'cp'
             ? {
                 clientType,
                 existingClientMode: clientType === 'existing' ? existingClientMode : undefined,
-                contactFirstName,
-                contactLastName,
-                contactEmail,
-                contactPhone,
                 billingEntity,
                 billingAddress,
                 siret,
@@ -3686,6 +3704,22 @@ export function Vente2Calculator({
                 signerFirstName,
                 signerLastName,
                 signerEmail,
+                newClientTechnicalContactDifferent:
+                  clientType === 'new' ? newClientTechnicalContactDifferent : undefined,
+                ...(clientType === 'new' && newClientTechnicalContactDifferent
+                  ? {
+                      contactFirstName,
+                      contactLastName,
+                      contactEmail,
+                    }
+                  : clientType === 'existing'
+                    ? {
+                        contactFirstName,
+                        contactLastName,
+                        contactEmail,
+                        contactPhone,
+                      }
+                    : {}),
               }
             : {}),
         }}
@@ -3703,6 +3737,7 @@ export function Vente2Calculator({
     setCampaignDescription('')
     setDiffusionZone('')
     setTargeting('')
+    setCampaignDates('')
     setContactFirstName('')
     setContactLastName('')
     setContactEmail('')
@@ -3714,6 +3749,7 @@ export function Vente2Calculator({
     setSignerFirstName('')
     setSignerLastName('')
     setSignerEmail('')
+    setNewClientTechnicalContactDifferent(false)
     setClientType('existing')
     setExistingClientMode('usual')
     setBriefType('cp')
@@ -7102,6 +7138,21 @@ export function Vente2Calculator({
                   className="resize-none"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="campaign-dates" className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-[#E94C16]" />
+                  Dates campagne *
+                </Label>
+                <Textarea
+                  id="campaign-dates"
+                  placeholder="Ex : 15 juin - 30 juillet 2026"
+                  value={campaignDates}
+                  onChange={(e) => setCampaignDates(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+              </div>
             </div>
 
             {/* Infos client pour le CP / création de devis (uniquement pour le brief CP) */}
@@ -7122,6 +7173,7 @@ export function Vente2Calculator({
                   onClick={() => {
                     setClientType('existing')
                     setExistingClientMode('usual')
+                    setNewClientTechnicalContactDifferent(false)
                     setContactFirstName('')
                     setContactLastName('')
                     setContactEmail('')
@@ -7141,6 +7193,11 @@ export function Vente2Calculator({
                   onClick={() => {
                     setClientType('new')
                     setExistingClientMode('usual')
+                    setContactFirstName('')
+                    setContactLastName('')
+                    setContactEmail('')
+                    setContactPhone('')
+                    setNewClientTechnicalContactDifferent(false)
                     setSignerFirstName('')
                     setSignerLastName('')
                     setSignerEmail('')
@@ -7201,7 +7258,7 @@ export function Vente2Calculator({
                         }}
                         className="data-[state=checked]:bg-[#E94C16] data-[state=checked]:border-[#E94C16]"
                       />
-                      Différents
+                      Différent
                     </label>
                   </div>
 
@@ -7333,6 +7390,66 @@ export function Vente2Calculator({
                         <p className="text-xs text-red-600">Format d&apos;email invalide.</p>
                       )}
                     </div>
+
+                    <label
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
+                        newClientTechnicalContactDifferent
+                          ? 'border-[#E94C16] bg-[#E94C16]/10 text-foreground'
+                          : 'border-border bg-background hover:bg-muted/50',
+                      )}
+                    >
+                      <Checkbox
+                        checked={newClientTechnicalContactDifferent}
+                        onCheckedChange={(checked) => {
+                          const isChecked = checked === true
+                          setNewClientTechnicalContactDifferent(isChecked)
+                          if (!isChecked) {
+                            setContactFirstName('')
+                            setContactLastName('')
+                            setContactEmail('')
+                          }
+                        }}
+                        className="data-[state=checked]:bg-[#E94C16] data-[state=checked]:border-[#E94C16]"
+                      />
+                      Contact technique si différent
+                    </label>
+
+                    {newClientTechnicalContactDifferent ? (
+                      <div className="space-y-3 rounded-lg border border-dashed border-border bg-background/80 p-3">
+                        <Label className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-[#E94C16]" />
+                          Contact technique
+                        </Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <EditableInput
+                            id="new-contact-first-name"
+                            placeholder="Prénom *"
+                            value={contactFirstName}
+                            onChange={(e) => setContactFirstName(e.target.value)}
+                          />
+                          <EditableInput
+                            id="new-contact-last-name"
+                            placeholder="Nom *"
+                            value={contactLastName}
+                            onChange={(e) => setContactLastName(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <EditableInput
+                            id="new-contact-email"
+                            type="email"
+                            placeholder="Email *"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            className={contactEmailError ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                          />
+                          {contactEmailError && (
+                            <p className="text-xs text-red-600">Format d&apos;email invalide.</p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )}
