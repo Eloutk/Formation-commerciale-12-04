@@ -11,7 +11,9 @@ import {
 } from '@/lib/presentation-documents'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+// Plan Hobby : plafonné à 60s. On ne streame pas les gros fichiers en prod
+// (redirection CDN), donc la fonction reste rapide.
+export const maxDuration = 60
 
 type RouteContext = { params: { format: string } }
 
@@ -33,21 +35,12 @@ async function localPublicExists(filename: string): Promise<boolean> {
   }
 }
 
-function attachmentHeaders(filename: string, format: string, size?: number): HeadersInit {
-  const headers: Record<string, string> = {
-    'Content-Type': CONTENT_TYPES[format] ?? 'application/octet-stream',
-    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
-    'Cache-Control': 'no-store',
-  }
-  if (typeof size === 'number') headers['Content-Length'] = String(size)
-  return headers
-}
-
 /**
  * Store Blob privé : `head().downloadUrl` n'est pas accessible sans signature.
- * On émet un jeton délégué court puis on présigne l'URL GET du blob.
+ * On émet un jeton délégué court, on présigne l'URL GET, puis on ajoute
+ * `download=1` (paramètre non signé) pour forcer le téléchargement côté CDN.
  */
-async function resolveBlobUrl(pathname: string, token: string): Promise<string> {
+async function resolveBlobDownloadUrl(pathname: string, token: string): Promise<string> {
   try {
     const signedToken = await issueSignedToken({ token, pathname, operations: ['get'] })
     const { presignedUrl } = await presignUrl(signedToken, {
@@ -55,8 +48,11 @@ async function resolveBlobUrl(pathname: string, token: string): Promise<string> 
       pathname,
       access: 'private',
     })
-    return presignedUrl
+    const url = new URL(presignedUrl)
+    url.searchParams.set('download', '1')
+    return url.toString()
   } catch {
+    // Store public : downloadUrl force déjà l'attachment.
     const blob = await head(pathname, { token })
     return blob.downloadUrl
   }
@@ -72,28 +68,26 @@ export async function GET(_req: Request, context: RouteContext) {
   const filename = basePresentationDownloadFilename(format)
   const token = process.env.BLOB_READ_WRITE_TOKEN
 
-  // 1) Fichier local (dev) : on le renvoie directement en pièce jointe.
+  // 1) Fichier local (dev) : streaming direct en pièce jointe.
   if (await localPublicExists(filename)) {
     const stat = await fsp.stat(localPublicPath(filename))
     const nodeStream = fs.createReadStream(localPublicPath(filename))
     const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream
     return new NextResponse(webStream, {
-      headers: attachmentHeaders(filename, format, stat.size),
+      headers: {
+        'Content-Type': CONTENT_TYPES[format] ?? 'application/octet-stream',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        'Content-Length': String(stat.size),
+        'Cache-Control': 'no-store',
+      },
     })
   }
 
-  // 2) Production : on récupère le blob (store privé → URL présignée) et on le renvoie en streaming.
+  // 2) Production : on redirige vers l'URL Blob présignée (transfert via CDN).
   if (token) {
     try {
-      const blobUrl = await resolveBlobUrl(pathname, token)
-      const upstream = await fetch(blobUrl)
-      if (!upstream.ok || !upstream.body) {
-        throw new Error(`upstream ${upstream.status}`)
-      }
-      const size = upstream.headers.get('content-length')
-      return new NextResponse(upstream.body, {
-        headers: attachmentHeaders(filename, format, size ? Number(size) : undefined),
-      })
+      const downloadUrl = await resolveBlobDownloadUrl(pathname, token)
+      return NextResponse.redirect(downloadUrl)
     } catch {
       return NextResponse.json(
         { error: `« ${filename} » introuvable sur Vercel Blob.` },
