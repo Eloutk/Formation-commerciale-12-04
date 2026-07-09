@@ -4,9 +4,28 @@ import "./globals.css"
 import AuthWrapper from "@/components/auth-wrapper"
 
 export const metadata: Metadata = {
-  title: "Formation Commerciale Interactive",
-  description: "Plateforme de formation commerciale pour améliorer vos compétences",
-  generator: "v0.dev",
+  metadataBase: new URL('https://link-academy.vercel.app'),
+  title: "Intranet de l'agence Link",
+  description: "Intranet de l'agence Link",
+  openGraph: {
+    title: "Intranet de l'agence Link",
+    description: "Intranet de l'agence Link",
+    siteName: "Intranet de l'agence Link",
+    locale: 'fr_FR',
+    type: 'website',
+    images: [
+      {
+        url: '/Logo Link Vertical (Orange).png',
+        alt: "Intranet de l'agence Link",
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: "Intranet de l'agence Link",
+    description: "Intranet de l'agence Link",
+    images: ['/Logo Link Vertical (Orange).png'],
+  },
   icons: {
     icon: "/Logo Link Vertical (Orange).png",
     shortcut: "/Logo Link Vertical (Orange).png",
