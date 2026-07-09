@@ -2714,8 +2714,6 @@ export function Vente2Calculator({
   >(null)
   const pendingLeadsRowRef = useRef<(TableRowData & { customKpiLabel?: string }) | null>(null)
   const [clientName, setClientName] = useState('')
-  /** Inclure les % AE dans l’export PDF (récap stratégie). */
-  const [pdfIncludeAe, setPdfIncludeAe] = useState(true)
   /** Brief de campagne inclus en tête de l’export PDF (obligatoire pour télécharger). */
   const [campaignDescription, setCampaignDescription] = useState('')
   const [diffusionZone, setDiffusionZone] = useState('')
@@ -3687,7 +3685,7 @@ export function Vente2Calculator({
         aePercentage={parseFloat(aePercentage) || 0}
         comment={undefined}
         logoDataUrl={logoDataUrl}
-        includeAeInPdf={briefType === 'cp' ? pdfIncludeAe : false}
+        includeAeInPdf={briefType === 'cp'}
         campaignBrief={{
           description: campaignDescription,
           diffusionZone,
@@ -3771,7 +3769,7 @@ export function Vente2Calculator({
           aePercentage={parseFloat(aePercentage) || 0}
           comment={undefined}
           logoDataUrl={logoDataUrl}
-          includeAeInPdf={pdfIncludeAe}
+          includeAeInPdf={true}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -4156,7 +4154,7 @@ export function Vente2Calculator({
           aePercentage={parseFloat(aePercentage) || 0}
           comment={globalPackComment}
           logoDataUrl={logoDataUrl}
-          includeAeInPdf={pdfIncludeAe}
+          includeAeInPdf={true}
         />,
       ).toBlob()
       zip.file('01-strategies-social-media.pdf', socialBlob)
@@ -7456,26 +7454,6 @@ export function Vente2Calculator({
             </div>
             )}
 
-            {briefType === 'cp' && (
-            <div className="flex items-start space-x-2 pt-1">
-              <Checkbox
-                id="pdf-include-ae"
-                checked={pdfIncludeAe}
-                onCheckedChange={(checked) => setPdfIncludeAe(checked === true)}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="pdf-include-ae"
-                  className="text-sm font-medium text-foreground cursor-pointer"
-                >
-                  Afficher l&apos;AE dans le PDF
-                </label>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  % AE de la stratégie dans le récapitulatif. Décochez pour masquer cet élément.
-                </p>
-              </div>
-            </div>
-            )}
           </div>
           <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
             {!canExportPdf && (
