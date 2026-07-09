@@ -55,6 +55,7 @@ export async function sendStudioBudgetRequest(params: {
   theme: string
   date: string
   details?: string
+  devisPdf: File
   attachment?: File | null
   userName?: string | null
 }): Promise<void> {
@@ -71,6 +72,14 @@ export async function sendStudioBudgetRequest(params: {
     throw new Error('Veuillez renseigner la date du projet.')
   }
 
+  if (!params.devisPdf || params.devisPdf.size <= 0) {
+    throw new Error('Le devis studio PDF est obligatoire pour envoyer la demande.')
+  }
+
+  if (params.devisPdf.size > STUDIO_BUDGET_ATTACHMENT_MAX_BYTES) {
+    throw new Error('Le devis PDF ne doit pas dépasser 20 Mo.')
+  }
+
   if (params.attachment && params.attachment.size > STUDIO_BUDGET_ATTACHMENT_MAX_BYTES) {
     throw new Error('Le fichier joint ne doit pas dépasser 20 Mo.')
   }
@@ -85,6 +94,7 @@ export async function sendStudioBudgetRequest(params: {
   formData.append('date', date)
   if (params.details?.trim()) formData.append('details', params.details.trim())
   if (params.userName?.trim()) formData.append('userName', params.userName.trim())
+  formData.append('devisPdf', params.devisPdf)
   if (params.attachment) formData.append('attachment', params.attachment)
 
   const response = await fetch('/api/studio/demande-budget', {

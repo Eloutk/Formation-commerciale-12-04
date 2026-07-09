@@ -732,13 +732,17 @@ function StudioTarifsPanelInner() {
     setSubmittingBudgetRequest(true)
     try {
       const devisFile = await buildBudgetDevisFile(budgetRequestRow)
+      if (!devisFile) {
+        throw new Error('Impossible de générer le devis studio PDF. Réessayez dans un instant.')
+      }
       await sendStudioBudgetRequest({
         row: budgetRequestRow,
         clientName: budgetClientName,
         theme: budgetTheme,
         date: budgetDate,
         details: budgetNeedDescription,
-        attachment: budgetAttachment ?? devisFile,
+        devisPdf: devisFile,
+        attachment: budgetAttachment,
         userName,
       })
       alert('Demande envoyée aux créas sur Slack (#demande-studio).')
@@ -1413,7 +1417,7 @@ function StudioTarifsPanelInner() {
             <div className="space-y-2">
               <Label htmlFor="studio-budget-attachment" className="flex items-center gap-1.5">
                 <Paperclip className="h-3.5 w-3.5 text-[#E94C16]" />
-                Remplacer le devis joint (optionnel)
+                Fichier complémentaire (optionnel)
               </Label>
               <Input
                 id="studio-budget-attachment"
@@ -1431,8 +1435,8 @@ function StudioTarifsPanelInner() {
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Le devis studio (PDF) est généré et joint automatiquement. Ajoutez un fichier ici
-                  seulement pour le remplacer — max. 20 Mo.
+                  Le devis studio (PDF) est généré automatiquement et envoyé sur Slack. Ajoutez un
+                  fichier ici seulement en complément — max. 20 Mo.
                 </p>
               )}
             </div>

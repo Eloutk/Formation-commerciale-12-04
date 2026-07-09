@@ -16,9 +16,61 @@ import { notifyStudioBudgetMakeWebhook } from '@/lib/studio-budget-make-webhook'
 const SLACK_SECTIONS = new Set<StudioTarifsSectionId>(['graphisme', 'fixe'])
 const STUDIO_BUDGET_BUCKET = 'studio-budget-requests'
 
+type UploadedStudioFile = {
+  filename: string
+  path: string
+  url: string | null
+  mimeType: string
+  sizeBytes: number
+  buffer: Buffer
+}
+
 function sanitizeAttachmentFilename(name: string): string {
   const base = name.replace(/[^\w.\-()+\s]/g, '_').replace(/\s+/g, '_').slice(0, 120)
   return base || 'piece-jointe'
+}
+
+async function uploadStudioBudgetFile(
+  supabase: ReturnType<typeof createServerClient>,
+  params: {
+    userId: string
+    requestId: string
+    folder: 'devis' | 'attachments'
+    file: File
+  },
+): Promise<UploadedStudioFile> {
+  const filename = sanitizeAttachmentFilename(params.file.name)
+  const mimeType = params.file.type || 'application/octet-stream'
+  const buffer = Buffer.from(await params.file.arrayBuffer())
+  const path = `${params.userId}/${params.requestId}/${params.folder}/${filename}`
+
+  const { error: uploadError } = await supabase.storage
+    .from(STUDIO_BUDGET_BUCKET)
+    .upload(path, buffer, {
+      contentType: mimeType,
+      upsert: false,
+    })
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'Impossible de stocker le fichier.')
+  }
+
+  const { data: signed, error: signedError } = await supabase.storage
+    .from(STUDIO_BUDGET_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 7)
+
+  if (signedError) {
+    console.error('Studio budget signed URL error:', signedError)
+  }
+
+  return {
+    filename,
+    path,
+    url: signed?.signedUrl ?? null,
+    mimeType,
+    sizeBytes: buffer.length,
+    buffer,
+  }
 }
 
 export async function POST(req: Request) {
@@ -57,12 +109,22 @@ export async function POST(req: Request) {
   const date = String(formData.get('date') ?? '').trim()
   const details = String(formData.get('details') ?? '').trim()
   const userName = String(formData.get('userName') ?? '').trim() || null
+  const devisPdfEntry = formData.get('devisPdf')
   const attachmentEntry = formData.get('attachment')
+  const devisPdf =
+    devisPdfEntry instanceof File && devisPdfEntry.size > 0 ? devisPdfEntry : null
   const attachment =
     attachmentEntry instanceof File && attachmentEntry.size > 0 ? attachmentEntry : null
 
   if (!rowId || !sectionId || !prestationLabel || !clientName || !theme || !date) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  if (!devisPdf) {
+    return NextResponse.json(
+      { error: 'Le devis studio PDF est obligatoire pour envoyer la demande.' },
+      { status: 400 },
+    )
   }
 
   const projectName = `${theme} ${date}`.trim()
@@ -73,6 +135,10 @@ export async function POST(req: Request) {
       { error: 'Cette section n’utilise pas la demande Slack studio.' },
       { status: 400 },
     )
+  }
+
+  if (devisPdf.size > STUDIO_BUDGET_ATTACHMENT_MAX_BYTES) {
+    return NextResponse.json({ error: 'Le devis PDF ne doit pas dépasser 20 Mo.' }, { status: 400 })
   }
 
   if (attachment && attachment.size > STUDIO_BUDGET_ATTACHMENT_MAX_BYTES) {
@@ -90,43 +156,40 @@ export async function POST(req: Request) {
 
   const requestId = randomUUID()
 
-  let attachmentFilename: string | null = null
-  let attachmentPath: string | null = null
-  let attachmentUrl: string | null = null
-  let attachmentMimeType: string | null = null
-  let attachmentSizeBytes: number | null = null
+  let devisUpload: UploadedStudioFile | null = null
+  let attachmentUpload: UploadedStudioFile | null = null
 
-  if (attachment) {
-    attachmentFilename = attachment.name
-    attachmentMimeType = attachment.type || 'application/octet-stream'
-    attachmentSizeBytes = attachment.size
-    attachmentPath = `${user.id}/${requestId}/${sanitizeAttachmentFilename(attachment.name)}`
+  try {
+    devisUpload = await uploadStudioBudgetFile(supabase, {
+      userId: user.id,
+      requestId,
+      folder: 'devis',
+      file: devisPdf,
+    })
 
-    const buffer = Buffer.from(await attachment.arrayBuffer())
-    const { error: uploadError } = await supabase.storage
-      .from(STUDIO_BUDGET_BUCKET)
-      .upload(attachmentPath, buffer, {
-        contentType: attachmentMimeType,
-        upsert: false,
+    if (attachment) {
+      attachmentUpload = await uploadStudioBudgetFile(supabase, {
+        userId: user.id,
+        requestId,
+        folder: 'attachments',
+        file: attachment,
       })
-
-    if (uploadError) {
-      console.error('Studio budget attachment upload error:', uploadError)
-      return NextResponse.json(
-        { error: uploadError.message || 'Impossible de joindre le fichier.' },
-        { status: 500 },
-      )
     }
-
-    const { data: signed, error: signedError } = await supabase.storage
-      .from(STUDIO_BUDGET_BUCKET)
-      .createSignedUrl(attachmentPath, 60 * 60 * 24 * 7)
-
-    if (signedError) {
-      console.error('Studio budget attachment signed URL error:', signedError)
-    } else {
-      attachmentUrl = signed?.signedUrl ?? null
+  } catch (uploadError) {
+    const paths = [devisUpload?.path, attachmentUpload?.path].filter(Boolean) as string[]
+    if (paths.length > 0) {
+      await supabase.storage.from(STUDIO_BUDGET_BUCKET).remove(paths)
     }
+    console.error('Studio budget upload error:', uploadError)
+    return NextResponse.json(
+      {
+        error:
+          uploadError instanceof Error
+            ? uploadError.message
+            : 'Impossible de stocker le devis studio.',
+      },
+      { status: 500 },
+    )
   }
 
   const message = buildStudioBudgetRequestMessage({
@@ -134,7 +197,7 @@ export async function POST(req: Request) {
     clientName,
     theme,
     date,
-    pdfLink: attachmentUrl,
+    pdfLink: devisUpload.url,
     details,
   })
 
@@ -150,21 +213,30 @@ export async function POST(req: Request) {
       prestation_id: rowId,
       prestation_label: prestationLabel,
       prestation_variant: prestationVariant,
+      client_name: clientName,
+      project_theme: theme,
+      project_date: date,
+      project_name: projectName,
       slack_channel: STUDIO_BUDGET_SLACK_CHANNEL,
       need_description: needDescription,
       message,
-      attachment_filename: attachmentFilename,
-      attachment_path: attachmentPath,
-      attachment_url: attachmentUrl,
-      attachment_mime_type: attachmentMimeType,
-      attachment_size_bytes: attachmentSizeBytes,
+      devis_pdf_filename: devisUpload.filename,
+      devis_pdf_path: devisUpload.path,
+      devis_pdf_url: devisUpload.url,
+      devis_pdf_size_bytes: devisUpload.sizeBytes,
+      attachment_filename: attachmentUpload?.filename ?? null,
+      attachment_path: attachmentUpload?.path ?? null,
+      attachment_url: attachmentUpload?.url ?? null,
+      attachment_mime_type: attachmentUpload?.mimeType ?? null,
+      attachment_size_bytes: attachmentUpload?.sizeBytes ?? null,
     })
     .select('id, slack_channel, created_at')
     .single()
 
   if (error) {
-    if (attachmentPath) {
-      await supabase.storage.from(STUDIO_BUDGET_BUCKET).remove([attachmentPath])
+    const paths = [devisUpload.path, attachmentUpload?.path].filter(Boolean) as string[]
+    if (paths.length > 0) {
+      await supabase.storage.from(STUDIO_BUDGET_BUCKET).remove(paths)
     }
     console.error('Error inserting studio budget request:', error)
     return NextResponse.json(
@@ -193,11 +265,16 @@ export async function POST(req: Request) {
       project_name: projectName,
       need_description: needDescription,
       message,
-      attachment_filename: attachmentFilename,
-      attachment_path: attachmentPath,
-      attachment_url: attachmentUrl,
-      attachment_mime_type: attachmentMimeType,
-      attachment_size_bytes: attachmentSizeBytes,
+      devis_pdf_filename: devisUpload.filename,
+      devis_pdf_path: devisUpload.path,
+      devis_pdf_url: devisUpload.url,
+      devis_pdf_base64: devisUpload.buffer.toString('base64'),
+      devis_pdf_size_bytes: devisUpload.sizeBytes,
+      attachment_filename: attachmentUpload?.filename ?? null,
+      attachment_path: attachmentUpload?.path ?? null,
+      attachment_url: attachmentUpload?.url ?? null,
+      attachment_mime_type: attachmentUpload?.mimeType ?? null,
+      attachment_size_bytes: attachmentUpload?.sizeBytes ?? null,
     })
     webhookOk = true
   } catch (webhookError) {
@@ -219,7 +296,8 @@ export async function POST(req: Request) {
     ok: true,
     id: data.id,
     slack_channel: data.slack_channel,
-    attachment_url: attachmentUrl,
+    devis_pdf_url: devisUpload.url,
+    attachment_url: attachmentUpload?.url ?? null,
     webhook_ok: webhookOk,
   })
 }

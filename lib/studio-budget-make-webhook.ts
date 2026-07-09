@@ -20,6 +20,11 @@ export type StudioBudgetMakeWebhookPayload = {
   project_name: string
   need_description: string
   message: string
+  devis_pdf_filename: string | null
+  devis_pdf_path: string | null
+  devis_pdf_url: string | null
+  devis_pdf_base64: string | null
+  devis_pdf_size_bytes: number | null
   attachment_filename: string | null
   attachment_path: string | null
   attachment_url: string | null
