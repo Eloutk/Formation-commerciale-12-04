@@ -4367,34 +4367,9 @@ export function Vente2Calculator({
             {pageDescription}
           </p>
         </div>
-        {/* Pack global (Vente 2) + sous-onglets KPIs (Stratégie Social Media) */}
-        <div className="mb-6 space-y-4">
-          {view === 'sms' && (
-            <div className="flex justify-center px-2">
-              <Button
-                type="button"
-                onClick={() => {
-                  setGlobalPackClientName(clientName)
-                  setGlobalPackDialogOpen(true)
-                }}
-                disabled={globalPackExporting}
-                className="bg-[#E94C16] hover:bg-[#d43f12] text-white shadow-sm"
-              >
-                {globalPackExporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Génération du pack…
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger le pack complet (ZIP)
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-          {view === 'kpiMax' && (
+        {/* Sous-onglets KPIs (Stratégie Social Media) */}
+        {view === 'kpiMax' && (
+          <div className="mb-6 space-y-4">
             <Tabs
               value={kpiSubSection}
               onValueChange={(value) => setKpiSubSection(value as 'kpiMax' | 'kpiMax2')}
@@ -4415,8 +4390,8 @@ export function Vente2Calculator({
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          )}
-        </div>
+          </div>
+        )}
 
         {pdvSection === 'social' && (
         <>
