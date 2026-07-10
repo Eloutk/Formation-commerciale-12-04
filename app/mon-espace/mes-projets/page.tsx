@@ -351,8 +351,11 @@ export default function MonEspacePage() {
     const q = adminSearch.trim().toLowerCase()
     return adminItems.filter((item) => {
       if (adminCategory === 'strategy' && item.kind !== 'strategy') return false
+      if (adminCategory === 'retroplanning' && item.kind !== 'retroplanning') return false
+      if (adminCategory === 'studioTarifs' && item.kind !== 'studioTarifs') return false
       if (adminCategory === 'simulateur' && item.kind !== 'simulateur') return false
       if (adminCategory === 'mockup' && item.kind !== 'mockup') return false
+      if (adminCategory === 'pige' && item.kind !== 'pige') return false
       if (adminCategory === 'sms' && item.kind !== 'sms') return false
       if (adminAuthorId !== 'all' && item.record.user_id !== adminAuthorId) return false
       if (q) {
@@ -699,7 +702,8 @@ export default function MonEspacePage() {
                 Vue administrateur — tous les enregistrements
               </CardTitle>
               <CardDescription>
-                Filtrez par catégorie et par personne pour consulter tous les enregistrements.
+                Consultez l’ensemble des projets enregistrés par les utilisateurs — filtrez par
+                catégorie et par personne.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
@@ -716,8 +720,11 @@ export default function MonEspacePage() {
                     <SelectContent>
                       <SelectItem value="all">Toutes</SelectItem>
                       <SelectItem value="strategy">Calculateur de vente</SelectItem>
+                      <SelectItem value="retroplanning">Rétroplanning</SelectItem>
+                      <SelectItem value="studioTarifs">Studio</SelectItem>
                       <SelectItem value="simulateur">Plan média</SelectItem>
                       <SelectItem value="mockup">Mockups</SelectItem>
+                      <SelectItem value="pige">Pige commerciale</SelectItem>
                       <SelectItem value="sms">SMS / RCS</SelectItem>
                     </SelectContent>
                   </Select>
@@ -781,6 +788,9 @@ export default function MonEspacePage() {
                       <code>supabase/mon-espace-admin.sql</code>
                     </li>
                     <li>
+                      <code>supabase/mon-espace-admin-extended.sql</code>
+                    </li>
+                    <li>
                       <code>supabase/mon-espace-admin-performance.sql</code> (si timeout)
                     </li>
                     <li>
@@ -839,6 +849,82 @@ export default function MonEspacePage() {
                                     size="sm"
                                     onClick={() =>
                                       router.push(`${VENTE2_SOCIAL_HREF}?strategy=${row.id}`)
+                                    }
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+
+                        if (item.kind === 'retroplanning') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.id}`}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Rétroplanning
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {row.operations_count} opération{row.operations_count > 1 ? 's' : ''}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatRetroplanningSaveDate(row.created_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      router.push(`${STRATEGIE_RETROPLANNING_HREF}?retro=${row.id}`)
+                                    }
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+
+                        if (item.kind === 'studioTarifs') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.id}`}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Studio
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="tabular-nums whitespace-nowrap">
+                                {formatStudioEuro(Number(row.summary_total_ht))} HT
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatStudioTarifsSaveDate(row.created_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      router.push(`${VENTE2_STUDIO_TARIFS_HREF}?studio=${row.id}`)
                                     }
                                   >
                                     <ExternalLink className="h-3.5 w-3.5 mr-1" />
@@ -915,6 +1001,46 @@ export default function MonEspacePage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => router.push(`${STRATEGIE_MOCKUP_HREF}?mockup=${row.id}`)}
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                                    Ouvrir
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        }
+
+                        if (item.kind === 'pige') {
+                          const row = item.record
+                          return (
+                            <TableRow key={`${item.kind}-${row.project_id}`}>
+                              <TableCell className="font-medium min-w-0 truncate" title={row.name}>
+                                {row.name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="font-normal">
+                                  Pige commerciale
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm">{item.authorLabel}</TableCell>
+                              <TableCell className="text-sm whitespace-nowrap">
+                                {row.file_count} capture{row.file_count > 1 ? 's' : ''}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatPigeCommercialeSaveDate(row.created_at)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      router.push(
+                                        `${MON_ESPACE_PIGE_COMMERCIALE_HREF}?project=${row.project_id}`,
+                                      )
+                                    }
                                   >
                                     <ExternalLink className="h-3.5 w-3.5 mr-1" />
                                     Ouvrir

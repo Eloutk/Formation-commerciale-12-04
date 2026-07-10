@@ -1,4 +1,5 @@
 import supabase from '@/utils/supabase/client'
+import { checkIsAdmin } from '@/lib/admin'
 import {
   getDefaultPigeCommercialeName,
   groupPigeCommercialeSavesByProject,
@@ -92,12 +93,15 @@ export async function getPigeCommercialeProjectById(
   const userId = await getCurrentUserId()
   if (!userId) return null
 
-  const { data, error } = await supabase
+  const admin = await checkIsAdmin()
+  let query = supabase
     .from('pige_commerciale_saves')
     .select('*')
-    .eq('user_id', userId)
     .eq('project_id', projectId)
     .order('created_at', { ascending: true })
+  if (!admin) query = query.eq('user_id', userId)
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
 

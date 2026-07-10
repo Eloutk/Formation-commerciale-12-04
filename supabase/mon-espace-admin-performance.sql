@@ -9,6 +9,9 @@ DROP FUNCTION IF EXISTS public.admin_list_vente2_strategies();
 DROP FUNCTION IF EXISTS public.admin_list_simulateur_media_saves();
 DROP FUNCTION IF EXISTS public.admin_list_mockup_saves();
 DROP FUNCTION IF EXISTS public.admin_list_sms_devis();
+DROP FUNCTION IF EXISTS public.admin_list_retroplanning_saves();
+DROP FUNCTION IF EXISTS public.admin_list_studio_tarifs_saves();
+DROP FUNCTION IF EXISTS public.admin_list_pige_commerciale_projects();
 DROP FUNCTION IF EXISTS public.admin_list_profiles_for_mon_espace();
 
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
@@ -37,6 +40,15 @@ CREATE INDEX IF NOT EXISTS mockup_saves_updated_at_idx
 
 CREATE INDEX IF NOT EXISTS sms_devis_updated_at_idx
   ON public.sms_devis (updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS retroplanning_saves_updated_at_idx
+  ON public.retroplanning_saves (updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS studio_tarifs_saves_updated_at_idx
+  ON public.studio_tarifs_saves (updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS pige_commerciale_saves_updated_at_idx
+  ON public.pige_commerciale_saves (updated_at DESC);
 
 CREATE OR REPLACE FUNCTION public.admin_list_vente2_strategies()
 RETURNS TABLE (
@@ -159,6 +171,104 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.admin_list_retroplanning_saves()
+RETURNS TABLE (
+  id UUID,
+  user_id UUID,
+  name TEXT,
+  operations_count INTEGER,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT rs.id, rs.user_id, rs.name, rs.operations_count, rs.created_at, rs.updated_at
+  FROM public.retroplanning_saves rs
+  ORDER BY rs.updated_at DESC
+  LIMIT 1000;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_list_studio_tarifs_saves()
+RETURNS TABLE (
+  id UUID,
+  user_id UUID,
+  name TEXT,
+  summary_total_ht NUMERIC,
+  summary_total_ttc NUMERIC,
+  selected_count INTEGER,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    sts.id,
+    sts.user_id,
+    sts.name,
+    sts.summary_total_ht,
+    sts.summary_total_ttc,
+    sts.selected_count,
+    sts.created_at,
+    sts.updated_at
+  FROM public.studio_tarifs_saves sts
+  ORDER BY sts.updated_at DESC
+  LIMIT 1000;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.admin_list_pige_commerciale_projects()
+RETURNS TABLE (
+  project_id UUID,
+  user_id UUID,
+  name TEXT,
+  file_count BIGINT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    pcs.project_id,
+    pcs.user_id,
+    (ARRAY_AGG(pcs.name ORDER BY pcs.created_at ASC))[1] AS name,
+    COUNT(*)::BIGINT AS file_count,
+    MIN(pcs.created_at) AS created_at,
+    MAX(pcs.updated_at) AS updated_at
+  FROM public.pige_commerciale_saves pcs
+  GROUP BY pcs.project_id, pcs.user_id
+  ORDER BY MAX(pcs.updated_at) DESC
+  LIMIT 1000;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.admin_list_profiles_for_mon_espace()
 RETURNS TABLE (id UUID, full_name TEXT)
 LANGUAGE plpgsql
@@ -181,4 +291,7 @@ GRANT EXECUTE ON FUNCTION public.admin_list_vente2_strategies() TO authenticated
 GRANT EXECUTE ON FUNCTION public.admin_list_simulateur_media_saves() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_list_mockup_saves() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_list_sms_devis() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_retroplanning_saves() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_studio_tarifs_saves() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_list_pige_commerciale_projects() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_list_profiles_for_mon_espace() TO authenticated;

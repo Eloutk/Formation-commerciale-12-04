@@ -4,9 +4,12 @@ import {
   authorLabelFromProfile,
   type MonEspaceAdminItem,
   type MonEspaceAdminMockupRecord,
+  type MonEspaceAdminPigeRecord,
+  type MonEspaceAdminRetroplanningRecord,
   type MonEspaceAdminSimulateurRecord,
   type MonEspaceAdminSmsRecord,
   type MonEspaceAdminStrategyRecord,
+  type MonEspaceAdminStudioTarifsRecord,
   type MonEspaceAuthor,
 } from '@/lib/mon-espace-admin'
 
@@ -36,18 +39,33 @@ export async function GET() {
 
   const supabase = await getServerSupabase()
 
-  const [strategiesRes, simulateurRes, mockupsRes, devisRes, profilesRes] = await Promise.all([
+  const [
+    strategiesRes,
+    retroplanningRes,
+    studioTarifsRes,
+    simulateurRes,
+    mockupsRes,
+    pigeRes,
+    devisRes,
+    profilesRes,
+  ] = await Promise.all([
     supabase.rpc('admin_list_vente2_strategies'),
+    supabase.rpc('admin_list_retroplanning_saves'),
+    supabase.rpc('admin_list_studio_tarifs_saves'),
     supabase.rpc('admin_list_simulateur_media_saves'),
     supabase.rpc('admin_list_mockup_saves'),
+    supabase.rpc('admin_list_pige_commerciale_projects'),
     supabase.rpc('admin_list_sms_devis'),
     supabase.rpc('admin_list_profiles_for_mon_espace'),
   ])
 
   const rpcError =
     strategiesRes.error ??
+    retroplanningRes.error ??
+    studioTarifsRes.error ??
     simulateurRes.error ??
     mockupsRes.error ??
+    pigeRes.error ??
     devisRes.error ??
     profilesRes.error
   if (rpcError) {
@@ -73,8 +91,11 @@ export async function GET() {
   }
 
   const strategies = (strategiesRes.data ?? []) as MonEspaceAdminStrategyRecord[]
+  const retroplanningSaves = (retroplanningRes.data ?? []) as MonEspaceAdminRetroplanningRecord[]
+  const studioTarifsSaves = (studioTarifsRes.data ?? []) as MonEspaceAdminStudioTarifsRecord[]
   const simulateurSaves = (simulateurRes.data ?? []) as MonEspaceAdminSimulateurRecord[]
   const mockupSaves = (mockupsRes.data ?? []) as MonEspaceAdminMockupRecord[]
+  const pigeProjects = (pigeRes.data ?? []) as MonEspaceAdminPigeRecord[]
   const devis = (devisRes.data ?? []) as MonEspaceAdminSmsRecord[]
 
   const labelMap = new Map<string, string>()
@@ -85,8 +106,11 @@ export async function GET() {
   const userIds = [
     ...new Set([
       ...strategies.map((s) => s.user_id),
+      ...retroplanningSaves.map((s) => s.user_id),
+      ...studioTarifsSaves.map((s) => s.user_id),
       ...simulateurSaves.map((s) => s.user_id),
       ...mockupSaves.map((m) => m.user_id),
+      ...pigeProjects.map((p) => p.user_id),
       ...devis.map((d) => d.user_id),
     ]),
   ]
@@ -100,6 +124,16 @@ export async function GET() {
       record,
       authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
     })),
+    ...retroplanningSaves.map((record) => ({
+      kind: 'retroplanning' as const,
+      record,
+      authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
+    })),
+    ...studioTarifsSaves.map((record) => ({
+      kind: 'studioTarifs' as const,
+      record,
+      authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
+    })),
     ...simulateurSaves.map((record) => ({
       kind: 'simulateur' as const,
       record,
@@ -107,6 +141,11 @@ export async function GET() {
     })),
     ...mockupSaves.map((record) => ({
       kind: 'mockup' as const,
+      record,
+      authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
+    })),
+    ...pigeProjects.map((record) => ({
+      kind: 'pige' as const,
       record,
       authorLabel: labelMap.get(record.user_id) ?? record.user_id.slice(0, 8),
     })),
