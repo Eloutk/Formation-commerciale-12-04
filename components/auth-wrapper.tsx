@@ -621,7 +621,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                     active={monEspaceActive}
                     accent
                     align="end"
-                    items={filterNavItemsByAdmin(MON_ESPACE_LINKS, isAdmin)}
+                    items={filterNavItemsByAdmin(MON_ESPACE_LINKS, isAdmin, role)}
                   />
                 }
               >

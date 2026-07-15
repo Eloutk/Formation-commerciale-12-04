@@ -1,9 +1,10 @@
-export type UserRole = 'user' | 'admin' | 'super_admin' | 'client' | 'crea'
+export type UserRole = 'user' | 'admin' | 'super_admin' | 'client' | 'crea' | 'cp'
 
 export const USER_ROLES: readonly UserRole[] = [
   'user',
   'client',
   'crea',
+  'cp',
   'admin',
   'super_admin',
 ] as const
@@ -13,6 +14,7 @@ export function normalizeUserRole(role: string | undefined | null): UserRole | n
   if (roleNorm === 'user') return 'user'
   if (roleNorm === 'client') return 'client'
   if (roleNorm === 'crea') return 'crea'
+  if (roleNorm === 'cp') return 'cp'
   if (roleNorm === 'admin') return 'admin'
   if (roleNorm === 'super_admin') return 'super_admin'
   return null
@@ -33,6 +35,14 @@ export function canAccessStudioTarifs(role: string | undefined | null): boolean 
 
 export function isClientRole(role: string | undefined | null): boolean {
   return normalizeUserRole(role) === 'client'
+}
+
+export function isCpRole(role: string | undefined | null): boolean {
+  return normalizeUserRole(role) === 'cp'
+}
+
+export function canAccessCta(role: string | undefined | null): boolean {
+  return isAdminRole(role) || isCpRole(role)
 }
 
 export const DEMANDES_POTENTIELS_HREF = '/academy/demandes-potentiels'
@@ -65,6 +75,8 @@ export function formatUserRoleLabel(role: UserRole | null): string {
       return 'Client'
     case 'crea':
       return 'Créa'
+    case 'cp':
+      return 'CP'
     case 'admin':
       return 'Administrateur'
     case 'super_admin':

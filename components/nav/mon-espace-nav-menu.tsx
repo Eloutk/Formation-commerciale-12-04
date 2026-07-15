@@ -9,7 +9,7 @@ import { isMonEspacePath, withActiveMonEspaceItems } from '@/lib/nav-config'
 export function MonEspaceHeaderNavMenu() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { isAdmin } = useAuthAccess()
+  const { isAdmin, role } = useAuthAccess()
 
   return (
     <HeaderNavMenu
@@ -17,7 +17,7 @@ export function MonEspaceHeaderNavMenu() {
       active={isMonEspacePath(pathname)}
       accent
       align="end"
-      items={withActiveMonEspaceItems(pathname, searchParams, isAdmin)}
+      items={withActiveMonEspaceItems(pathname, searchParams, isAdmin, role)}
     />
   )
 }
@@ -25,14 +25,14 @@ export function MonEspaceHeaderNavMenu() {
 export function MonEspaceMobileNavMenu({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { isAdmin } = useAuthAccess()
+  const { isAdmin, role } = useAuthAccess()
 
   return (
     <MobileNavMenu
       label="Mon espace"
       active={isMonEspacePath(pathname)}
       accent
-      items={withActiveMonEspaceItems(pathname, searchParams, isAdmin)}
+      items={withActiveMonEspaceItems(pathname, searchParams, isAdmin, role)}
       onNavigate={onNavigate}
     />
   )

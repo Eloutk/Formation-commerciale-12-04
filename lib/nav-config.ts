@@ -1,5 +1,5 @@
 import { isExternalNavHref } from '@/lib/nav-aide'
-import type { UserRole } from '@/lib/roles'
+import { canAccessCta, type UserRole } from '@/lib/roles'
 
 export type NavMenuItem = {
   href: string
@@ -7,6 +7,8 @@ export type NavMenuItem = {
   isActive?: boolean
   /** Visible et accessible uniquement aux administrateurs */
   adminOnly?: boolean
+  /** Visible et accessible uniquement aux rôles CP et admin */
+  cpAdminOnly?: boolean
   /** Encadrement double dans les sous-menus (ex. Mes projets). */
   doubleBorder?: boolean
 }
@@ -61,6 +63,7 @@ export const MON_ESPACE_MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
 export const MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
 
 export const MON_ESPACE_CALCULS_HREF = '/mon-espace/calculs'
+export const MON_ESPACE_CTA_HREF = '/mon-espace/cta'
 export const ATTERRISSAGE_HREF = '/mon-espace/atterissage'
 
 export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
@@ -95,6 +98,7 @@ export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_SOCIAL_HREF, label: 'Social Média' },
   { href: MON_ESPACE_SMS_HREF, label: 'SMS & RCS' },
   { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Studio' },
+  { href: MON_ESPACE_CTA_HREF, label: 'CTA', cpAdminOnly: true },
   { href: ATTERRISSAGE_HREF, label: 'Atterrissage', adminOnly: true },
 ]
 
@@ -107,11 +111,16 @@ export const RESSOURCES_LINKS: NavMenuItem[] = [
   { href: STRATEGIE_CARTOGRAPHIE_HREF, label: 'Cartographie' },
 ]
 
-export function filterNavItemsByAdmin<T extends { adminOnly?: boolean }>(
+export function filterNavItemsByAdmin<T extends Pick<NavMenuItem, 'adminOnly' | 'cpAdminOnly'>>(
   items: T[],
   isAdmin: boolean,
+  role: UserRole | null = null,
 ): T[] {
-  return items.filter((item) => !item.adminOnly || isAdmin)
+  return items.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    if (item.cpAdminOnly && !canAccessCta(role)) return false
+    return true
+  })
 }
 
 export function filterVente2LinksByRole(
@@ -162,6 +171,7 @@ export function withActiveMonEspaceItems(
   pathname: string | null | undefined,
   searchParams?: NavSearchParams,
   isAdmin = false,
+  role: UserRole | null = null,
 ): NavMenuItem[] {
   const mesProjetsActive = isMesProjetsNavContext(pathname, searchParams)
 
@@ -176,6 +186,7 @@ export function withActiveMonEspaceItems(
       return { ...item, isActive: isPathActive(pathname, item.href) }
     }),
     isAdmin,
+    role,
   )
 }
 

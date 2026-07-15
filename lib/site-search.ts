@@ -14,7 +14,7 @@ import { TUTO_ITEMS } from '@/lib/nav-aide'
 import { FAQ_ITEMS } from '@/lib/faq-items'
 import { GLOSSARY_TERMS } from '@/lib/glossary-terms'
 import { filterFormationModulesForRole, getModulesProgress } from '@/lib/progress'
-import type { UserRole } from '@/lib/roles'
+import { canAccessCta, type UserRole } from '@/lib/roles'
 import { SITE_SEARCH_CATALOG } from '@/lib/site-search-catalog'
 
 export type SiteSearchItem = {
@@ -29,6 +29,7 @@ export type SiteSearchItem = {
 
 type SearchableItem = SiteSearchItem & {
   adminOnly?: boolean
+  cpAdminOnly?: boolean
   hiddenForClient?: boolean
 }
 
@@ -39,6 +40,7 @@ function navItemsToSearch(items: NavMenuItem[], category: string): SearchableIte
     href: item.href,
     category,
     ...(item.adminOnly ? { adminOnly: true } : {}),
+    ...(item.cpAdminOnly ? { cpAdminOnly: true } : {}),
   }))
 }
 
@@ -55,8 +57,9 @@ function itemHaystack(item: SearchableItem): string {
   )
 }
 
-function isItemVisible(item: SearchableItem, isAdmin: boolean, _role: UserRole | null): boolean {
+function isItemVisible(item: SearchableItem, isAdmin: boolean, role: UserRole | null): boolean {
   if (item.adminOnly && !isAdmin) return false
+  if (item.cpAdminOnly && !canAccessCta(role)) return false
   if (item.title === 'Vue admin' && !isAdmin) return false
   return true
 }

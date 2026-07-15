@@ -1,5 +1,5 @@
-import { ATTERRISSAGE_HREF, IA_HREF } from '@/lib/nav-config'
-import { isAdminRole, type UserRole } from '@/lib/roles'
+import { ATTERRISSAGE_HREF, IA_HREF, MON_ESPACE_CTA_HREF } from '@/lib/nav-config'
+import { canAccessCta, isAdminRole, type UserRole } from '@/lib/roles'
 
 /** Assets statiques accessibles sans session (login, favicon, polices, branding). */
 export const PUBLIC_STATIC_EXACT = new Set([
@@ -75,6 +75,10 @@ export function resolvePathAccessViolation(
   }
 
   if (pathname.startsWith(ATTERRISSAGE_HREF) && !isAdmin) {
+    return '/home'
+  }
+
+  if (pathname.startsWith(MON_ESPACE_CTA_HREF) && !canAccessCta(role)) {
     return '/home'
   }
 

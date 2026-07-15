@@ -42,6 +42,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly AppPermission[]> = {
   user: [],
   client: [],
   crea: [],
+  cp: [],
   admin: ['*'],
   super_admin: ['*'],
 }

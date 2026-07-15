@@ -78,22 +78,14 @@ import {
   retroStrategyLineKey,
   retroStrategySubPlatformKey,
 } from '@/app/vente/calendar/retroSocialSplits'
-
-// Liste des plateformes dans l'ordre souhaité
-const PLATFORMS_ORDER = [
-  'META',
-  'Display',
-  'Perf max',
-  'Demand Gen',
-  'Search',
-  'Insta only',
-  'Facebook only',
-  'Youtube',
-  'LinkedIn',
-  'Snapchat',
-  'Tiktok',
-  'Spotify',
-] as const
+import {
+  CUSTOM_OBJECTIVES,
+  DEFAULT_CUSTOM_OBJECTIVES,
+  getObjectivesForSocialMediaPlatform,
+  PLATFORMS_ORDER,
+  PLATFORM_LOGOS,
+  usesMetaObjectives,
+} from '@/lib/social-media-platform-objectives'
 
 // Couleurs très contrastées par plateforme (calendrier, PDF)
 const PLATFORM_CALENDAR_COLORS: Record<string, string> = {
@@ -400,46 +392,6 @@ function CalendarMonthView({
   )
 }
 
-const PLATFORM_LOGOS: Partial<Record<(typeof PLATFORMS_ORDER)[number], string>> = {
-  META: '/images/Logo META.png',
-  'Facebook only': '/images/facebook-logo-facebook-icon-transparent-free-png.webp',
-  Display: '/images/Logo Google.png',
-  'Perf max': '/images/Logo Google.png',
-  'Demand Gen': '/images/Logo Google.png',
-  Search: '/images/Logo Google.png',
-  Youtube: '/images/Logo YouTube.png',
-  LinkedIn: '/images/Logo LinkedIn.png',
-  Snapchat: '/images/Logo Snapchat.png',
-  Tiktok: '/images/Logo TikTok.png',
-  Spotify: '/images/Logo Spotify.png',
-  'Insta only': '/images/Instagram_logo.svg',
-}
-
-const META_CUSTOM_OBJECTIVES = [
-  'Impressions',
-  'Clics',
-  'Clics sur lien',
-  'Intéractions',
-  'Visites de profil',
-  "J'aime la page",
-  'Réponses évènement',
-  'Leads',
-] as const
-
-const INSTA_CUSTOM_OBJECTIVES = [
-  'Impressions',
-  'Clics',
-  'Clics sur lien',
-  'Intéractions',
-  'Visites de profil',
-] as const
-
-const DEFAULT_CUSTOM_OBJECTIVES = ['Impressions', 'Clics'] as const
-
-const TIKTOK_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'conversion'] as const
-
-const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Likes'] as const
-
 const MAKE_LEADS_OPTION_LABEL = 'Envoi automatique des leads au client via Make'
 const MAKE_LEADS_OPTION_BUDGET = 150
 const MAKE_LEADS_PINK_ROW_CLASS = 'bg-pink-50 text-pink-700 border-pink-200'
@@ -617,29 +569,6 @@ function getActiveAdditionalSaleLabels(block: Pick<StrategyBlock, 'additionalSal
   return getActiveAdditionalSales(block).map((sale) =>
     sale.count > 1 ? `${sale.label} (× ${sale.count})` : sale.label,
   )
-}
-
-const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
-
-const PERF_MAX_OBJECTIVES = ['Conversion'] as const
-
-const CUSTOM_OBJECTIVES: Record<(typeof PLATFORMS_ORDER)[number], readonly string[]> = {
-  META: META_CUSTOM_OBJECTIVES,
-  'Facebook only': META_CUSTOM_OBJECTIVES,
-  Display: DEFAULT_CUSTOM_OBJECTIVES,
-  'Perf max': PERF_MAX_OBJECTIVES,
-  'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
-  Search: SEARCH_CUSTOM_OBJECTIVES,
-  'Insta only': INSTA_CUSTOM_OBJECTIVES,
-  Youtube: ['Impressions'],
-  LinkedIn: LINKEDIN_CUSTOM_OBJECTIVES,
-  Snapchat: DEFAULT_CUSTOM_OBJECTIVES,
-  Tiktok: TIKTOK_CUSTOM_OBJECTIVES,
-  Spotify: ['Impressions'],
-}
-
-function usesMetaObjectives(platform: string): boolean {
-  return platform === 'META' || platform === 'Facebook only'
 }
 
 function PlatformBadge({ platform, withDownload = false }: { platform: string; withDownload?: boolean }) {
@@ -4606,9 +4535,7 @@ export function Vente2Calculator({
                     ? customDailyBudget
                     : (referenceRow?.aeCheckValue ?? 0)
                   const customRowColor = getRowColorClass(platform, customAeCheckValue, daysNum)
-                  const objectivesForPlatform = usesMetaObjectives(platform)
-                      ? [...META_CUSTOM_OBJECTIVES, 'conversion']
-                      : CUSTOM_OBJECTIVES[platform as (typeof PLATFORMS_ORDER)[number]] ?? DEFAULT_CUSTOM_OBJECTIVES
+                  const objectivesForPlatform = getObjectivesForSocialMediaPlatform(platform)
                   const isCustomInStrategy = strategy.some(
                     (item) => item.platform === platform && item.objective === custom.objective,
                   )
