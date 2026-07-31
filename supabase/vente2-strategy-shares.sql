@@ -97,16 +97,21 @@ CREATE POLICY "Users update own or shared vente2 strategies"
   );
 
 -- Recherche de collègues pour le partage (pas soi-même)
+-- Cherche dans profiles (nom) + auth.users (email) pour couvrir les comptes sans nom renseigné
+-- DROP requis : le type de retour a changé (ajout de email)
+DROP FUNCTION IF EXISTS public.search_colleagues_for_share(TEXT);
+
 CREATE OR REPLACE FUNCTION public.search_colleagues_for_share(search_query TEXT)
 RETURNS TABLE (
   id UUID,
   full_name TEXT,
-  display_name TEXT
+  display_name TEXT,
+  email TEXT
 )
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
 DECLARE
   q TEXT := trim(COALESCE(search_query, ''));
@@ -120,14 +125,27 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT p.id, p.full_name, p.display_name
-  FROM public.profiles p
-  WHERE p.id <> auth.uid()
+  SELECT
+    u.id,
+    p.full_name,
+    p.display_name,
+    u.email::text AS email
+  FROM auth.users u
+  LEFT JOIN public.profiles p ON p.id = u.id
+  WHERE u.id <> auth.uid()
     AND (
       COALESCE(p.full_name, '') ILIKE '%' || q || '%'
       OR COALESCE(p.display_name, '') ILIKE '%' || q || '%'
+      OR COALESCE(u.email::text, '') ILIKE '%' || q || '%'
+      OR COALESCE(u.raw_user_meta_data->>'full_name', '') ILIKE '%' || q || '%'
     )
-  ORDER BY COALESCE(NULLIF(trim(p.display_name), ''), NULLIF(trim(p.full_name), ''), p.id::text)
+  ORDER BY
+    COALESCE(
+      NULLIF(trim(p.display_name), ''),
+      NULLIF(trim(p.full_name), ''),
+      NULLIF(trim(u.raw_user_meta_data->>'full_name'), ''),
+      u.email::text
+    )
   LIMIT 20;
 END;
 $$;

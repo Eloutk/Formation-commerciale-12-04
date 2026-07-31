@@ -2885,6 +2885,7 @@ export function Vente2Calculator({
   const [shareSearchQuery, setShareSearchQuery] = useState('')
   const [shareSearchResults, setShareSearchResults] = useState<ColleagueSearchResult[]>([])
   const [shareSearchLoading, setShareSearchLoading] = useState(false)
+  const [shareSearchError, setShareSearchError] = useState<string | null>(null)
   const [shareExisting, setShareExisting] = useState<
     Awaited<ReturnType<typeof listStrategyShares>>
   >([])
@@ -4213,6 +4214,7 @@ export function Vente2Calculator({
     }
     setShareSearchQuery('')
     setShareSearchResults([])
+    setShareSearchError(null)
     setShareStrategyDialogOpen(true)
     void refreshStrategyShares(savedStrategyId)
   }
@@ -4222,18 +4224,30 @@ export function Vente2Calculator({
     const q = shareSearchQuery.trim()
     if (q.length < 2) {
       setShareSearchResults([])
+      setShareSearchError(null)
       setShareSearchLoading(false)
       return
     }
     let cancelled = false
     setShareSearchLoading(true)
+    setShareSearchError(null)
     const timer = window.setTimeout(() => {
       void searchColleaguesForShare(q)
         .then((results) => {
-          if (!cancelled) setShareSearchResults(results)
+          if (!cancelled) {
+            setShareSearchResults(results)
+            setShareSearchError(null)
+          }
         })
-        .catch(() => {
-          if (!cancelled) setShareSearchResults([])
+        .catch((e) => {
+          if (!cancelled) {
+            setShareSearchResults([])
+            setShareSearchError(
+              e instanceof Error
+                ? e.message
+                : 'Recherche impossible. Vérifiez que le SQL de partage est à jour dans Supabase.',
+            )
+          }
         })
         .finally(() => {
           if (!cancelled) setShareSearchLoading(false)
@@ -8009,6 +8023,7 @@ export function Vente2Calculator({
           if (!open) {
             setShareSearchQuery('')
             setShareSearchResults([])
+            setShareSearchError(null)
           }
         }}
       >
@@ -8017,7 +8032,7 @@ export function Vente2Calculator({
             <DialogTitle>Partager la stratégie</DialogTitle>
             <DialogDescription>
               Donnez accès à « {savedStrategyName || 'cette stratégie'} ». La personne la verra dans
-              Mes projets → Calculateur de vente.
+              Mes projets → Calculateur de vente. Recherchez par nom ou email (2 caractères min.).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -8025,7 +8040,7 @@ export function Vente2Calculator({
               <Label htmlFor="share-colleague-search">Rechercher un collègue</Label>
               <Input
                 id="share-colleague-search"
-                placeholder="Nom (ex. Martin)…"
+                placeholder="Nom ou email (ex. martin@…)"
                 value={shareSearchQuery}
                 onChange={(e) => setShareSearchQuery(e.target.value)}
                 autoComplete="off"
@@ -8035,22 +8050,36 @@ export function Vente2Calculator({
                   <Loader2 className="h-3 w-3 animate-spin" /> Recherche…
                 </p>
               ) : null}
-              {shareSearchQuery.trim().length >= 2 && !shareSearchLoading ? (
+              {shareSearchError ? (
+                <p className="text-xs text-destructive">{shareSearchError}</p>
+              ) : null}
+              {shareSearchQuery.trim().length >= 2 && !shareSearchLoading && !shareSearchError ? (
                 shareSearchResults.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Aucun collègue trouvé.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Aucun collègue trouvé. Essayez l’email complet, ou vérifiez que le SQL
+                    <code className="mx-1 text-[10px]">vente2-strategy-shares-search-fix.sql</code>
+                    a été exécuté.
+                  </p>
                 ) : (
                   <ul className="rounded-md border divide-y max-h-48 overflow-y-auto">
                     {shareSearchResults.map((colleague) => {
                       const alreadyShared = shareExisting.some(
                         (s) => s.shared_with_user_id === colleague.id,
                       )
+                      const label = colleagueDisplayName(colleague)
+                      const email = (colleague.email || '').trim()
                       return (
                         <li
                           key={colleague.id}
                           className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
                         >
-                          <span className="min-w-0 truncate font-medium">
-                            {colleagueDisplayName(colleague)}
+                          <span className="min-w-0 truncate">
+                            <span className="font-medium block truncate">{label}</span>
+                            {email && email !== label ? (
+                              <span className="text-xs text-muted-foreground block truncate">
+                                {email}
+                              </span>
+                            ) : null}
                           </span>
                           <Button
                             type="button"
