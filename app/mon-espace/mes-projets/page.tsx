@@ -141,6 +141,43 @@ const MON_ESPACE_SECTIONS: {
   { id: 'devis', label: 'SMS / RCS', icon: FolderOpen },
 ]
 
+function isAuthLockError(message: string) {
+  return /lock broken|steal.?option|navigator.?lock|acquire.?timeout/i.test(message)
+}
+
+function isMissingTableError(message: string) {
+  return /does not exist|relation .* not found|could not find the table|schema cache/i.test(message)
+}
+
+function formatMonEspaceStorageError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback
+  if (isAuthLockError(message)) {
+    return 'Session temporairement bloquée. Fermez les onglets en double, rechargez la page, ou reconnectez-vous.'
+  }
+  return message || fallback
+}
+
+function MonEspaceLoadError({
+  message,
+  sqlFile,
+}: {
+  message: string
+  sqlFile: string
+}) {
+  const showSqlHint = isMissingTableError(message)
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+      {message}
+      {showSqlHint ? (
+        <p className="mt-2 text-muted-foreground">
+          Si la table n&apos;existe pas encore, exécutez{' '}
+          <code className="text-xs">{sqlFile}</code> dans Supabase.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export default function MonEspacePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -226,7 +263,7 @@ export default function MonEspacePage() {
       const rows = await listUserSmsDevis()
       setDevis(rows)
     } catch (e) {
-      setDevisError(e instanceof Error ? e.message : 'Impossible de charger vos devis.')
+      setDevisError(formatMonEspaceStorageError(e, 'Impossible de charger vos devis.'))
     } finally {
       setLoadingDevis(false)
     }
@@ -239,7 +276,7 @@ export default function MonEspacePage() {
       const rows = await listUserVente2Strategies()
       setStrategies(rows)
     } catch (e) {
-      setStrategiesError(e instanceof Error ? e.message : 'Impossible de charger vos stratégies.')
+      setStrategiesError(formatMonEspaceStorageError(e, 'Impossible de charger vos stratégies.'))
     } finally {
       setLoadingStrategies(false)
     }
@@ -253,7 +290,7 @@ export default function MonEspacePage() {
       setSimulateurSaves(rows)
     } catch (e) {
       setSimulateurSavesError(
-        e instanceof Error ? e.message : 'Impossible de charger vos projets Plan média.',
+        formatMonEspaceStorageError(e, 'Impossible de charger vos projets Plan média.'),
       )
     } finally {
       setLoadingSimulateurSaves(false)
@@ -267,7 +304,7 @@ export default function MonEspacePage() {
       const rows = await listUserMockupSaves()
       setMockupSaves(rows)
     } catch (e) {
-      setMockupSavesError(e instanceof Error ? e.message : 'Impossible de charger vos mockups.')
+      setMockupSavesError(formatMonEspaceStorageError(e, 'Impossible de charger vos mockups.'))
     } finally {
       setLoadingMockupSaves(false)
     }
@@ -281,7 +318,7 @@ export default function MonEspacePage() {
       setPigeProjects(rows)
     } catch (e) {
       setPigeSavesError(
-        e instanceof Error ? e.message : 'Impossible de charger vos captures de pige.',
+        formatMonEspaceStorageError(e, 'Impossible de charger vos captures de pige.'),
       )
     } finally {
       setLoadingPigeSaves(false)
@@ -296,7 +333,7 @@ export default function MonEspacePage() {
       setStudioTarifsSaves(rows)
     } catch (e) {
       setStudioTarifsSavesError(
-        e instanceof Error ? e.message : 'Impossible de charger vos devis studio.',
+        formatMonEspaceStorageError(e, 'Impossible de charger vos devis studio.'),
       )
     } finally {
       setLoadingStudioTarifsSaves(false)
@@ -311,7 +348,7 @@ export default function MonEspacePage() {
       setRetroplanningSaves(rows)
     } catch (e) {
       setRetroplanningSavesError(
-        e instanceof Error ? e.message : 'Impossible de charger vos rétroplannings.',
+        formatMonEspaceStorageError(e, 'Impossible de charger vos rétroplannings.'),
       )
     } finally {
       setLoadingRetroplanningSaves(false)
@@ -1137,13 +1174,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos stratégies Social media."
               />
             ) : strategiesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {strategiesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/vente2-strategies.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={strategiesError}
+                sqlFile="supabase/vente2-strategies.sql"
+              />
             ) : filteredStrategies.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {strategies.length === 0 ? (
@@ -1271,13 +1305,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos plannings sauvegardés."
               />
             ) : retroplanningSavesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {retroplanningSavesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/retroplanning-saves.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={retroplanningSavesError}
+                sqlFile="supabase/retroplanning-saves.sql"
+              />
             ) : filteredRetroplanningSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {retroplanningSaves.length === 0 ? (
@@ -1394,13 +1425,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos devis Studio."
               />
             ) : studioTarifsSavesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {studioTarifsSavesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/studio-tarifs-saves.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={studioTarifsSavesError}
+                sqlFile="supabase/studio-tarifs-saves.sql"
+              />
             ) : filteredStudioTarifsSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {studioTarifsSaves.length === 0 ? (
@@ -1521,13 +1549,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos projets Plan média."
               />
             ) : simulateurSavesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {simulateurSavesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/simulateur-media-saves.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={simulateurSavesError}
+                sqlFile="supabase/simulateur-media-saves.sql"
+              />
             ) : filteredSimulateurSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {simulateurSaves.length === 0 ? (
@@ -1656,13 +1681,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos prévisualisations sauvegardées."
               />
             ) : mockupSavesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {mockupSavesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/mockup-saves.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={mockupSavesError}
+                sqlFile="supabase/mockup-saves.sql"
+              />
             ) : filteredMockupSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {mockupSaves.length === 0 ? (
@@ -1775,13 +1797,10 @@ export default function MonEspacePage() {
                 description="Récupération de vos piges commerciales."
               />
             ) : pigeSavesError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {pigeSavesError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/pige-commerciale-saves.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError
+                message={pigeSavesError}
+                sqlFile="supabase/pige-commerciale-saves.sql"
+              />
             ) : filteredPigeSaves.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {pigeProjects.length === 0 ? (
@@ -1903,13 +1922,7 @@ export default function MonEspacePage() {
                 description="Récupération de vos devis SMS / RCS."
               />
             ) : devisError ? (
-              <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {devisError}
-                <p className="mt-2 text-muted-foreground">
-                  Si la table n&apos;existe pas encore, exécutez{' '}
-                  <code className="text-xs">supabase/sms-devis.sql</code> dans Supabase.
-                </p>
-              </div>
+              <MonEspaceLoadError message={devisError} sqlFile="supabase/sms-devis.sql" />
             ) : filteredDevis.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
                 {devis.length === 0 ? (

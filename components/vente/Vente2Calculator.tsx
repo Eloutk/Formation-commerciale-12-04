@@ -4022,7 +4022,11 @@ export function Vente2Calculator({
           : 'Stratégie enregistrée dans votre espace personnel.',
       )
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erreur lors de l\'enregistrement.')
+      const raw = e instanceof Error ? e.message : "Erreur lors de l'enregistrement."
+      const message = /lock broken|steal.?option|navigator.?lock|acquire.?timeout/i.test(raw)
+        ? 'Session temporairement bloquée. Fermez les onglets en double, rechargez la page, puis réessayez.'
+        : raw
+      alert(message)
     } finally {
       setSavingStrategy(false)
     }
