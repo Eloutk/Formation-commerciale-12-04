@@ -4559,26 +4559,39 @@ export function Vente2Calculator({
               </div>
               <div className="flex flex-wrap items-center gap-2 lg:justify-end lg:pt-1 shrink-0">
                 <Button
+                  type="button"
                   variant="outline"
-                  size="sm"
+                  className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
                   onClick={() => setValidationTMDialogOpen(true)}
                   disabled={!hasAnyStrategyContent}
                 >
                   Validation TM
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
-                  size="sm"
+                  className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
                   onClick={() => setPdfDialogOpen(true)}
                   disabled={!hasAnyStrategyContent}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  PDF
+                  Exporter en PDF
                 </Button>
+                {savedStrategyId && savedStrategyIsOwner ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                    onClick={handleOpenShareStrategyDialog}
+                    disabled={loadingStrategy}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Partager
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
                   onClick={handleOpenSaveStrategyDialog}
                   disabled={!hasAnyStrategyContent || savingStrategy || loadingStrategy}
                 >
@@ -4587,20 +4600,8 @@ export function Vente2Calculator({
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
-                  Sauvegarder
+                  Enregistrer dans Mon espace
                 </Button>
-                {savedStrategyId && savedStrategyIsOwner ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenShareStrategyDialog}
-                    disabled={loadingStrategy}
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Partager
-                  </Button>
-                ) : null}
               </div>
             </div>
           ) : view === 'sms' ? (
