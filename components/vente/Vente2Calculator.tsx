@@ -4584,37 +4584,43 @@ export function Vente2Calculator({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                  size="icon"
+                  className="h-9 w-9 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
                   onClick={() => setPdfDialogOpen(true)}
                   disabled={!hasAnyStrategyContent}
+                  aria-label="Exporter en PDF"
+                  title="Exporter en PDF"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exporter en PDF
+                  <Download className="h-4 w-4" />
                 </Button>
                 {savedStrategyId && savedStrategyIsOwner ? (
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
+                    size="icon"
+                    className="h-9 w-9 border-[#E94C16]/40 text-[#E94C16] hover:bg-orange-50"
                     onClick={handleOpenShareStrategyDialog}
                     disabled={loadingStrategy}
+                    aria-label="Partager"
+                    title="Partager"
                   >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Partager
+                    <Share2 className="h-4 w-4" />
                   </Button>
                 ) : null}
                 <Button
                   type="button"
-                  className="bg-[#E94C16] hover:bg-[#d43f12] text-white"
+                  size="icon"
+                  className="h-9 w-9 bg-[#E94C16] hover:bg-[#d43f12] text-white"
                   onClick={handleOpenSaveStrategyDialog}
                   disabled={!hasAnyStrategyContent || savingStrategy || loadingStrategy}
+                  aria-label="Enregistrer dans Mon espace"
+                  title="Enregistrer dans Mon espace"
                 >
                   {savingStrategy ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4" />
                   )}
-                  Enregistrer dans Mon espace
                 </Button>
               </div>
             </div>
