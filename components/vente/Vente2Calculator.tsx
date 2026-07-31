@@ -3515,6 +3515,15 @@ export function Vente2Calculator({
     return getStrategyBlockBudgetTotal(activeStrategy)
   }, [activeStrategy])
 
+  /** Au moins un bloc stratégie a du contenu (actions globales PDF / save / Validation TM). */
+  const hasAnyStrategyContent = useMemo(
+    () =>
+      strategies.some(
+        (block) => block.items.length > 0 || getAdditionalSalesTotal(block) > 0,
+      ),
+    [strategies],
+  )
+
   // Calculer le total des KPIs dans la stratégie active
   const strategyKPIsTotal = useMemo(() => {
     return strategy.filter(isMediaStrategyItem).reduce((total, item) => total + item.estimatedKPIs, 0)
@@ -4129,10 +4138,7 @@ export function Vente2Calculator({
 
   const handleOpenSaveStrategyDialog = () => {
     const activeBlock = strategies.find((s) => s.id === activeStrategyId)
-    const activeHasSummary =
-      !!activeBlock &&
-      (activeBlock.items.length > 0 || getAdditionalSalesTotal(activeBlock) > 0)
-    if (!activeHasSummary) {
+    if (!hasAnyStrategyContent) {
       alert('Ajoutez au moins une ligne ou une vente additionnelle avant d\'enregistrer.')
       return
     }
@@ -4515,28 +4521,104 @@ export function Vente2Calculator({
       <div className="max-w-[1600px] mx-auto">
         {/* En-tête */}
         <div className={cn('mb-8', view !== 'social' && view !== 'sms' && 'text-center')}>
-          {view === 'social' || view === 'sms' ? (
-            <h1 className="mb-3 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
-                {view === 'social' ? (
-                  <Share2 className="h-6 w-6" aria-hidden />
-                ) : (
+          {view === 'social' ? (
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <h1 className="mb-3 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
+                    <Share2 className="h-6 w-6" aria-hidden />
+                  </span>
+                  {pageTitle}
+                </h1>
+                <p className="text-lg text-muted-foreground max-w-3xl">{pageDescription}</p>
+                {loadingStrategy ? (
+                  <SavedRecordLoadingBanner
+                    className="mt-3"
+                    variant="inline"
+                    label="Chargement de la stratégie…"
+                    description="Récupération depuis Mon espace."
+                  />
+                ) : savedStrategyId ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {savedStrategyIsOwner ? (
+                      <>
+                        Stratégie chargée :{' '}
+                        <span className="font-medium text-foreground">{savedStrategyName}</span>
+                        {' '}— modifiez puis réenregistrez pour mettre à jour.
+                      </>
+                    ) : (
+                      <>
+                        Stratégie partagée
+                        {savedStrategySharedByName ? ` par ${savedStrategySharedByName}` : ''} :{' '}
+                        <span className="font-medium text-foreground">{savedStrategyName}</span>
+                        {' '}— visible dans Mes projets.
+                      </>
+                    )}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end lg:pt-1 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setValidationTMDialogOpen(true)}
+                  disabled={!hasAnyStrategyContent}
+                >
+                  Validation TM
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPdfDialogOpen(true)}
+                  disabled={!hasAnyStrategyContent}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenSaveStrategyDialog}
+                  disabled={!hasAnyStrategyContent || savingStrategy || loadingStrategy}
+                >
+                  {savingStrategy ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Sauvegarder
+                </Button>
+                {savedStrategyId && savedStrategyIsOwner ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenShareStrategyDialog}
+                    disabled={loadingStrategy}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Partager
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : view === 'sms' ? (
+            <>
+              <h1 className="mb-3 flex flex-wrap items-center gap-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
                   <MessageSquare className="h-6 w-6" aria-hidden />
-                )}
-              </span>
-              {pageTitle}
-            </h1>
+                </span>
+                {pageTitle}
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-3xl">{pageDescription}</p>
+            </>
           ) : (
-            <h1 className="text-4xl font-bold mb-3">{pageTitle}</h1>
+            <>
+              <h1 className="text-4xl font-bold mb-3">{pageTitle}</h1>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{pageDescription}</p>
+            </>
           )}
-          <p
-            className={cn(
-              'text-lg text-muted-foreground max-w-3xl',
-              view !== 'social' && view !== 'sms' && 'mx-auto',
-            )}
-          >
-            {pageDescription}
-          </p>
         </div>
         {/* Sous-onglets KPIs (Stratégie Social Media) */}
         {view === 'kpiMax' && (
@@ -5602,7 +5684,7 @@ export function Vente2Calculator({
                             </div>
                           )}
 
-                          {/* Prix total — au-dessus des boutons d'export */}
+                          {/* Totaux HT / TTC du bloc actif */}
                           {isActive && hasSummary && (
                             <div className="mb-2 flex-shrink-0 space-y-2">
                               {blockAe > 0 && (
@@ -5640,94 +5722,6 @@ export function Vente2Calculator({
                                 </div>
                               </div>
                             </div>
-                          )}
-
-                          {/* Boutons d'export pour la stratégie active */}
-                          {isActive && (
-                            <div
-                              className={cn(
-                                'grid grid-cols-1 gap-2 flex-shrink-0',
-                                savedStrategyId && savedStrategyIsOwner
-                                  ? 'sm:grid-cols-2 lg:grid-cols-4'
-                                  : 'sm:grid-cols-3',
-                              )}
-                            >
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setValidationTMDialogOpen(true)}
-                                className="w-full"
-                                disabled={!hasSummary}
-                              >
-                                Validation TM
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPdfDialogOpen(true)}
-                                className="w-full"
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                PDF
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleOpenSaveStrategyDialog}
-                                className="w-full"
-                                disabled={!hasSummary || savingStrategy || loadingStrategy}
-                              >
-                                {savingStrategy ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Save className="h-4 w-4 mr-2" />
-                                )}
-                                Sauvegarder
-                              </Button>
-                              {savedStrategyId && savedStrategyIsOwner ? (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleOpenShareStrategyDialog}
-                                  className="w-full"
-                                  disabled={loadingStrategy}
-                                >
-                                  <Share2 className="h-4 w-4 mr-2" />
-                                  Partager
-                                </Button>
-                              ) : null}
-                            </div>
-                          )}
-                          {isActive && loadingStrategy && (
-                            <SavedRecordLoadingBanner
-                              className="mt-3"
-                              variant="inline"
-                              label="Chargement de la stratégie…"
-                              description="Récupération depuis Mon espace."
-                            />
-                          )}
-                          {isActive && !loadingStrategy && savedStrategyId && (
-                            <p className="text-center text-xs text-muted-foreground">
-                              {savedStrategyIsOwner ? (
-                                <>
-                                  Stratégie chargée :{' '}
-                                  <span className="font-medium text-foreground">{savedStrategyName}</span>
-                                  {' '}— modifiez puis réenregistrez pour mettre à jour.
-                                </>
-                              ) : (
-                                <>
-                                  Stratégie partagée
-                                  {savedStrategySharedByName
-                                    ? ` par ${savedStrategySharedByName}`
-                                    : ''}
-                                  :{' '}
-                                  <span className="font-medium text-foreground">{savedStrategyName}</span>
-                                  {' '}— visible dans Mes projets.
-                                </>
-                              )}
-                            </p>
                           )}
                         </>
                       ) : (
