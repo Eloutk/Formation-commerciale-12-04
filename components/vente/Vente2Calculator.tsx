@@ -748,6 +748,9 @@ type PdvSection = 'social' | 'sms' | 'calendar' | 'kpiMax' | 'kpiMax2'
 export type Vente2CalculatorView = 'social' | 'sms' | 'kpiMax' | 'calendar'
 type SmsType = 'sms' | 'rcs'
 
+/** Nombre maximum de blocs stratégie côté Social media. */
+const MAX_STRATEGIES = 10
+
 interface SmsOptionsState {
   ciblage: boolean
   baseClients: boolean
@@ -2637,7 +2640,7 @@ export function Vente2Calculator({
   const [creaByLinkCount, setCreaByLinkCount] = useState<string>('1') // nombre de CREA BY LINK
   const [searchClicsStudyValue, setSearchClicsStudyValue] = useState<string>('') // Search > Clics : valeur selon étude TM
   
-  // État des stratégies (jusqu'à 3)
+  // État des stratégies (jusqu'à MAX_STRATEGIES)
   const [strategies, setStrategies] = useState<StrategyBlock[]>(() => [
     { id: 'strategy-1', name: 'Stratégie 1', items: [] },
   ])
@@ -4922,13 +4925,13 @@ export function Vente2Calculator({
             <div className="flex items-center justify-between mb-1">
               <div className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-[#E94C16]" />
-                Mes stratégies (max 3)
+                Mes stratégies (max {MAX_STRATEGIES})
               </div>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setIsAddingStrategy(true)}
-                disabled={strategies.length >= 3}
+                disabled={strategies.length >= MAX_STRATEGIES}
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Nouvelle stratégie
@@ -4947,7 +4950,7 @@ export function Vente2Calculator({
                   size="sm"
                   className="h-8 bg-[#E94C16] hover:bg-[#d43f12] text-white"
                   onClick={() => {
-                    if (strategies.length >= 3) return
+                    if (strategies.length >= MAX_STRATEGIES) return
                     const name = newStrategyName.trim() || `Stratégie ${strategies.length + 1}`
                     const id = `strategy-${Date.now()}`
                     setStrategies((prev) => [...prev, { id, name, items: [] }])
