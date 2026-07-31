@@ -8,7 +8,24 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save, Share2, MessageSquare, Megaphone, MapPin, Target, User } from "lucide-react"
+import { Calculator, TrendingUp, Plus, Minus, Trash2, Download, FileSpreadsheet, ChevronDown, Calendar, Pencil, CalendarRange, BarChart2, Info, Loader2, Save, Share2, MessageSquare, Megaphone, MapPin, Target, User, GripVertical } from "lucide-react"
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -394,8 +411,6 @@ function CalendarMonthView({
 
 const MAKE_LEADS_OPTION_LABEL = 'Envoi automatique des leads au client via Make'
 const MAKE_LEADS_OPTION_BUDGET = 150
-const MAKE_LEADS_PINK_ROW_CLASS = 'bg-pink-50 text-pink-700 border-pink-200'
-const COMPLEMENTARY_ROW_CLASS = 'bg-violet-50 text-violet-900 border-violet-200'
 
 type AdditionalSaleId =
   | 'miseAuFormat'
@@ -504,6 +519,104 @@ function isMediaStrategyItem(item: Pick<StrategyItem, 'isMakeLeadsAddon'>): bool
 
 function isCampaignMediaItem(item: { isMakeLeadsAddon?: boolean }): boolean {
   return !item.isMakeLeadsAddon
+}
+
+/** Réordonne les plateformes média ; conserve les ventes complémentaires à la fin. */
+function reorderStrategyMediaItems(
+  items: StrategyItem[],
+  activeId: string,
+  overId: string,
+): StrategyItem[] {
+  const media = items.filter(isMediaStrategyItem)
+  const complementary = items.filter(isComplementaryStrategyItem)
+  const oldIndex = media.findIndex((item) => item.id === activeId)
+  const newIndex = media.findIndex((item) => item.id === overId)
+  if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return items
+  return [...arrayMove(media, oldIndex, newIndex), ...complementary]
+}
+
+function SortableStrategyItemRow({
+  item,
+  colorClass,
+  onRemove,
+}: {
+  item: StrategyItem
+  colorClass: string
+  onRemove: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'p-2.5 rounded-lg border flex items-start justify-between gap-2',
+        colorClass,
+        isDragging && 'opacity-90 shadow-md ring-2 ring-[#E94C16]/35 z-10 relative',
+      )}
+    >
+      <button
+        type="button"
+        className="mt-0.5 touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex-shrink-0 rounded p-0.5"
+        aria-label={`Déplacer ${item.platform}`}
+        title="Glisser pour réorganiser"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
+          {item.isMakeLeadsAddon ? (
+            <span className="text-sm font-semibold">{MAKE_LEADS_OPTION_LABEL}</span>
+          ) : (
+            <StrategyPlatformObjectiveLine platform={item.platform} objective={item.objective} />
+          )}
+          {item.tarifsDirection && (
+            <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+              Tarifs direction
+            </span>
+          )}
+        </div>
+        <div className="text-xs font-semibold mt-1">
+          {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
+        </div>
+        {!item.isMakeLeadsAddon && (
+          <>
+            <div className="text-xs text-muted-foreground mt-1">
+              {item.customKpiLabel
+                ? item.customKpiLabel
+                : item.estimatedKPIs > 0
+                  ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}${
+                      item.objective === 'Leads' ? ' (estimation)' : ''
+                    }`
+                  : `${getMaxKpiLabel(item.objective)}${
+                      item.objective === 'Leads' ? ' (estimation)' : ''
+                    }`}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {item.days > 0 && `Diffusion : ${item.days} jour${item.days > 1 ? 's' : ''}`}
+            </div>
+          </>
+        )}
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={onRemove}
+        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  )
 }
 
 function getStrategyBlockBudgetTotal(block: Pick<StrategyBlock, 'items' | 'additionalSales'>): number {
@@ -3313,6 +3426,26 @@ export function Vente2Calculator({
     )
   }
 
+  const strategyItemsDndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleStrategyMediaDragEnd = useCallback((strategyId: string, event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setStrategies((prev) =>
+      prev.map((s) =>
+        s.id === strategyId
+          ? {
+              ...s,
+              items: reorderStrategyMediaItems(s.items, String(active.id), String(over.id)),
+            }
+          : s,
+      ),
+    )
+  }, [])
+
   const setStrategyAdditionalSaleCount = (
     strategyId: string,
     saleId: AdditionalSaleId,
@@ -4853,72 +4986,6 @@ export function Vente2Calculator({
                 maximumFractionDigits: 0,
               })
 
-              const renderStrategyItemRow = (
-                item: StrategyItem,
-                variant: 'media' | 'complementary',
-              ) => {
-                const colorClass =
-                  variant === 'complementary'
-                    ? item.isMakeLeadsAddon
-                      ? MAKE_LEADS_PINK_ROW_CLASS
-                      : COMPLEMENTARY_ROW_CLASS
-                    : getRowColorClass(item.platform, item.aeCheckValue, item.days || 0)
-                return (
-                  <div
-                    key={item.id}
-                    className={`p-2.5 rounded-lg border ${colorClass} flex items-start justify-between gap-2`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
-                        {item.isMakeLeadsAddon ? (
-                          <span className="text-sm font-semibold">{MAKE_LEADS_OPTION_LABEL}</span>
-                        ) : (
-                          <StrategyPlatformObjectiveLine
-                            platform={item.platform}
-                            objective={item.objective}
-                          />
-                        )}
-                        {item.tarifsDirection && (
-                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                            Tarifs direction
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs font-semibold mt-1">
-                        {item.budget.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €
-                      </div>
-                      {!item.isMakeLeadsAddon && (
-                        <>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {item.customKpiLabel
-                              ? item.customKpiLabel
-                              : item.estimatedKPIs > 0
-                                ? `${item.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(item.objective)}${
-                                    item.objective === 'Leads' ? ' (estimation)' : ''
-                                  }`
-                                : `${getMaxKpiLabel(item.objective)}${
-                                    item.objective === 'Leads' ? ' (estimation)' : ''
-                                  }`}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.days > 0 &&
-                              `Diffusion : ${item.days} jour${item.days > 1 ? 's' : ''}`}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeFromStrategy(block.id, item.id)}
-                      className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )
-              }
-
               return (
                 <Card
                   key={block.id}
@@ -5263,14 +5330,38 @@ export function Vente2Calculator({
                             </div>
                           )}
 
-                          {/* Lignes plateformes */}
+                          {/* Lignes plateformes — glisser-déposer pour réorganiser */}
                           <div className="flex-1 overflow-y-auto mb-3 max-h-[280px]">
                             {mediaItems.length > 0 && (
                               <div className="space-y-2">
                                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                                   Plateformes
                                 </p>
-                                {mediaItems.map((item) => renderStrategyItemRow(item, 'media'))}
+                                <DndContext
+                                  sensors={strategyItemsDndSensors}
+                                  collisionDetection={closestCenter}
+                                  onDragEnd={(event) => handleStrategyMediaDragEnd(block.id, event)}
+                                >
+                                  <SortableContext
+                                    items={mediaItems.map((item) => item.id)}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    <div className="space-y-2">
+                                      {mediaItems.map((item) => (
+                                        <SortableStrategyItemRow
+                                          key={item.id}
+                                          item={item}
+                                          colorClass={getRowColorClass(
+                                            item.platform,
+                                            item.aeCheckValue,
+                                            item.days || 0,
+                                          )}
+                                          onRemove={() => removeFromStrategy(block.id, item.id)}
+                                        />
+                                      ))}
+                                    </div>
+                                  </SortableContext>
+                                </DndContext>
                               </div>
                             )}
                           </div>
