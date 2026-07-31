@@ -97,15 +97,13 @@ CREATE POLICY "Users update own or shared vente2 strategies"
   );
 
 -- Recherche de collègues pour le partage (pas soi-même)
--- Cherche dans profiles (nom) + auth.users (email) pour couvrir les comptes sans nom renseigné
--- DROP requis : le type de retour a changé (ajout de email)
+-- Cherche dans profiles.full_name + auth.users.email
 DROP FUNCTION IF EXISTS public.search_colleagues_for_share(TEXT);
 
 CREATE OR REPLACE FUNCTION public.search_colleagues_for_share(search_query TEXT)
 RETURNS TABLE (
   id UUID,
   full_name TEXT,
-  display_name TEXT,
   email TEXT
 )
 LANGUAGE plpgsql
@@ -128,20 +126,17 @@ BEGIN
   SELECT
     u.id,
     p.full_name,
-    p.display_name,
     u.email::text AS email
   FROM auth.users u
   LEFT JOIN public.profiles p ON p.id = u.id
   WHERE u.id <> auth.uid()
     AND (
       COALESCE(p.full_name, '') ILIKE '%' || q || '%'
-      OR COALESCE(p.display_name, '') ILIKE '%' || q || '%'
       OR COALESCE(u.email::text, '') ILIKE '%' || q || '%'
       OR COALESCE(u.raw_user_meta_data->>'full_name', '') ILIKE '%' || q || '%'
     )
   ORDER BY
     COALESCE(
-      NULLIF(trim(p.display_name), ''),
       NULLIF(trim(p.full_name), ''),
       NULLIF(trim(u.raw_user_meta_data->>'full_name'), ''),
       u.email::text
@@ -191,11 +186,7 @@ BEGIN
     CASE WHEN s.user_id = uid THEN NULL ELSE sh.shared_by_user_id END AS shared_by_user_id,
     CASE
       WHEN s.user_id = uid THEN NULL
-      ELSE COALESCE(
-        NULLIF(trim(p.display_name), ''),
-        NULLIF(trim(p.full_name), ''),
-        'Collègue'
-      )
+      ELSE COALESCE(NULLIF(trim(p.full_name), ''), 'Collègue')
     END AS shared_by_name
   FROM public.vente2_strategies s
   LEFT JOIN public.vente2_strategy_shares sh
@@ -241,11 +232,7 @@ BEGIN
     sh.shared_with_user_id,
     sh.shared_by_user_id,
     sh.created_at,
-    COALESCE(
-      NULLIF(trim(p.display_name), ''),
-      NULLIF(trim(p.full_name), ''),
-      'Utilisateur'
-    ) AS shared_with_name
+    COALESCE(NULLIF(trim(p.full_name), ''), 'Utilisateur') AS shared_with_name
   FROM public.vente2_strategy_shares sh
   LEFT JOIN public.profiles p ON p.id = sh.shared_with_user_id
   WHERE sh.strategy_id = p_strategy_id

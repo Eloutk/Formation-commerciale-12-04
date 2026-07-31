@@ -76,7 +76,6 @@ export type Vente2StrategyRecord = {
 export type ColleagueSearchResult = {
   id: string
   full_name: string | null
-  display_name: string | null
   email?: string | null
 }
 
@@ -91,11 +90,9 @@ export type Vente2StrategyShareRecord = {
 
 export function colleagueDisplayName(colleague: {
   full_name?: string | null
-  display_name?: string | null
   email?: string | null
 }): string {
   return (
-    (colleague.display_name || '').trim() ||
     (colleague.full_name || '').trim() ||
     (colleague.email || '').trim() ||
     'Utilisateur'
