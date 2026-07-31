@@ -11,6 +11,8 @@ export type NavMenuItem = {
   cpAdminOnly?: boolean
   /** Encadrement double dans les sous-menus (ex. Mes projets). */
   doubleBorder?: boolean
+  /** Badge notification (ex. partages non vus). */
+  badgeCount?: number
 }
 
 export type NavMenuGroup = {
@@ -172,13 +174,18 @@ export function withActiveMonEspaceItems(
   searchParams?: NavSearchParams,
   isAdmin = false,
   role: UserRole | null = null,
+  sharedBadgeCount = 0,
 ): NavMenuItem[] {
   const mesProjetsActive = isMesProjetsNavContext(pathname, searchParams)
 
   return filterNavItemsByAdmin(
     MON_ESPACE_LINKS.map((item) => {
       if (item.href === MON_ESPACE_MES_PROJETS_HREF) {
-        return { ...item, isActive: mesProjetsActive }
+        return {
+          ...item,
+          isActive: mesProjetsActive,
+          badgeCount: sharedBadgeCount > 0 ? sharedBadgeCount : undefined,
+        }
       }
       if (mesProjetsActive) {
         return { ...item, isActive: false }

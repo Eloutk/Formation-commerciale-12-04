@@ -15,7 +15,7 @@ const childButtonClassName = (
   doubleBorder?: boolean,
 ) =>
   cn(
-    'rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/80 active:bg-accent',
+    'flex items-center justify-between gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/80 active:bg-accent',
     doubleBorder &&
       cn(
         'my-0.5 border-2 border-double',
@@ -30,6 +30,18 @@ const childButtonClassName = (
             : 'font-medium text-orange-600'),
   )
 
+function NavBadge({ count }: { count?: number }) {
+  if (!count || count <= 0) return null
+  return (
+    <span
+      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#E94C16] px-1.5 text-[10px] font-bold leading-none text-white"
+      aria-label={`${count} partage${count > 1 ? 's' : ''} non vu${count > 1 ? 's' : ''}`}
+    >
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 export function MobileNavMenu({
   label,
   active,
@@ -37,6 +49,7 @@ export function MobileNavMenu({
   items,
   groups = [],
   onNavigate,
+  badgeCount,
 }: {
   label: string
   active?: boolean
@@ -44,6 +57,7 @@ export function MobileNavMenu({
   items: NavMenuItem[]
   groups?: NavMenuGroup[]
   onNavigate?: () => void
+  badgeCount?: number
 }) {
   const [open, setOpen] = React.useState(false)
   const router = useRouter()
@@ -72,7 +86,10 @@ export function MobileNavMenu({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
-        {label}
+        <span className="inline-flex items-center gap-1.5">
+          {label}
+          <NavBadge count={badgeCount} />
+        </span>
         <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
       </button>
       {open ? (
@@ -89,7 +106,8 @@ export function MobileNavMenu({
               className={childButtonClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
               onClick={() => handleSelect(item.href)}
             >
-              {item.label}
+              <span>{item.label}</span>
+              <NavBadge count={item.badgeCount} />
             </button>
           ))}
           {groups.map((group) => (
@@ -105,7 +123,8 @@ export function MobileNavMenu({
                     className={childButtonClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
                     onClick={() => handleSelect(item.href)}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    <NavBadge count={item.badgeCount} />
                   </button>
                 ))}
               </div>

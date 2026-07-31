@@ -28,7 +28,7 @@ const itemClassName = (
   doubleBorder?: boolean,
 ) =>
   cn(
-    'flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
+    'flex w-full cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent',
     doubleBorder &&
       cn(
         'my-1 border-2 border-double',
@@ -43,6 +43,18 @@ const itemClassName = (
             : 'bg-orange-50 text-orange-700'),
   )
 
+function NavBadge({ count }: { count?: number }) {
+  if (!count || count <= 0) return null
+  return (
+    <span
+      className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#E94C16] px-1.5 text-[10px] font-bold leading-none text-white"
+      aria-label={`${count} partage${count > 1 ? 's' : ''} non vu${count > 1 ? 's' : ''}`}
+    >
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
 export function HeaderNavMenu({
   label,
   active,
@@ -51,6 +63,7 @@ export function HeaderNavMenu({
   groups = [],
   contentClassName = 'w-56',
   align = 'start',
+  badgeCount,
 }: {
   label: string
   active?: boolean
@@ -59,6 +72,7 @@ export function HeaderNavMenu({
   groups?: NavMenuGroup[]
   contentClassName?: string
   align?: 'start' | 'end'
+  badgeCount?: number
 }) {
   const router = useRouter()
 
@@ -73,7 +87,10 @@ export function HeaderNavMenu({
         className={triggerClassName(accent, active)}
         aria-haspopup="menu"
       >
-        {label}
+        <span className="inline-flex items-center gap-1.5">
+          {label}
+          <NavBadge count={badgeCount} />
+        </span>
         <ChevronDown
           className="h-3.5 w-3.5 opacity-70 transition-transform duration-200 group-hover/nav-menu:rotate-180 group-focus-within/nav-menu:rotate-180"
           aria-hidden
@@ -104,7 +121,8 @@ export function HeaderNavMenu({
               className={itemClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
               onClick={() => handleSelect(item.href)}
             >
-              {item.label}
+              <span>{item.label}</span>
+              <NavBadge count={item.badgeCount} />
             </button>
           ))}
           {groups.map((group) => (
@@ -121,7 +139,8 @@ export function HeaderNavMenu({
                   className={itemClassName(item.isActive, item.adminOnly, accent, item.doubleBorder)}
                   onClick={() => handleSelect(item.href)}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  <NavBadge count={item.badgeCount} />
                 </button>
               ))}
             </div>

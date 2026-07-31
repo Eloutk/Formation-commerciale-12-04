@@ -821,6 +821,12 @@ export default function MonEspacePage() {
                       <code>supabase/vente2-strategy-shares.sql</code>
                     </li>
                     <li>
+                      <code>supabase/vente2-strategy-shares-search-fix.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/vente2-strategy-shares-notif.sql</code>
+                    </li>
+                    <li>
                       <code>supabase/sms-devis.sql</code>
                     </li>
                     <li>

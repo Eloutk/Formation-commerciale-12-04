@@ -205,3 +205,20 @@ export async function leaveVente2StrategyShare(strategyId: string): Promise<void
 
   if (error) throw new Error(error.message)
 }
+
+export async function countUnseenVente2StrategyShares(): Promise<number> {
+  const { data, error } = await supabase.rpc('count_unseen_vente2_strategy_shares')
+  if (error) {
+    // SQL not deployed yet — ignore silently
+    return 0
+  }
+  const n = typeof data === 'number' ? data : Number(data)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+}
+
+export async function markVente2StrategySharesSeen(): Promise<void> {
+  const { error } = await supabase.rpc('mark_vente2_strategy_shares_seen')
+  if (error) {
+    // SQL not deployed yet — ignore silently
+  }
+}
