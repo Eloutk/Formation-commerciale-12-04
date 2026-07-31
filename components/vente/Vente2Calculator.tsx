@@ -72,10 +72,15 @@ import {
   getSmsDevisById,
   updateSmsDevis,
 } from '@/lib/sms-devis-storage'
-import type { Vente2StrategyContent } from '@/lib/vente2-strategies'
+import type { ColleagueSearchResult, Vente2StrategyContent } from '@/lib/vente2-strategies'
+import { colleagueDisplayName } from '@/lib/vente2-strategies'
 import {
   createVente2Strategy,
   getVente2StrategyById,
+  listStrategyShares,
+  revokeVente2StrategyShare,
+  searchColleaguesForShare,
+  shareVente2Strategy,
   updateVente2Strategy,
 } from '@/lib/vente2-strategies-storage'
 import {
@@ -2870,10 +2875,20 @@ export function Vente2Calculator({
   const [loadingDevis, setLoadingDevis] = useState(false)
   const [savedStrategyId, setSavedStrategyId] = useState<string | null>(null)
   const [savedStrategyName, setSavedStrategyName] = useState('')
+  const [savedStrategyIsOwner, setSavedStrategyIsOwner] = useState(true)
+  const [savedStrategySharedByName, setSavedStrategySharedByName] = useState<string | null>(null)
   const [saveStrategyDialogOpen, setSaveStrategyDialogOpen] = useState(false)
   const [saveStrategyNameInput, setSaveStrategyNameInput] = useState('')
   const [savingStrategy, setSavingStrategy] = useState(false)
   const [loadingStrategy, setLoadingStrategy] = useState(false)
+  const [shareStrategyDialogOpen, setShareStrategyDialogOpen] = useState(false)
+  const [shareSearchQuery, setShareSearchQuery] = useState('')
+  const [shareSearchResults, setShareSearchResults] = useState<ColleagueSearchResult[]>([])
+  const [shareSearchLoading, setShareSearchLoading] = useState(false)
+  const [shareExisting, setShareExisting] = useState<
+    Awaited<ReturnType<typeof listStrategyShares>>
+  >([])
+  const [shareActionLoading, setShareActionLoading] = useState(false)
   
   // État pour la modale Validation TM
   const [validationTMDialogOpen, setValidationTMDialogOpen] = useState(false)
@@ -3176,6 +3191,8 @@ export function Vente2Calculator({
         applySocialStrategyContent(record.content)
         setSavedStrategyId(record.id)
         setSavedStrategyName(record.name)
+        setSavedStrategyIsOwner(record.is_owner !== false)
+        setSavedStrategySharedByName(record.shared_by_name ?? null)
       })
       .catch((e) => {
         if (!cancelled) {
@@ -4150,6 +4167,8 @@ export function Vente2Calculator({
           })
       setSavedStrategyId(record.id)
       setSavedStrategyName(record.name)
+      setSavedStrategyIsOwner(record.is_owner !== false)
+      setSavedStrategySharedByName(null)
       setSaveStrategyDialogOpen(false)
       router.replace(`${VENTE2_SOCIAL_HREF}?strategy=${record.id}`)
       alert(
@@ -4165,6 +4184,89 @@ export function Vente2Calculator({
       alert(message)
     } finally {
       setSavingStrategy(false)
+    }
+  }
+
+  const refreshStrategyShares = useCallback(async (strategyId: string) => {
+    try {
+      const shares = await listStrategyShares(strategyId)
+      setShareExisting(shares)
+    } catch {
+      setShareExisting([])
+    }
+  }, [])
+
+  const handleOpenShareStrategyDialog = () => {
+    if (!savedStrategyId) {
+      alert('Enregistrez d’abord la stratégie avant de la partager.')
+      return
+    }
+    if (!savedStrategyIsOwner) {
+      alert('Seul le propriétaire peut partager cette stratégie.')
+      return
+    }
+    setShareSearchQuery('')
+    setShareSearchResults([])
+    setShareStrategyDialogOpen(true)
+    void refreshStrategyShares(savedStrategyId)
+  }
+
+  useEffect(() => {
+    if (!shareStrategyDialogOpen) return
+    const q = shareSearchQuery.trim()
+    if (q.length < 2) {
+      setShareSearchResults([])
+      setShareSearchLoading(false)
+      return
+    }
+    let cancelled = false
+    setShareSearchLoading(true)
+    const timer = window.setTimeout(() => {
+      void searchColleaguesForShare(q)
+        .then((results) => {
+          if (!cancelled) setShareSearchResults(results)
+        })
+        .catch(() => {
+          if (!cancelled) setShareSearchResults([])
+        })
+        .finally(() => {
+          if (!cancelled) setShareSearchLoading(false)
+        })
+    }, 250)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [shareSearchQuery, shareStrategyDialogOpen])
+
+  const handleShareWithColleague = async (colleague: ColleagueSearchResult) => {
+    if (!savedStrategyId) return
+    setShareActionLoading(true)
+    try {
+      await shareVente2Strategy({
+        strategyId: savedStrategyId,
+        sharedWithUserId: colleague.id,
+      })
+      await refreshStrategyShares(savedStrategyId)
+      setShareSearchQuery('')
+      setShareSearchResults([])
+      alert(`${colleagueDisplayName(colleague)} peut maintenant voir cette stratégie dans Mes projets.`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Impossible de partager la stratégie.')
+    } finally {
+      setShareActionLoading(false)
+    }
+  }
+
+  const handleRevokeStrategyShare = async (shareId: string) => {
+    setShareActionLoading(true)
+    try {
+      await revokeVente2StrategyShare(shareId)
+      if (savedStrategyId) await refreshStrategyShares(savedStrategyId)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Impossible de retirer le partage.')
+    } finally {
+      setShareActionLoading(false)
     }
   }
 
@@ -5542,7 +5644,14 @@ export function Vente2Calculator({
 
                           {/* Boutons d'export pour la stratégie active */}
                           {isActive && (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-shrink-0">
+                            <div
+                              className={cn(
+                                'grid grid-cols-1 gap-2 flex-shrink-0',
+                                savedStrategyId && savedStrategyIsOwner
+                                  ? 'sm:grid-cols-2 lg:grid-cols-4'
+                                  : 'sm:grid-cols-3',
+                              )}
+                            >
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -5576,6 +5685,19 @@ export function Vente2Calculator({
                                 )}
                                 Sauvegarder
                               </Button>
+                              {savedStrategyId && savedStrategyIsOwner ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleOpenShareStrategyDialog}
+                                  className="w-full"
+                                  disabled={loadingStrategy}
+                                >
+                                  <Share2 className="h-4 w-4 mr-2" />
+                                  Partager
+                                </Button>
+                              ) : null}
                             </div>
                           )}
                           {isActive && loadingStrategy && (
@@ -5588,9 +5710,23 @@ export function Vente2Calculator({
                           )}
                           {isActive && !loadingStrategy && savedStrategyId && (
                             <p className="text-center text-xs text-muted-foreground">
-                              Stratégie chargée :{' '}
-                              <span className="font-medium text-foreground">{savedStrategyName}</span>
-                              {' '}— modifiez puis réenregistrez pour mettre à jour.
+                              {savedStrategyIsOwner ? (
+                                <>
+                                  Stratégie chargée :{' '}
+                                  <span className="font-medium text-foreground">{savedStrategyName}</span>
+                                  {' '}— modifiez puis réenregistrez pour mettre à jour.
+                                </>
+                              ) : (
+                                <>
+                                  Stratégie partagée
+                                  {savedStrategySharedByName
+                                    ? ` par ${savedStrategySharedByName}`
+                                    : ''}
+                                  :{' '}
+                                  <span className="font-medium text-foreground">{savedStrategyName}</span>
+                                  {' '}— visible dans Mes projets.
+                                </>
+                              )}
                             </p>
                           )}
                         </>
@@ -7834,7 +7970,9 @@ export function Vente2Calculator({
               {savedStrategyId ? 'Mettre à jour la stratégie' : 'Enregistrer la stratégie'}
             </DialogTitle>
             <DialogDescription>
-              La stratégie sera sauvegardée dans votre espace personnel. Seul vous pourrez y accéder.
+              {savedStrategyId
+                ? 'La stratégie sera mise à jour dans Mon espace. Vous pourrez ensuite la partager avec un collègue.'
+                : 'La stratégie sera sauvegardée dans votre espace personnel. Vous pourrez ensuite la partager.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -7863,6 +8001,112 @@ export function Vente2Calculator({
                 <Save className="h-4 w-4 mr-2" />
               )}
               {savedStrategyId ? 'Mettre à jour' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modale partage stratégie avec un collègue */}
+      <Dialog
+        open={shareStrategyDialogOpen}
+        onOpenChange={(open) => {
+          setShareStrategyDialogOpen(open)
+          if (!open) {
+            setShareSearchQuery('')
+            setShareSearchResults([])
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Partager la stratégie</DialogTitle>
+            <DialogDescription>
+              Donnez accès à « {savedStrategyName || 'cette stratégie'} ». La personne la verra dans
+              Mes projets → Calculateur de vente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="share-colleague-search">Rechercher un collègue</Label>
+              <Input
+                id="share-colleague-search"
+                placeholder="Nom (ex. Martin)…"
+                value={shareSearchQuery}
+                onChange={(e) => setShareSearchQuery(e.target.value)}
+                autoComplete="off"
+              />
+              {shareSearchLoading ? (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Recherche…
+                </p>
+              ) : null}
+              {shareSearchQuery.trim().length >= 2 && !shareSearchLoading ? (
+                shareSearchResults.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Aucun collègue trouvé.</p>
+                ) : (
+                  <ul className="rounded-md border divide-y max-h-48 overflow-y-auto">
+                    {shareSearchResults.map((colleague) => {
+                      const alreadyShared = shareExisting.some(
+                        (s) => s.shared_with_user_id === colleague.id,
+                      )
+                      return (
+                        <li
+                          key={colleague.id}
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                        >
+                          <span className="min-w-0 truncate font-medium">
+                            {colleagueDisplayName(colleague)}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={alreadyShared ? 'secondary' : 'outline'}
+                            disabled={alreadyShared || shareActionLoading}
+                            onClick={() => void handleShareWithColleague(colleague)}
+                          >
+                            {alreadyShared ? 'Déjà partagé' : 'Partager'}
+                          </Button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
+              ) : shareSearchQuery.trim().length > 0 && shareSearchQuery.trim().length < 2 ? (
+                <p className="text-xs text-muted-foreground">Saisissez au moins 2 caractères.</p>
+              ) : null}
+            </div>
+
+            {shareExisting.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Déjà partagé avec</Label>
+                <ul className="rounded-md border divide-y">
+                  {shareExisting.map((share) => (
+                    <li
+                      key={share.id}
+                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                    >
+                      <span className="min-w-0 truncate">
+                        {share.shared_with_name || 'Utilisateur'}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        disabled={shareActionLoading}
+                        onClick={() => void handleRevokeStrategyShare(share.id)}
+                      >
+                        Retirer
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShareStrategyDialogOpen(false)}>
+              Fermer
             </Button>
           </DialogFooter>
         </DialogContent>

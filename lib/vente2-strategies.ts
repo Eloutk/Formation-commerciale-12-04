@@ -67,6 +67,36 @@ export type Vente2StrategyRecord = {
   content: Vente2StrategyContent
   created_at: string
   updated_at: string
+  /** true si l'utilisateur courant est le propriétaire (absent = traité comme propriétaire). */
+  is_owner?: boolean
+  shared_by_user_id?: string | null
+  shared_by_name?: string | null
+}
+
+export type ColleagueSearchResult = {
+  id: string
+  full_name: string | null
+  display_name: string | null
+}
+
+export type Vente2StrategyShareRecord = {
+  id: string
+  strategy_id: string
+  shared_with_user_id: string
+  shared_by_user_id: string
+  created_at: string
+  shared_with_name?: string | null
+}
+
+export function colleagueDisplayName(colleague: {
+  full_name?: string | null
+  display_name?: string | null
+}): string {
+  return (
+    (colleague.display_name || '').trim() ||
+    (colleague.full_name || '').trim() ||
+    'Utilisateur'
+  )
 }
 
 const ADDITIONAL_SALE_UNIT_PRICES: Record<string, number> = {

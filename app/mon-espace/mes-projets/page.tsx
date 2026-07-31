@@ -64,6 +64,7 @@ import {
 } from '@/lib/sms-devis-storage'
 import {
   deleteVente2Strategy,
+  leaveVente2StrategyShare,
   listUserVente2Strategies,
 } from '@/lib/vente2-strategies-storage'
 import {
@@ -588,7 +589,11 @@ export default function MonEspacePage() {
     if (!deleteStrategyTarget) return
     setActionId(deleteStrategyTarget.id)
     try {
-      await deleteVente2Strategy(deleteStrategyTarget.id)
+      if (deleteStrategyTarget.is_owner === false) {
+        await leaveVente2StrategyShare(deleteStrategyTarget.id)
+      } else {
+        await deleteVente2Strategy(deleteStrategyTarget.id)
+      }
       setDeleteStrategyTarget(null)
       await loadStrategies()
     } catch (e) {
@@ -811,6 +816,9 @@ export default function MonEspacePage() {
                   <ol className="mt-2 list-decimal list-inside text-muted-foreground space-y-1 text-xs sm:text-sm">
                     <li>
                       <code>supabase/vente2-strategies.sql</code>
+                    </li>
+                    <li>
+                      <code>supabase/vente2-strategy-shares.sql</code>
                     </li>
                     <li>
                       <code>supabase/sms-devis.sql</code>
@@ -1176,7 +1184,7 @@ export default function MonEspacePage() {
             ) : strategiesError ? (
               <MonEspaceLoadError
                 message={strategiesError}
-                sqlFile="supabase/vente2-strategies.sql"
+                sqlFile="supabase/vente2-strategies.sql puis vente2-strategy-shares.sql"
               />
             ) : filteredStrategies.length === 0 ? (
               <div className="rounded-xl border border-dashed py-12 text-center text-muted-foreground">
@@ -1208,7 +1216,18 @@ export default function MonEspacePage() {
                     {strategiesPagination.items.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell className="min-w-0 truncate" title={row.name}>
-                          {row.name}
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <span className="truncate">{row.name}</span>
+                            {row.is_owner === false ? (
+                              <Badge
+                                variant="secondary"
+                                className="w-fit font-normal text-[10px]"
+                              >
+                                Partagé
+                                {row.shared_by_name ? ` par ${row.shared_by_name}` : ''}
+                              </Badge>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="min-w-0">
                           <Badge variant="outline" className="font-normal whitespace-normal text-left">
@@ -1249,7 +1268,11 @@ export default function MonEspacePage() {
                               className="h-8 w-8 text-destructive hover:text-destructive"
                               disabled={actionId === row.id}
                               onClick={() => setDeleteStrategyTarget(row)}
-                              aria-label={`Supprimer ${row.name}`}
+                              aria-label={
+                                row.is_owner === false
+                                  ? `Retirer ${row.name}`
+                                  : `Supprimer ${row.name}`
+                              }
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -2018,10 +2041,23 @@ export default function MonEspacePage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette stratégie ?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteStrategyTarget?.is_owner === false
+                ? 'Retirer cette stratégie partagée ?'
+                : 'Supprimer cette stratégie ?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              « {deleteStrategyTarget?.name} » sera définitivement supprimée de votre espace
-              personnel. Cette action est irréversible.
+              {deleteStrategyTarget?.is_owner === false ? (
+                <>
+                  « {deleteStrategyTarget?.name} » disparaîtra de votre liste Mes projets. La
+                  stratégie d’origine ne sera pas supprimée chez le propriétaire.
+                </>
+              ) : (
+                <>
+                  « {deleteStrategyTarget?.name} » sera définitivement supprimée de votre espace
+                  personnel. Cette action est irréversible.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2030,7 +2066,7 @@ export default function MonEspacePage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => void handleDeleteStrategy()}
             >
-              Supprimer
+              {deleteStrategyTarget?.is_owner === false ? 'Retirer' : 'Supprimer'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
