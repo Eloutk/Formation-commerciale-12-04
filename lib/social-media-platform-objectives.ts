@@ -5,6 +5,7 @@ export const PLATFORMS_ORDER = [
   'Display',
   'Perf max',
   'Demand Gen',
+  'TF1+',
   'Search',
   'Insta only',
   'Facebook only',
@@ -44,13 +45,16 @@ export const LINKEDIN_CUSTOM_OBJECTIVES = ['Impressions', 'Clics', 'Leads', 'Lik
 export const SEARCH_CUSTOM_OBJECTIVES = ['Clics', 'Conversion'] as const
 
 export const PERF_MAX_OBJECTIVES = ['Conversion'] as const
+export const DEMAND_GEN_OBJECTIVES = ['Clics'] as const
+export const TF1_PLUS_OBJECTIVES = ['Sur demande'] as const
 
 export const CUSTOM_OBJECTIVES: Record<SocialMediaPlatform, readonly string[]> = {
   META: META_CUSTOM_OBJECTIVES,
   'Facebook only': META_CUSTOM_OBJECTIVES,
   Display: DEFAULT_CUSTOM_OBJECTIVES,
   'Perf max': PERF_MAX_OBJECTIVES,
-  'Demand Gen': DEFAULT_CUSTOM_OBJECTIVES,
+  'Demand Gen': DEMAND_GEN_OBJECTIVES,
+  'TF1+': TF1_PLUS_OBJECTIVES,
   Search: SEARCH_CUSTOM_OBJECTIVES,
   'Insta only': INSTA_CUSTOM_OBJECTIVES,
   Youtube: ['Impressions'],

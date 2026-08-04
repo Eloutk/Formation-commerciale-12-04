@@ -318,6 +318,25 @@ export default function ArchitectureCampagnes() {
                     <span className="font-semibold text-blue-700">À retenir :</span> <br />
                     Une bonne organisation permet de tester différentes cibles tout en gardant un message adapté à chacune.
                   </div>
+
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="bg-muted/30 p-6 rounded-lg border">
+                      <h3 className="text-lg font-semibold text-primary mb-3">Focus Performance Max</h3>
+                      <ul className="list-disc list-inside space-y-2">
+                        <li>La campagne repose sur un pack d’assets centralisé plutôt que sur une seule annonce figée.</li>
+                        <li>Il faut prévoir les 3 ratios image, les logos et au moins une base de wording complète.</li>
+                        <li>Les vidéos passent par des liens YouTube et complètent les assets, sans remplacer les visuels image.</li>
+                      </ul>
+                    </div>
+                    <div className="bg-muted/30 p-6 rounded-lg border">
+                      <h3 className="text-lg font-semibold text-primary mb-3">Focus Gen Ads</h3>
+                      <ul className="list-disc list-inside space-y-2">
+                        <li>La structure créative doit être pensée dès le départ en mode image ou en mode vidéo.</li>
+                        <li>Les déclinaisons carré, vertical et horizontal restent nécessaires pour la diffusion.</li>
+                        <li>Le logo, le titre long, le titre court, la description et le CTA constituent le socle minimum à livrer.</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

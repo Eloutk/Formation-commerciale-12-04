@@ -4854,13 +4854,20 @@ export function Vente2Calculator({
               <div className="space-y-4">
                 {selectedPlatforms.map((platform) => {
                   const platformRows = groupedByPlatform[platform] || []
-                  const onlyCustomRow = platform === 'Perf max' || platform === 'Demand Gen' || platform === 'Search'
+                  const isTf1Plus = platform === 'TF1+'
+                  const onlyCustomRow =
+                    platform === 'Perf max' ||
+                    platform === 'Demand Gen' ||
+                    platform === 'Search' ||
+                    isTf1Plus
                   if (!onlyCustomRow && platformRows.length === 0) return null
 
                   const customRaw = customRows[platform] ?? { objective: '', budget: '' }
                   const custom =
                     platform === 'Perf max'
                       ? { ...customRaw, objective: 'Conversion' }
+                      : isTf1Plus
+                        ? { ...customRaw, objective: '' }
                       : customRaw
                   const daysNum = parseFloat(diffusionDays) || 14
                   const mainValueNum = parseFloat(mainValue) || 0
@@ -5026,15 +5033,12 @@ export function Vente2Calculator({
                                 <TableCell>
                                   {platform === 'Perf max' ? (
                                     <span className="text-[11px] font-medium">Conversion</span>
+                                  ) : isTf1Plus ? (
+                                    <span className="text-[11px] font-medium italic text-muted-foreground">
+                                      Sur demande
+                                    </span>
                                   ) : platform === 'Demand Gen' ? (
-                                    <EditableInput
-                                      value={custom.objective}
-                                      onChange={(e) =>
-                                        handleCustomRowChange(platform, 'objective', e.target.value)
-                                      }
-                                      placeholder="Objectif (ex : conversions e-commerce)"
-                                      className="h-7 w-full px-2 text-[11px] rounded-sm border-gray-300 bg-white shadow-none focus:ring-0 focus:ring-offset-0"
-                                    />
+                                    <span className="text-[11px] font-medium">Clics</span>
                                   ) : (
                                     <Select
                                       value={custom.objective}
@@ -5069,6 +5073,10 @@ export function Vente2Calculator({
                                 <TableCell className="text-right text-xs">
                                   {platform === 'Perf max' ? (
                                     <>Max de conversion</>
+                                  ) : isTf1Plus ? (
+                                    <span className="italic text-muted-foreground">Sur demande</span>
+                                  ) : platform === 'Demand Gen' ? (
+                                    <>Max de clics</>
                                   ) : custom.objective ? (
                                     `${getMaxKpiLabel(custom.objective)}${
                                       custom.objective === 'Leads' ? ' (estimation)' : ''
@@ -5086,7 +5094,7 @@ export function Vente2Calculator({
                                     : '—'}
                                 </TableCell>
                                 <TableCell>
-                                  {!isCustomInStrategy && customBudgetNum > 0 && custom.objective && (
+                                  {!isTf1Plus && !isCustomInStrategy && customBudgetNum > 0 && custom.objective && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
@@ -5103,7 +5111,9 @@ export function Vente2Calculator({
                                           customKpiLabel:
                                             platform === 'Perf max'
                                               ? 'Max de conversion'
-                                              : undefined,
+                                              : platform === 'Demand Gen'
+                                                ? 'Max de clics'
+                                                : undefined,
                                         })
                                       }
                                       className="h-8 w-8 p-0"

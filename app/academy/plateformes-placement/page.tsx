@@ -314,7 +314,7 @@ export default function PlateformesPlacement() {
             <Card>
               <CardHeader>
                 <CardTitle>Google Ads</CardTitle>
-                <CardDescription>Publicités Search, Display et YouTube</CardDescription>
+                <CardDescription>Publicités Search, Display, YouTube, Performance Max et Gen Ads</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="mb-6 space-y-2">
@@ -329,10 +329,12 @@ export default function PlateformesPlacement() {
                   </ul>
                 </div>
                 <Tabs defaultValue="search">
-                  <TabsList className="mb-4">
+                  <TabsList className="mb-4 grid w-full grid-cols-2 md:grid-cols-5">
                     <TabsTrigger value="search">Search</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
+                    <TabsTrigger value="perf-max">Perf Max</TabsTrigger>
+                    <TabsTrigger value="gen-ads">Gen Ads</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="search">
@@ -483,6 +485,80 @@ export default function PlateformesPlacement() {
                             className="w-full h-auto"
                           />
                         </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="perf-max">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Google Performance Max</h3>
+                      </div>
+                      <p>
+                        Performance Max diffuse sur plusieurs environnements Google avec une logique d’assets à fournir
+                        plutôt qu’un seul format figé.
+                      </p>
+                      <div className="border rounded-md bg-white p-4">
+                        <h4 className="font-medium mb-2">Pré-requis créatifs</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>1 visuel image décliné en carré, vertical et horizontal.</li>
+                          <li>Logo carré et logo bannière obligatoires.</li>
+                          <li>Vidéo via lien YouTube uniquement, jusqu’à 5 liens.</li>
+                          <li>La diffusion 100 % vidéo n’est pas possible sans visuels image.</li>
+                        </ul>
+                      </div>
+                      <div className="border rounded-md bg-white p-4">
+                        <h4 className="font-medium mb-2">Wordings attendus</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>3 titres minimum, jusqu’à 15.</li>
+                          <li>1 titre long minimum, jusqu’à 5.</li>
+                          <li>2 descriptions minimum, jusqu’à 5.</li>
+                          <li>Nom d’entreprise, numéro de téléphone, info-bulles, liens annexes et 1 CTA.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="gen-ads">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-medium">Google Génération de la demande</h3>
+                      </div>
+                      <p>
+                        Gen Ads est pensé pour des campagnes de découverte avec un kit créatif plus resserré et une
+                        séparation nette entre scénarios image et vidéo.
+                      </p>
+                      <div className="border rounded-md bg-white p-4">
+                        <h4 className="font-medium mb-2">Pré-requis créatifs</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>Campagne en images ou en vidéos, avec formats carré, vertical et horizontal.</li>
+                          <li>1 logo carré obligatoire.</li>
+                          <li>Jusqu’à 20 images ou 5 vidéos selon le type de campagne.</li>
+                          <li>Impossible de mixer images et vidéos dans une même campagne.</li>
+                        </ul>
+                      </div>
+                      <div className="border rounded-md bg-white p-4">
+                        <h4 className="font-medium mb-2">Wordings attendus</h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          <li>1 titre long minimum, jusqu’à 5.</li>
+                          <li>1 titre court minimum, jusqu’à 5.</li>
+                          <li>1 description minimum, jusqu’à 5.</li>
+                          <li>Nom d’entreprise et 1 CTA obligatoires.</li>
+                        </ul>
                       </div>
                     </div>
                   </TabsContent>

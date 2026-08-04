@@ -28,6 +28,22 @@ export async function middleware(req: NextRequest) {
   })
   res.headers.set('x-pathname', pathname)
 
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/robots') ||
+    pathname.startsWith('/sitemap') ||
+    isPublicStaticAsset(pathname)
+  ) {
+    return res
+  }
+
+  const isPublicPage = isPublicAuthPage(pathname)
+
+  if (isPublicPage) {
+    return res
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
@@ -66,18 +82,6 @@ export async function middleware(req: NextRequest) {
     redirectUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(redirectUrl)
   }
-
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/robots') ||
-    pathname.startsWith('/sitemap') ||
-    isPublicStaticAsset(pathname)
-  ) {
-    return res
-  }
-
-  const isPublicPage = isPublicAuthPage(pathname)
 
   if (!user && !isPublicPage) {
     const redirectUrl = req.nextUrl.clone()

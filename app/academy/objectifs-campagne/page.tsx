@@ -223,10 +223,12 @@ export default function ObjectifsCampagne() {
                   </p>
                 </div>
                 <Tabs defaultValue="google-search" className="w-full">
-                  <TabsList className="mb-4 grid grid-cols-3">
+                  <TabsList className="mb-4 grid grid-cols-2 md:grid-cols-5">
                     <TabsTrigger value="google-search">Search</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
+                    <TabsTrigger value="perf-max">Perf Max</TabsTrigger>
+                    <TabsTrigger value="gen-ads">Gen Ads</TabsTrigger>
                   </TabsList>
                   <TabsContent value="google-search">
                     <div className="space-y-4">
@@ -289,6 +291,60 @@ export default function ObjectifsCampagne() {
                           <li><span className="font-medium">Notoriété :</span> Toucher une audience élargie et renforcer la notoriété de votre marque</li>
                           <li><span className="font-medium">Trafic :</span> Attirer sur votre site Web les personnes intéressées par vos produits ou services</li>
                           <li><span className="font-medium">Conversion :</span> Générer de la conversion (ventes en ligne, chiffre d'affaires, formulaires...)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="perf-max">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-semibold">Performance Max</h3>
+                      </div>
+                      <p>
+                        Performance Max est utilisé côté Link comme campagne orientée conversion, avec une logique de
+                        diffusion automatisée sur plusieurs inventaires Google.
+                      </p>
+                      <div>
+                        <h4 className="text-md font-semibold mt-4">Objectif principal retenu :</h4>
+                        <ul className="list-disc list-inside mt-2 space-y-2">
+                          <li>
+                            <span className="font-medium">Conversion :</span> générer des actions à forte valeur sur le
+                            site (achat, lead, prise de contact, inscription).
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="gen-ads">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/images/Logo Google.png"
+                          alt="Logo Google"
+                          width={32}
+                          height={32}
+                          className="rounded-sm"
+                        />
+                        <h3 className="text-lg font-semibold">Gen Ads</h3>
+                      </div>
+                      <p>
+                        Gen Ads sert surtout à travailler la considération et le trafic qualifié, avec des assets
+                        créatifs pensés pour capter l’attention sur les environnements Google visuels.
+                      </p>
+                      <div>
+                        <h4 className="text-md font-semibold mt-4">Objectif principal retenu :</h4>
+                        <ul className="list-disc list-inside mt-2 space-y-2">
+                          <li>
+                            <span className="font-medium">Trafic :</span> générer un maximum de clics et de visites vers
+                            le site ou la landing page.
+                          </li>
                         </ul>
                       </div>
                     </div>
