@@ -48,6 +48,11 @@ import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/r
 import supabase from '@/utils/supabase/client'
 import NextImage from 'next/image'
 import { StrategyCalendarBuilder } from '@/app/vente/calendar/StrategyCalendarBuilder'
+import {
+  StrategyPlatformDatesDialog,
+  type StrategyPlatformDateRow,
+} from '@/components/vente/StrategyPlatformDatesDialog'
+import { daysInclusive, formatIsoLocal } from '@/lib/date-local'
 import { RetroPlanningPanel } from '@/app/vente/calendar/RetroPlanningPanel'
 import { useCalendarStore } from '@/app/vente/calendar/store'
 import {
@@ -2737,11 +2742,6 @@ export function Vente2Calculator({
   const [calendarPhasesMenuPlatform, setCalendarPhasesMenuPlatform] = useState<string | null>(null)
   const [calendarDragging, setCalendarDragging] = useState(false)
   const [calendarNewPhaseName, setCalendarNewPhaseName] = useState('')
-  /** Plage d’affichage du calendrier stratégique (modale Social) — aligné sur /vente */
-  const [calendarDisplayStart, setCalendarDisplayStart] = useState('')
-  const [calendarDisplayDuration, setCalendarDisplayDuration] = useState(90)
-  const strategyCalendarModalInitRef = useRef(false)
-
   // Ligne personnalisable par plateforme
   const [customRows, setCustomRows] = useState<Record<string, CustomRowState>>(() => {
     const initial: Record<string, CustomRowState> = {}
@@ -3600,41 +3600,83 @@ export function Vente2Calculator({
     return getAeColorClass(platform, aeCheckValue)
   }
 
-  useEffect(() => {
-    if (!calendarDialogOpen) {
-      strategyCalendarModalInitRef.current = false
-      return
-    }
-    if (!calendarStrategyId || strategyCalendarModalInitRef.current) return
+  const handleStrategyPlatformDatesSave = useCallback(
+    (rows: StrategyPlatformDateRow[]) => {
+      if (!calendarStrategyId) return
+      const sid = calendarStrategyId
+      const startDates: Record<string, string> = {}
+      const itemDays: Record<string, number> = {}
+      for (const row of rows) {
+        const key = `${row.platform}::${row.objective}`
+        startDates[key] = row.startDate
+        itemDays[row.itemId] = daysInclusive(row.startDate, row.endDate)
+      }
+      const globalStart = Object.values(startDates).reduce(
+        (min, d) => (d < min ? d : min),
+        Object.values(startDates)[0]!,
+      )
+      setDefineDatesPerStrategy((prev) => ({
+        ...prev,
+        [sid]: startDates,
+      }))
+      setStrategies((prev) =>
+        prev.map((s) => {
+          if (s.id !== sid) return s
+          const td = tarifsDirection
+          const nextItems = s.items.map((it) => {
+            const days = itemDays[it.id]
+            if (days == null) return it
+            return applyStrategyItemDaysChange(it, days, calculationMode, it.tarifsDirection ?? td)
+          })
+          const nextBlock = { ...s, items: nextItems }
+          const { items: calItems, contentSpan, timelineStartResolved } =
+            computeVenteStrategyCalendarItems(nextBlock, startDates, diffusionDays, globalStart)
+          return {
+            ...nextBlock,
+            calendar: {
+              startDate: timelineStartResolved,
+              duration: contentSpan,
+              items: calItems,
+            },
+          }
+        }),
+      )
+    },
+    [calendarStrategyId, calculationMode, diffusionDays, tarifsDirection],
+  )
+
+  const calendarStrategyStartDates = useMemo(() => {
+    if (!calendarStrategyId) return {}
     const block = strategies.find((s) => s.id === calendarStrategyId)
-    if (!block?.items.length) {
-      strategyCalendarModalInitRef.current = true
-      return
+    if (!block) return {}
+    const merged: Record<string, string> = {
+      ...(defineDatesPerStrategy[calendarStrategyId] ?? {}),
     }
-    strategyCalendarModalInitRef.current = true
-    const datesMap = defineDatesPerStrategy[calendarStrategyId] ?? {}
-    const savedCal =
-      block.calendar && isStrategyCalendarData(block.calendar) && block.calendar.items.length > 0
-        ? block.calendar
-        : null
-    const starts = block.items.map((it) => {
-      const key = `${it.platform}::${it.objective}`
-      return datesMap[key] ?? new Date().toISOString().slice(0, 10)
-    })
-    const globalStart = starts.reduce((min, d) => (d < min ? d : min), starts[0]!)
-    const rawStart = savedCal?.startDate ?? globalStart
-    const safeStart = rawStart > globalStart ? globalStart : rawStart
-    const { contentSpan } = computeVenteStrategyCalendarItems(
-      block,
-      datesMap,
-      diffusionDays,
-      safeStart,
-    )
-    const diffusionDuration = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-    const initialDur = Math.max(savedCal?.duration ?? 0, contentSpan, diffusionDuration)
-    setCalendarDisplayStart(safeStart)
-    setCalendarDisplayDuration(initialDur)
-  }, [calendarDialogOpen, calendarStrategyId, strategies, defineDatesPerStrategy, diffusionDays])
+    const cal = block.calendar
+    if (!cal || !isStrategyCalendarData(cal)) return merged
+    for (const it of cal.items) {
+      const key = String(it.platform).includes('::')
+        ? it.platform
+        : `${it.platform}::${(it.objective ?? '').trim()}`
+      if (merged[key]) continue
+      const d = new Date(cal.startDate + 'T12:00:00')
+      d.setDate(d.getDate() + (it.startDay ?? 0))
+      merged[key] = formatIsoLocal(d)
+    }
+    return merged
+  }, [calendarStrategyId, strategies, defineDatesPerStrategy])
+
+  const calendarStrategyDialogItems = useMemo(() => {
+    if (!calendarStrategyId) return []
+    const block = strategies.find((s) => s.id === calendarStrategyId)
+    if (!block) return []
+    return block.items.filter(isCampaignMediaItem).map((item) => ({
+      id: item.id,
+      platform: item.platform,
+      objective: item.objective,
+      days: item.days,
+    }))
+  }, [calendarStrategyId, strategies])
 
   // Messages d'avertissement pour le calendrier (règles durée / budget quotidien)
   const getCalendarWarningsForBlock = (b: StrategyBlock): string[] => {
@@ -5302,73 +5344,6 @@ export function Vente2Calculator({
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     setCalendarStrategyId(block.id)
-                                    const daysNum = Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))
-                                    const today = new Date().toISOString().slice(0, 10)
-                                    const cal = block.calendar
-                                    if (cal) {
-                                      setCalendarPeriodStart(cal.startDate)
-                                      if (isStrategyCalendarData(cal)) {
-                                        const end = new Date(cal.startDate + 'T12:00:00')
-                                        end.setDate(end.getDate() + cal.duration - 1)
-                                        const endStr = end.toISOString().slice(0, 10)
-                                        const periodDates = getDatesBetween(cal.startDate, endStr)
-                                        const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : endStr
-                                        setCalendarPeriodEnd(clampedEnd)
-                                        setCalendarDays({})
-                                        setCalendarPlatformPhases({})
-                                        setCalendarPhaseDays({})
-                                        setCalendarRanges([])
-                                      } else {
-                                        const legacy = cal as StrategyCalendar
-                                        const periodDates = getDatesBetween(legacy.startDate, legacy.endDate)
-                                        const clampedEnd = periodDates.length > daysNum ? periodDates[daysNum - 1]! : legacy.endDate
-                                        setCalendarPeriodEnd(clampedEnd)
-                                        setCalendarDays(legacy.days ? { ...legacy.days } : {})
-                                        setCalendarPlatformPhases(legacy.platformPhases ? { ...legacy.platformPhases } : {})
-                                        setCalendarPhaseDays(legacy.phaseDays ? JSON.parse(JSON.stringify(legacy.phaseDays)) : {})
-                                        setCalendarRanges((legacy.ranges ?? []).map((r, i) => ({ ...r, id: (r as CalendarRange & { id?: string }).id || `range-${i}-${Date.now()}` })))
-                                      }
-                                    } else {
-                                      setCalendarPeriodStart(today)
-                                      const d = new Date(today + 'T12:00:00')
-                                      d.setDate(d.getDate() + daysNum - 1)
-                                      setCalendarPeriodEnd(d.toISOString().slice(0, 10))
-                                      setCalendarDays({})
-                                      setCalendarPlatformPhases({})
-                                      setCalendarPhaseDays({})
-                                      setCalendarRanges([])
-                                    }
-                                    setCalendarSelectedEntry(null)
-                                    setCalendarPhasesMenuPlatform(null)
-                                    setCalendarView('day')
-                                    const perPlatform: Record<string, string> = {}
-                                    if (cal && isStrategyCalendarData(cal)) {
-                                      cal.items.forEach((it) => {
-                                        const d = new Date(cal.startDate + 'T12:00:00')
-                                        d.setDate(d.getDate() + it.startDay)
-                                        const key = `${it.platform}::${it.objective ?? ''}`
-                                        perPlatform[key] = d.toISOString().slice(0, 10)
-                                      })
-                                    }
-                                    block.items.forEach((item, i) => {
-                                      const key = `${item.platform}::${item.objective}`
-                                      if (perPlatform[key]) return
-                                      if (i === 0) {
-                                        perPlatform[key] = today
-                                        return
-                                      }
-                                      const prev = block.items[i - 1]!
-                                      const prevKey = `${prev.platform}::${prev.objective}`
-                                      const prevStart = perPlatform[prevKey] ?? today
-                                      const prevLen = Math.max(1, prev.days ?? daysNum)
-                                      const d = new Date(prevStart + 'T12:00:00')
-                                      d.setDate(d.getDate() + prevLen)
-                                      perPlatform[key] = d.toISOString().slice(0, 10)
-                                    })
-                                    setDefineDatesPerStrategy((prev) => ({
-                                      ...prev,
-                                      [block.id]: perPlatform,
-                                    }))
                                     setCalendarDialogOpen(true)
                                   }}
                                 >
@@ -6955,200 +6930,22 @@ export function Vente2Calculator({
         {pdvSection === 'kpiMax2' && <KpiMax2Panel />}
       </div>
 
-      {/* Modale Calendrier de diffusion — même UX que /vente (plage affichée, granularité, recalcul budget/KPIs) */}
-      <Dialog
+      <StrategyPlatformDatesDialog
         open={calendarDialogOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            const sid = calendarStrategyId
-            if (sid) {
-              const st = useCalendarStore.getState()
-              if (st.validate()) {
-                const data = st.getCalendarData()
-                setStrategies((prev) =>
-                  prev.map((s) => (s.id === sid ? { ...s, calendar: data } : s)),
-                )
-              }
-            }
-            setCalendarStrategyId(null)
-            setCalendarPhasesMenuPlatform(null)
-            setCalendarDisplayStart('')
-            setCalendarDisplayDuration(90)
-          }
+          if (!open) setCalendarStrategyId(null)
           setCalendarDialogOpen(open)
         }}
-      >
-        <DialogContent className="max-w-5xl w-full">
-          <DialogHeader>
-            <DialogTitle>Calendrier stratégique</DialogTitle>
-            <DialogDescription>
-              Définissez d’abord la <strong>plage du calendrier</strong> (date de début + nombre de jours), puis la vue
-              Mois ou Semaines. Dans la légende, le champ « Jours » ou la poignée sur la frise met à jour la stratégie,
-              le budget et les KPIs.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {calendarStrategyId && (() => {
-              const block = strategies.find((s) => s.id === calendarStrategyId)
-              if (!block) return null
-              if (block.items.length === 0) {
-                return (
-                  <p className="text-sm text-muted-foreground">
-                    Ajoutez au moins une ligne à cette stratégie pour afficher le calendrier.
-                  </p>
-                )
-              }
-              const datesMap = defineDatesPerStrategy[calendarStrategyId] ?? {}
-              const { platformSources, items, contentSpan, globalStart, timelineStartResolved } =
-                computeVenteStrategyCalendarItems(
-                  block,
-                  datesMap,
-                  diffusionDays,
-                  calendarDisplayStart,
-                )
-              const effectiveDuration = Math.max(
-                Math.max(1, Math.floor(Number(calendarDisplayDuration)) || 1),
-                contentSpan,
-              )
-              const existingFromForm: StrategyCalendarData = {
-                startDate: timelineStartResolved,
-                duration: effectiveDuration,
-                items,
-              }
-              const firstDiffusionLabel = new Date(globalStart + 'T12:00:00').toLocaleDateString('fr-FR')
-              const displayEndIso = addCalendarDays(timelineStartResolved, effectiveDuration - 1)
-              const displayEndLabel = new Date(displayEndIso + 'T12:00:00').toLocaleDateString('fr-FR')
-              const sid = calendarStrategyId
-              return (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Première diffusion de la stratégie :{' '}
-                    <span className="font-medium text-foreground">{firstDiffusionLabel}</span>. La date de début de
-                    plage ne peut pas être après cette date ; vous pouvez la <strong>reculer</strong> (date plus tôt)
-                    pour afficher des jours avant le début des diffusions.
-                  </p>
-                  <StrategyCalendarBuilder
-                    key={`${calendarStrategyId}-${timelineStartResolved}-${effectiveDuration}`}
-                    showGranularitySelector
-                    platformSources={platformSources}
-                    duration={existingFromForm.duration}
-                    existing={existingFromForm}
-                    children={
-                      <div className="rounded-xl border-2 border-[#E94C16]/25 bg-[#E94C16]/5 px-3 py-3 space-y-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-                          <CalendarRange className="h-3.5 w-3.5 text-[#E94C16]" aria-hidden />
-                          Plage affichée sur le calendrier
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Période visible (grille mois + frise) :{' '}
-                          <span className="font-medium text-foreground tabular-nums">
-                            {new Date(timelineStartResolved + 'T12:00:00').toLocaleDateString('fr-FR')} →{' '}
-                            {displayEndLabel}
-                          </span>{' '}
-                          — <span className="tabular-nums">{effectiveDuration} j</span>
-                        </p>
-                        <div className="flex flex-wrap items-end gap-3">
-                          <div className="space-y-1.5 min-w-[11rem]">
-                            <Label htmlFor="strategy-cal-start-v2" className="text-xs">
-                              Date de début d’affichage
-                            </Label>
-                            <Input
-                              id="strategy-cal-start-v2"
-                              type="date"
-                              value={timelineStartResolved}
-                              onChange={(e) => {
-                                const v = e.target.value
-                                if (!v) return
-                                setCalendarDisplayStart(v > globalStart ? globalStart : v)
-                              }}
-                              className="h-10 text-sm"
-                            />
-                          </div>
-                          <div className="space-y-1.5 w-[9.5rem]">
-                            <Label htmlFor="strategy-cal-dur-v2" className="text-xs">
-                              Nombre de jours affichés
-                            </Label>
-                            <Input
-                              id="strategy-cal-dur-v2"
-                              type="number"
-                              min={1}
-                              max={730}
-                              value={calendarDisplayDuration}
-                              onChange={(e) => {
-                                const n = Math.max(1, Math.min(730, Math.floor(Number(e.target.value) || 1)))
-                                setCalendarDisplayDuration(n)
-                              }}
-                              className="h-10 text-sm tabular-nums text-center"
-                            />
-                          </div>
-                        </div>
-                        {calendarDisplayDuration < contentSpan ? (
-                          <p className="text-[11px] text-amber-800 dark:text-amber-100/90">
-                            Durée minimale pour couvrir toutes les phases : {contentSpan} jour(s) (la frise utilise au
-                            moins cette valeur).
-                          </p>
-                        ) : null}
-                      </div>
-                    }
-                    onPlatformStartDateChange={(entryKey, startDate) =>
-                      setDefineDatesPerStrategy((prev) => ({
-                        ...prev,
-                        [sid]: {
-                          ...(prev[sid] ?? {}),
-                          [entryKey]: startDate,
-                        },
-                      }))
-                    }
-                    onPlatformDaysChange={(entryKey, days) => {
-                      setStrategies((prev) =>
-                        prev.map((s) => {
-                          if (s.id !== sid) return s
-                          const td = tarifsDirection
-                          const nextItems = s.items.map((it) =>
-                            `${it.platform}::${it.objective}` !== entryKey
-                              ? it
-                              : applyStrategyItemDaysChange(it, days, calculationMode, it.tarifsDirection ?? td),
-                          )
-                          const updatedLine = nextItems.find(
-                            (it) => `${it.platform}::${it.objective}` === entryKey,
-                          )
-                          const cal = s.calendar
-                          const nextCalendar =
-                            cal && isStrategyCalendarData(cal) && updatedLine
-                              ? {
-                                  ...cal,
-                                  items: cal.items.map((calIt) => {
-                                    const calKey = String(calIt.platform).includes('::')
-                                      ? calIt.platform
-                                      : `${calIt.platform}::${(calIt.objective ?? '').trim()}`
-                                    if (calKey !== entryKey) return calIt
-                                    const kpiLabel = updatedLine.customKpiLabel
-                                      ? updatedLine.customKpiLabel
-                                      : updatedLine.estimatedKPIs > 0
-                                        ? `${updatedLine.estimatedKPIs.toLocaleString('fr-FR')} ${getKpiUnitLabel(updatedLine.objective)}`
-                                        : getMaxKpiLabel(updatedLine.objective)
-                                    return {
-                                      ...calIt,
-                                      length: days,
-                                      budget: updatedLine.budget,
-                                      kpiLabel,
-                                    }
-                                  }),
-                                }
-                              : cal
-                          return { ...s, items: nextItems, calendar: nextCalendar }
-                        }),
-                      )
-                    }}
-                    calendarWarnings={getCalendarWarningsForBlock(block)}
-                  />
-                </>
-              )
-            })()}
-          </div>
-          {/* La fermeture de la modale enregistre le calendrier dans la stratégie si la validation passe. */}
-        </DialogContent>
-      </Dialog>
+        strategyName={
+          calendarStrategyId
+            ? (strategies.find((s) => s.id === calendarStrategyId)?.name ?? 'Stratégie')
+            : 'Stratégie'
+        }
+        items={calendarStrategyDialogItems}
+        initialStartDates={calendarStrategyStartDates}
+        defaultDiffusionDays={Math.max(1, Math.floor(parseFloat(diffusionDays) || 14))}
+        onSave={handleStrategyPlatformDatesSave}
+      />
 
       {/* Modale option Make — Meta Leads / LinkedIn Leads (obligatoire avant ajout) */}
       <AlertDialog
