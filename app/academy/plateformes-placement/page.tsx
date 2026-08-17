@@ -314,7 +314,7 @@ export default function PlateformesPlacement() {
             <Card>
               <CardHeader>
                 <CardTitle>Google Ads</CardTitle>
-                <CardDescription>Publicités Search, Display, YouTube, Performance Max et Gen Ads</CardDescription>
+                <CardDescription>Publicités Search, Display, YouTube, Performance Max et Demand gen</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="mb-6 space-y-2">
@@ -334,7 +334,7 @@ export default function PlateformesPlacement() {
                     <TabsTrigger value="display">Display</TabsTrigger>
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="perf-max">Perf Max</TabsTrigger>
-                    <TabsTrigger value="gen-ads">Gen Ads</TabsTrigger>
+                    <TabsTrigger value="demand-gen">Demand gen</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="search">
@@ -526,7 +526,7 @@ export default function PlateformesPlacement() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="gen-ads">
+                  <TabsContent value="demand-gen">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Image
@@ -539,7 +539,7 @@ export default function PlateformesPlacement() {
                         <h3 className="text-lg font-medium">Google Génération de la demande</h3>
                       </div>
                       <p>
-                        Gen Ads est pensé pour des campagnes de découverte avec un kit créatif plus resserré et une
+                        Demand gen est pensé pour des campagnes de découverte avec un kit créatif plus resserré et une
                         séparation nette entre scénarios image et vidéo.
                       </p>
                       <div className="border rounded-md bg-white p-4">

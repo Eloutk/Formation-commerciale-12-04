@@ -153,7 +153,7 @@ Former les équipes commerciales sur la méthode Link : objectifs, ciblage, arch
 | ----------------------------- | ---------------------------------- |
 | Guide des formats V8.2        | Contraintes visuelles              |
 | Guide chefferie de projet     | Process production / Monday        |
-| Guide Perf Max & Gen Ads      | Lecture des performances           |
+| Guide Perf Max & Demand gen      | Lecture des performances           |
 | **Base de présentation 2026** | Template PowerPoint **ou** Keynote |
 | Formation studio 2026         | Keynote formation créa             |
 | Fiches plateformes            | Instagram, LinkedIn, YouTube, etc. |

@@ -47,7 +47,7 @@ export const SITE_DOCUMENT_SECTIONS: SiteDocumentSection[] = [
       },
       {
         id: 'guide-performance',
-        title: 'Guide Perf Max et Gen Ads',
+        title: 'Guide Perf Max et Demand gen',
         description: 'Lecture des performances publicitaires et optimisation — V1.2',
         href: '/Guide Performance Ads V1.2.pdf',
         downloadFilename: 'Guide Performance Ads V1.2.pdf',

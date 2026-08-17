@@ -329,7 +329,7 @@ export default function ArchitectureCampagnes() {
                       </ul>
                     </div>
                     <div className="bg-muted/30 p-6 rounded-lg border">
-                      <h3 className="text-lg font-semibold text-primary mb-3">Focus Gen Ads</h3>
+                      <h3 className="text-lg font-semibold text-primary mb-3">Focus Demand gen</h3>
                       <ul className="list-disc list-inside space-y-2">
                         <li>La structure créative doit être pensée dès le départ en mode image ou en mode vidéo.</li>
                         <li>Les déclinaisons carré, vertical et horizontal restent nécessaires pour la diffusion.</li>

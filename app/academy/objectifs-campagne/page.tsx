@@ -228,7 +228,7 @@ export default function ObjectifsCampagne() {
                     <TabsTrigger value="youtube">YouTube</TabsTrigger>
                     <TabsTrigger value="display">Display</TabsTrigger>
                     <TabsTrigger value="perf-max">Perf Max</TabsTrigger>
-                    <TabsTrigger value="gen-ads">Gen Ads</TabsTrigger>
+                    <TabsTrigger value="demand-gen">Demand gen</TabsTrigger>
                   </TabsList>
                   <TabsContent value="google-search">
                     <div className="space-y-4">
@@ -322,7 +322,7 @@ export default function ObjectifsCampagne() {
                       </div>
                     </div>
                   </TabsContent>
-                  <TabsContent value="gen-ads">
+                  <TabsContent value="demand-gen">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Image
@@ -332,10 +332,10 @@ export default function ObjectifsCampagne() {
                           height={32}
                           className="rounded-sm"
                         />
-                        <h3 className="text-lg font-semibold">Gen Ads</h3>
+                        <h3 className="text-lg font-semibold">Demand gen</h3>
                       </div>
                       <p>
-                        Gen Ads sert surtout à travailler la considération et le trafic qualifié, avec des assets
+                        Demand gen sert surtout à travailler la considération et le trafic qualifié, avec des assets
                         créatifs pensés pour capter l’attention sur les environnements Google visuels.
                       </p>
                       <div>
