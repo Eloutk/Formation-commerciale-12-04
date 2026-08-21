@@ -37,6 +37,12 @@ import { checkIsAdmin, getCurrentUserRole } from "@/lib/admin"
 import { AuthAccessContext } from "@/components/auth-context"
 import { hasAppPermission } from "@/lib/permissions"
 import { isAdminRole, normalizeUserRole, type UserRole } from "@/lib/roles"
+import {
+  clearSessionStartedMarker,
+  isSessionPastMaxAge,
+  markSessionStarted,
+  readStoredSessionStartedAt,
+} from '@/lib/auth-session-ttl'
 
 interface User {
   id: string
@@ -130,11 +136,52 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     try {
       window.localStorage.removeItem(getStorageKey())
     } catch {}
+    clearSessionStartedMarker()
     setUser(null)
     setIsAdmin(false)
     setRole(null)
     setAdminResolved(true)
     setMustCompleteName(false)
+  }
+
+  /** Déconnexion forcée si la dernière connexion date de plus de 30 jours. */
+  const enforceMonthlyReauth = async (session: any): Promise<boolean> => {
+    const lastSignInAt =
+      (session?.user as { last_sign_in_at?: string } | null | undefined)?.last_sign_in_at ?? null
+    let startedAtMs = readStoredSessionStartedAt()
+
+    // Première fois après déploiement : ancrer la session maintenant (évite de tout déconnecter d’un coup).
+    if (!startedAtMs && !lastSignInAt && session?.access_token) {
+      markSessionStarted()
+      startedAtMs = Date.now()
+    }
+
+    if (!isSessionPastMaxAge({ lastSignInAt, startedAtMs })) {
+      if (!startedAtMs && lastSignInAt) {
+        const t = new Date(lastSignInAt).getTime()
+        if (!Number.isNaN(t)) markSessionStarted(t)
+      }
+      return false
+    }
+
+    clearClientSession()
+    try {
+      await withTimeout(
+        fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ event: 'SIGNED_OUT', session: null }),
+        }),
+        3000,
+        'force-monthly-signout',
+      )
+    } catch {}
+    try {
+      await withTimeout(supabase.auth.signOut(), 1500, 'force-monthly-signOut')
+    } catch {}
+    router.replace('/login')
+    return true
   }
 
   const hasServerSession = async () => {
@@ -381,6 +428,11 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           await ensureServerSession()
         }
 
+        const session = await getSessionFast()
+        if (session && (await enforceMonthlyReauth(session))) {
+          return
+        }
+
         await checkPseudo()
       } finally {
         setLoading(false)
@@ -401,6 +453,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
         }
       }
       if (event === 'SIGNED_OUT') {
+        clearSessionStartedMarker()
         setUser(null)
         setIsAdmin(false)
         setRole(null)
@@ -454,12 +507,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           }
           const session = await getSessionFast()
           if (session) {
+            if (await enforceMonthlyReauth(session)) return
             await checkPseudo()
             return
           }
           router.replace('/login')
           return
         }
+
+        const session = await getSessionFast()
+        if (session && (await enforceMonthlyReauth(session))) return
 
         const serverOk = await ensureServerSession()
         if (!serverOk) {
@@ -490,6 +547,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     try {
       window.localStorage.removeItem(getStorageKey())
     } catch {}
+    clearSessionStartedMarker()
 
     // Best-effort: clear server cookies (middleware) with timeout
     try {

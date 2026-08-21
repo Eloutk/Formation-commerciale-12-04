@@ -3,7 +3,18 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Eye, EyeOff } from "lucide-react"
 import supabase from '@/utils/supabase/client'
+import { markSessionStarted } from '@/lib/auth-session-ttl'
+
+const LINK_FR_SUFFIX = '@link.fr'
+
+/** Conserve le suffixe @link.fr : la partie avant le @ reste libre. */
+function normalizeLinkFrEmail(value: string): string {
+  const at = value.indexOf('@')
+  const local = (at === -1 ? value : value.slice(0, at)).replace(/@/g, '')
+  return `${local}${LINK_FR_SUFFIX}`
+}
 
 function authErrorToFrench(raw: unknown, status?: number) {
   const msg = (typeof raw === 'string' ? raw : '') || ''
@@ -40,8 +51,9 @@ function withEmilieHelp(message: string) {
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(LINK_FR_SUFFIX)
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [resetMsg, setResetMsg] = useState("") // 👈 pour afficher un message après demande de reset
@@ -126,6 +138,7 @@ export default function LoginPage() {
           user: user || null,
         }
         window.localStorage.setItem(storageKey, JSON.stringify(payload))
+        markSessionStarted()
         console.log('✅ localStorage écrit:', storageKey)
       } catch (e) {
         console.error('❌ Impossible d’écrire localStorage:', e)
@@ -231,11 +244,46 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="exemple@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900" required disabled={loading} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(normalizeLinkFrEmail(e.target.value))}
+                onFocus={(e) => {
+                  const at = e.target.value.indexOf('@')
+                  if (at === 0) {
+                    requestAnimationFrame(() => e.target.setSelectionRange(0, 0))
+                  }
+                }}
+                placeholder="prenom.nom@link.fr"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900"
+                required
+                disabled={loading}
+                autoComplete="email"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">Mot de passe</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900" required disabled={loading} />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900"
+                  required
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  disabled={loading}
+                >
+                  {showPassword ? <Eye className="h-4 w-4" aria-hidden /> : <EyeOff className="h-4 w-4" aria-hidden />}
+                </button>
+              </div>
             </div>
             <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 font-medium">{loading ? "Connexion..." : "Se connecter"}</button>
           </form>
