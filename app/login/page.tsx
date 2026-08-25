@@ -1,20 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff } from "lucide-react"
 import supabase from '@/utils/supabase/client'
 import { markSessionStarted } from '@/lib/auth-session-ttl'
-
-const LINK_FR_SUFFIX = '@link.fr'
-
-/** Conserve le suffixe @link.fr : la partie avant le @ reste libre. */
-function normalizeLinkFrEmail(value: string): string {
-  const at = value.indexOf('@')
-  const local = (at === -1 ? value : value.slice(0, at)).replace(/@/g, '')
-  return `${local}${LINK_FR_SUFFIX}`
-}
+import { normalizeAuthEmail, suggestLinkFrEmail } from '@/lib/auth-email'
 
 function authErrorToFrench(raw: unknown, status?: number) {
   const msg = (typeof raw === 'string' ? raw : '') || ''
@@ -51,13 +43,15 @@ function withEmilieHelp(message: string) {
 }
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(LINK_FR_SUFFIX)
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [resetMsg, setResetMsg] = useState("") // 👈 pour afficher un message après demande de reset
+  const [resetMsg, setResetMsg] = useState("")
   const [resetLoading, setResetLoading] = useState(false)
+  const emailInputRef = useRef<HTMLInputElement>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const search = useSearchParams()
 
@@ -69,7 +63,6 @@ export default function LoginPage() {
     const params = new URLSearchParams(hash)
     const hasToken = params.get('access_token') || params.get('code')
     const type = params.get('type')
-    const errorCode = params.get('error_code')
     const errorDesc = params.get('error_description')
     if (hasToken && (type === 'recovery' || !type)) {
       router.replace(`/reset-password#${hash}`)
@@ -84,21 +77,38 @@ export default function LoginPage() {
     }
   }, [router])
 
+  /** Lit la valeur réelle du DOM (autofill navigateur) puis synchronise le state React. */
+  const readFormCredentials = () => {
+    const emailFromDom = emailInputRef.current?.value ?? email
+    const passwordFromDom = passwordInputRef.current?.value ?? password
+    const normalizedEmail = normalizeAuthEmail(emailFromDom)
+    if (normalizedEmail !== email) setEmail(normalizedEmail)
+    if (passwordFromDom !== password) setPassword(passwordFromDom)
+    return { email: normalizedEmail, password: passwordFromDom }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
+      const { email: loginEmail, password: loginPassword } = readFormCredentials()
+
+      if (!loginEmail || !loginPassword) {
+        setError(withEmilieHelp("Merci de renseigner votre email et votre mot de passe."))
+        return
+      }
+
       console.log('🔐 Tentative de connexion...')
-      console.log('📧 Email:', email)
+      console.log('📧 Email:', loginEmail)
       console.log('🔗 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-      
+
       // Auth via endpoint serveur (contourne les blocages navigateur/extensions)
       const authRes = await fetch('/api/auth/password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       })
 
       const authJson = await authRes.json().catch(() => null)
@@ -140,14 +150,14 @@ export default function LoginPage() {
         window.localStorage.setItem(storageKey, JSON.stringify(payload))
         markSessionStarted()
         console.log('✅ localStorage écrit:', storageKey)
-      } catch (e) {
-        console.error('❌ Impossible d’écrire localStorage:', e)
+      } catch (err) {
+        console.error('❌ Impossible d’écrire localStorage:', err)
         setError("Impossible d'initialiser la session (storage)")
         return
       }
 
       console.log('✅ Connexion réussie! (storage)')
-      
+
       // Synchroniser la session côté serveur
       try {
         let timeoutId: ReturnType<typeof setTimeout> | undefined
@@ -183,11 +193,11 @@ export default function LoginPage() {
         setError("Connexion OK mais cookies non synchronisés (accès sécurisé impossible). Réessaie.")
         return
       }
-      
+
       const requested = search?.get('redirect') || ''
       const redirectTo = (!requested || requested === '/' || requested === '/login') ? '/home' : requested
       console.log('🔄 Redirection vers:', redirectTo)
-      
+
       // Forcer un reload complet pour que le middleware (cookies) s'applique bien
       window.location.assign(redirectTo)
       console.log('✅ Redirect assign appelé')
@@ -200,11 +210,11 @@ export default function LoginPage() {
     }
   }
 
-  // 👇 Nouveau handler pour reset password
   const handlePasswordReset = async () => {
     setError("")
     setResetMsg("")
-    if (!email) {
+    const { email: resetEmail } = readFormCredentials()
+    if (!resetEmail) {
       setError("Veuillez entrer votre email avant de réinitialiser le mot de passe")
       return
     }
@@ -212,7 +222,7 @@ export default function LoginPage() {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://link-academy.vercel.app'
       const redirectTo = `${origin}/reset-password`
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo })
       if (error) setError(error.message)
       else setResetMsg("Un email de réinitialisation a été envoyé si l'adresse est valide.")
     } finally {
@@ -235,37 +245,40 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg whitespace-pre-line">{error}</div>
           )}
           {resetMsg && (
             <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">{resetMsg}</div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" autoComplete="on">
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">Email</label>
               <input
+                ref={emailInputRef}
                 type="email"
+                name="email"
                 value={email}
-                onChange={(e) => setEmail(normalizeLinkFrEmail(e.target.value))}
-                onFocus={(e) => {
-                  const at = e.target.value.indexOf('@')
-                  if (at === 0) {
-                    requestAnimationFrame(() => e.target.setSelectionRange(0, 0))
-                  }
-                }}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={(e) => setEmail(suggestLinkFrEmail(e.target.value))}
                 placeholder="prenom.nom@link.fr"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900"
                 required
                 disabled={loading}
-                autoComplete="email"
+                autoComplete="username"
+                inputMode="email"
               />
+              <p className="mt-1.5 text-xs text-gray-500">
+                Astuce : saisissez votre prénom.nom — @link.fr est ajouté automatiquement.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-800 mb-2">Mot de passe</label>
               <div className="relative">
                 <input
+                  ref={passwordInputRef}
                   type={showPassword ? "text" : "password"}
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white text-gray-900"
@@ -285,12 +298,18 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading} className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 font-medium">{loading ? "Connexion..." : "Se connecter"}</button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 font-medium"
+            >
+              {loading ? "Connexion..." : "Se connecter"}
+            </button>
           </form>
 
-          {/* 👇 Lien mot de passe oublié */}
           <div className="text-center mt-4">
             <button
+              type="button"
               onClick={handlePasswordReset}
               className="text-sm text-orange-600 hover:underline font-medium"
               disabled={loading || resetLoading}

@@ -17,7 +17,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const email = typeof body?.email === 'string' ? body.email.trim() : ''
+  let email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
+  if (email && !email.includes('@')) {
+    email = `${email}@link.fr`
+  }
   const password = typeof body?.password === 'string' ? body.password : ''
   const name = typeof body?.name === 'string' ? body.name.trim() : ''
 

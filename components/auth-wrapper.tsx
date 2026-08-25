@@ -144,23 +144,20 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     setMustCompleteName(false)
   }
 
-  /** Déconnexion forcée si la dernière connexion date de plus de 30 jours. */
+  /** Déconnexion forcée si la session locale dépasse 30 jours (marqueur posé à la connexion). */
   const enforceMonthlyReauth = async (session: any): Promise<boolean> => {
-    const lastSignInAt =
-      (session?.user as { last_sign_in_at?: string } | null | undefined)?.last_sign_in_at ?? null
+    if (!session?.access_token) return false
+
     let startedAtMs = readStoredSessionStartedAt()
 
-    // Première fois après déploiement : ancrer la session maintenant (évite de tout déconnecter d’un coup).
-    if (!startedAtMs && !lastSignInAt && session?.access_token) {
+    // Première visite / pas encore de marqueur : ancrer maintenant
+    // (ne pas se baser sur last_sign_in_at distant, qui déconnectait tout le monde d’un coup).
+    if (!startedAtMs) {
       markSessionStarted()
-      startedAtMs = Date.now()
+      return false
     }
 
-    if (!isSessionPastMaxAge({ lastSignInAt, startedAtMs })) {
-      if (!startedAtMs && lastSignInAt) {
-        const t = new Date(lastSignInAt).getTime()
-        if (!Number.isNaN(t)) markSessionStarted(t)
-      }
+    if (!isSessionPastMaxAge({ startedAtMs })) {
       return false
     }
 

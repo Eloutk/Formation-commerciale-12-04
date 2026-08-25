@@ -15,8 +15,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const email = typeof body?.email === 'string' ? body.email : ''
+    const emailRaw = typeof body?.email === 'string' ? body.email : ''
     const password = typeof body?.password === 'string' ? body.password : ''
+    // Important: trim + lowercase — évite les échecs dus à l’autofill / espaces invisibles
+    let email = emailRaw.trim().toLowerCase()
+    if (email && !email.includes('@')) {
+      email = `${email}@link.fr`
+    }
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Missing email or password' }, { status: 400 })
