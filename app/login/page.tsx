@@ -66,7 +66,8 @@ export default function LoginPage() {
       const type = params.get('type')
       const errorDesc = params.get('error_description')
       if (hasToken && (type === 'recovery' || !type)) {
-        router.replace(`/reset-password#${hash}`)
+        // Navigation complète : router.replace() perd parfois le hash (tokens Supabase).
+        window.location.replace(`/reset-password#${hash}`)
         return
       }
       if (params.get('error')) {

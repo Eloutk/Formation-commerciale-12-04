@@ -132,6 +132,26 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     return exp <= Math.floor(Date.now() / 1000) + 30
   }
 
+  /**
+   * True si l'URL courante porte un lien de réinitialisation de mot de passe.
+   * Une session de recovery ne doit jamais être nettoyée ni redirigée vers /home,
+   * sinon updateUser() échoue avec "Auth session missing!".
+   */
+  const isRecoveryUrl = () => {
+    if (typeof window === 'undefined') return false
+    try {
+      const { pathname, hash, search } = window.location
+      if (pathname.startsWith('/reset-password')) return true
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''))
+      if (hashParams.get('type') === 'recovery') return true
+      if (hashParams.get('access_token') && hashParams.get('refresh_token')) return true
+      const queryParams = new URLSearchParams(search)
+      return queryParams.get('type') === 'recovery'
+    } catch {
+      return false
+    }
+  }
+
   const clearClientSession = () => {
     try {
       window.localStorage.removeItem(getStorageKey())
@@ -419,6 +439,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     const initOnce = async () => {
       try {
+        // Lien de réinitialisation : laisser /reset-password gérer seule la session.
+        if (isRecoveryUrl()) return
+
         if (!hasLocalSession()) {
           await hydrateClientSessionFromServer()
         } else {
@@ -440,7 +463,15 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     withTimeout(initOnce(), 15000, 'init-once').catch(() => setLoading(false))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        const hash = typeof window !== 'undefined' ? window.location.hash : ''
+        if (!window.location.pathname.startsWith('/reset-password')) {
+          window.location.replace(`/reset-password${hash}`)
+        }
+        return
+      }
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (isRecoveryUrl()) return
         await checkPseudo()
         const p = pathnameRef.current
         if ((p === '/login' || p === '/register') && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {

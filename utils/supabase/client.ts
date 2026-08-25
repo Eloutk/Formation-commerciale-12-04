@@ -49,7 +49,10 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: typeof window !== "undefined" ? window.localStorage : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    // Désactivé volontairement : la détection auto consommait le hash des liens
+    // de réinitialisation (#access_token&type=recovery) avant que /reset-password
+    // ne puisse le lire. Le hash est traité explicitement par la page.
+    detectSessionInUrl: false,
   },
 })
 

@@ -42,6 +42,21 @@ export default function ResetPasswordPage() {
     }
 
     const establish = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""))
+      const queryParams = new URLSearchParams(window.location.search)
+
+      // Supabase renvoie les liens périmés sous forme #error=...&error_code=otp_expired
+      const urlErrorCode = hashParams.get("error_code") || queryParams.get("error_code")
+      if (urlErrorCode) {
+        finish(
+          urlErrorCode.includes("expired")
+            ? "Ce lien a expiré ou a déjà été utilisé. Demandez un nouvel email depuis la page de connexion."
+            : "Lien invalide. Demandez un nouvel email depuis la page de connexion.",
+          false,
+        )
+        return
+      }
+
       const {
         data: { session: existing },
       } = await supabase.auth.getSession()
@@ -50,8 +65,6 @@ export default function ResetPasswordPage() {
         return
       }
 
-      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""))
-      const queryParams = new URLSearchParams(window.location.search)
       const accessToken = hashParams.get("access_token")
       const refreshToken = hashParams.get("refresh_token")
       const code = queryParams.get("code") || hashParams.get("code")

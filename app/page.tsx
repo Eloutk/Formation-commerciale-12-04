@@ -14,7 +14,7 @@ export default function RootPage() {
       const hasToken = params.get('access_token') || params.get('code')
       const type = params.get('type')
       if (hasToken && (type === 'recovery' || !type)) {
-        router.replace(`/reset-password#${hash}`)
+        window.location.replace(`/reset-password#${hash}`)
         return
       }
     }
