@@ -55,25 +55,32 @@ export default function LoginPage() {
   const router = useRouter()
   const search = useSearchParams()
 
-  // Si le lien de reset envoie vers /login#... (type=recovery), rediriger vers /reset-password
+  // Si le lien de reset envoie vers /login#... ou /login?code=..., rediriger vers /reset-password
   useEffect(() => {
     if (typeof window === 'undefined') return
     const hash = window.location.hash.substring(1)
-    if (!hash) return
-    const params = new URLSearchParams(hash)
-    const hasToken = params.get('access_token') || params.get('code')
-    const type = params.get('type')
-    const errorDesc = params.get('error_description')
-    if (hasToken && (type === 'recovery' || !type)) {
-      router.replace(`/reset-password#${hash}`)
-      return
+    const search = window.location.search
+    if (hash) {
+      const params = new URLSearchParams(hash)
+      const hasToken = params.get('access_token') || params.get('code')
+      const type = params.get('type')
+      const errorDesc = params.get('error_description')
+      if (hasToken && (type === 'recovery' || !type)) {
+        router.replace(`/reset-password#${hash}`)
+        return
+      }
+      if (params.get('error')) {
+        const message = errorDesc ? decodeURIComponent(errorDesc) : 'Lien invalide ou expiré'
+        setError(message)
+        window.history.replaceState(null, '', '/login')
+        return
+      }
     }
-    // Gérer les liens expirés/invalides renvoyés par Supabase
-    if (params.get('error')) {
-      const message = errorDesc ? decodeURIComponent(errorDesc) : 'Lien invalide ou expiré'
-      setError(message)
-      // Nettoyer le hash pour éviter de re-déclencher au refresh
-      window.history.replaceState(null, '', '/login')
+    if (search) {
+      const params = new URLSearchParams(search)
+      if (params.get('code')) {
+        router.replace(`/reset-password${search}${hash ? `#${hash}` : ''}`)
+      }
     }
   }, [router])
 

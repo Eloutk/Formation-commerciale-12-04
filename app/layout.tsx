@@ -46,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         {/* Early client-side redirect for Supabase recovery links to preserve hash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(() => { try { var loc = window.location; var path = loc.pathname; var hash = loc.hash || ''; if (hash && (path === '/' || path === '/login')) { var qs = new URLSearchParams(hash.slice(1)); var hasToken = qs.get('access_token') || qs.get('code'); var type = qs.get('type'); if (hasToken && (type === 'recovery' || !type)) { loc.replace('/reset-password' + hash); } } } catch (_) {} })();`,
+            __html: `(() => { try { var loc = window.location; var path = loc.pathname; if (path !== '/' && path !== '/login') return; var hash = loc.hash || ''; var search = loc.search || ''; if (hash) { var qs = new URLSearchParams(hash.slice(1)); var hasToken = qs.get('access_token') || qs.get('code'); var type = qs.get('type'); if (hasToken && (type === 'recovery' || !type)) { loc.replace('/reset-password' + hash); return; } } if (search) { var q = new URLSearchParams(search); if (q.get('code')) { loc.replace('/reset-password' + search + hash); } } } catch (_) {} })();`,
           }}
         />
         <AuthWrapper>{children}</AuthWrapper>

@@ -5,15 +5,23 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  const next = requestUrl.searchParams.get('next') || '/'
+  const type = requestUrl.searchParams.get('type')
+  const isRecovery = type === 'recovery' || next.startsWith('/reset-password')
+
+  // Recovery: laisser le client échanger le code pour que la session soit dans localStorage
+  if (code && isRecovery) {
+    const dest = new URL('/reset-password', requestUrl.origin)
+    dest.searchParams.set('code', code)
+    return NextResponse.redirect(dest)
+  }
 
   if (code) {
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
-    
-    // Échanger le code pour une session
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Rediriger vers la page d'accueil après confirmation
-  return NextResponse.redirect(new URL('/', requestUrl.origin))
+  const destPath = next.startsWith('/') ? next : '/'
+  return NextResponse.redirect(new URL(destPath, requestUrl.origin))
 }
