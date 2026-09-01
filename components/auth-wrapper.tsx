@@ -700,6 +700,19 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
               <HeaderSearch isAdmin={isAdmin} role={role} compact className="md:hidden" />
+              <Button
+                asChild
+                size="sm"
+                className="h-9 bg-black text-white hover:bg-neutral-800 hover:text-white"
+              >
+                <a
+                  href="https://newsletter.link.fr/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Newsletter
+                </a>
+              </Button>
               <Suspense
                 fallback={
                   <HeaderNavMenu
