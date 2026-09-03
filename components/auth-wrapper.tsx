@@ -43,6 +43,7 @@ import {
   markSessionStarted,
   readStoredSessionStartedAt,
 } from '@/lib/auth-session-ttl'
+import { WorldDayPopup } from '@/components/world-day-popup'
 
 interface User {
   id: string
@@ -760,6 +761,9 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       )}
 
       <main className="flex-1">{children}</main>
+
+      {/* Popup journée mondiale du jour — affiché uniquement si show_world_day_popup = true dans profiles */}
+      {user && !isPublicPath && <WorldDayPopup />}
 
       <Dialog open={mustCompleteName} onOpenChange={() => {}}>
         <DialogContent>
