@@ -151,7 +151,7 @@ export function GuessPlatformCard({
 
   return (
     <Card className={homeCard.root}>
-      <CardHeader className={cn(homeCard.header, 'flex-row items-center justify-between gap-3')}>
+      <CardHeader className={homeCard.header}>
         <div className="min-w-0 space-y-0.5">
           <div className={homeCard.titleRow}>
             <Search className={homeCard.titleIcon} />
@@ -163,21 +163,9 @@ export function GuessPlatformCard({
             ) : null}
           </div>
           <p className={homeCard.subtitle}>
-            Indices progressifs — moins d’indices = plus de points
+            +1 pt par partie · +1 pt si tu enchaînes les jours ouvrés
           </p>
         </div>
-        {canRevealHint ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(homeCard.button, 'shrink-0')}
-            onClick={revealHint}
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Autre indice
-          </Button>
-        ) : null}
       </CardHeader>
 
       <CardContent className={cn(homeCard.content, 'min-h-0')}>
@@ -185,9 +173,9 @@ export function GuessPlatformCard({
           <p className={homeCard.bodyMuted}>Chargement…</p>
         ) : weekend || weekendMessage ? (
           <div className={cn(homeCard.panel, 'border-[#E94C16]/20 bg-[#E94C16]/5')}>
-            <p className="font-medium text-[#E94C16]">Week-end off</p>
+            <p className="font-medium text-[#E94C16]">Jour non ouvré</p>
             <p className={homeCard.bodyMuted}>
-              {weekendMessage || `Reviens lundi (${nextMondayLabel()}).`}
+              {weekendMessage || `Reviens le prochain jour ouvré (${nextMondayLabel()}).`}
             </p>
           </div>
         ) : error ? (
@@ -195,12 +183,26 @@ export function GuessPlatformCard({
         ) : (
           <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <section className="flex min-h-0 flex-col gap-1.5 overflow-hidden rounded-md border border-border/70 bg-[#FAFAFA] p-2.5">
-              <p className={cn(homeCard.sectionTitle, '!mb-1')}>
-                Indices
-                <span className="font-normal text-muted-foreground">
-                  {hintsShown}/{clues.length || question?.clues.length || 0}
-                </span>
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className={cn(homeCard.sectionTitle, '!mb-0')}>
+                  Indices
+                  <span className="font-normal text-muted-foreground">
+                    {hintsShown}/{clues.length || question?.clues.length || 0}
+                  </span>
+                </p>
+                {canRevealHint ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(homeCard.button, 'h-7 shrink-0 px-2')}
+                    onClick={revealHint}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Autre indice
+                  </Button>
+                ) : null}
+              </div>
               <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
                 {clues.slice(0, hintsShown).map((clue, index) => (
                   <li
@@ -253,8 +255,8 @@ export function GuessPlatformCard({
 
 function ResultBlock({ result }: { result: GuessPlatformResult }) {
   const nextHint = formatNextPlayHint(result.next_business_day)
-  const streakBroken = result.streak_bonus === 1 && result.stats && result.stats.record_streak > 1
-  const streak = result.current_streak ?? result.stats?.current_streak ?? result.streak_bonus
+  const streakBroken = result.streak_bonus === 0 && (result.current_streak ?? 0) <= 1
+  const streak = result.current_streak ?? result.stats?.current_streak ?? 1
 
   return (
     <div
@@ -274,14 +276,16 @@ function ResultBlock({ result }: { result: GuessPlatformResult }) {
           <span className="font-semibold">{result.correct_answer}</span>
         </p>
         <p className="text-xs text-muted-foreground">
-          +{result.puzzle_points} jeu · +{result.streak_bonus} régularité ·{' '}
+          +{result.puzzle_points} jeu
+          {result.streak_bonus > 0 ? ` · +${result.streak_bonus} série` : ''}
+          {' · '}
           <strong className="text-foreground">+{result.points} auj.</strong>
         </p>
         <p className="text-xs leading-snug text-foreground sm:text-[13px]">{result.explanation}</p>
       </div>
       <p className="text-xs font-medium text-[#E94C16]">
-        {result.streak_bonus === 1 && streakBroken
-          ? 'Nouvelle série — C’est reparti !'
+        {streakBroken
+          ? 'Série 1 — reviens le prochain jour ouvré pour +1 pt de régularité.'
           : `Série ${streak}. ${nextHint}`}
       </p>
     </div>

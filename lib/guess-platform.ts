@@ -1,8 +1,8 @@
-/** Helpers UI pour le mini-jeu « Devine la plateforme » (jours ouvrés Europe/Paris). */
+import { isBusinessDayLocal } from '@/lib/french-holidays'
 
+/** @deprecated Préférer isBusinessDayLocal (exclut aussi les fériés). */
 export function isWeekendLocal(date = new Date()): boolean {
-  const day = date.getDay() // 0 = dimanche, 6 = samedi
-  return day === 0 || day === 6
+  return !isBusinessDayLocal(date)
 }
 
 /** Prochain lundi (ou aujourd'hui si déjà un jour ouvré — en pratique appelé le week-end). */
@@ -25,19 +25,21 @@ export function formatNextPlayHint(nextBusinessDayIso: string | null | undefined
   ].join('-')
 
   if (nextBusinessDayIso === tomorrowIso) {
-    return "Demain, ton bonus d'assiduité progressera encore."
+    return 'Reviens demain pour garder ta série (+1 pt de régularité).'
   }
 
   const [y, m, d] = nextBusinessDayIso.split('-').map(Number)
   const next = new Date(y, (m ?? 1) - 1, d ?? 1)
   const label = next.toLocaleDateString('fr-FR', { weekday: 'long' })
-  return `Reviens ${label} pour continuer ta série.`
+  return `Reviens ${label} pour garder ta série (+1 pt de régularité).`
 }
 
 export type GuessPlatformStats = {
   current_streak: number
   record_streak: number
   total_points: number
+  daily_points?: number
+  guess_points?: number
   today?: string
   is_business_day?: boolean
   next_business_day?: string

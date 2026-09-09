@@ -9,6 +9,7 @@ import {
   type DailyPlayQuestion,
 } from '@/components/home/DailyQuestionCard'
 import { GuessPlatformCard } from '@/components/home/GuessPlatformCard'
+import { MotusCard } from '@/components/home/MotusCard'
 import { WelcomeBanner } from '@/components/home/WelcomeBanner'
 import { getCycleDay } from '@/lib/daily-question-cycle'
 import { upcomingBirthdays, type BirthdayRow } from '@/lib/home-events'
@@ -83,12 +84,17 @@ export function HomeDashboard() {
   const loadGameStats = useCallback(async () => {
     setStatsLoading(true)
     try {
-      const { data, error } = await supabase.rpc('get_guess_platform_stats')
-      if (error || !data) {
+      const { data, error } = await supabase.rpc('get_home_gamification_stats')
+      if (!error && data) {
+        setGameStats(data as GuessPlatformStats)
+        return
+      }
+      const fallback = await supabase.rpc('get_guess_platform_stats')
+      if (fallback.error || !fallback.data) {
         setGameStats(EMPTY_GAME_STATS)
         return
       }
-      setGameStats(data as GuessPlatformStats)
+      setGameStats(fallback.data as GuessPlatformStats)
     } catch {
       setGameStats(EMPTY_GAME_STATS)
     } finally {
@@ -157,6 +163,7 @@ export function HomeDashboard() {
       setReview(parsed)
       setSelectedIndex(parsed.selected_index)
       notifyHomePlayAttentionChanged()
+      await loadGameStats()
     } finally {
       setSubmitting(false)
     }
@@ -196,8 +203,13 @@ export function HomeDashboard() {
             </div>
           </div>
 
-          <div className="min-h-0">
-            <GuessPlatformCard onStatsChange={setGameStats} />
+          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]">
+            <div className="min-h-0">
+              <GuessPlatformCard onStatsChange={setGameStats} />
+            </div>
+            <div className="min-h-0">
+              <MotusCard onStatsChange={setGameStats} />
+            </div>
           </div>
         </div>
       </div>

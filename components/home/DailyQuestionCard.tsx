@@ -22,6 +22,7 @@ export type DailyAnswerReview = {
   correct_index: number
   is_correct: boolean
   explanation: string
+  points?: number
 }
 
 type DailyQuestionCardProps = {
@@ -119,6 +120,9 @@ export function DailyQuestionCard({
               <div className={cn(homeCard.panel, 'border-transparent bg-[#EEEEEE]')}>
                 <p className="text-sm font-medium">
                   {review.is_correct ? 'Bonne réponse !' : 'Pas tout à fait.'}
+                  <span className="ml-2 text-xs font-semibold text-[#E94C16]">
+                    +{review.points ?? 1} pt
+                  </span>
                 </p>
                 <p className={cn(homeCard.bodyMuted, 'mt-0.5')}>{review.explanation}</p>
               </div>

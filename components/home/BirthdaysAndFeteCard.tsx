@@ -3,6 +3,7 @@
 import { Cake, Globe2, PartyPopper } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { homeCard } from '@/components/home/home-card-styles'
+import { formatLongFrenchDate } from '@/lib/daily-question-cycle'
 import { formatDaysUntil, type UpcomingBirthday } from '@/lib/home-events'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +30,7 @@ export function BirthdaysAndFeteCard({
           <Cake className={homeCard.titleIcon} />
           <CardTitle className={homeCard.title}>Aujourd&apos;hui</CardTitle>
         </div>
-        <p className={homeCard.subtitle}>Anniversaires, fête & journée mondiale</p>
+        <p className={cn(homeCard.subtitle, 'capitalize')}>{formatLongFrenchDate()}</p>
       </CardHeader>
       <CardContent className={cn(homeCard.content, 'gap-2')}>
         {loading ? (

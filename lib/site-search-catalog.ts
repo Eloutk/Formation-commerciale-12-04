@@ -255,7 +255,7 @@ export const SITE_SEARCH_CATALOG: CatalogEntry[] = [
     id: 'mon-espace-admin-quizz',
     title: 'Admin quizz',
     description:
-      'Gérer question du jour, Devine la plateforme, journées mondiales et anniversaires',
+      'Gérer question du jour, Devine la plateforme, Mot du jour, journées mondiales et anniversaires',
     href: MON_ESPACE_ADMIN_QUIZZ_HREF,
     category: 'Mon espace',
     keywords: [
@@ -265,6 +265,8 @@ export const SITE_SEARCH_CATALOG: CatalogEntry[] = [
       'question du jour',
       'devinette',
       'plateforme',
+      'mot du jour',
+      'motus',
       'journée mondiale',
       'anniversaire',
       'home',

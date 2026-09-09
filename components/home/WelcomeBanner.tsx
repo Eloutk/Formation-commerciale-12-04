@@ -1,8 +1,8 @@
 'use client'
 
 import { Flame } from 'lucide-react'
-import { firstNameFromDisplayName, formatLongFrenchDate } from '@/lib/daily-question-cycle'
-import { todayIsoLocal } from '@/lib/date-local'
+import { GamificationHelpDialog } from '@/components/home/GamificationHelpDialog'
+import { firstNameFromDisplayName } from '@/lib/daily-question-cycle'
 
 type WelcomeBannerProps = {
   userName: string | null
@@ -18,7 +18,6 @@ export function WelcomeBanner({
   statsLoading = false,
 }: WelcomeBannerProps) {
   const firstName = firstNameFromDisplayName(userName)
-  const dateLabel = formatLongFrenchDate(todayIsoLocal())
 
   return (
     <section className="shrink-0 overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm">
@@ -27,11 +26,12 @@ export function WelcomeBanner({
           Bonjour{firstName ? ` ${firstName}` : ''} 👋
         </h1>
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:gap-x-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 sm:gap-x-3">
+          <GamificationHelpDialog />
           {statsLoading ? (
             <p className="text-[11px] text-muted-foreground">Chargement…</p>
           ) : (
-            <div className="flex shrink-0 items-center gap-3 whitespace-nowrap text-[11px] sm:text-xs">
+            <div className="flex items-center gap-3 whitespace-nowrap text-[11px] sm:text-xs">
               <span>
                 <strong className="text-sm sm:text-base">{totalPoints}</strong> pts
               </span>
@@ -43,8 +43,6 @@ export function WelcomeBanner({
               </div>
             </div>
           )}
-
-          <p className="shrink-0 text-[10px] capitalize text-muted-foreground sm:text-xs">{dateLabel}</p>
         </div>
       </div>
     </section>
