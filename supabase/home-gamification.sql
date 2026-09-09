@@ -345,6 +345,7 @@ DECLARE
   today_paris DATE := public.paris_today();
   daily_pts INTEGER := 0;
   guess_pts INTEGER := 0;
+  motus_pts INTEGER := 0;
   days DATE[];
   current_streak INTEGER := 0;
   record_streak INTEGER := 0;
@@ -354,7 +355,8 @@ BEGIN
     RAISE EXCEPTION 'Non authentifié';
   END IF;
 
-  SELECT COALESCE(SUM(a.points), 0)::int
+  -- Chaque jeu ajoute ses points indépendamment (pas besoin des 3)
+  SELECT COALESCE(SUM(COALESCE(a.points, 1)), 0)::int
   INTO daily_pts
   FROM public.daily_question_answers a
   WHERE a.user_id = uid;
@@ -363,6 +365,15 @@ BEGIN
   INTO guess_pts
   FROM public.guess_platform_answers a
   WHERE a.user_id = uid;
+
+  BEGIN
+    SELECT COALESCE(SUM(a.points), 0)::int
+    INTO motus_pts
+    FROM public.motus_answers a
+    WHERE a.user_id = uid;
+  EXCEPTION WHEN undefined_table THEN
+    motus_pts := 0;
+  END;
 
   SELECT COALESCE(array_agg(d ORDER BY d), ARRAY[]::date[])
   INTO days
@@ -385,9 +396,10 @@ BEGIN
   record_streak := public.guess_compute_record_from_days(days);
 
   RETURN jsonb_build_object(
-    'total_points', daily_pts + guess_pts,
+    'total_points', daily_pts + guess_pts + motus_pts,
     'daily_points', daily_pts,
     'guess_points', guess_pts,
+    'motus_points', motus_pts,
     'current_streak', current_streak,
     'record_streak', record_streak,
     'today', today_paris,

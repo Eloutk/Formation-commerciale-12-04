@@ -82,19 +82,55 @@ export function HomeDashboard() {
   }, [today])
 
   const loadGameStats = useCallback(async () => {
-    setStatsLoading(true)
     try {
-      const { data, error } = await supabase.rpc('get_home_gamification_stats')
-      if (!error && data) {
-        setGameStats(data as GuessPlatformStats)
-        return
-      }
-      const fallback = await supabase.rpc('get_guess_platform_stats')
-      if (fallback.error || !fallback.data) {
-        setGameStats(EMPTY_GAME_STATS)
-        return
-      }
-      setGameStats(fallback.data as GuessPlatformStats)
+      // Points = somme des 3 jeux (indépendants). Un seul jeu suffit pour gagner ses pts.
+      const [dailyRes, guessRes, motusRes, statsRes] = await Promise.all([
+        supabase.from('daily_question_answers').select('points'),
+        supabase.from('guess_platform_answers').select('points'),
+        supabase.from('motus_answers').select('points'),
+        supabase.rpc('get_home_gamification_stats'),
+      ])
+
+      const sumPoints = (
+        rows: { points?: number | null }[] | null,
+        fallbackPerRow: number
+      ) =>
+        (rows || []).reduce((acc, row) => {
+          const value = row.points
+          return acc + (typeof value === 'number' ? value : fallbackPerRow)
+        }, 0)
+
+      const dailyPts = dailyRes.error
+        ? 0
+        : sumPoints(dailyRes.data as { points?: number | null }[] | null, 1)
+      const guessPts = guessRes.error
+        ? 0
+        : sumPoints(guessRes.data as { points?: number | null }[] | null, 0)
+      const motusPts = motusRes.error
+        ? 0
+        : sumPoints(motusRes.data as { points?: number | null }[] | null, 0)
+
+      const rpc =
+        !statsRes.error && statsRes.data && typeof statsRes.data === 'object'
+          ? (statsRes.data as GuessPlatformStats)
+          : null
+
+      const tablesReadable =
+        !dailyRes.error && !guessRes.error && !motusRes.error
+      const totalPoints = tablesReadable
+        ? dailyPts + guessPts + motusPts
+        : rpc && typeof rpc.total_points === 'number'
+          ? Number(rpc.total_points)
+          : dailyPts + guessPts + motusPts
+
+      setGameStats({
+        total_points: totalPoints,
+        daily_points: dailyPts,
+        guess_points: guessPts,
+        motus_points: motusPts,
+        current_streak: Number(rpc?.current_streak || 0),
+        record_streak: Number(rpc?.record_streak || 0),
+      })
     } catch {
       setGameStats(EMPTY_GAME_STATS)
     } finally {
@@ -205,10 +241,10 @@ export function HomeDashboard() {
 
           <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]">
             <div className="min-h-0">
-              <GuessPlatformCard onStatsChange={setGameStats} />
+              <GuessPlatformCard onStatsChange={loadGameStats} />
             </div>
             <div className="min-h-0">
-              <MotusCard onStatsChange={setGameStats} />
+              <MotusCard onStatsChange={loadGameStats} />
             </div>
           </div>
         </div>

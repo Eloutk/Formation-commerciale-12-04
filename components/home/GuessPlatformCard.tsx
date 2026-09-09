@@ -15,7 +15,6 @@ import {
   parseJsonStringArray,
   type GuessPlatformQuestion,
   type GuessPlatformResult,
-  type GuessPlatformStats,
 } from '@/lib/guess-platform'
 import { cn } from '@/lib/utils'
 import supabase from '@/utils/supabase/client'
@@ -29,7 +28,7 @@ type PlayPayload = {
 export function GuessPlatformCard({
   onStatsChange,
 }: {
-  onStatsChange?: (stats: GuessPlatformStats) => void
+  onStatsChange?: () => void
 } = {}) {
   const cycleDay = useMemo(() => getCycleDay(), [])
   const weekend = isWeekendLocal()
@@ -47,14 +46,9 @@ export function GuessPlatformCard({
     setLoading(true)
     setError(null)
     try {
-      const [{ data: playData, error: playError }, { data: statsData }] = await Promise.all([
-        supabase.rpc('get_guess_platform_play', { p_cycle_day: cycleDay }),
-        supabase.rpc('get_guess_platform_stats'),
-      ])
-
-      if (statsData) {
-        onStatsChange?.(statsData as GuessPlatformStats)
-      }
+      const { data: playData, error: playError } = await supabase.rpc('get_guess_platform_play', {
+        p_cycle_day: cycleDay,
+      })
 
       if (playError) {
         setError('Le mini-jeu n’est pas encore configuré. Exécute le SQL Supabase, puis recharge.')
@@ -91,9 +85,6 @@ export function GuessPlatformCard({
         const review = normalizeResult(reviewData)
         setResult(review)
         setHintsShown(review.hints_used)
-        if (review.stats) {
-          onStatsChange?.(review.stats)
-        }
       } else {
         setResult(null)
         setHintsShown(1)
@@ -103,7 +94,7 @@ export function GuessPlatformCard({
     } finally {
       setLoading(false)
     }
-  }, [cycleDay, onStatsChange])
+  }, [cycleDay])
 
   useEffect(() => {
     void load()
@@ -134,10 +125,8 @@ export function GuessPlatformCard({
       const review = normalizeResult(data)
       setResult(review)
       setHintsShown(review.hints_used)
-      if (review.stats) {
-        onStatsChange?.(review.stats)
-      }
       notifyHomePlayAttentionChanged()
+      onStatsChange?.()
     } finally {
       setSubmitting(false)
     }

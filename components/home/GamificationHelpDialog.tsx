@@ -75,10 +75,13 @@ export function GamificationHelpDialog({
           <section className="space-y-1.5 rounded-md border border-[#E94C16]/20 bg-[#E94C16]/[0.04] p-3">
             <p className="font-semibold">Exemple</p>
             <p className="text-muted-foreground">
-              Lundi : question + plateforme + mot → <strong className="text-foreground">3 pts</strong>
+              Tu n’es pas obligé de faire les 3 jeux : chaque jeu rapporte son point dès que tu le
+              termines.
               <br />
-              Mardi : idem + série plateforme →{' '}
-              <strong className="text-foreground">4 pts</strong>
+              Lundi : seulement la question → <strong className="text-foreground">+1 pt</strong>
+              <br />
+              Mardi : les 3 jeux + série plateforme →{' '}
+              <strong className="text-foreground">+4 pts</strong>
             </p>
           </section>
         </div>

@@ -14,7 +14,6 @@ import {
 import { homeCard } from '@/components/home/home-card-styles'
 import { getCycleDay } from '@/lib/daily-question-cycle'
 import { notifyHomePlayAttentionChanged } from '@/lib/home-play-attention'
-import type { GuessPlatformStats } from '@/lib/guess-platform'
 import {
   buildEmptyMotusRows,
   normalizeMotusGuesses,
@@ -31,7 +30,7 @@ import supabase from '@/utils/supabase/client'
 const KEYBOARD_ROWS = ['AZERTYUIOP', 'QSDFGHJKLM', 'WXCVBN'] as const
 
 type MotusCardProps = {
-  onStatsChange?: (stats: GuessPlatformStats) => void
+  onStatsChange?: () => void
 }
 
 export function MotusCard({ onStatsChange }: MotusCardProps) {
@@ -144,8 +143,7 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
       if (result.finished) {
         setDraft('')
         notifyHomePlayAttentionChanged()
-        const { data: stats } = await supabase.rpc('get_home_gamification_stats')
-        if (stats) onStatsChange?.(stats as GuessPlatformStats)
+        onStatsChange?.()
       } else {
         setDraft(question.first_letter)
       }

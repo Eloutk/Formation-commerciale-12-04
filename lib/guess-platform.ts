@@ -40,6 +40,7 @@ export type GuessPlatformStats = {
   total_points: number
   daily_points?: number
   guess_points?: number
+  motus_points?: number
   today?: string
   is_business_day?: boolean
   next_business_day?: string
