@@ -1,7 +1,17 @@
--- Assure que chaque jeu rapporte ses points indépendamment
--- (question + plateforme + motus), sans attendre les 3.
+-- Corrige : column a.points does not exist
+-- Cause : get_home_gamification_stats lit daily_question_answers.points
+--         alors que la colonne n'a pas encore été créée en prod.
 -- Coller dans Supabase > SQL Editor
 
+-- 1) Colonne manquante sur les réponses "Question du jour"
+ALTER TABLE public.daily_question_answers
+  ADD COLUMN IF NOT EXISTS points SMALLINT NOT NULL DEFAULT 1;
+
+UPDATE public.daily_question_answers
+SET points = 1
+WHERE points IS DISTINCT FROM 1;
+
+-- 2) Stats Home : 1 pt par jeu, indépendamment
 CREATE OR REPLACE FUNCTION public.get_home_gamification_stats()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -23,19 +33,16 @@ BEGIN
     RAISE EXCEPTION 'Non authentifié';
   END IF;
 
-  -- Question du jour : 1 pt / réponse (indépendant)
   SELECT COALESCE(SUM(COALESCE(a.points, 1)), 0)::int
   INTO daily_pts
   FROM public.daily_question_answers a
   WHERE a.user_id = uid;
 
-  -- Devine la plateforme : points du jeu (indépendant)
   SELECT COALESCE(SUM(a.points), 0)::int
   INTO guess_pts
   FROM public.guess_platform_answers a
   WHERE a.user_id = uid;
 
-  -- Mot du jour : points du jeu (indépendant)
   BEGIN
     SELECT COALESCE(SUM(a.points), 0)::int
     INTO motus_pts
