@@ -67,6 +67,9 @@ export const MOCKUP_HREF = STRATEGIE_MOCKUP_HREF
 export const MON_ESPACE_CALCULS_HREF = '/mon-espace/calculs'
 export const MON_ESPACE_CTA_HREF = '/mon-espace/cta'
 export const ATTERRISSAGE_HREF = '/mon-espace/atterissage'
+export const MON_ESPACE_ADMIN_QUIZZ_HREF = '/mon-espace/admin-quizz'
+/** @deprecated Alias — préférer MON_ESPACE_ADMIN_QUIZZ_HREF */
+export const MON_ESPACE_DEVINE_PLATEFORME_HREF = MON_ESPACE_ADMIN_QUIZZ_HREF
 
 export const VENTE2_STUDIO_TARIFS_HREF = MON_ESPACE_TARIFS_STUDIO_HREF
 /** @deprecated Alias historique — préférer MON_ESPACE_CALCULS_HREF */
@@ -102,6 +105,7 @@ export const MON_ESPACE_LINKS: NavMenuItem[] = [
   { href: MON_ESPACE_TARIFS_STUDIO_HREF, label: 'Studio' },
   { href: MON_ESPACE_CTA_HREF, label: 'CTA', cpAdminOnly: true },
   { href: ATTERRISSAGE_HREF, label: 'Atterrissage', adminOnly: true },
+  { href: MON_ESPACE_ADMIN_QUIZZ_HREF, label: 'Admin quizz', adminOnly: true },
 ]
 
 export const VENTE2_LINKS: NavMenuItem[] = []

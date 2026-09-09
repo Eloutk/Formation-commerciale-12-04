@@ -186,3 +186,17 @@
   }
 }
 
+@keyframes home-birthday-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(233, 76, 22, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(233, 76, 22, 0.08);
+  }
+}
+
+.home-birthday-today {
+  animation: home-birthday-glow 2.2s ease-in-out infinite;
+}
+

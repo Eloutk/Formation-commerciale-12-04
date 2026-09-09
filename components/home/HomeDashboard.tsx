@@ -1,0 +1,206 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuthAccess } from '@/components/auth-context'
+import { BirthdaysAndFeteCard } from '@/components/home/BirthdaysAndFeteCard'
+import {
+  DailyQuestionCard,
+  type DailyAnswerReview,
+  type DailyPlayQuestion,
+} from '@/components/home/DailyQuestionCard'
+import { GuessPlatformCard } from '@/components/home/GuessPlatformCard'
+import { WelcomeBanner } from '@/components/home/WelcomeBanner'
+import { getCycleDay } from '@/lib/daily-question-cycle'
+import { upcomingBirthdays, type BirthdayRow } from '@/lib/home-events'
+import { notifyHomePlayAttentionChanged } from '@/lib/home-play-attention'
+import type { GuessPlatformStats } from '@/lib/guess-platform'
+import supabase from '@/utils/supabase/client'
+
+const EMPTY_GAME_STATS: GuessPlatformStats = {
+  current_streak: 0,
+  record_streak: 0,
+  total_points: 0,
+}
+
+export function HomeDashboard() {
+  const { userName, authReady } = useAuthAccess()
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [questionLoading, setQuestionLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [upcoming, setUpcoming] = useState<ReturnType<typeof upcomingBirthdays>>([])
+  const [feteNames, setFeteNames] = useState<string[]>([])
+  const [worldDays, setWorldDays] = useState<string[]>([])
+  const [question, setQuestion] = useState<DailyPlayQuestion | null>(null)
+  const [review, setReview] = useState<DailyAnswerReview | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [questionError, setQuestionError] = useState<string | null>(null)
+  const [gameStats, setGameStats] = useState<GuessPlatformStats>(EMPTY_GAME_STATS)
+
+  const cycleDay = useMemo(() => getCycleDay(), [])
+  const today = useMemo(() => new Date(), [])
+
+  const loadEvents = useCallback(async () => {
+    setEventsLoading(true)
+    try {
+      const month = today.getMonth() + 1
+      const day = today.getDate()
+      const [{ data: birthdayRows }, { data: feteRow }, worldDayResult] = await Promise.all([
+        supabase.from('birthdays').select('name, month, day'),
+        supabase.from('fete').select('names').eq('month', month).eq('day', day).maybeSingle(),
+        supabase.rpc('get_todays_world_days'),
+      ])
+      setUpcoming(upcomingBirthdays((birthdayRows || []) as BirthdayRow[], today, 7))
+      setFeteNames(Array.isArray(feteRow?.names) ? (feteRow.names as string[]) : [])
+
+      let labels: string[] = []
+      if (!worldDayResult.error && Array.isArray(worldDayResult.data)) {
+        labels = worldDayResult.data
+          .map((row) =>
+            row && typeof row === 'object' && 'label' in row ? String(row.label) : ''
+          )
+          .filter(Boolean)
+      } else {
+        const { data: fallback } = await supabase
+          .from('world_days')
+          .select('label')
+          .eq('month', month)
+          .eq('day', day)
+        labels = (fallback || [])
+          .map((row) => (row?.label ? String(row.label) : ''))
+          .filter(Boolean)
+      }
+      setWorldDays(labels)
+    } catch {
+      setUpcoming([])
+      setFeteNames([])
+      setWorldDays([])
+    } finally {
+      setEventsLoading(false)
+    }
+  }, [today])
+
+  const loadGameStats = useCallback(async () => {
+    setStatsLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('get_guess_platform_stats')
+      if (error || !data) {
+        setGameStats(EMPTY_GAME_STATS)
+        return
+      }
+      setGameStats(data as GuessPlatformStats)
+    } catch {
+      setGameStats(EMPTY_GAME_STATS)
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [])
+
+  const loadQuestion = useCallback(async () => {
+    setQuestionLoading(true)
+    setQuestionError(null)
+    try {
+      const { data, error } = await supabase.rpc('get_daily_question_play', {
+        p_cycle_day: cycleDay,
+      })
+
+      const row = Array.isArray(data) ? data[0] : data
+      if (error || !row) {
+        setQuestion(null)
+        setQuestionError(
+          'La question du jour n’est pas encore configurée. Collez le SQL dans Supabase, puis rechargez.'
+        )
+        return
+      }
+
+      const playQuestion = row as DailyPlayQuestion
+      setQuestion(playQuestion)
+
+      const { data: reviewData } = await supabase.rpc('get_daily_answer_review', {
+        p_question_id: playQuestion.id,
+      })
+      if (reviewData) {
+        const parsed = reviewData as DailyAnswerReview
+        setReview(parsed)
+        setSelectedIndex(parsed.selected_index)
+      }
+    } catch {
+      setQuestion(null)
+      setQuestionError(
+        'Impossible de charger la question du jour pour le moment. Réessaie dans un instant.'
+      )
+    } finally {
+      setQuestionLoading(false)
+    }
+  }, [cycleDay])
+
+  useEffect(() => {
+    if (!authReady) return
+    void loadEvents()
+    void loadQuestion()
+    void loadGameStats()
+  }, [authReady, loadEvents, loadQuestion, loadGameStats])
+
+  const handleSubmit = async () => {
+    if (!question || selectedIndex === null || review) return
+    setSubmitting(true)
+    try {
+      const { data, error } = await supabase.rpc('submit_daily_answer', {
+        p_question_id: question.id,
+        p_selected_index: selectedIndex,
+      })
+      if (error || !data) {
+        setQuestionError("L'enregistrement de la réponse a échoué. Réessaie.")
+        return
+      }
+      const parsed = data as DailyAnswerReview
+      setReview(parsed)
+      setSelectedIndex(parsed.selected_index)
+      notifyHomePlayAttentionChanged()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="h-[calc(100dvh-4rem)] overflow-hidden px-3 py-2 sm:px-4 sm:py-3 md:px-6">
+      <div className="mx-auto flex h-full max-w-[1400px] min-h-0 flex-col gap-2">
+        <WelcomeBanner
+          userName={userName}
+          totalPoints={gameStats.total_points}
+          currentStreak={gameStats.current_streak}
+          statsLoading={statsLoading}
+        />
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-rows-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+            <div className="min-h-0">
+              <DailyQuestionCard
+                question={question}
+                review={review}
+                selectedIndex={selectedIndex}
+                submitting={submitting}
+                loading={questionLoading}
+                error={questionError}
+                onSelect={setSelectedIndex}
+                onSubmit={handleSubmit}
+              />
+            </div>
+            <div className="min-h-0">
+              <BirthdaysAndFeteCard
+                todayNames={feteNames}
+                upcoming={upcoming}
+                worldDays={worldDays}
+                loading={eventsLoading}
+              />
+            </div>
+          </div>
+
+          <div className="min-h-0">
+            <GuessPlatformCard onStatsChange={setGameStats} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

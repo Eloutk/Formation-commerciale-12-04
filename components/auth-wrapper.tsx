@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState, useMemo, Suspense } from "react"
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { DoorOpen } from 'lucide-react'
 import { MobileNav } from '@/components/mobile-nav'
 import { HeaderNavMenu } from '@/components/nav/header-nav-menu'
+import { HomeLogoLink } from '@/components/nav/home-logo-link'
 import { MonEspaceHeaderNavMenu } from '@/components/nav/mon-espace-nav-menu'
 import { HeaderSearch } from '@/components/nav/header-search'
 import { AdminNavTab } from '@/components/nav/admin-nav-tab'
@@ -43,7 +43,6 @@ import {
   markSessionStarted,
   readStoredSessionStartedAt,
 } from '@/lib/auth-session-ttl'
-import { WorldDayPopup } from '@/components/world-day-popup'
 
 interface User {
   id: string
@@ -659,10 +658,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       {!isPublicPath && (
         <header className="sticky top-0 z-50 w-full border-b bg-background">
           <div className="container flex h-16 items-center gap-3 px-4 mx-auto">
-            <Link href="/home" className="flex shrink-0 items-center gap-2 font-semibold">
-              <Image src="/Logo Link Vertical (Orange).png" alt="Logo Link Academy" width={32} height={32} className="object-contain h-8 w-auto" />
-              <span className="hidden sm:inline">Link academy</span>
-            </Link>
+            <HomeLogoLink />
 
             <nav className="hidden lg:flex items-center gap-1 text-sm shrink-0">
               <HeaderNavMenu
@@ -761,9 +757,6 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       )}
 
       <main className="flex-1">{children}</main>
-
-      {/* Popup journée mondiale du jour — affiché uniquement si show_world_day_popup = true dans profiles */}
-      {user && !isPublicPath && <WorldDayPopup />}
 
       <Dialog open={mustCompleteName} onOpenChange={() => {}}>
         <DialogContent>

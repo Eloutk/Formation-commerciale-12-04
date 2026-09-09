@@ -1,0 +1,185 @@
+-- À coller dans Supabase SQL Editor APRÈS guess-platform.sql
+TRUNCATE public.guess_platform_answers, public.guess_platform_questions RESTART IDENTITY CASCADE;
+
+INSERT INTO public.guess_platform_questions (
+  sort_order, title, correct_answer, answer_options, clues, explanation, category, difficulty
+) VALUES
+(1, 'Devine la plateforme', 'LinkedIn Ads',
+ '["Meta Ads","LinkedIn Ads","TikTok Ads","Google Ads"]'::jsonb,
+ '["Je suis particulièrement utilisée en B2B.","Mon ciblage peut s''appuyer sur le poste, l''entreprise ou la séniorité.","L''âge y est plutôt inféré via le diplôme que déclaré."]'::jsonb,
+ 'LinkedIn Ads est le levier B2B de référence : ciblage pro (fonction, entreprise, séniorité) et âge peu fiable car basé sur le diplôme.',
+ 'Social', 'facile'),
+
+(2, 'Devine la plateforme', 'Snapchat Ads',
+ '["TikTok Ads","Snapchat Ads","Meta Ads","Spotify"]'::jsonb,
+ '["Je touche fortement une audience jeune.","Je suis la seule régie du dispositif Link qui permet de cibler des mineurs sans ciblage avancé.","Mes formats privilégient le vertical plein écran, type Stories."]'::jsonb,
+ 'Snapchat Ads se distingue par l''accès aux mineurs sans ciblage avancé et des formats Stories verticaux.',
+ 'Social', 'facile'),
+
+(3, 'Devine la plateforme', 'Spotify',
+ '["YouTube","Spotify","Display","TikTok Ads"]'::jsonb,
+ '["Je ne diffuse pas de bannières classiques.","Une étude de potentiel est indispensable avant de lancer une campagne.","Pas de ciblage par rayon autour d''un point : pays, régions, villes ou codes postaux."]'::jsonb,
+ 'Sur Spotify, le potentiel doit être validé en amont et le ciblage géo n''offre pas de rayon.',
+ 'Audio', 'intermediaire'),
+
+(4, 'Devine la plateforme', 'YouTube',
+ '["TikTok Ads","YouTube","Display","Snapchat Ads"]'::jsonb,
+ '["Je fais partie de l''écosystème Google.","Mon format Bumper dure au maximum 6 secondes et n''est pas ignorable.","Une « vue » dépend de la durée de la vidéo (< 30 s = visionnage entier ; > 30 s = au moins 30 premières secondes)."]'::jsonb,
+ 'YouTube propose notamment le Bumper 6 s ; la définition d''une vue dépend de la durée du contenu.',
+ 'Google', 'intermediaire'),
+
+(5, 'Devine la plateforme', 'Performance Max',
+ '["Search","Display","Performance Max","Demand Gen"]'::jsonb,
+ '["Je fais partie de Google Ads.","Je mixe plusieurs inventaires Google dans une seule campagne automatisée.","Je ne suis pas un placement Shopping/Play au sens de l''offre Link, mais un type de campagne cross-inventaire."]'::jsonb,
+ 'Performance Max automatise la diffusion sur plusieurs inventaires Google dans une campagne unique.',
+ 'Google', 'difficile'),
+
+(6, 'Devine la plateforme', 'Search',
+ '["Display","Search","YouTube","Demand Gen"]'::jsonb,
+ '["Je ne cible pas une audience classique.","On achète des mots-clés (large, expression exacte, exact).","Je suis le levier SEA des moteurs de recherche."]'::jsonb,
+ 'Sur Search, on achète des requêtes plutôt que de cibler une audience démographique classique.',
+ 'Google', 'intermediaire'),
+
+(7, 'Devine la plateforme', 'Meta Ads',
+ '["Meta Ads","LinkedIn Ads","TikTok Ads","Snapchat Ads"]'::jsonb,
+ '["Je regroupe Facebook et Instagram.","Mes catégories spéciales (crédit, emploi, logement…) imposent une diffusion sans ciblage détaillé.","Pixel et API Conversion y sont centraux pour le tracking."]'::jsonb,
+ 'Meta Ads (Facebook/Instagram) impose des règles strictes sur les catégories spéciales et s''appuie sur pixel + API Conversion.',
+ 'Social', 'facile'),
+
+(8, 'Devine la plateforme', 'TikTok Ads',
+ '["Snapchat Ads","TikTok Ads","YouTube","Meta Ads"]'::jsonb,
+ '["Mon format roi est la vidéo courte verticale.","Budget minimum : 50 € par jour et par ciblage.","Budget, zone et dates se paramètrent au niveau des ensembles de publicités."]'::jsonb,
+ 'TikTok Ads impose 50 €/jour/ciblage et place budget/zone/dates au niveau des ad sets.',
+ 'Social', 'intermediaire'),
+
+(9, 'Devine la plateforme', 'Demand Gen',
+ '["Performance Max","Demand Gen","Search","Display"]'::jsonb,
+ '["Je suis une offre Google relativement récente.","Je vise la génération de demande via inventaires Google (YouTube, Discover, Gmail…).","Je me distingue de Performance Max par un focus plus discovery / considération."]'::jsonb,
+ 'Demand Gen pousse la considération sur inventaires Google discovery, distinct de Performance Max.',
+ 'Google', 'difficile'),
+
+(10, 'Devine la plateforme', 'Display',
+ '["Search","YouTube","Display","Performance Max"]'::jsonb,
+ '["Je diffuse des formats visuels sur des sites partenaires.","On ne peut pas fournir à l''avance la liste fixe de tous les sites (ciblages automatisés).","Je suis le levier bannières / image / vidéo hors feed social."]'::jsonb,
+ 'Le Display repose sur des ciblages automatisés : impossible de garantir un listing exhaustif des sites.',
+ 'Google', 'facile'),
+
+(11, 'Devine la plateforme', 'LinkedIn Ads',
+ '["LinkedIn Ads","Meta Ads","Google Ads","TikTok Ads"]'::jsonb,
+ '["Mon format sponsorisé recommandé est souvent rectangulaire 1,91:1.","Je suis très pertinente pour générer des leads B2B.","Je propose un objectif « Génération de leads » dans la catégorie Conversion."]'::jsonb,
+ 'LinkedIn Ads combine formats feed 1200×627 et objectifs leads adaptés au B2B.',
+ 'Social', 'facile'),
+
+(12, 'Devine la plateforme', 'Meta Ads',
+ '["TikTok Ads","Meta Ads","Snapchat Ads","LinkedIn Ads"]'::jsonb,
+ '["Je gère des campagnes mono-zone ou multi-zones.","En multi-zones, on recommande de ne pas dépasser 5 zones.","Une seule zone concentre le budget et renforce la puissance d''enchères."]'::jsonb,
+ 'Sur Meta, la structure par zones (max 5 en multi) impacte directement la force d''enchère.',
+ 'Social', 'intermediaire'),
+
+(13, 'Devine la plateforme', 'YouTube',
+ '["YouTube","TikTok Ads","Spotify","Display"]'::jsonb,
+ '["Je propose In-stream, In-feed, Shorts et Bumper.","Je peux afficher beaucoup d''« inconnus » dans les rapports démographiques.","Beaucoup d''utilisateurs ne sont pas connectés à un compte lors de la diffusion."]'::jsonb,
+ 'YouTube/Google présentent souvent une part élevée d''inconnus car les users ne sont pas loggés.',
+ 'Google', 'intermediaire'),
+
+(14, 'Devine la plateforme', 'Search',
+ '["Display","Search","Meta Ads","Demand Gen"]'::jsonb,
+ '["Mon budget peut ne pas couvrir toutes les recherches pertinentes d''une zone.","Enchérir sur sa propre marque est une stratégie SEA de protection.","Je n''ai pas de ciblage centres d''intérêt classique : tout passe par les requêtes."]'::jsonb,
+ 'Search = SEA par mots-clés ; budget et branding sur nom de marque sont des sujets FAQ récurrents.',
+ 'Google', 'intermediaire'),
+
+(15, 'Devine la plateforme', 'Spotify',
+ '["Snapchat Ads","Spotify","YouTube","Display"]'::jsonb,
+ '["Je suis un levier audio.","Avant diffusion, l''équipe vérifie le volume de comptes et le max d''impressions.","Je ne propose pas de ciblage « X km autour du magasin »."]'::jsonb,
+ 'Spotify exige une étude de potentiel et n''offre pas le rayon géographique.',
+ 'Audio', 'facile'),
+
+(16, 'Devine la plateforme', 'TikTok Ads',
+ '["Meta Ads","TikTok Ads","LinkedIn Ads","Snapchat Ads"]'::jsonb,
+ '["Le carrousel n''est pas un format standard de mon offre pub Link.","Je mise surtout sur In-Feed, TopView et défis de marque.","Mon expérience est native mobile et verticale."]'::jsonb,
+ 'Chez Link, TikTok est centré vidéo (In-Feed, TopView…) plutôt que carrousel.',
+ 'Social', 'difficile'),
+
+(17, 'Devine la plateforme', 'Display',
+ '["Display","Search","YouTube","Meta Ads"]'::jsonb,
+ '["Je peux cibler par audience mots-clés & sites, centres d''intérêt ou placements.","Placement par thème, mot-clé ou site web sont des options.","Je suis souvent opposé au Search dans les plans média."]'::jsonb,
+ 'Le Display multiplie les modes de ciblage automatisé (intérêts, thèmes, sites).',
+ 'Google', 'intermediaire'),
+
+(18, 'Devine la plateforme', 'Performance Max',
+ '["Demand Gen","Performance Max","Search","YouTube"]'::jsonb,
+ '["Je laisse l''algo Google répartir le budget entre inventaires.","Je suis un type de campagne, pas un réseau social.","Search, Display, YouTube et autres inventaires peuvent être couverts ensemble."]'::jsonb,
+ 'Performance Max = campagne Google automatisée multi-inventaires.',
+ 'Google', 'difficile'),
+
+(19, 'Devine la plateforme', 'Snapchat Ads',
+ '["TikTok Ads","Snapchat Ads","Instagram","Spotify"]'::jsonb,
+ '["Mes CTA incluent des options comme Réserver, Commander ou Voir le menu.","Je suis très Stories / plein écran.","Je complète souvent Meta pour toucher les plus jeunes."]'::jsonb,
+ 'Snapchat Ads reste le levier Stories jeune, avec une palette CTA dédiée.',
+ 'Social', 'facile'),
+
+(20, 'Devine la plateforme', 'Demand Gen',
+ '["Display","Demand Gen","Search","LinkedIn Ads"]'::jsonb,
+ '["Je suis dans Google Ads, aux côtés de Perf Max.","Je pousse la considération plutôt que l''intention Search pure.","YouTube, Discover et Gmail font partie de mon terrain de jeu."]'::jsonb,
+ 'Demand Gen cible la considération sur inventaires Google discovery.',
+ 'Google', 'difficile'),
+
+(21, 'Devine la plateforme', 'Meta Ads',
+ '["Meta Ads","Google Ads","LinkedIn Ads","TikTok Ads"]'::jsonb,
+ '["Je distingue « clic » et « clic sur lien » (vers la landing).","Mon score qualité influence la note d''enchère (enchère × score).","Je suis souvent le premier levier social d''un plan média Link."]'::jsonb,
+ 'Meta différencie les métriques de clic et intègre le score qualité dans les enchères.',
+ 'Social', 'intermediaire'),
+
+(22, 'Devine la plateforme', 'LinkedIn Ads',
+ '["TikTok Ads","LinkedIn Ads","Snapchat Ads","Spotify"]'::jsonb,
+ '["Je suis le meilleur levier pub B2B du dispositif.","Fonction, titre, compétences et secteur sont mes leviers de ciblage.","Un format 1200 × 627 est recommandé pour les posts sponsorisés."]'::jsonb,
+ 'LinkedIn Ads = B2B, ciblage pro et format feed 1,91:1.',
+ 'Social', 'facile'),
+
+(23, 'Devine la plateforme', 'YouTube',
+ '["YouTube","Display","TikTok Ads","Spotify"]'::jsonb,
+ '["Je peux servir des annonces TrueView / In-stream.","Les Shorts font partie de mon inventaire.","Je partage souvent les mêmes enjeux de tracking « inconnus » que Google."]'::jsonb,
+ 'YouTube combine formats longs, Shorts et Bumper dans l''écosystème Google.',
+ 'Google', 'facile'),
+
+(24, 'Devine la plateforme', 'Search',
+ '["Search","Display","Performance Max","Meta Ads"]'::jsonb,
+ '["Correspondance large, expression exacte et mot-clé exact structurent mon ciblage.","Je capture l''intention au moment de la requête.","Je suis le cœur du SEA."]'::jsonb,
+ 'Search repose sur les types de correspondance de mots-clés et l''intention.',
+ 'Google', 'facile'),
+
+(25, 'Devine la plateforme', 'TikTok Ads',
+ '["Meta Ads","Snapchat Ads","TikTok Ads","LinkedIn Ads"]'::jsonb,
+ '["Mon objectif Traffic renvoie vers un site ou une app.","Je suis très orienté création native et tendances.","50 € PDV par jour et par ciblage : c''est mon plancher."]'::jsonb,
+ 'TikTok Ads combine objectifs Traffic et contrainte budgétaire stricte par ciblage.',
+ 'Social', 'intermediaire'),
+
+(26, 'Devine la plateforme', 'Display',
+ '["YouTube","Display","Search","Spotify"]'::jsonb,
+ '["Je renforce surtout la notoriété via des impressions visuelles.","CPM est souvent mon KPI de référence en notoriété.","Je diffuse hors des feeds sociaux Meta/TikTok."]'::jsonb,
+ 'Le Display sert surtout la notoriété via impressions sur le web ouvert.',
+ 'Google', 'facile'),
+
+(27, 'Devine la plateforme', 'Spotify',
+ '["YouTube","Spotify","Podcasts","Display"]'::jsonb,
+ '["Mes campagnes se mesurent beaucoup en impressions audio.","Je ne suis ni un feed social ni un moteur de recherche.","Sans étude de potentiel, on risque de surpromettre le volume."]'::jsonb,
+ 'Spotify = audio ; le potentiel doit être chiffré avant engagement.',
+ 'Audio', 'intermediaire'),
+
+(28, 'Devine la plateforme', 'Performance Max',
+ '["Search","Performance Max","Demand Gen","Display"]'::jsonb,
+ '["Je simplifie la structure : moins de réglages manuels qu''une campagne Search classique.","Google oriente les enchères vers les inventaires performants.","Je complète souvent Search dans les plans média Link."]'::jsonb,
+ 'Performance Max automatise la répartition multi-inventaires Google.',
+ 'Google', 'intermediaire'),
+
+(29, 'Devine la plateforme', 'Meta Ads',
+ '["LinkedIn Ads","Meta Ads","Google Ads","Snapchat Ads"]'::jsonb,
+ '["WhatsApp, Messenger et Threads font partie de mon écosystème.","Je propose des objectifs Notoriété, Trafic, Interactions, Prospects, Ventes.","Les dark posts permettent de diffuser sans publier organiquement."]'::jsonb,
+ 'Meta couvre un large spectre d''objectifs et de surfaces, y compris les dark posts.',
+ 'Social', 'difficile'),
+
+(30, 'Devine la plateforme', 'Demand Gen',
+ '["Demand Gen","Performance Max","YouTube","Search"]'::jsonb,
+ '["Je suis conçu pour créer de la demande, pas seulement capturer une requête.","Je m''appuie sur des inventaires Google plus « découverte ».","On me compare souvent à Perf Max, mais mon angle est plus considération."]'::jsonb,
+ 'Demand Gen = création de demande sur inventaires discovery Google.',
+ 'Google', 'difficile');

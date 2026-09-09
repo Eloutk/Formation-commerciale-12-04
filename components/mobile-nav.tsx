@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 import { MobileNavMenu } from "@/components/nav/mobile-nav-menu"
 import { MonEspaceMobileNavMenu } from "@/components/nav/mon-espace-nav-menu"
+import { HomeLogoLink } from "@/components/nav/home-logo-link"
 import { AdminNavTab } from "@/components/nav/admin-nav-tab"
 import {
   ACADEMY_LINKS,
@@ -61,13 +62,12 @@ export function MobileNav({
             <span className="sr-only">Fermer le menu</span>
           </SheetClose>
           <div className="py-6 pr-2">
-            <Link
-              href="/home"
-              className="mb-6 flex items-center gap-2 rounded-lg px-2 py-2 text-base font-semibold hover:bg-accent/70"
-              onClick={handleNav}
-            >
-              Link academy
-            </Link>
+            <HomeLogoLink
+              className="mb-6 rounded-lg px-2 py-2 hover:bg-accent/70"
+              showLabel
+              alwaysShowLabel
+              onNavigate={handleNav}
+            />
             <nav className="flex flex-col gap-1">
               <MobileNavMenu
                 label="Stratégie"
