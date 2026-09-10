@@ -41,6 +41,15 @@ export function GamificationHelpDialog({
         </DialogHeader>
         <div className="space-y-4 text-sm leading-relaxed text-foreground">
           <section className="space-y-1.5 rounded-md border border-border/70 bg-[#FAFAFA] p-3">
+            <p className="font-semibold text-[#E94C16]">Total cumulatif</p>
+            <p className="text-muted-foreground">
+              Les points <strong className="text-foreground">s’ajoutent</strong> jour après jour.
+              Si tu as 2 pts hier et que tu en gagnes 1 aujourd’hui, ton total passe à{' '}
+              <strong className="text-foreground">3</strong> — rien n’est remis à zéro.
+            </p>
+          </section>
+
+          <section className="space-y-1.5 rounded-md border border-border/70 bg-[#FAFAFA] p-3">
             <p className="font-semibold text-[#E94C16]">Chaque jour</p>
             <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
               <li>
@@ -75,13 +84,10 @@ export function GamificationHelpDialog({
           <section className="space-y-1.5 rounded-md border border-[#E94C16]/20 bg-[#E94C16]/[0.04] p-3">
             <p className="font-semibold">Exemple</p>
             <p className="text-muted-foreground">
-              Tu n’es pas obligé de faire les 3 jeux : chaque jeu rapporte son point dès que tu le
-              termines.
+              Lundi : question → total <strong className="text-foreground">1</strong>
               <br />
-              Lundi : seulement la question → <strong className="text-foreground">+1 pt</strong>
-              <br />
-              Mardi : les 3 jeux + série plateforme →{' '}
-              <strong className="text-foreground">+4 pts</strong>
+              Mardi : question + plateforme (+ série) →{' '}
+              <strong className="text-foreground">1 + 1 + 1 = 3</strong> au total
             </p>
           </section>
         </div>

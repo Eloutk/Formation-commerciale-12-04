@@ -268,7 +268,13 @@ function ResultBlock({ result }: { result: GuessPlatformResult }) {
           +{result.puzzle_points} jeu
           {result.streak_bonus > 0 ? ` · +${result.streak_bonus} série` : ''}
           {' · '}
-          <strong className="text-foreground">+{result.points} auj.</strong>
+          <strong className="text-foreground">+{result.points} cette partie</strong>
+          {typeof result.stats?.total_points === 'number' ? (
+            <>
+              {' · '}
+              Total <strong className="text-foreground">{result.stats.total_points} pts</strong>
+            </>
+          ) : null}
         </p>
         <p className="text-xs leading-snug text-foreground sm:text-[13px]">{result.explanation}</p>
       </div>

@@ -83,12 +83,26 @@ export function HomeDashboard() {
 
   const loadGameStats = useCallback(async () => {
     try {
-      // Points = somme des 3 jeux (indépendants). Un seul jeu suffit pour gagner ses pts.
-      const [dailyRes, guessRes, motusRes, statsRes] = await Promise.all([
+      // Total cumulatif = somme de TOUT l'historique (pas seulement aujourd'hui).
+      // Source de vérité : RPC (SECURITY DEFINER), sans réécriture des anciens points.
+      const { data, error } = await supabase.rpc('get_home_gamification_stats')
+      if (!error && data && typeof data === 'object' && 'total_points' in data) {
+        const rpc = data as GuessPlatformStats
+        setGameStats({
+          total_points: Number(rpc.total_points || 0),
+          daily_points: Number(rpc.daily_points || 0),
+          guess_points: Number(rpc.guess_points || 0),
+          motus_points: Number(rpc.motus_points || 0),
+          current_streak: Number(rpc.current_streak || 0),
+          record_streak: Number(rpc.record_streak || 0),
+        })
+        return
+      }
+
+      const [dailyRes, guessRes, motusRes] = await Promise.all([
         supabase.from('daily_question_answers').select('points'),
         supabase.from('guess_platform_answers').select('points'),
         supabase.from('motus_answers').select('points'),
-        supabase.rpc('get_home_gamification_stats'),
       ])
 
       const sumPoints = (
@@ -110,26 +124,13 @@ export function HomeDashboard() {
         ? 0
         : sumPoints(motusRes.data as { points?: number | null }[] | null, 0)
 
-      const rpc =
-        !statsRes.error && statsRes.data && typeof statsRes.data === 'object'
-          ? (statsRes.data as GuessPlatformStats)
-          : null
-
-      const tablesReadable =
-        !dailyRes.error && !guessRes.error && !motusRes.error
-      const totalPoints = tablesReadable
-        ? dailyPts + guessPts + motusPts
-        : rpc && typeof rpc.total_points === 'number'
-          ? Number(rpc.total_points)
-          : dailyPts + guessPts + motusPts
-
       setGameStats({
-        total_points: totalPoints,
+        total_points: dailyPts + guessPts + motusPts,
         daily_points: dailyPts,
         guess_points: guessPts,
         motus_points: motusPts,
-        current_streak: Number(rpc?.current_streak || 0),
-        record_streak: Number(rpc?.record_streak || 0),
+        current_streak: 0,
+        record_streak: 0,
       })
     } catch {
       setGameStats(EMPTY_GAME_STATS)

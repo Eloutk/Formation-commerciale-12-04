@@ -299,39 +299,12 @@ BEGIN
 END;
 $$;
 
--- Recalcule les anciens scores guess (1 + 0/1 série)
-DO $$
-DECLARE
-  r RECORD;
-  prev DATE;
-  days DATE[];
-  sb SMALLINT;
-BEGIN
-  FOR r IN
-    SELECT id, user_id, answered_on
-    FROM public.guess_platform_answers
-    ORDER BY user_id, answered_on
-  LOOP
-    SELECT COALESCE(array_agg(DISTINCT a.answered_on), ARRAY[]::date[])
-    INTO days
-    FROM public.guess_platform_answers a
-    WHERE a.user_id = r.user_id
-      AND a.answered_on < r.answered_on
-      AND public.is_business_day(a.answered_on);
-
-    prev := public.previous_business_day(r.answered_on);
-    sb := CASE WHEN public.is_business_day(r.answered_on) AND prev = ANY (days) THEN 1 ELSE 0 END;
-
-    UPDATE public.guess_platform_answers
-    SET puzzle_points = 1,
-        streak_bonus = sb,
-        points = 1 + sb
-    WHERE id = r.id;
-  END LOOP;
-END $$;
+-- IMPORTANT : ne jamais recalculer / écraser les points déjà gagnés.
+-- Le total affiché = SUM(historique). Hier 2 + aujourd'hui 1 = 3.
 
 -- ============================================================
 -- Stats globales Home (points question + plateforme + séries)
+-- Total cumulatif = somme de toutes les réponses, tous les jours.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.get_home_gamification_stats()

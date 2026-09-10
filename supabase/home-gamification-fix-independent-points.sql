@@ -1,17 +1,17 @@
--- Corrige : column a.points does not exist
--- Cause : get_home_gamification_stats lit daily_question_answers.points
---         alors que la colonne n'a pas encore été créée en prod.
+-- Stats Home : total CUMULATIF = somme de tout l'historique
+-- (hier 2 + aujourd'hui 1 = 3). Ne jamais UPDATE/écraser les points déjà gagnés.
 -- Coller dans Supabase > SQL Editor
 
 -- 1) Colonne manquante sur les réponses "Question du jour"
 ALTER TABLE public.daily_question_answers
   ADD COLUMN IF NOT EXISTS points SMALLINT NOT NULL DEFAULT 1;
 
+-- Uniquement les lignes sans valeur (nouveaux défauts), pas un recalcul global
 UPDATE public.daily_question_answers
 SET points = 1
-WHERE points IS DISTINCT FROM 1;
+WHERE points IS NULL;
 
--- 2) Stats Home : 1 pt par jeu, indépendamment
+-- 2) Stats Home : somme de toutes les réponses (tous les jours)
 CREATE OR REPLACE FUNCTION public.get_home_gamification_stats()
 RETURNS JSONB
 LANGUAGE plpgsql
