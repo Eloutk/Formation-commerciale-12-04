@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BirthdaysAdminPanel } from '@/components/mon-espace/BirthdaysAdminPanel'
 import { DailyQuestionsAdminPanel } from '@/components/mon-espace/DailyQuestionsAdminPanel'
 import { GuessPlatformAdminPanel } from '@/components/mon-espace/GuessPlatformAdminPanel'
+import { LinkDayFactsAdminPanel } from '@/components/mon-espace/LinkDayFactsAdminPanel'
 import { MotusAdminPanel } from '@/components/mon-espace/MotusAdminPanel'
 import { WorldDaysAdminPanel } from '@/components/mon-espace/WorldDaysAdminPanel'
 
@@ -20,16 +21,16 @@ export function AdminQuizPanel() {
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E94C16]/10 text-[#E94C16]">
               <ClipboardList className="h-6 w-6" aria-hidden />
             </span>
-            Admin quizz
+            Admin home page
           </h1>
           <p className="max-w-2xl text-muted-foreground">
-            Gérez les contenus ludiques de la Home : question du jour, Devine la plateforme, Mot du
-            jour, journées mondiales et anniversaires.
+            Gérez les contenus ludiques de la Home : question du jour, jeux, journées mondiales,
+            faits Link et anniversaires.
           </p>
         </div>
 
         <Tabs defaultValue="daily" className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-lg border border-border bg-[#E8E8E8] p-1.5 md:grid-cols-5">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-lg border border-border bg-[#E8E8E8] p-1.5 sm:grid-cols-3 md:grid-cols-6">
             <TabsTrigger value="daily" className={adminTabTriggerClass}>
               Question du jour
             </TabsTrigger>
@@ -41,6 +42,9 @@ export function AdminQuizPanel() {
             </TabsTrigger>
             <TabsTrigger value="world" className={adminTabTriggerClass}>
               Journée mondiale
+            </TabsTrigger>
+            <TabsTrigger value="facts" className={adminTabTriggerClass}>
+              Faits Link
             </TabsTrigger>
             <TabsTrigger value="birthdays" className={adminTabTriggerClass}>
               Anniversaires
@@ -58,6 +62,9 @@ export function AdminQuizPanel() {
           </TabsContent>
           <TabsContent value="world" className="mt-0">
             <WorldDaysAdminPanel />
+          </TabsContent>
+          <TabsContent value="facts" className="mt-0">
+            <LinkDayFactsAdminPanel />
           </TabsContent>
           <TabsContent value="birthdays" className="mt-0">
             <BirthdaysAdminPanel />

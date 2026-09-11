@@ -253,7 +253,7 @@ export const SITE_SEARCH_CATALOG: CatalogEntry[] = [
   }),
   entry({
     id: 'mon-espace-admin-quizz',
-    title: 'Admin quizz',
+    title: 'Admin home page',
     description:
       'Gérer question du jour, Devine la plateforme, Mot du jour, journées mondiales et anniversaires',
     href: MON_ESPACE_ADMIN_QUIZZ_HREF,

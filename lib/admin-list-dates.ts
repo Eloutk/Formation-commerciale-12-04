@@ -1,8 +1,9 @@
-import { addDaysLocal, formatIsoLocal, todayIsoLocal } from '@/lib/date-local'
+import { addDaysLocal, formatIsoLocal, parseIsoLocal, todayIsoLocal } from '@/lib/date-local'
 import {
   formatCycleDayShort,
   getCycleDay,
 } from '@/lib/daily-question-cycle'
+import { isBusinessDayLocal } from '@/lib/french-holidays'
 
 /** Libellé court pour une date récurrente mois/jour (année courante). */
 export function formatMonthDayShort(month: number, day: number): string {
@@ -50,7 +51,8 @@ export function isoToMonthDay(iso: string): { month: number; day: number } {
 
 /**
  * Prochaine date (ISO) où l’index `rotationIndex` (0-based) est tiré
- * par la rotation ((cycle_day - 1) % n).
+ * par la rotation ((cycle_day - 1) % n), **jours ouvrés uniquement**
+ * (pas de samedi / dimanche / férié).
  */
 export function nextRotationPlayIso(
   rotationIndex: number,
@@ -58,8 +60,10 @@ export function nextRotationPlayIso(
   fromIso = todayIsoLocal()
 ): string | null {
   if (activeCount <= 0 || rotationIndex < 0 || rotationIndex >= activeCount) return null
-  for (let offset = 0; offset < 370; offset += 1) {
+  for (let offset = 0; offset < 400; offset += 1) {
     const iso = addDaysLocal(fromIso, offset)
+    const date = parseIsoLocal(iso)
+    if (!isBusinessDayLocal(date)) continue
     const cycle = getCycleDay(iso)
     if ((cycle - 1) % activeCount === rotationIndex) return iso
   }

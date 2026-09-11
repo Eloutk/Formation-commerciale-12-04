@@ -32,8 +32,8 @@ export function UpcomingAdminPreview({
           À vérifier — 2 prochains jours ouvrés
         </CardTitle>
         <CardDescription>
-          Aperçu des 2 prochains jours ouvrés (ex. vendredi → lundi / mardi) pour contrôler le
-          contenu avant diffusion.
+          Uniquement les jours ouvrés (lun–ven hors fériés). Week-end : pas de jeu — « Reviens
+          lundi ».
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">

@@ -3,11 +3,11 @@ export const homeCard = {
   root: 'flex h-full min-h-0 flex-col overflow-hidden border-border/80 shadow-sm',
   header:
     'shrink-0 space-y-1 border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent px-3 py-2',
-  titleRow: 'flex min-h-5 min-w-0 items-center gap-1.5',
+  titleRow: 'flex min-h-5 min-w-0 flex-wrap items-center gap-1.5',
   titleIcon: 'h-4 w-4 shrink-0 text-[#E94C16]',
   title: '!text-sm !font-semibold !leading-5 !tracking-normal text-foreground',
   badge:
-    'h-5 max-w-[8.5rem] shrink-0 truncate rounded-full border border-[#E94C16]/30 bg-transparent px-1.5 py-0 text-[10px] font-normal leading-5 text-[#E94C16]',
+    'h-auto min-h-5 max-w-full rounded-full border border-[#E94C16]/30 bg-transparent px-2 py-0.5 text-[10px] font-normal leading-snug text-[#E94C16] whitespace-normal text-left',
   subtitle: 'min-h-4 text-[11px] leading-4 text-muted-foreground',
   content: 'flex min-h-0 flex-1 flex-col gap-2 overflow-hidden p-3',
   sectionTitle:

@@ -69,10 +69,26 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
 
   const loadBestOfDay = useCallback(async () => {
     try {
-      const { data, error: rpcError } = await supabase.rpc('get_motus_best_of_day', {
+      let data: unknown = null
+      let rpcError: { message?: string } | null = null
+
+      const primary = await supabase.rpc('get_motus_best_of_day', {
         p_cycle_day: cycleDay,
       })
+      data = primary.data
+      rpcError = primary.error
+
+      // Fallback si la surcharge sans argument est la seule déployée
+      if (rpcError) {
+        const fallback = await supabase.rpc('get_motus_best_of_day')
+        data = fallback.data
+        rpcError = fallback.error
+      }
+
       if (rpcError || !data || typeof data !== 'object') {
+        if (rpcError) {
+          console.warn('[motus] get_motus_best_of_day:', rpcError.message)
+        }
         setBestOfDay(null)
         return
       }
@@ -84,7 +100,8 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
         attempts: typeof payload.attempts === 'number' ? payload.attempts : null,
         winners: Array.isArray(payload.winners) ? payload.winners : [],
       })
-    } catch {
+    } catch (err) {
+      console.warn('[motus] get_motus_best_of_day failed', err)
       setBestOfDay(null)
     }
   }, [cycleDay])

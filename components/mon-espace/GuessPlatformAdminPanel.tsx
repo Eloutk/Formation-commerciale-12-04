@@ -347,8 +347,8 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Liste triée à partir d’aujourd’hui. À la suppression, la rotation est recomposée sans
-            trou.
+            Liste triée à partir d’aujourd’hui (jours ouvrés uniquement). À la suppression, la
+            rotation est recomposée sans trou. Week-end : reviens lundi.
           </p>
         )}
         <Button onClick={openCreate} className="shrink-0">

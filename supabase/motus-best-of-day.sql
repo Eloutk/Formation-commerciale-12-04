@@ -1,4 +1,5 @@
--- Meilleurs joueurs du Mot du jour (moins d'essais, parties résolues).
+-- Meilleurs joueurs du Mot du jour (moins d'essais parmi les parties RÉSOLUES du jour).
+-- Rétroactif : lit les lignes déjà présentes dans motus_answers.
 -- Coller dans Supabase > SQL Editor
 
 CREATE OR REPLACE FUNCTION public.get_motus_best_of_day(p_cycle_day INTEGER DEFAULT NULL)
@@ -9,10 +10,7 @@ SET search_path = public
 AS $$
 DECLARE
   uid UUID := auth.uid();
-  n INTEGER;
-  pick INTEGER;
-  cycle_day INTEGER;
-  word_id UUID;
+  today_paris DATE := (NOW() AT TIME ZONE 'Europe/Paris')::date;
   best_attempts INTEGER;
   winners JSONB := '[]'::jsonb;
 BEGIN
@@ -20,35 +18,20 @@ BEGIN
     RAISE EXCEPTION 'Non authentifié';
   END IF;
 
-  cycle_day := GREATEST(COALESCE(p_cycle_day, 1), 1);
-
-  SELECT COUNT(*)::int INTO n FROM public.motus_words WHERE is_active = true;
-  IF n = 0 THEN
-    RETURN jsonb_build_object('attempts', NULL, 'winners', '[]'::jsonb);
-  END IF;
-
-  pick := ((cycle_day - 1) % n) + 1;
-
-  SELECT w.id INTO word_id
-  FROM public.motus_words w
-  WHERE w.is_active = true
-  ORDER BY w.sort_order
-  OFFSET pick - 1
-  LIMIT 1;
-
-  IF word_id IS NULL THEN
-    RETURN jsonb_build_object('attempts', NULL, 'winners', '[]'::jsonb);
-  END IF;
-
+  -- Rétroactif : meilleures parties du jour (Paris), mot trouvé
   SELECT MIN(a.attempts)::int
   INTO best_attempts
   FROM public.motus_answers a
-  WHERE a.word_id = word_id
+  WHERE a.answered_on = today_paris
     AND a.solved = true
-    AND a.attempts > 0;
+    AND COALESCE(a.attempts, 0) > 0;
 
   IF best_attempts IS NULL THEN
-    RETURN jsonb_build_object('attempts', NULL, 'winners', '[]'::jsonb, 'word_id', word_id);
+    RETURN jsonb_build_object(
+      'attempts', NULL,
+      'winners', '[]'::jsonb,
+      'today', today_paris
+    );
   END IF;
 
   SELECT COALESCE(
@@ -63,25 +46,41 @@ BEGIN
   )
   INTO winners
   FROM (
-    SELECT
+    SELECT DISTINCT ON (a.user_id)
       a.user_id,
       COALESCE(
-        NULLIF(trim(split_part(COALESCE(p.full_name, ''), ' ', 1)), ''),
+        NULLIF(trim(split_part(COALESCE(p.full_name, u.raw_user_meta_data->>'full_name', ''), ' ', 1)), ''),
+        NULLIF(trim(split_part(COALESCE(u.email, ''), '@', 1)), ''),
         'Quelqu’un'
       ) AS first_name
     FROM public.motus_answers a
     LEFT JOIN public.profiles p ON p.id = a.user_id
-    WHERE a.word_id = word_id
+    LEFT JOIN auth.users u ON u.id = a.user_id
+    WHERE a.answered_on = today_paris
       AND a.solved = true
       AND a.attempts = best_attempts
+    ORDER BY a.user_id, a.finished_at ASC NULLS LAST
   ) s;
 
   RETURN jsonb_build_object(
     'attempts', best_attempts,
     'winners', winners,
-    'word_id', word_id
+    'today', today_paris
   );
 END;
 $$;
 
+-- Surcharge sans argument (appel RPC plus simple)
+CREATE OR REPLACE FUNCTION public.get_motus_best_of_day()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN public.get_motus_best_of_day(NULL);
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.get_motus_best_of_day(INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_motus_best_of_day() TO authenticated;

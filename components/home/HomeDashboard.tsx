@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthAccess } from '@/components/auth-context'
-import { BirthdaysAndFeteCard } from '@/components/home/BirthdaysAndFeteCard'
+import { BirthdaysAndFeteCard, type LinkDayFact } from '@/components/home/BirthdaysAndFeteCard'
 import {
   DailyQuestionCard,
   type DailyAnswerReview,
@@ -31,6 +31,7 @@ export function HomeDashboard() {
   const [upcoming, setUpcoming] = useState<ReturnType<typeof upcomingBirthdays>>([])
   const [feteNames, setFeteNames] = useState<string[]>([])
   const [worldDays, setWorldDays] = useState<string[]>([])
+  const [linkDayFacts, setLinkDayFacts] = useState<LinkDayFact[]>([])
   const [question, setQuestion] = useState<DailyPlayQuestion | null>(null)
   const [review, setReview] = useState<DailyAnswerReview | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
@@ -46,11 +47,13 @@ export function HomeDashboard() {
     try {
       const month = today.getMonth() + 1
       const day = today.getDate()
-      const [{ data: birthdayRows }, { data: feteRow }, worldDayResult] = await Promise.all([
-        supabase.from('birthdays').select('name, month, day'),
-        supabase.from('fete').select('names').eq('month', month).eq('day', day).maybeSingle(),
-        supabase.rpc('get_todays_world_days'),
-      ])
+      const [{ data: birthdayRows }, { data: feteRow }, worldDayResult, linkFactsResult] =
+        await Promise.all([
+          supabase.from('birthdays').select('name, month, day'),
+          supabase.from('fete').select('names').eq('month', month).eq('day', day).maybeSingle(),
+          supabase.rpc('get_todays_world_days'),
+          supabase.rpc('get_todays_link_day_facts'),
+        ])
       setUpcoming(upcomingBirthdays((birthdayRows || []) as BirthdayRow[], today, 7))
       setFeteNames(Array.isArray(feteRow?.names) ? (feteRow.names as string[]) : [])
 
@@ -72,10 +75,39 @@ export function HomeDashboard() {
           .filter(Boolean)
       }
       setWorldDays(labels)
+
+      if (!linkFactsResult.error && Array.isArray(linkFactsResult.data)) {
+        setLinkDayFacts(
+          linkFactsResult.data
+            .map((row) => {
+              if (!row || typeof row !== 'object') return null
+              const title = 'title' in row ? String(row.title || '') : ''
+              const context = 'context' in row ? String(row.context || '') : ''
+              if (!title) return null
+              return { title, context }
+            })
+            .filter((row): row is LinkDayFact => Boolean(row))
+        )
+      } else {
+        const { data: fallbackFacts } = await supabase
+          .from('link_day_facts')
+          .select('title, context')
+          .eq('month', month)
+          .eq('day', day)
+        setLinkDayFacts(
+          (fallbackFacts || [])
+            .map((row) => ({
+              title: String(row.title || ''),
+              context: String(row.context || ''),
+            }))
+            .filter((row) => row.title)
+        )
+      }
     } catch {
       setUpcoming([])
       setFeteNames([])
       setWorldDays([])
+      setLinkDayFacts([])
     } finally {
       setEventsLoading(false)
     }
@@ -235,6 +267,7 @@ export function HomeDashboard() {
                 todayNames={feteNames}
                 upcoming={upcoming}
                 worldDays={worldDays}
+                linkDayFacts={linkDayFacts}
                 loading={eventsLoading}
               />
             </div>

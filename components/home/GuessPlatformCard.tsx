@@ -9,7 +9,6 @@ import { homeCard } from '@/components/home/home-card-styles'
 import { getCycleDay } from '@/lib/daily-question-cycle'
 import { notifyHomePlayAttentionChanged } from '@/lib/home-play-attention'
 import {
-  formatNextPlayHint,
   isWeekendLocal,
   nextMondayLabel,
   parseJsonStringArray,
@@ -243,10 +242,6 @@ export function GuessPlatformCard({
 }
 
 function ResultBlock({ result }: { result: GuessPlatformResult }) {
-  const nextHint = formatNextPlayHint(result.next_business_day)
-  const streakBroken = result.streak_bonus === 0 && (result.current_streak ?? 0) <= 1
-  const streak = result.current_streak ?? result.stats?.current_streak ?? 1
-
   return (
     <div
       className={cn(
@@ -264,25 +259,8 @@ function ResultBlock({ result }: { result: GuessPlatformResult }) {
           {result.is_correct ? 'Bonne réponse !' : 'Presque…'}{' '}
           <span className="font-semibold">{result.correct_answer}</span>
         </p>
-        <p className="text-xs text-muted-foreground">
-          +{result.puzzle_points} jeu
-          {result.streak_bonus > 0 ? ` · +${result.streak_bonus} série` : ''}
-          {' · '}
-          <strong className="text-foreground">+{result.points} cette partie</strong>
-          {typeof result.stats?.total_points === 'number' ? (
-            <>
-              {' · '}
-              Total <strong className="text-foreground">{result.stats.total_points} pts</strong>
-            </>
-          ) : null}
-        </p>
         <p className="text-xs leading-snug text-foreground sm:text-[13px]">{result.explanation}</p>
       </div>
-      <p className="text-xs font-medium text-[#E94C16]">
-        {streakBroken
-          ? 'Série 1 — reviens le prochain jour ouvré pour +1 pt de régularité.'
-          : `Série ${streak}. ${nextHint}`}
-      </p>
     </div>
   )
 }

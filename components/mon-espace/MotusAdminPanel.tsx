@@ -239,8 +239,7 @@ export function MotusAdminPanel() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Mots 5–8 lettres. Liste triée à partir d’aujourd’hui ; suppression sans trou dans la
-          rotation.
+          Mots 5–8 lettres. Diffusion les jours ouvrés uniquement (week-end : reviens lundi).
         </p>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4" />

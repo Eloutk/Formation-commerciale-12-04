@@ -21,10 +21,12 @@ import { getUpcomingPreviewDays } from '@/lib/admin-upcoming-preview'
 import {
   cycleDaySortKeyFromToday,
   cycleDayToIso,
+  dateFromCycleDay,
   formatCycleDayLong,
   formatCycleDayShort,
   getCycleDay,
 } from '@/lib/daily-question-cycle'
+import { isBusinessDayLocal } from '@/lib/french-holidays'
 import supabase from '@/utils/supabase/client'
 
 type DailyQuestionRow = {
@@ -52,6 +54,9 @@ function validateDraft(draft: Draft): string | null {
   const options = draft.options.map((o) => o.trim()).filter(Boolean)
   if (!Number.isFinite(draft.cycle_day) || draft.cycle_day < 1 || draft.cycle_day > 365) {
     return 'Choisis une date valide.'
+  }
+  if (!isBusinessDayLocal(dateFromCycleDay(draft.cycle_day))) {
+    return 'Pas de jeu le week-end ni les jours fériés — choisis un jour ouvré (reviens lundi).'
   }
   if (!draft.category.trim()) return 'La catégorie est obligatoire.'
   if (!draft.question.trim()) return 'La question est obligatoire.'
@@ -136,7 +141,9 @@ export function DailyQuestionsAdminPanel() {
     const used = new Set(rows.map((r) => r.cycle_day))
     let next = todayCycle
     let guard = 0
-    while (used.has(next) && guard < 365) {
+    while (guard < 365) {
+      const date = dateFromCycleDay(next)
+      if (isBusinessDayLocal(date) && !used.has(next)) break
       next = next >= 365 ? 1 : next + 1
       guard += 1
     }
@@ -292,8 +299,8 @@ export function DailyQuestionsAdminPanel() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Une question par date. La liste commence par aujourd’hui. En cas de suppression, les jours
-          suivants sont décalés pour éviter un trou.
+          Une question par jour ouvré. Week-ends / fériés : pas de jeu (« Reviens lundi »). La liste
+          commence par aujourd’hui.
         </p>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4" />
@@ -326,7 +333,9 @@ export function DailyQuestionsAdminPanel() {
             ) : (
               <ul className="divide-y">
                 {filtered.map((row) => {
-                  const isToday = row.cycle_day === todayCycle
+                  const rowDate = dateFromCycleDay(row.cycle_day)
+                  const isOffDay = !isBusinessDayLocal(rowDate)
+                  const isToday = row.cycle_day === todayCycle && !isOffDay
                   return (
                     <li
                       key={row.id}
@@ -353,12 +362,22 @@ export function DailyQuestionsAdminPanel() {
                               Aujourd’hui
                             </Badge>
                           ) : null}
-                          <Badge variant="secondary">{row.category}</Badge>
+                          {isOffDay ? (
+                            <Badge variant="secondary">Week-end / férié</Badge>
+                          ) : (
+                            <Badge variant="secondary">{row.category}</Badge>
+                          )}
                         </div>
-                        <p className="line-clamp-2 text-sm font-medium">{row.question}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          ✓ {row.options[row.correct_index] || '—'}
-                        </p>
+                        {isOffDay ? (
+                          <p className="text-sm font-medium text-muted-foreground">Reviens lundi</p>
+                        ) : (
+                          <>
+                            <p className="line-clamp-2 text-sm font-medium">{row.question}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              ✓ {row.options[row.correct_index] || '—'}
+                            </p>
+                          </>
+                        )}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => openEdit(row)}>
