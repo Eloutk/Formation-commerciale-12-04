@@ -42,6 +42,29 @@ export type Vente2RetroSocialSnapshot = {
   calendarData: unknown
 }
 
+export type Vente2PdfBriefSnapshot = {
+  briefType: 'cp' | 'client'
+  clientName: string
+  campaignDescription: string
+  diffusionZone: string
+  targeting: string
+  campaignDates: string
+  clientType: 'existing' | 'new'
+  existingClientMode: 'usual' | 'different'
+  contactFirstName: string
+  contactLastName: string
+  contactEmail: string
+  contactPhone: string
+  billingEntity: string
+  billingAddress: string
+  siret: string
+  vatNumber: string
+  signerFirstName: string
+  signerLastName: string
+  signerEmail: string
+  newClientTechnicalContactDifferent: boolean
+}
+
 export type Vente2StrategyContent = {
   version: 1
   calculationMode: Vente2CalculationMode
@@ -57,6 +80,8 @@ export type Vente2StrategyContent = {
   expandedStrategies: Record<string, boolean>
   retroSocialByStrategy: Record<string, Vente2RetroSocialSnapshot>
   defineDatesPerStrategy: Record<string, Record<string, string>>
+  /** Brief du popup « Télécharger le PDF » (commun CP / client). */
+  pdfBrief?: Vente2PdfBriefSnapshot
 }
 
 export type Vente2StrategyRecord = {

@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import { getUpcomingPreviewDays } from '@/lib/admin-upcoming-preview'
 import supabase from '@/utils/supabase/client'
 
 type WorldDayRow = {
@@ -124,8 +126,47 @@ export function WorldDaysAdminPanel() {
     await load()
   }
 
+  const upcomingSlots = useMemo(() => {
+    return getUpcomingPreviewDays(2).map((day) => {
+      const matches = rows.filter((row) => row.month === day.month && row.day === day.day)
+      return {
+        day,
+        content:
+          matches.length > 0 ? (
+            <ul className="space-y-1.5">
+              {matches.map((row) => (
+                <li key={row.id} className="flex items-start justify-between gap-2">
+                  <span className="font-medium">{row.label}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 shrink-0"
+                    onClick={() =>
+                      setDraft({
+                        id: row.id,
+                        month: row.month,
+                        day: row.day,
+                        label: row.label,
+                      })
+                    }
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">Aucune journée mondiale ce jour-là.</p>
+          ),
+      }
+    })
+  }, [rows])
+
   return (
     <div className="space-y-4">
+      <UpcomingAdminPreview slots={upcomingSlots} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Ajoute ou corrige les journées mondiales affichées sur la Home.

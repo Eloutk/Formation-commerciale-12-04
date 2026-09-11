@@ -16,7 +16,11 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import {
+  getUpcomingPreviewDays,
+} from '@/lib/admin-upcoming-preview'
 import supabase from '@/utils/supabase/client'
+import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
 
 type DailyQuestionRow = {
   id: string
@@ -178,8 +182,52 @@ export function DailyQuestionsAdminPanel() {
     ? draft.options.map((o) => o.trim()).filter(Boolean)
     : []
 
+  const upcomingSlots = useMemo(() => {
+    const days = getUpcomingPreviewDays(2)
+    return days.map((day) => {
+      const row = rows.find((r) => r.cycle_day === day.cycleDay) ?? null
+      return {
+        day,
+        content: row ? (
+          <div className="space-y-1.5">
+            <p className="font-medium">{row.question}</p>
+            <p className="text-xs text-muted-foreground">
+              {row.category} · bonne réponse :{' '}
+              <strong className="text-foreground">
+                {row.options[row.correct_index] ?? '—'}
+              </strong>
+            </p>
+            <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+              {row.options.map((opt, i) => (
+                <li key={`${row.id}-${i}`} className={i === row.correct_index ? 'text-foreground' : ''}>
+                  {opt}
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-1 h-7"
+              onClick={() => openEdit(row)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Modifier
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">
+            Aucune question pour le cycle_day {day.cycleDay}.
+          </p>
+        ),
+      }
+    })
+  }, [rows])
+
   return (
     <div className="space-y-4">
+      <UpcomingAdminPreview slots={upcomingSlots} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Une question par `cycle_day` (1–365). Modifier le texte, les options et la bonne réponse.

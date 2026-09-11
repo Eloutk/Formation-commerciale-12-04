@@ -25,6 +25,11 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import {
+  getUpcomingPreviewDays,
+  pickByCycleRotation,
+} from '@/lib/admin-upcoming-preview'
 import { parseJsonStringArray } from '@/lib/guess-platform'
 import supabase from '@/utils/supabase/client'
 
@@ -232,8 +237,46 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
     await load()
   }
 
+  const upcomingSlots = useMemo(() => {
+    const active = rows.filter((row) => row.is_active)
+    return getUpcomingPreviewDays(2).map((day) => {
+      const row = pickByCycleRotation(active, day.cycleDay)
+      return {
+        day,
+        content: row ? (
+          <div className="space-y-1.5">
+            <p className="font-medium">{row.title || row.correct_answer}</p>
+            <p className="text-xs text-muted-foreground">
+              #{row.sort_order} · {row.difficulty} · réponse :{' '}
+              <strong className="text-foreground">{row.correct_answer}</strong>
+            </p>
+            <ol className="list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
+              {row.clues.map((clue, i) => (
+                <li key={`${row.id}-c-${i}`}>{clue}</li>
+              ))}
+            </ol>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-1 h-7"
+              onClick={() => openEdit(row)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Modifier
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Aucune devinette active.</p>
+        ),
+      }
+    })
+  }, [rows])
+
   const body = (
     <div className="space-y-4">
+      <UpcomingAdminPreview slots={upcomingSlots} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {!embedded ? (
           <div>

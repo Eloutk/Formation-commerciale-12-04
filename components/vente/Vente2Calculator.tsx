@@ -77,7 +77,7 @@ import {
   getSmsDevisById,
   updateSmsDevis,
 } from '@/lib/sms-devis-storage'
-import type { ColleagueSearchResult, Vente2StrategyContent } from '@/lib/vente2-strategies'
+import type { ColleagueSearchResult, Vente2PdfBriefSnapshot, Vente2StrategyContent } from '@/lib/vente2-strategies'
 import { colleagueDisplayName } from '@/lib/vente2-strategies'
 import {
   createVente2Strategy,
@@ -3176,7 +3176,76 @@ export function Vente2Calculator({
         Object.entries(content.defineDatesPerStrategy).map(([k, v]) => [k, { ...v }]),
       ),
     )
+    const brief = content.pdfBrief
+    if (brief) {
+      setBriefType(brief.briefType === 'client' ? 'client' : 'cp')
+      setClientName(brief.clientName || '')
+      setCampaignDescription(brief.campaignDescription || '')
+      setDiffusionZone(brief.diffusionZone || '')
+      setTargeting(brief.targeting || '')
+      setCampaignDates(brief.campaignDates || '')
+      setClientType(brief.clientType === 'new' ? 'new' : 'existing')
+      setExistingClientMode(brief.existingClientMode === 'different' ? 'different' : 'usual')
+      setContactFirstName(brief.contactFirstName || '')
+      setContactLastName(brief.contactLastName || '')
+      setContactEmail(brief.contactEmail || '')
+      setContactPhone(brief.contactPhone || '')
+      setBillingEntity(brief.billingEntity || '')
+      setBillingAddress(brief.billingAddress || '')
+      setSiret(brief.siret || '')
+      setVatNumber(brief.vatNumber || '')
+      setSignerFirstName(brief.signerFirstName || '')
+      setSignerLastName(brief.signerLastName || '')
+      setSignerEmail(brief.signerEmail || '')
+      setNewClientTechnicalContactDifferent(Boolean(brief.newClientTechnicalContactDifferent))
+    }
   }, [])
+
+  const buildPdfBriefSnapshot = useCallback((): Vente2PdfBriefSnapshot => {
+    return {
+      briefType,
+      clientName,
+      campaignDescription,
+      diffusionZone,
+      targeting,
+      campaignDates,
+      clientType,
+      existingClientMode,
+      contactFirstName,
+      contactLastName,
+      contactEmail,
+      contactPhone,
+      billingEntity,
+      billingAddress,
+      siret,
+      vatNumber,
+      signerFirstName,
+      signerLastName,
+      signerEmail,
+      newClientTechnicalContactDifferent,
+    }
+  }, [
+    briefType,
+    clientName,
+    campaignDescription,
+    diffusionZone,
+    targeting,
+    campaignDates,
+    clientType,
+    existingClientMode,
+    contactFirstName,
+    contactLastName,
+    contactEmail,
+    contactPhone,
+    billingEntity,
+    billingAddress,
+    siret,
+    vatNumber,
+    signerFirstName,
+    signerLastName,
+    signerEmail,
+    newClientTechnicalContactDifferent,
+  ])
 
   useEffect(() => {
     if (view !== 'social' || !strategyIdFromUrl) return
@@ -3865,26 +3934,21 @@ export function Vente2Calculator({
     link.click()
     URL.revokeObjectURL(url)
     setPdfDialogOpen(false)
-    setClientName('')
-    setCampaignDescription('')
-    setDiffusionZone('')
-    setTargeting('')
-    setCampaignDates('')
-    setContactFirstName('')
-    setContactLastName('')
-    setContactEmail('')
-    setContactPhone('')
-    setBillingEntity('')
-    setBillingAddress('')
-    setSiret('')
-    setVatNumber('')
-    setSignerFirstName('')
-    setSignerLastName('')
-    setSignerEmail('')
-    setNewClientTechnicalContactDifferent(false)
-    setClientType('existing')
-    setExistingClientMode('usual')
-    setBriefType('cp')
+    // Ne pas vider le brief : les champs restent pour un nouvel export / bascule CP ↔ client.
+    // Si le projet est déjà enregistré, on persiste le brief dans la stratégie.
+    if (savedStrategyId) {
+      try {
+        const payload = buildCurrentSocialStrategyPayload()
+        await updateVente2Strategy({
+          id: savedStrategyId,
+          name: savedStrategyName || 'Stratégie Social media',
+          totalAmount: payload.totalAmount,
+          content: payload.content,
+        })
+      } catch {
+        // L’export a réussi ; l’échec de sauvegarde du brief ne bloque pas.
+      }
+    }
   }
 
   // Fonction pour envoyer le PDF sur Slack (Validation TM)
@@ -4171,6 +4235,7 @@ export function Vente2Calculator({
       defineDatesPerStrategy: JSON.parse(
         JSON.stringify(defineDatesPerStrategy),
       ) as Vente2StrategyContent['defineDatesPerStrategy'],
+      pdfBrief: buildPdfBriefSnapshot(),
     }
     const totalAmount = strategies.reduce(
       (sum, block) => sum + getStrategyBlockBudgetTotal(block),

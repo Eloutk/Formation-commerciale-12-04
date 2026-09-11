@@ -9,6 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import {
+  getUpcomingPreviewDays,
+  pickByCycleRotation,
+} from '@/lib/admin-upcoming-preview'
 import { stripAccentsUpper } from '@/lib/motus'
 import supabase from '@/utils/supabase/client'
 
@@ -126,8 +131,53 @@ export function MotusAdminPanel() {
     await load()
   }
 
+  const upcomingSlots = useMemo(() => {
+    const active = rows.filter((row) => row.is_active)
+    return getUpcomingPreviewDays(2).map((day) => {
+      const row = pickByCycleRotation(active, day.cycleDay)
+      return {
+        day,
+        content: row ? (
+          <div className="space-y-1.5">
+            <p className="font-medium tracking-wide">
+              {row.word}{' '}
+              <span className="text-xs font-normal text-muted-foreground">
+                ({row.word.length} lettres)
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              #{row.sort_order} · 1ʳᵉ lettre :{' '}
+              <strong className="text-foreground">{row.word.slice(0, 1)}</strong>
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-1 h-7"
+              onClick={() =>
+                setDraft({
+                  id: row.id,
+                  sort_order: row.sort_order,
+                  word: row.word,
+                  is_active: row.is_active,
+                })
+              }
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Modifier
+            </Button>
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Aucun mot actif.</p>
+        ),
+      }
+    })
+  }, [rows])
+
   return (
     <div className="space-y-4">
+      <UpcomingAdminPreview slots={upcomingSlots} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           Mots du Motus maison (5–8 lettres, sans accents). Rotation via `sort_order`.

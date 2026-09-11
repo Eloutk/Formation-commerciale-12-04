@@ -8,6 +8,9 @@ import { GuessPlatformAdminPanel } from '@/components/mon-espace/GuessPlatformAd
 import { MotusAdminPanel } from '@/components/mon-espace/MotusAdminPanel'
 import { WorldDaysAdminPanel } from '@/components/mon-espace/WorldDaysAdminPanel'
 
+const adminTabTriggerClass =
+  'rounded-md border border-transparent bg-transparent font-semibold text-muted-foreground shadow-none hover:bg-white/80 hover:text-foreground data-[state=active]:border-[#E94C16]/40 data-[state=active]:bg-[#E94C16] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:hover:bg-[#E94C16] data-[state=active]:hover:text-white'
+
 export function AdminQuizPanel() {
   return (
     <div className="container mx-auto px-4 py-6 md:py-10">
@@ -26,12 +29,22 @@ export function AdminQuizPanel() {
         </div>
 
         <Tabs defaultValue="daily" className="space-y-4">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 bg-[#EEEEEE] p-1 md:grid-cols-5">
-            <TabsTrigger value="daily">Question du jour</TabsTrigger>
-            <TabsTrigger value="guess">Devine la plateforme</TabsTrigger>
-            <TabsTrigger value="motus">Mot du jour</TabsTrigger>
-            <TabsTrigger value="world">Journée mondiale</TabsTrigger>
-            <TabsTrigger value="birthdays">Anniversaires</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-lg border border-border bg-[#E8E8E8] p-1.5 md:grid-cols-5">
+            <TabsTrigger value="daily" className={adminTabTriggerClass}>
+              Question du jour
+            </TabsTrigger>
+            <TabsTrigger value="guess" className={adminTabTriggerClass}>
+              Devine la plateforme
+            </TabsTrigger>
+            <TabsTrigger value="motus" className={adminTabTriggerClass}>
+              Mot du jour
+            </TabsTrigger>
+            <TabsTrigger value="world" className={adminTabTriggerClass}>
+              Journée mondiale
+            </TabsTrigger>
+            <TabsTrigger value="birthdays" className={adminTabTriggerClass}>
+              Anniversaires
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="daily" className="mt-0">
