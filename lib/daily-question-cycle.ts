@@ -15,6 +15,49 @@ export function getCycleDay(isoDate = todayIsoLocal()): number {
   return CUMULATIVE_DAYS_BEFORE_MONTH[month] + day
 }
 
+/** Date calendaire (année courante, non bissextile) associée à un cycle_day 1–365. */
+export function dateFromCycleDay(cycleDay: number, year = new Date().getFullYear()): Date {
+  const day = Math.min(365, Math.max(1, Math.round(cycleDay)))
+  let month = 1
+  for (let m = 12; m >= 1; m -= 1) {
+    if (day > CUMULATIVE_DAYS_BEFORE_MONTH[m]) {
+      month = m
+      break
+    }
+  }
+  const dayOfMonth = day - CUMULATIVE_DAYS_BEFORE_MONTH[month]
+  return new Date(year, month - 1, dayOfMonth)
+}
+
+export function cycleDayToIso(cycleDay: number, year = new Date().getFullYear()): string {
+  return formatIsoLocal(dateFromCycleDay(cycleDay, year))
+}
+
+/** Libellé court FR : « ven. 11 sept. » */
+export function formatCycleDayShort(cycleDay: number): string {
+  return dateFromCycleDay(cycleDay).toLocaleDateString('fr-FR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
+/** Libellé long FR : « vendredi 11 septembre » */
+export function formatCycleDayLong(cycleDay: number): string {
+  return dateFromCycleDay(cycleDay).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
+/**
+ * Tri « à partir d’aujourd’hui » : aujourd’hui = 0, demain = 1, … hier = 364.
+ */
+export function cycleDaySortKeyFromToday(cycleDay: number, todayCycle = getCycleDay()): number {
+  return (cycleDay - todayCycle + 365) % 365
+}
+
 export function formatLongFrenchDate(isoDate = todayIsoLocal()): string {
   return parseIsoLocal(isoDate).toLocaleDateString('fr-FR', {
     weekday: 'long',

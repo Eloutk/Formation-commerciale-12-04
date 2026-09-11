@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/hooks/use-toast'
 import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import { useToast } from '@/hooks/use-toast'
+import { formatNextRotationPlayLabel } from '@/lib/admin-list-dates'
 import {
   getUpcomingPreviewDays,
   pickByCycleRotation,
 } from '@/lib/admin-upcoming-preview'
+import { todayIsoLocal } from '@/lib/date-local'
 import { stripAccentsUpper } from '@/lib/motus'
 import supabase from '@/utils/supabase/client'
 
@@ -33,6 +35,7 @@ export function MotusAdminPanel() {
   const [rows, setRows] = useState<MotusWordRow[]>([])
   const [filter, setFilter] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const todayIso = useMemo(() => todayIsoLocal(), [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,13 +69,39 @@ export function MotusAdminPanel() {
     void load()
   }, [load])
 
+  const activeOrdered = useMemo(
+    () => rows.filter((row) => row.is_active).sort((a, b) => a.sort_order - b.sort_order),
+    [rows]
+  )
+
+  const rotationIndexById = useMemo(() => {
+    const map = new Map<string, number>()
+    activeOrdered.forEach((row, index) => map.set(row.id, index))
+    return map
+  }, [activeOrdered])
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) =>
-      [String(row.sort_order), row.word].join(' ').toLowerCase().includes(q)
-    )
-  }, [filter, rows])
+    const base = q
+      ? rows.filter((row) => row.word.toLowerCase().includes(q))
+      : rows
+
+    return [...base].sort((a, b) => {
+      const aActive = a.is_active ? 0 : 1
+      const bActive = b.is_active ? 0 : 1
+      if (aActive !== bActive) return aActive - bActive
+      const aIdx = rotationIndexById.get(a.id)
+      const bIdx = rotationIndexById.get(b.id)
+      const aNext =
+        aIdx != null ? formatNextRotationPlayLabel(aIdx, activeOrdered.length, todayIso) : null
+      const bNext =
+        bIdx != null ? formatNextRotationPlayLabel(bIdx, activeOrdered.length, todayIso) : null
+      if (aNext && bNext) return aNext.iso.localeCompare(bNext.iso)
+      if (aNext) return -1
+      if (bNext) return 1
+      return a.sort_order - b.sort_order
+    })
+  }, [filter, rows, rotationIndexById, activeOrdered.length, todayIso])
 
   const openCreate = () => {
     const nextOrder = rows.reduce((max, row) => Math.max(max, row.sort_order), 0) + 1
@@ -120,21 +149,52 @@ export function MotusAdminPanel() {
   }
 
   const removeRow = async (row: MotusWordRow) => {
-    if (!window.confirm(`Supprimer le mot « ${row.word} » ?`)) return
-    const { error } = await supabase.from('motus_words').delete().eq('id', row.id)
-    if (error) {
-      toast({ title: 'Suppression impossible', description: error.message, variant: 'destructive' })
+    if (
+      !window.confirm(
+        `Supprimer le mot « ${row.word} » ?\nLes suivants seront décalés pour ne pas laisser de trou dans la rotation.`
+      )
+    ) {
       return
     }
-    if (draft?.id === row.id) setDraft(null)
-    toast({ title: 'Mot supprimé' })
-    await load()
+    setSaving(true)
+    try {
+      const deletedOrder = row.sort_order
+      const { error } = await supabase.from('motus_words').delete().eq('id', row.id)
+      if (error) throw error
+
+      const toShift = rows
+        .filter((r) => r.id !== row.id && r.sort_order > deletedOrder)
+        .sort((a, b) => a.sort_order - b.sort_order)
+
+      for (const item of toShift) {
+        const { error: shiftError } = await supabase
+          .from('motus_words')
+          .update({ sort_order: item.sort_order - 1 })
+          .eq('id', item.id)
+        if (shiftError) throw shiftError
+      }
+
+      if (draft?.id === row.id) setDraft(null)
+      toast({
+        title: 'Mot supprimé',
+        description:
+          toShift.length > 0 ? `${toShift.length} mot(s) décalé(s) dans la rotation.` : undefined,
+      })
+      await load()
+    } catch (err) {
+      toast({
+        title: 'Suppression impossible',
+        description: err instanceof Error ? err.message : 'Erreur Supabase',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const upcomingSlots = useMemo(() => {
-    const active = rows.filter((row) => row.is_active)
     return getUpcomingPreviewDays(2).map((day) => {
-      const row = pickByCycleRotation(active, day.cycleDay)
+      const row = pickByCycleRotation(activeOrdered, day.cycleDay)
       return {
         day,
         content: row ? (
@@ -146,8 +206,7 @@ export function MotusAdminPanel() {
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
-              #{row.sort_order} · 1ʳᵉ lettre :{' '}
-              <strong className="text-foreground">{row.word.slice(0, 1)}</strong>
+              1ʳᵉ lettre : <strong className="text-foreground">{row.word.slice(0, 1)}</strong>
             </p>
             <Button
               type="button"
@@ -172,7 +231,7 @@ export function MotusAdminPanel() {
         ),
       }
     })
-  }, [rows])
+  }, [activeOrdered])
 
   return (
     <div className="space-y-4">
@@ -180,7 +239,8 @@ export function MotusAdminPanel() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Mots du Motus maison (5–8 lettres, sans accents). Rotation via `sort_order`.
+          Mots 5–8 lettres. Liste triée à partir d’aujourd’hui ; suppression sans trou dans la
+          rotation.
         </p>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4" />
@@ -192,7 +252,7 @@ export function MotusAdminPanel() {
         <Card>
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle>Liste ({rows.length})</CardTitle>
-            <CardDescription>Actifs uniquement dans la rotation quotidienne.</CardDescription>
+            <CardDescription>Date = prochaine diffusion. Aujourd’hui en tête.</CardDescription>
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -210,46 +270,76 @@ export function MotusAdminPanel() {
               <p className="px-6 py-10 text-center text-sm text-muted-foreground">Aucun mot.</p>
             ) : (
               <ul className="divide-y">
-                {filtered.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-muted-foreground">#{row.sort_order}</span>
-                      <p className="font-semibold tracking-wide">{row.word}</p>
-                      <Badge variant={row.is_active ? 'default' : 'secondary'}>
-                        {row.is_active ? 'Actif' : 'Inactif'}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{row.word.length} lettres</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setDraft({
-                            id: row.id,
-                            sort_order: row.sort_order,
-                            word: row.word,
-                            is_active: row.is_active,
-                          })
-                        }
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => void removeRow(row)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
+                {filtered.map((row) => {
+                  const idx = rotationIndexById.get(row.id)
+                  const next =
+                    idx != null
+                      ? formatNextRotationPlayLabel(idx, activeOrdered.length, todayIso)
+                      : null
+                  const isToday = Boolean(next?.isToday)
+                  return (
+                    <li
+                      key={row.id}
+                      className={
+                        isToday
+                          ? 'flex flex-col gap-3 bg-[#E94C16]/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                          : 'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                      }
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        {next ? (
+                          <Badge
+                            variant="outline"
+                            className={
+                              isToday
+                                ? 'border-[#E94C16]/40 bg-[#E94C16]/10 capitalize text-[#E94C16]'
+                                : 'capitalize'
+                            }
+                          >
+                            {next.shortLabel}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactif</Badge>
+                        )}
+                        {isToday ? (
+                          <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">
+                            Aujourd’hui
+                          </Badge>
+                        ) : null}
+                        <p className="font-semibold tracking-wide">{row.word}</p>
+                        <span className="text-xs text-muted-foreground">
+                          {row.word.length} lettres
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setDraft({
+                              id: row.id,
+                              sort_order: row.sort_order,
+                              word: row.word,
+                              is_active: row.is_active,
+                            })
+                          }
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="text-destructive"
+                          disabled={saving}
+                          onClick={() => void removeRow(row)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>
@@ -260,7 +350,7 @@ export function MotusAdminPanel() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>{draft?.id ? 'Modifier le mot' : 'Nouveau mot'}</CardTitle>
-                <CardDescription>Table `motus_words`.</CardDescription>
+                <CardDescription>Ajouté à la fin de la rotation.</CardDescription>
               </div>
               {draft ? (
                 <Button variant="ghost" size="icon" onClick={() => setDraft(null)}>
@@ -276,26 +366,13 @@ export function MotusAdminPanel() {
               </p>
             ) : (
               <>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Ordre</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={draft.sort_order}
-                      onChange={(e) =>
-                        setDraft({ ...draft, sort_order: Number(e.target.value) || 1 })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Mot (5–8 lettres)</Label>
-                    <Input
-                      value={draft.word}
-                      onChange={(e) => setDraft({ ...draft, word: e.target.value })}
-                      className="uppercase tracking-widest"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Mot (5–8 lettres)</Label>
+                  <Input
+                    value={draft.word}
+                    onChange={(e) => setDraft({ ...draft, word: e.target.value })}
+                    className="uppercase tracking-widest"
+                  />
                 </div>
                 <div className="flex items-center justify-between rounded-md border px-3 py-2">
                   <div>
@@ -309,7 +386,11 @@ export function MotusAdminPanel() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={() => void saveDraft()} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Enregistrer
                   </Button>
                   <Button variant="outline" onClick={() => setDraft(null)} disabled={saving}>

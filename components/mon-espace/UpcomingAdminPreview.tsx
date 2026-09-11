@@ -46,7 +46,6 @@ export function UpcomingAdminPreview({
               <Badge variant="outline" className="capitalize">
                 {day.shortLabel}
               </Badge>
-              <span className="text-[11px] text-muted-foreground">cycle {day.cycleDay}</span>
               {meta}
             </div>
             <div className="text-sm leading-snug text-foreground">

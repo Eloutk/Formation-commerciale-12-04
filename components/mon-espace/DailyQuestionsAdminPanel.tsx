@@ -15,12 +15,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
-import {
-  getUpcomingPreviewDays,
-} from '@/lib/admin-upcoming-preview'
-import supabase from '@/utils/supabase/client'
 import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import { useToast } from '@/hooks/use-toast'
+import { getUpcomingPreviewDays } from '@/lib/admin-upcoming-preview'
+import {
+  cycleDaySortKeyFromToday,
+  cycleDayToIso,
+  formatCycleDayLong,
+  formatCycleDayShort,
+  getCycleDay,
+} from '@/lib/daily-question-cycle'
+import supabase from '@/utils/supabase/client'
 
 type DailyQuestionRow = {
   id: string
@@ -35,7 +40,7 @@ type DailyQuestionRow = {
 type Draft = Omit<DailyQuestionRow, 'id'> & { id?: string }
 
 const EMPTY_DRAFT = (): Draft => ({
-  cycle_day: 1,
+  cycle_day: getCycleDay(),
   category: '',
   question: '',
   options: ['', '', '', ''],
@@ -46,7 +51,7 @@ const EMPTY_DRAFT = (): Draft => ({
 function validateDraft(draft: Draft): string | null {
   const options = draft.options.map((o) => o.trim()).filter(Boolean)
   if (!Number.isFinite(draft.cycle_day) || draft.cycle_day < 1 || draft.cycle_day > 365) {
-    return 'Le cycle_day doit être entre 1 et 365.'
+    return 'Choisis une date valide.'
   }
   if (!draft.category.trim()) return 'La catégorie est obligatoire.'
   if (!draft.question.trim()) return 'La question est obligatoire.'
@@ -65,6 +70,7 @@ export function DailyQuestionsAdminPanel() {
   const [rows, setRows] = useState<DailyQuestionRow[]>([])
   const [filter, setFilter] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const todayCycle = useMemo(() => getCycleDay(), [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -103,20 +109,38 @@ export function DailyQuestionsAdminPanel() {
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) =>
-      [String(row.cycle_day), row.category, row.question, ...row.options]
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
+    const base = q
+      ? rows.filter((row) =>
+          [
+            formatCycleDayShort(row.cycle_day),
+            formatCycleDayLong(row.cycle_day),
+            String(row.cycle_day),
+            row.category,
+            row.question,
+            ...row.options,
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
+        )
+      : rows
+
+    return [...base].sort(
+      (a, b) =>
+        cycleDaySortKeyFromToday(a.cycle_day, todayCycle) -
+        cycleDaySortKeyFromToday(b.cycle_day, todayCycle)
     )
-  }, [filter, rows])
+  }, [filter, rows, todayCycle])
 
   const openCreate = () => {
     const used = new Set(rows.map((r) => r.cycle_day))
-    let next = 1
-    while (used.has(next) && next <= 365) next += 1
-    setDraft({ ...EMPTY_DRAFT(), cycle_day: next <= 365 ? next : 1 })
+    let next = todayCycle
+    let guard = 0
+    while (used.has(next) && guard < 365) {
+      next = next >= 365 ? 1 : next + 1
+      guard += 1
+    }
+    setDraft({ ...EMPTY_DRAFT(), cycle_day: next })
   }
 
   const openEdit = (row: DailyQuestionRow) => {
@@ -167,15 +191,52 @@ export function DailyQuestionsAdminPanel() {
   }
 
   const removeRow = async (row: DailyQuestionRow) => {
-    if (!window.confirm(`Supprimer la question du jour ${row.cycle_day} ?`)) return
-    const { error } = await supabase.from('daily_questions').delete().eq('id', row.id)
-    if (error) {
-      toast({ title: 'Suppression impossible', description: error.message, variant: 'destructive' })
+    const dateLabel = formatCycleDayLong(row.cycle_day)
+    if (
+      !window.confirm(
+        `Supprimer la question du ${dateLabel} ?\nLes questions des jours suivants seront décalées pour ne pas laisser de trou.`
+      )
+    ) {
       return
     }
-    if (draft?.id === row.id) setDraft(null)
-    toast({ title: 'Question supprimée' })
-    await load()
+
+    setSaving(true)
+    try {
+      const deletedDay = row.cycle_day
+      const { error } = await supabase.from('daily_questions').delete().eq('id', row.id)
+      if (error) throw error
+
+      // Referme le trou : chaque jour > deletedDay passe à cycle_day - 1 (du plus petit au plus grand).
+      const toShift = rows
+        .filter((r) => r.id !== row.id && r.cycle_day > deletedDay)
+        .sort((a, b) => a.cycle_day - b.cycle_day)
+
+      for (const item of toShift) {
+        const { error: shiftError } = await supabase
+          .from('daily_questions')
+          .update({ cycle_day: item.cycle_day - 1 })
+          .eq('id', item.id)
+        if (shiftError) throw shiftError
+      }
+
+      if (draft?.id === row.id) setDraft(null)
+      toast({
+        title: 'Question supprimée',
+        description:
+          toShift.length > 0
+            ? `${toShift.length} question(s) décalée(s) pour combler le trou.`
+            : undefined,
+      })
+      await load()
+    } catch (err) {
+      toast({
+        title: 'Suppression impossible',
+        description: err instanceof Error ? err.message : 'Erreur Supabase',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const filledOptions = draft
@@ -199,7 +260,10 @@ export function DailyQuestionsAdminPanel() {
             </p>
             <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
               {row.options.map((opt, i) => (
-                <li key={`${row.id}-${i}`} className={i === row.correct_index ? 'text-foreground' : ''}>
+                <li
+                  key={`${row.id}-${i}`}
+                  className={i === row.correct_index ? 'text-foreground' : ''}
+                >
                   {opt}
                 </li>
               ))}
@@ -216,9 +280,7 @@ export function DailyQuestionsAdminPanel() {
             </Button>
           </div>
         ) : (
-          <p className="text-muted-foreground">
-            Aucune question pour le cycle_day {day.cycleDay}.
-          </p>
+          <p className="text-muted-foreground">Aucune question prévue pour ce jour.</p>
         ),
       }
     })
@@ -230,7 +292,8 @@ export function DailyQuestionsAdminPanel() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Une question par `cycle_day` (1–365). Modifier le texte, les options et la bonne réponse.
+          Une question par date. La liste commence par aujourd’hui. En cas de suppression, les jours
+          suivants sont décalés pour éviter un trou.
         </p>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="h-4 w-4" />
@@ -242,7 +305,7 @@ export function DailyQuestionsAdminPanel() {
         <Card>
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle>Liste ({rows.length})</CardTitle>
-            <CardDescription>Filtre par jour, catégorie ou libellé.</CardDescription>
+            <CardDescription>Triée à partir d’aujourd’hui — filtre par date, catégorie ou texte.</CardDescription>
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -262,37 +325,59 @@ export function DailyQuestionsAdminPanel() {
               </p>
             ) : (
               <ul className="divide-y">
-                {filtered.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">J{row.cycle_day}</Badge>
-                        <Badge variant="secondary">{row.category}</Badge>
+                {filtered.map((row) => {
+                  const isToday = row.cycle_day === todayCycle
+                  return (
+                    <li
+                      key={row.id}
+                      className={
+                        isToday
+                          ? 'flex flex-col gap-3 bg-[#E94C16]/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                          : 'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                      }
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={
+                              isToday
+                                ? 'border-[#E94C16]/40 bg-[#E94C16]/10 capitalize text-[#E94C16]'
+                                : 'capitalize'
+                            }
+                          >
+                            {formatCycleDayShort(row.cycle_day)}
+                          </Badge>
+                          {isToday ? (
+                            <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">
+                              Aujourd’hui
+                            </Badge>
+                          ) : null}
+                          <Badge variant="secondary">{row.category}</Badge>
+                        </div>
+                        <p className="line-clamp-2 text-sm font-medium">{row.question}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          ✓ {row.options[row.correct_index] || '—'}
+                        </p>
                       </div>
-                      <p className="line-clamp-2 text-sm font-medium">{row.question}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        ✓ {row.options[row.correct_index] || '—'}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(row)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => void removeRow(row)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => openEdit(row)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="text-destructive"
+                          disabled={saving}
+                          onClick={() => void removeRow(row)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>
@@ -304,7 +389,9 @@ export function DailyQuestionsAdminPanel() {
               <div>
                 <CardTitle>{draft?.id ? 'Modifier la question' : 'Nouvelle question'}</CardTitle>
                 <CardDescription>
-                  {draft ? 'Enregistrement dans `daily_questions`.' : 'Sélectionne ou crée une question.'}
+                  {draft
+                    ? `Date : ${formatCycleDayLong(draft.cycle_day)}`
+                    : 'Sélectionne ou crée une question.'}
                 </CardDescription>
               </div>
               {draft ? (
@@ -322,15 +409,15 @@ export function DailyQuestionsAdminPanel() {
             ) : (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Cycle day (1–365)">
+                  <Field label="Date du jour">
                     <Input
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={draft.cycle_day}
-                      onChange={(e) =>
-                        setDraft({ ...draft, cycle_day: Number(e.target.value) || 1 })
-                      }
+                      type="date"
+                      value={cycleDayToIso(draft.cycle_day)}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (!value) return
+                        setDraft({ ...draft, cycle_day: getCycleDay(value) })
+                      }}
                     />
                   </Field>
                   <Field label="Catégorie">

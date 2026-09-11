@@ -24,12 +24,14 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
 import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import { useToast } from '@/hooks/use-toast'
+import { formatNextRotationPlayLabel } from '@/lib/admin-list-dates'
 import {
   getUpcomingPreviewDays,
   pickByCycleRotation,
 } from '@/lib/admin-upcoming-preview'
+import { todayIsoLocal } from '@/lib/date-local'
 import { parseJsonStringArray } from '@/lib/guess-platform'
 import supabase from '@/utils/supabase/client'
 
@@ -91,9 +93,6 @@ function validateDraft(draft: DraftQuestion): string | null {
   if (!options.includes(draft.correct_answer.trim())) {
     return 'La bonne réponse doit figurer dans les propositions.'
   }
-  if (!Number.isFinite(draft.sort_order) || draft.sort_order < 1) {
-    return 'L’ordre d’affichage doit être un entier ≥ 1.'
-  }
   return null
 }
 
@@ -134,16 +133,44 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
     void load()
   }, [load])
 
+  const todayIso = useMemo(() => todayIsoLocal(), [])
+
+  const activeOrdered = useMemo(
+    () => rows.filter((row) => row.is_active).sort((a, b) => a.sort_order - b.sort_order),
+    [rows]
+  )
+
+  const rotationIndexById = useMemo(() => {
+    const map = new Map<string, number>()
+    activeOrdered.forEach((row, index) => map.set(row.id, index))
+    return map
+  }, [activeOrdered])
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) =>
-      [row.correct_answer, row.category, row.difficulty, row.title, ...row.clues]
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    )
-  }, [filter, rows])
+    const base = q
+      ? rows.filter((row) =>
+          [row.correct_answer, row.category, row.difficulty, row.title, ...row.clues]
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
+        )
+      : rows
+
+    return [...base].sort((a, b) => {
+      const aActive = a.is_active ? 0 : 1
+      const bActive = b.is_active ? 0 : 1
+      if (aActive !== bActive) return aActive - bActive
+      const aIdx = rotationIndexById.get(a.id)
+      const bIdx = rotationIndexById.get(b.id)
+      const aNext = aIdx != null ? formatNextRotationPlayLabel(aIdx, activeOrdered.length, todayIso) : null
+      const bNext = bIdx != null ? formatNextRotationPlayLabel(bIdx, activeOrdered.length, todayIso) : null
+      if (aNext && bNext) return aNext.iso.localeCompare(bNext.iso)
+      if (aNext) return -1
+      if (bNext) return 1
+      return a.sort_order - b.sort_order
+    })
+  }, [filter, rows, rotationIndexById, activeOrdered.length, todayIso])
 
   const openCreate = () => {
     const nextOrder = rows.reduce((max, row) => Math.max(max, row.sort_order), 0) + 1
@@ -222,32 +249,59 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
   const removeRow = async (row: GuessQuestionRow) => {
     if (
       !window.confirm(
-        `Supprimer la devinette « ${row.correct_answer} » (#${row.sort_order}) ? Les réponses liées seront aussi supprimées.`
+        `Supprimer la devinette « ${row.correct_answer} » ?\nLes suivantes seront décalées pour ne pas laisser de trou dans la rotation. Les réponses liées seront aussi supprimées.`
       )
     ) {
       return
     }
-    const { error } = await supabase.from('guess_platform_questions').delete().eq('id', row.id)
-    if (error) {
-      toast({ title: 'Suppression impossible', description: error.message, variant: 'destructive' })
-      return
+    setSaving(true)
+    try {
+      const deletedOrder = row.sort_order
+      const { error } = await supabase.from('guess_platform_questions').delete().eq('id', row.id)
+      if (error) throw error
+
+      const toShift = rows
+        .filter((r) => r.id !== row.id && r.sort_order > deletedOrder)
+        .sort((a, b) => a.sort_order - b.sort_order)
+
+      for (const item of toShift) {
+        const { error: shiftError } = await supabase
+          .from('guess_platform_questions')
+          .update({ sort_order: item.sort_order - 1 })
+          .eq('id', item.id)
+        if (shiftError) throw shiftError
+      }
+
+      if (draft?.id === row.id) setDraft(null)
+      toast({
+        title: 'Devinette supprimée',
+        description:
+          toShift.length > 0
+            ? `${toShift.length} devinette(s) décalée(s) dans la rotation.`
+            : undefined,
+      })
+      await load()
+    } catch (err) {
+      toast({
+        title: 'Suppression impossible',
+        description: err instanceof Error ? err.message : 'Erreur Supabase',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
     }
-    if (draft?.id === row.id) setDraft(null)
-    toast({ title: 'Devinette supprimée' })
-    await load()
   }
 
   const upcomingSlots = useMemo(() => {
-    const active = rows.filter((row) => row.is_active)
     return getUpcomingPreviewDays(2).map((day) => {
-      const row = pickByCycleRotation(active, day.cycleDay)
+      const row = pickByCycleRotation(activeOrdered, day.cycleDay)
       return {
         day,
         content: row ? (
           <div className="space-y-1.5">
             <p className="font-medium">{row.title || row.correct_answer}</p>
             <p className="text-xs text-muted-foreground">
-              #{row.sort_order} · {row.difficulty} · réponse :{' '}
+              {row.difficulty} · réponse :{' '}
               <strong className="text-foreground">{row.correct_answer}</strong>
             </p>
             <ol className="list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
@@ -271,7 +325,7 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
         ),
       }
     })
-  }, [rows])
+  }, [activeOrdered])
 
   const body = (
     <div className="space-y-4">
@@ -293,7 +347,8 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Gérez les devinettes du mini-jeu Home (réponses, indices, explications).
+            Liste triée à partir d’aujourd’hui. À la suppression, la rotation est recomposée sans
+            trou.
           </p>
         )}
         <Button onClick={openCreate} className="shrink-0">
@@ -307,7 +362,7 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
             <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
               <CardTitle>Liste ({rows.length})</CardTitle>
               <CardDescription>
-                L’ordre (`sort_order`) détermine la rotation quotidienne.
+                Date = prochaine diffusion. Aujourd’hui en tête.
               </CardDescription>
               <Input
                 value={filter}
@@ -328,21 +383,50 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
                 </p>
               ) : (
                 <ul className="divide-y">
-                  {filtered.map((row) => (
+                  {filtered.map((row) => {
+                    const idx = rotationIndexById.get(row.id)
+                    const next =
+                      idx != null
+                        ? formatNextRotationPlayLabel(idx, activeOrdered.length, todayIso)
+                        : null
+                    const isToday = Boolean(next?.isToday)
+                    return (
                     <li
                       key={row.id}
-                      className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      className={
+                        isToday
+                          ? 'flex flex-col gap-3 bg-[#E94C16]/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                          : 'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                      }
                     >
                       <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs text-muted-foreground">#{row.sort_order}</span>
+                          {next ? (
+                            <Badge
+                              variant="outline"
+                              className={
+                                isToday
+                                  ? 'border-[#E94C16]/40 bg-[#E94C16]/10 capitalize text-[#E94C16]'
+                                  : 'capitalize'
+                              }
+                            >
+                              {next.shortLabel}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Inactif</Badge>
+                          )}
+                          {isToday ? (
+                            <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">
+                              Aujourd’hui
+                            </Badge>
+                          ) : null}
                           <p className="truncate font-medium">{row.correct_answer}</p>
                           <Badge variant="outline" className="capitalize">
                             {row.difficulty}
                           </Badge>
-                          <Badge variant={row.is_active ? 'default' : 'secondary'}>
-                            {row.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
+                          {!row.is_active ? (
+                            <Badge variant="secondary">Inactive</Badge>
+                          ) : null}
                         </div>
                         <p className="truncate text-xs text-muted-foreground">
                           {row.category} · {row.clues[0]}
@@ -364,13 +448,15 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
                           variant="outline"
                           size="icon"
                           className="text-destructive"
+                          disabled={saving}
                           onClick={() => void removeRow(row)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </li>
-                  ))}
+                    )
+                  })}
                 </ul>
               )}
             </CardContent>
@@ -402,16 +488,6 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
               ) : (
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Ordre (sort_order)">
-                      <Input
-                        type="number"
-                        min={1}
-                        value={draft.sort_order}
-                        onChange={(e) =>
-                          setDraft({ ...draft, sort_order: Number(e.target.value) || 1 })
-                        }
-                      />
-                    </Field>
                     <Field label="Difficulté">
                       <Select
                         value={draft.difficulty}
@@ -429,20 +505,19 @@ export function GuessPlatformAdminPanel({ embedded = false }: { embedded?: boole
                         </SelectContent>
                       </Select>
                     </Field>
+                    <Field label="Catégorie">
+                      <Input
+                        value={draft.category}
+                        onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                        placeholder="Social, Google, Audio…"
+                      />
+                    </Field>
                   </div>
 
                   <Field label="Titre">
                     <Input
                       value={draft.title}
                       onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                    />
-                  </Field>
-
-                  <Field label="Catégorie">
-                    <Input
-                      value={draft.category}
-                      onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                      placeholder="Social, Google, Audio…"
                     />
                   </Field>
 

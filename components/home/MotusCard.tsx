@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Type } from 'lucide-react'
+import { Loader2, Trophy, Type } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -33,6 +33,28 @@ type MotusCardProps = {
   onStatsChange?: () => void
 }
 
+type MotusBestWinner = {
+  user_id: string
+  first_name: string
+}
+
+type MotusBestOfDay = {
+  attempts: number | null
+  winners: MotusBestWinner[]
+}
+
+function formatMotusBestLabel(best: MotusBestOfDay): string | null {
+  if (!best.attempts || best.winners.length === 0) return null
+  const names = best.winners.map((w) => w.first_name).filter(Boolean)
+  if (names.length === 0) return null
+  const attemptsLabel = `${best.attempts} essai${best.attempts > 1 ? 's' : ''}`
+  if (names.length === 1) return `${names[0]} a réussi en ${attemptsLabel}`
+  if (names.length === 2) return `${names[0]} et ${names[1]} ont réussi en ${attemptsLabel}`
+  const head = names.slice(0, -1).join(', ')
+  const last = names[names.length - 1]
+  return `${head} et ${last} ont réussi en ${attemptsLabel}`
+}
+
 export function MotusCard({ onStatsChange }: MotusCardProps) {
   const cycleDay = useMemo(() => getCycleDay(), [])
   const [open, setOpen] = useState(false)
@@ -42,7 +64,30 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
   const [question, setQuestion] = useState<MotusQuestion | null>(null)
   const [progress, setProgress] = useState<MotusProgress | null>(null)
   const [draft, setDraft] = useState('')
+  const [bestOfDay, setBestOfDay] = useState<MotusBestOfDay | null>(null)
   const focusRef = useRef<HTMLDivElement>(null)
+
+  const loadBestOfDay = useCallback(async () => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('get_motus_best_of_day', {
+        p_cycle_day: cycleDay,
+      })
+      if (rpcError || !data || typeof data !== 'object') {
+        setBestOfDay(null)
+        return
+      }
+      const payload = data as {
+        attempts?: number | null
+        winners?: MotusBestWinner[]
+      }
+      setBestOfDay({
+        attempts: typeof payload.attempts === 'number' ? payload.attempts : null,
+        winners: Array.isArray(payload.winners) ? payload.winners : [],
+      })
+    } catch {
+      setBestOfDay(null)
+    }
+  }, [cycleDay])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -74,12 +119,13 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
         setProgress(null)
         setError('Aucun mot actif pour aujourd’hui.')
       }
+      await loadBestOfDay()
     } catch {
       setError('Impossible de charger le Mot du jour.')
     } finally {
       setLoading(false)
     }
-  }, [cycleDay])
+  }, [cycleDay, loadBestOfDay])
 
   useEffect(() => {
     void load()
@@ -95,6 +141,10 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
   const finished = Boolean(progress?.finished)
   const solved = Boolean(progress?.solved)
   const currentRowIndex = progress?.guesses.length ?? 0
+  const bestLabel = useMemo(
+    () => formatMotusBestLabel(bestOfDay || { attempts: null, winners: [] }),
+    [bestOfDay]
+  )
 
   const rows = useMemo(() => {
     if (!question) return []
@@ -144,13 +194,14 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
         setDraft('')
         notifyHomePlayAttentionChanged()
         onStatsChange?.()
+        void loadBestOfDay()
       } else {
         setDraft(question.first_letter)
       }
     } finally {
       setSubmitting(false)
     }
-  }, [question, finished, submitting, draft, onStatsChange])
+  }, [question, finished, submitting, draft, onStatsChange, loadBestOfDay])
 
   const typeLetter = useCallback(
     (raw: string) => {
@@ -250,6 +301,12 @@ export function MotusCard({ onStatsChange }: MotusCardProps) {
                       : 'Pas encore joué aujourd’hui'}
                   </p>
                 )}
+                {bestLabel ? (
+                  <p className="flex items-start gap-1.5 text-[11px] leading-snug text-amber-700">
+                    <Trophy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+                    <span>{bestLabel}</span>
+                  </p>
+                ) : null}
               </div>
               <Button
                 type="button"

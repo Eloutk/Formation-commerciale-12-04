@@ -7,8 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
 import { UpcomingAdminPreview } from '@/components/mon-espace/UpcomingAdminPreview'
+import { useToast } from '@/hooks/use-toast'
+import {
+  formatMonthDayLong,
+  formatMonthDayShort,
+  isoToMonthDay,
+  monthDaySortKeyFromToday,
+  monthDayToIso,
+} from '@/lib/admin-list-dates'
 import { getUpcomingPreviewDays } from '@/lib/admin-upcoming-preview'
 import supabase from '@/utils/supabase/client'
 
@@ -33,6 +40,9 @@ export function BirthdaysAdminPanel() {
   const [rows, setRows] = useState<BirthdayRow[]>([])
   const [filter, setFilter] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
+  const today = useMemo(() => new Date(), [])
+  const todayMonth = today.getMonth() + 1
+  const todayDay = today.getDate()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -70,11 +80,23 @@ export function BirthdaysAdminPanel() {
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) =>
-      [row.name, `${row.day}/${row.month}`].join(' ').toLowerCase().includes(q)
-    )
-  }, [filter, rows])
+    const base = q
+      ? rows.filter((row) =>
+          [row.name, formatMonthDayShort(row.month, row.day), formatMonthDayLong(row.month, row.day)]
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
+        )
+      : rows
+
+    return [...base].sort((a, b) => {
+      const byDate =
+        monthDaySortKeyFromToday(a.month, a.day, today) -
+        monthDaySortKeyFromToday(b.month, b.day, today)
+      if (byDate !== 0) return byDate
+      return a.name.localeCompare(b.name, 'fr')
+    })
+  }, [filter, rows, today])
 
   const saveDraft = async () => {
     if (!draft) return
@@ -116,7 +138,13 @@ export function BirthdaysAdminPanel() {
   }
 
   const removeRow = async (row: BirthdayRow) => {
-    if (!window.confirm(`Supprimer l’anniversaire de ${row.name} ?`)) return
+    if (
+      !window.confirm(
+        `Supprimer l’anniversaire de ${row.name} (${formatMonthDayLong(row.month, row.day)}) ?`
+      )
+    ) {
+      return
+    }
     const { error } = await supabase.from('birthdays').delete().eq('id', row.id)
     if (error) {
       toast({ title: 'Suppression impossible', description: error.message, variant: 'destructive' })
@@ -170,7 +198,7 @@ export function BirthdaysAdminPanel() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Ajoute quelqu’un (prénom / nom + date) pour l’afficher sur la Home le jour J.
+          Liste triée à partir d’aujourd’hui. Prénom / nom + date pour l’affichage Home.
         </p>
         <Button onClick={() => setDraft(EMPTY_DRAFT())} className="shrink-0">
           <Plus className="h-4 w-4" />
@@ -182,7 +210,7 @@ export function BirthdaysAdminPanel() {
         <Card>
           <CardHeader className="border-b bg-gradient-to-r from-[#E94C16]/[0.06] to-transparent">
             <CardTitle>Liste ({rows.length})</CardTitle>
-            <CardDescription>Anniversaires récurrents chaque année.</CardDescription>
+            <CardDescription>Aujourd’hui en tête, puis les prochaines dates.</CardDescription>
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -202,33 +230,54 @@ export function BirthdaysAdminPanel() {
               </p>
             ) : (
               <ul className="divide-y">
-                {filtered.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-1">
-                      <p className="font-medium">{row.name}</p>
-                      <Badge variant="outline">
-                        {String(row.day).padStart(2, '0')}/{String(row.month).padStart(2, '0')}
-                      </Badge>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setDraft({ ...row })}>
-                        <Pencil className="h-3.5 w-3.5" />
-                        Modifier
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="text-destructive"
-                        onClick={() => void removeRow(row)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                ))}
+                {filtered.map((row) => {
+                  const isToday = row.month === todayMonth && row.day === todayDay
+                  return (
+                    <li
+                      key={row.id}
+                      className={
+                        isToday
+                          ? 'flex flex-col gap-3 bg-[#E94C16]/[0.04] px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                          : 'flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'
+                      }
+                    >
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={
+                              isToday
+                                ? 'border-[#E94C16]/40 bg-[#E94C16]/10 capitalize text-[#E94C16]'
+                                : 'capitalize'
+                            }
+                          >
+                            {formatMonthDayShort(row.month, row.day)}
+                          </Badge>
+                          {isToday ? (
+                            <Badge className="bg-[#E94C16] text-white hover:bg-[#E94C16]">
+                              Aujourd’hui
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <p className="font-medium">{row.name}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setDraft({ ...row })}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Modifier
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() => void removeRow(row)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </CardContent>
@@ -239,7 +288,11 @@ export function BirthdaysAdminPanel() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>{draft?.id ? 'Modifier' : 'Ajouter quelqu’un'}</CardTitle>
-                <CardDescription>Table `birthdays`.</CardDescription>
+                <CardDescription>
+                  {draft
+                    ? formatMonthDayLong(draft.month, draft.day)
+                    : 'Nom + date d’anniversaire.'}
+                </CardDescription>
               </div>
               {draft ? (
                 <Button variant="ghost" size="icon" onClick={() => setDraft(null)}>
@@ -262,26 +315,17 @@ export function BirthdaysAdminPanel() {
                     placeholder="Prénom Nom"
                   />
                 </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Jour">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={31}
-                      value={draft.day}
-                      onChange={(e) => setDraft({ ...draft, day: Number(e.target.value) || 1 })}
-                    />
-                  </Field>
-                  <Field label="Mois">
-                    <Input
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={draft.month}
-                      onChange={(e) => setDraft({ ...draft, month: Number(e.target.value) || 1 })}
-                    />
-                  </Field>
-                </div>
+                <Field label="Date">
+                  <Input
+                    type="date"
+                    value={monthDayToIso(draft.month, draft.day)}
+                    onChange={(e) => {
+                      if (!e.target.value) return
+                      const { month, day } = isoToMonthDay(e.target.value)
+                      setDraft({ ...draft, month, day })
+                    }}
+                  />
+                </Field>
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={() => void saveDraft()} disabled={saving}>
                     {saving ? (
