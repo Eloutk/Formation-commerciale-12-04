@@ -32,65 +32,21 @@ export function GamificationHelpDialog({
           Expliquer le système
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Système de points</DialogTitle>
-          <DialogDescription>
-            Comment gagner des points sur la Home Link Academy.
-          </DialogDescription>
+          <DialogDescription>Les points s’accumulent, rien n’est remis à zéro.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 text-sm leading-relaxed text-foreground">
-          <section className="space-y-1.5 rounded-md border border-border/70 bg-[#FAFAFA] p-3">
-            <p className="font-semibold text-[#E94C16]">Total cumulatif</p>
-            <p className="text-muted-foreground">
-              Les points <strong className="text-foreground">s’ajoutent</strong> jour après jour.
-              Si tu as 2 pts hier et que tu en gagnes 1 aujourd’hui, ton total passe à{' '}
-              <strong className="text-foreground">3</strong> — rien n’est remis à zéro.
-            </p>
-          </section>
-
-          <section className="space-y-1.5 rounded-md border border-border/70 bg-[#FAFAFA] p-3">
-            <p className="font-semibold text-[#E94C16]">Chaque jour</p>
-            <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-              <li>
-                <strong className="text-foreground">Question du jour</strong> : +1 point en
-                répondant
-              </li>
-              <li>
-                <strong className="text-foreground">Devine la plateforme</strong> : +1 point en
-                jouant (jours ouvrés)
-              </li>
-              <li>
-                <strong className="text-foreground">Mot du jour</strong> : +1 point en terminant la
-                partie (gagnée ou perdue)
-              </li>
-            </ul>
-          </section>
-
-          <section className="space-y-1.5 rounded-md border border-border/70 bg-[#FAFAFA] p-3">
-            <p className="font-semibold text-[#E94C16]">Bonus de régularité</p>
-            <p className="text-muted-foreground">
-              Si tu joues plusieurs <strong className="text-foreground">jours ouvrés d’affilée</strong>{' '}
-              sans interruption, tu gagnes <strong className="text-foreground">+1 point</strong> de
-              série le jour où tu continues.
-            </p>
-            <p className="text-muted-foreground">
-              Les <strong className="text-foreground">week-ends</strong> et{' '}
-              <strong className="text-foreground">jours fériés</strong> français ne cassent pas ta
-              série (et Devine la plateforme est en pause ces jours-là).
-            </p>
-          </section>
-
-          <section className="space-y-1.5 rounded-md border border-[#E94C16]/20 bg-[#E94C16]/[0.04] p-3">
-            <p className="font-semibold">Exemple</p>
-            <p className="text-muted-foreground">
-              Lundi : question → total <strong className="text-foreground">1</strong>
-              <br />
-              Mardi : question + plateforme (+ série) →{' '}
-              <strong className="text-foreground">1 + 1 + 1 = 3</strong> au total
-            </p>
-          </section>
-        </div>
+        <ul className="space-y-2 text-sm text-muted-foreground">
+          <li>
+            <strong className="text-foreground">+1</strong> par jeu joué (question, plateforme,
+            mot)
+          </li>
+          <li>
+            <strong className="text-foreground">+1</strong> bonus si tu enchaînes les jours ouvrés
+          </li>
+          <li>Week-ends et fériés ne cassent pas la série</li>
+        </ul>
       </DialogContent>
     </Dialog>
   )
