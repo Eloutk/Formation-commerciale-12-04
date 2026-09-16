@@ -169,7 +169,7 @@ export function GuessPlatformCard({
         ) : error ? (
           <p className={homeCard.bodyMuted}>{error}</p>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.7fr)]">
             <section className="flex min-h-0 flex-col gap-1.5 overflow-hidden rounded-md border border-border/70 bg-[#FAFAFA] p-2.5">
               <div className="flex items-center justify-between gap-2">
                 <p className={cn(homeCard.sectionTitle, '!mb-0')}>
@@ -196,7 +196,7 @@ export function GuessPlatformCard({
                   <li
                     key={`${index}-${clue.slice(0, 12)}`}
                     className={cn(
-                      'rounded-md border border-border/60 bg-card px-2.5 py-2 text-xs leading-snug',
+                      'rounded-md border border-border/60 bg-card px-2.5 py-2 text-xs leading-snug sm:text-[13px]',
                       hintAnimating &&
                         index === hintsShown - 1 &&
                         'border-[#E94C16]/40 bg-[#E94C16]/5'
@@ -213,7 +213,7 @@ export function GuessPlatformCard({
 
             <section className="flex min-h-0 flex-col overflow-hidden">
               {!result ? (
-                <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
+                <div className="grid min-h-0 flex-1 grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-1">
                   {options.map((option) => (
                     <Button
                       key={option}
@@ -222,7 +222,7 @@ export function GuessPlatformCard({
                       disabled={submitting}
                       className={cn(
                         homeCard.button,
-                        'h-full min-h-[3.25rem] whitespace-normal px-3 py-3 text-sm font-medium'
+                        'h-auto min-h-0 whitespace-normal px-2 py-2 text-[11px] font-medium leading-snug sm:text-xs'
                       )}
                       onClick={() => void submit(option)}
                     >
@@ -245,22 +245,22 @@ function ResultBlock({ result }: { result: GuessPlatformResult }) {
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col justify-between gap-2 overflow-hidden rounded-md border p-3',
+        'flex h-full min-h-0 flex-col gap-1.5 overflow-hidden rounded-md border p-2',
         result.is_correct ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'
       )}
     >
-      <div className="space-y-2">
-        <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
-          {result.is_correct ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-          ) : (
-            <XCircle className="h-4 w-4 shrink-0 text-red-600" />
-          )}
-          {result.is_correct ? 'Bonne réponse !' : 'Presque…'}{' '}
-          <span className="font-semibold">{result.correct_answer}</span>
-        </p>
-        <p className="text-xs leading-snug text-foreground sm:text-[13px]">{result.explanation}</p>
-      </div>
+      <p className="flex flex-wrap items-center gap-1 text-xs font-medium">
+        {result.is_correct ? (
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-600" />
+        ) : (
+          <XCircle className="h-3.5 w-3.5 shrink-0 text-red-600" />
+        )}
+        {result.is_correct ? 'Bonne réponse !' : 'Presque…'}{' '}
+        <span className="font-semibold">{result.correct_answer}</span>
+      </p>
+      <p className="min-h-0 flex-1 overflow-y-auto text-[11px] leading-snug text-foreground">
+        {result.explanation}
+      </p>
     </div>
   )
 }

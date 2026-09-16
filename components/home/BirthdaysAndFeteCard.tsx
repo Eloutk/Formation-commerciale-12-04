@@ -44,15 +44,15 @@ export function BirthdaysAndFeteCard({
           <p className={homeCard.bodyMuted}>Chargement…</p>
         ) : (
           <>
-            <div className="shrink-0 space-y-1.5">
-              <section className="rounded-md border border-border/70 bg-[#FAFAFA] px-2.5 py-1.5">
-                <p className={cn(homeCard.sectionTitle, '!mb-1')}>Anniversaires</p>
+            <div className="grid shrink-0 grid-cols-2 gap-1.5">
+              <section className="rounded-md border border-border/70 bg-[#FAFAFA] px-2 py-1.5">
+                <p className={cn(homeCard.sectionTitle, '!mb-0.5 !text-[11px]')}>Anniversaires</p>
                 {todayBirthdays.length > 0 ? (
                   <ul className="flex flex-wrap gap-1">
                     {todayBirthdays.map((item) => (
                       <li
                         key={`${item.name}-${item.month}-${item.day}`}
-                        className="home-birthday-today rounded border border-[#E94C16]/40 bg-[#E94C16]/10 px-2 py-0.5 text-xs font-semibold text-[#E94C16]"
+                        className="home-birthday-today rounded border border-[#E94C16]/40 bg-[#E94C16]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#E94C16]"
                       >
                         {item.name}
                       </li>
@@ -66,7 +66,7 @@ export function BirthdaysAndFeteCard({
                     {laterBirthdays.map((item) => (
                       <li
                         key={`${item.name}-${item.month}-${item.day}`}
-                        className="flex items-center justify-between gap-2 text-[11px] leading-tight"
+                        className="flex items-center justify-between gap-1 text-[10px] leading-tight"
                       >
                         <span className="truncate font-medium">{item.name}</span>
                         <span className="shrink-0 text-muted-foreground">
@@ -78,13 +78,13 @@ export function BirthdaysAndFeteCard({
                 ) : null}
               </section>
 
-              <section className="rounded-md border border-[#E94C16]/20 bg-[#E94C16]/[0.04] px-2.5 py-1.5">
-                <p className={cn(homeCard.sectionTitle, '!mb-0.5')}>
-                  <PartyPopper className={homeCard.sectionIcon} />
+              <section className="rounded-md border border-[#E94C16]/20 bg-[#E94C16]/[0.04] px-2 py-1.5">
+                <p className={cn(homeCard.sectionTitle, '!mb-0.5 !text-[11px]')}>
+                  <PartyPopper className="h-3 w-3 shrink-0 text-[#E94C16]" />
                   Fête du jour
                 </p>
                 {todayNames.length > 0 ? (
-                  <p className="text-xs font-medium leading-snug">
+                  <p className="text-[11px] font-medium leading-snug">
                     On fête {formatFeteNames(todayNames)}.
                   </p>
                 ) : (

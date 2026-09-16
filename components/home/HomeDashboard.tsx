@@ -248,8 +248,8 @@ export function HomeDashboard() {
           statsLoading={statsLoading}
         />
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-rows-[minmax(0,1.2fr)_minmax(0,1fr)]">
-          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-rows-[minmax(0,1.2fr)_minmax(0,0.85fr)]">
+          <div className="grid min-h-0 gap-2 lg:grid-cols-2">
             <div className="min-h-0">
               <DailyQuestionCard
                 question={question}
@@ -273,7 +273,7 @@ export function HomeDashboard() {
             </div>
           </div>
 
-          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]">
+          <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.28fr)_minmax(0,0.72fr)]">
             <div className="min-h-0">
               <GuessPlatformCard onStatsChange={loadGameStats} />
             </div>
