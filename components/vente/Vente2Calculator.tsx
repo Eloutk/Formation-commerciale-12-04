@@ -2267,7 +2267,7 @@ function StrategyPdfCampaignBrief({
                   <StrategyPdfBriefRow label="Email" value={brief?.contactEmail} />
                 </>
               ) : (
-                <StrategyPdfBriefRow label="Contact" value="Comme d’habitude" />
+                <StrategyPdfBriefRow label="Contact" value="Idem personne signataire" />
               )}
               {brief?.freeComment?.trim() ? (
                 <View style={styles.pdfBriefField}>
