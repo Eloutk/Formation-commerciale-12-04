@@ -2117,11 +2117,15 @@ export interface CampaignBrief {
   billingAddress?: string
   siret?: string
   vatNumber?: string
+  /** Nouveau client : modalités de paiement. */
+  paymentTerms?: string
   signerFirstName?: string
   signerLastName?: string
   signerEmail?: string
   /** Nouveau client : contact technique distinct du signataire. */
   newClientTechnicalContactDifferent?: boolean
+  /** Nouveau client : commentaire libre. */
+  freeComment?: string
 }
 
 function hasCampaignBriefContent(brief?: CampaignBrief): boolean {
@@ -2140,9 +2144,11 @@ function hasCampaignBriefContent(brief?: CampaignBrief): boolean {
       brief.billingAddress?.trim() ||
       brief.siret?.trim() ||
       brief.vatNumber?.trim() ||
+      brief.paymentTerms?.trim() ||
       brief.signerFirstName?.trim() ||
       brief.signerLastName?.trim() ||
-      brief.signerEmail?.trim(),
+      brief.signerEmail?.trim() ||
+      brief.freeComment?.trim(),
   )
 }
 
@@ -2240,6 +2246,7 @@ function StrategyPdfCampaignBrief({
               <StrategyPdfBriefRow label="Adresse de facturation" value={brief?.billingAddress} />
               <StrategyPdfBriefRow label="SIRET" value={brief?.siret} />
               <StrategyPdfBriefRow label="Numéro de TVA" value={brief?.vatNumber} />
+              <StrategyPdfBriefRow label="Modalités de paiement" value={brief?.paymentTerms} />
 
               {(signerName || brief?.signerEmail?.trim()) && (
                 <>
@@ -2262,6 +2269,16 @@ function StrategyPdfCampaignBrief({
               ) : (
                 <StrategyPdfBriefRow label="Contact" value="Comme d’habitude" />
               )}
+              {brief?.freeComment?.trim() ? (
+                <View style={styles.pdfBriefField}>
+                  <Text style={styles.pdfBriefFieldLabel} wrap>
+                    Commentaire
+                  </Text>
+                  <Text style={styles.pdfBriefFieldValue} wrap>
+                    {brief.freeComment.trim()}
+                  </Text>
+                </View>
+              ) : null}
             </>
           ) : (
             <>
@@ -2782,10 +2799,12 @@ export function Vente2Calculator({
   const [billingAddress, setBillingAddress] = useState('')
   const [siret, setSiret] = useState('')
   const [vatNumber, setVatNumber] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
   const [signerFirstName, setSignerFirstName] = useState('')
   const [signerLastName, setSignerLastName] = useState('')
   const [signerEmail, setSignerEmail] = useState('')
   const [newClientTechnicalContactDifferent, setNewClientTechnicalContactDifferent] = useState(false)
+  const [freeComment, setFreeComment] = useState('')
   /** Le brief (descriptif + zone + ciblage) est obligatoire pour télécharger le PDF. */
   const briefComplete = Boolean(
     campaignDescription.trim() &&
@@ -3194,10 +3213,12 @@ export function Vente2Calculator({
       setBillingAddress(brief.billingAddress || '')
       setSiret(brief.siret || '')
       setVatNumber(brief.vatNumber || '')
+      setPaymentTerms(brief.paymentTerms || '')
       setSignerFirstName(brief.signerFirstName || '')
       setSignerLastName(brief.signerLastName || '')
       setSignerEmail(brief.signerEmail || '')
       setNewClientTechnicalContactDifferent(Boolean(brief.newClientTechnicalContactDifferent))
+      setFreeComment(brief.freeComment || '')
     }
   }, [])
 
@@ -3219,10 +3240,12 @@ export function Vente2Calculator({
       billingAddress,
       siret,
       vatNumber,
+      paymentTerms,
       signerFirstName,
       signerLastName,
       signerEmail,
       newClientTechnicalContactDifferent,
+      freeComment,
     }
   }, [
     briefType,
@@ -3241,10 +3264,12 @@ export function Vente2Calculator({
     billingAddress,
     siret,
     vatNumber,
+    paymentTerms,
     signerFirstName,
     signerLastName,
     signerEmail,
     newClientTechnicalContactDifferent,
+    freeComment,
   ])
 
   useEffect(() => {
@@ -3902,11 +3927,13 @@ export function Vente2Calculator({
                 billingAddress,
                 siret,
                 vatNumber,
+                paymentTerms: clientType === 'new' ? paymentTerms : undefined,
                 signerFirstName,
                 signerLastName,
                 signerEmail,
                 newClientTechnicalContactDifferent:
                   clientType === 'new' ? newClientTechnicalContactDifferent : undefined,
+                freeComment: clientType === 'new' ? freeComment : undefined,
                 ...(clientType === 'new' && newClientTechnicalContactDifferent
                   ? {
                       contactFirstName,
@@ -7378,6 +7405,17 @@ export function Vente2Calculator({
                       </p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="payment-terms">Modalités de paiement</Label>
+                    <Textarea
+                      id="payment-terms"
+                      placeholder="Ex : 30 jours fin de mois"
+                      value={paymentTerms}
+                      onChange={(e) => setPaymentTerms(e.target.value)}
+                      rows={2}
+                      className="resize-none"
+                    />
+                  </div>
 
                   <div className="space-y-3 rounded-lg border border-dashed border-border bg-background/60 p-3 pt-4">
                     <Label className="flex items-center gap-1.5">
@@ -7471,6 +7509,18 @@ export function Vente2Calculator({
                         </div>
                       </div>
                     ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="new-client-free-comment">Commentaire</Label>
+                    <Textarea
+                      id="new-client-free-comment"
+                      placeholder="Commentaire libre"
+                      value={freeComment}
+                      onChange={(e) => setFreeComment(e.target.value)}
+                      rows={3}
+                      className="resize-none"
+                    />
                   </div>
                 </div>
               )}

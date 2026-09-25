@@ -59,10 +59,14 @@ export type Vente2PdfBriefSnapshot = {
   billingAddress: string
   siret: string
   vatNumber: string
+  /** Nouveau client : modalités de paiement (texte libre). */
+  paymentTerms: string
   signerFirstName: string
   signerLastName: string
   signerEmail: string
   newClientTechnicalContactDifferent: boolean
+  /** Nouveau client : commentaire libre après le contact technique. */
+  freeComment: string
 }
 
 export type Vente2StrategyContent = {
